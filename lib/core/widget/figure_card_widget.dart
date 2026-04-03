@@ -34,7 +34,7 @@ class FigureCardWidget extends StatelessWidget {
     final titleFontSize = isDesktop ? 13.0 : isTablet ? 12.0 : 11.0;
     final valueFontSize = isDesktop ? 22.0 : isTablet ? 20.0 : 16.0;
     final cardPadding = isDesktop ? 16.0 : isTablet ? 14.0 : 12.0;
-    final cardRadius = isDesktop ? 20.0 : isTablet ? 16.0 : 14.0;
+    final cardRadius = isDesktop ? 12.0 : isTablet ? 12.0 : 12.0;
     final iconRadius = isDesktop ? 16.0 : isTablet ? 12.0 : 10.0;
 
     return Container(
@@ -44,13 +44,13 @@ class FigureCardWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(cardRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             spreadRadius: 2,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 2),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             spreadRadius: 0,
             offset: const Offset(0, 1),
