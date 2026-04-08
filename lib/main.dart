@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/theme/light_theme.dart';
-import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
-
-import 'features/customer/presentation/screen/customer_screen.dart';
+import 'core/widget/sidebar/sidebar_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +17,7 @@ class MyApp extends StatelessWidget {
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
-        home: CustomerScreen(),
+        home: SideBar(),
       ),
     );
   }
