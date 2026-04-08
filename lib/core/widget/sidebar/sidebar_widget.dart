@@ -3,7 +3,9 @@ import 'package:jan_ghani_final/features/branch_stock_inventory/presentation/scr
 import 'package:jan_ghani_final/features/cashier_dashboard/presentation/screen/cashier_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/counter/presentation/screen/counter_screen.dart';
 import 'package:jan_ghani_final/features/customer/presentation/screen/all_customer_screen.dart';
+import 'package:jan_ghani_final/features/purchase_invoice/presentation/screens/purchase_order_screen.dart';
 import 'package:jan_ghani_final/features/sale_invoice/presentation/screen/sale_invoice_screen.dart';
+import 'package:jan_ghani_final/features/supplier/presentation/screens/all_supplier_screen/all_supplier_screen.dart';
 import '../../../features/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 import '../../../features/dashboard/presentation/screen/dashboard_screen.dart';
 import '../../../features/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
@@ -81,6 +83,17 @@ class _SideBarState extends State<SideBar> {
       svg: 'assets/images/dolly-flatbed-alt.svg',
       label: 'Assign Stock to My Branch',
       screen: const BranchTransferListScreen(),
+    ),
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Po',
+      screen: const PurchaseOrderScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Supplier',
+      screen: const AllSupplierScreen(),
     ),
   ];
 
