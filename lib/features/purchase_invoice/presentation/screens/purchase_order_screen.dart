@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/purchase_invoice/presentation/provider/purchase_order_provider.dart';
-import 'package:jan_ghani_final/features/purchase_invoice/presentation/screens/new_purchase_order_screen/new_purchase_order_screen.dart';
+import 'package:jan_ghani_final/features/purchase_invoice/presentation/screens/purchase_invoice_screen/purchase_invoice_screen.dart';
 import 'package:jan_ghani_final/features/purchase_invoice/presentation/widgets/purchase_order_widgets.dart';
 
 class PurchaseOrderScreen extends ConsumerStatefulWidget {
@@ -48,7 +48,11 @@ class _PurchaseOrderScreenState
           : Column(
         children: [
           _TopBar(
-            onNewPO: () => NewPurchaseOrderScreen.show(context),
+            onNewPO: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const PurchaseInvoiceScreen(),
+              ),
+            ),
           ),
           Expanded(
             child: SingleChildScrollView(
