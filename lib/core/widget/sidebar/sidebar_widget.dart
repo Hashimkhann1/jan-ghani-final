@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/features/auth/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/auth/presentation/screens/login_screen.dart';
 import 'package:jan_ghani_final/features/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/cashier_dashboard/presentation/screen/cashier_dashboard_screen.dart';
+import 'package:jan_ghani_final/features/category/presentation/screens/all_category_screen.dart';
 import 'package:jan_ghani_final/features/counter/presentation/screen/counter_screen.dart';
 import 'package:jan_ghani_final/features/customer/presentation/screen/all_customer_screen.dart';
 import 'package:jan_ghani_final/features/purchase_invoice/presentation/screens/purchase_order_screen.dart';
 import 'package:jan_ghani_final/features/sale_invoice/presentation/screen/sale_invoice_screen.dart';
 import 'package:jan_ghani_final/features/supplier/presentation/screens/all_supplier_screen/all_supplier_screen.dart';
+import 'package:jan_ghani_final/features/warehouse_dashboard/presentation/screens/warehouse_dashboard_screen.dart';
+import 'package:jan_ghani_final/features/warehouse_expense/presentation/screens/warehouse_expense_screen.dart';
+import 'package:jan_ghani_final/features/warehouse_finance/presentation/screens/warehouse_finance_screen/warehouse_finance_screen.dart';
+import 'package:jan_ghani_final/features/warehouse_user/presentation/screens/user_screen.dart';
 import '../../../features/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 import '../../../features/dashboard/presentation/screen/dashboard_screen.dart';
 import '../../../features/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
@@ -32,52 +40,27 @@ class NavItem {
 }
 
 
-class SideBar extends StatefulWidget {
+class SideBar extends ConsumerStatefulWidget {
   const SideBar({super.key});
 
   @override
-  State<SideBar> createState() => _SideBarState();
+  ConsumerState<SideBar> createState() => _SideBarState();
 }
 
-class _SideBarState extends State<SideBar> {
+class _SideBarState extends ConsumerState<SideBar> {
   int _index = 0;
   bool _settingsOpen = false;
 
-  late final List<NavItem> _items = [
+  late final List<NavItem> _allOthers = [
     NavItem(
       svg: 'assets/images/sale_invoice.svg',
       label: 'Dashboard',
       screen: const DashboardScreen(),
     ),
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
-      label: 'Cashier Dashboard',
-      screen: const CashierDashboardScreen(),
-    ),
-    NavItem(
-      svg: 'assets/images/sale_invoice.svg',
-      label: 'Sale Invoice',
-      screen: const SaleInvoiceScreen(),
-    ),
-    NavItem(
-      svg: 'assets/images/user-bag.svg',
-      label: 'Customer',
-      screen: const AllCustomerScreen(),
-    ),
-    NavItem(
       svg: 'assets/images/dolly-flatbed-alt.svg',
       label: 'Warehouse Stock Inventory',
       screen: const WarehouseStockInventoryScreen(),
-    ),
-    NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
-      label: 'Counter',
-      screen: const AllCounterScreen(),
-    ),
-    NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
-      label: 'Branch Stock Inventory',
-      screen: const BranchStockInventoryScreen(),
     ),
     NavItem(
       svg: 'assets/images/dolly-flatbed-alt.svg',
@@ -95,21 +78,146 @@ class _SideBarState extends State<SideBar> {
       label: 'Supplier',
       screen: const AllSupplierScreen(),
     ),
+
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'Category',
+      screen: const AllCategoryScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'WA Finance',
+      screen: const WarehouseFinanceScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'Expense',
+      screen: const WarehouseExpenseScreen(),
+    ),
+
   ];
+
+  // data entry
+  late final List<NavItem> _dataEntry = [
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Warehouse Stock Inventory',
+      screen: const WarehouseStockInventoryScreen(),
+    ),
+
+
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Supplier',
+      screen: const AllSupplierScreen(),
+    ),
+
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'Category',
+      screen: const AllCategoryScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'WA Finance',
+      screen: const WarehouseFinanceScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'Expense',
+      screen: const WarehouseExpenseScreen(),
+    ),
+
+  ];
+
+  // warehouse manager
+  late final List<NavItem> _warehouseManager = [
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'Dashboard',
+      screen: const WarehouseDashboardScreen(),
+    ),
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Warehouse Stock Inventory',
+      screen: const WarehouseStockInventoryScreen(),
+    ),
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Assign Stock to My Branch',
+      screen: const BranchTransferListScreen(),
+    ),
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Po',
+      screen: const PurchaseOrderScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Supplier',
+      screen: const AllSupplierScreen(),
+    ),
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'User',
+      screen: const AllUserScreen(),
+    ),
+
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'Category',
+      screen: const AllCategoryScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'WA Finance',
+      screen: const WarehouseFinanceScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'Expense',
+      screen: const WarehouseExpenseScreen(),
+    ),
+
+  ];
+
+
+
+  List<NavItem> _getItemsByRole(String? role) {
+    switch (role) {
+      case 'data_entry':
+        return _dataEntry;
+      case 'warehouse_manager':
+        return _warehouseManager;
+      default:
+        return _allOthers;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authProvider).user;
+    final items = _getItemsByRole(user?.role);
+
     return Scaffold(
       backgroundColor: _kBg,
       body: Row(
         children: [
-
           Container(
             width: 90,
             color: Colors.white,
             child: Column(
               children: [
-
                 // Logo
                 Container(
                   height: 56,
@@ -134,9 +242,9 @@ class _SideBarState extends State<SideBar> {
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _items.length,
+                    itemCount: items.length,
                     itemBuilder: (_, i) => NavTile(
-                      item: _items[i],
+                      item: items[i],
                       selected: !_settingsOpen && _index == i,
                       onTap: () => setState(() {
                         _index = i;
@@ -145,12 +253,30 @@ class _SideBarState extends State<SideBar> {
                     ),
                   ),
                 ),
+
+                // Logout button
+                IconButton(
+                  onPressed: () async {
+                    await ref.read(authProvider.notifier).logout();
+                    if (context.mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.logout, color: Colors.redAccent),
+                ),
               ],
             ),
           ),
+
           Container(width: 1, color: _kGrey),
+
           Expanded(
-            child: _items[_index].screen,
+            child: items[_index].screen,
           ),
         ],
       ),

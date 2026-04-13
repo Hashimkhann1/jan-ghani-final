@@ -2,7 +2,47 @@
 // purchase_invoice_model.dart
 // =============================================================
 
+import 'package:flutter/material.dart';
+
 // ── Enums ─────────────────────────────────────────────────────
+
+enum InvoiceStatus {
+  completed,
+  pending,
+  draft;
+
+  String get label {
+    switch (this) {
+      case InvoiceStatus.completed: return 'Completed';
+      case InvoiceStatus.pending:   return 'Pending';
+      case InvoiceStatus.draft:     return 'Draft';
+    }
+  }
+
+  String get dbValue {
+    switch (this) {
+      case InvoiceStatus.completed: return 'received';
+      case InvoiceStatus.pending:   return 'ordered';
+      case InvoiceStatus.draft:     return 'draft';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case InvoiceStatus.completed: return Icons.check_circle_outline;
+      case InvoiceStatus.pending:   return Icons.hourglass_empty_rounded;
+      case InvoiceStatus.draft:     return Icons.edit_note_outlined;
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case InvoiceStatus.completed: return const Color(0xFF22C55E);
+      case InvoiceStatus.pending:   return const Color(0xFFF59E0B);
+      case InvoiceStatus.draft:     return const Color(0xFF94A3B8);
+    }
+  }
+}
 
 enum PoType {
   purchase,
@@ -33,8 +73,12 @@ class PoSupplier {
     required this.paymentTerms,
   });
 
-  String get initials => name.split(' ').take(2)
-      .map((w) => w[0]).join().toUpperCase();
+  String get initials => name
+      .split(' ')
+      .take(2)
+      .map((w) => w[0])
+      .join()
+      .toUpperCase();
 }
 
 // ── Purchase Product ──────────────────────────────────────────
@@ -44,7 +88,7 @@ class PoProduct {
   final String name;
   final String category;
   final String sku;
-  final double purchasePrice;  // unitCost → purchasePrice
+  final double purchasePrice;
   final double salePrice;
   final double stock;
 
@@ -65,8 +109,8 @@ class PoCartItem {
   final String    cartId;
   final PoProduct product;
   final double    quantity;
-  final double    purchasePrice;   // unitCost → purchasePrice
-  final double    salePrice;       // default 0
+  final double    purchasePrice;
+  final double    salePrice;
   final double    taxAmount;
   final double    discountAmount;
 
@@ -116,6 +160,10 @@ class PurchaseInvoiceState {
   final DateTime?        deliveryDate;
   final PoSupplier?      selectedSupplier;
   final PoType           poType;
+  final InvoiceStatus    invoiceStatus;
+  final double           paidAmount;
+  final String?          createdById;
+  final String?          createdByName;
   final List<PoCartItem> cartItems;
   final List<PoSupplier> suppliers;
   final List<PoProduct>  products;
@@ -127,6 +175,10 @@ class PurchaseInvoiceState {
     this.deliveryDate,
     required this.selectedSupplier,
     required this.poType,
+    this.invoiceStatus  = InvoiceStatus.completed,
+    this.paidAmount     = 0,
+    this.createdById,
+    this.createdByName,
     required this.cartItems,
     required this.suppliers,
     required this.products,
@@ -136,19 +188,21 @@ class PurchaseInvoiceState {
   List<PoProduct> get filteredProducts {
     if (searchQuery.isEmpty) return products;
     final q = searchQuery.toLowerCase();
-    return products.where((p) =>
-        p.name.toLowerCase().contains(q) ||
-        p.sku.toLowerCase().contains(q)).toList();
+    return products
+        .where((p) =>
+    p.name.toLowerCase().contains(q) ||
+        p.sku.toLowerCase().contains(q))
+        .toList();
   }
 
   int    get totalItems     => cartItems.length;
-  double get totalBeforeTax => cartItems.fold(0.0,
-      (sum, i) => sum + (i.purchasePrice * i.quantity));
-  double get totalTax       => cartItems.fold(0.0,
-      (sum, i) => sum + i.taxAmount);
-  double get totalDiscount  => cartItems.fold(0.0,
-      (sum, i) => sum + i.discountAmount);
-  double get grandTotal     =>
+  double get totalBeforeTax => cartItems.fold(
+      0.0, (sum, i) => sum + (i.purchasePrice * i.quantity));
+  double get totalTax =>
+      cartItems.fold(0.0, (sum, i) => sum + i.taxAmount);
+  double get totalDiscount =>
+      cartItems.fold(0.0, (sum, i) => sum + i.discountAmount);
+  double get grandTotal =>
       totalBeforeTax + totalTax - totalDiscount;
   double get totalProfit {
     double p = 0;
@@ -160,25 +214,39 @@ class PurchaseInvoiceState {
     return p;
   }
 
+  bool get hasPriceError => cartItems.any(
+        (i) => i.salePrice > 0 && i.purchasePrice > i.salePrice,
+  );
+
   PurchaseInvoiceState copyWith({
     String?           poNumber,
     DateTime?         orderDate,
     DateTime?         deliveryDate,
     PoSupplier?       selectedSupplier,
     PoType?           poType,
+    InvoiceStatus?    invoiceStatus,
+    double?           paidAmount,
+    String?           createdById,
+    String?           createdByName,
     List<PoCartItem>? cartItems,
     List<PoSupplier>? suppliers,
     List<PoProduct>?  products,
     String?           searchQuery,
-    bool              clearDeliveryDate = false,
+    bool              clearDeliveryDate   = false,
+    bool              clearSelectedSupplier = false,
   }) {
     return PurchaseInvoiceState(
       poNumber:         poNumber         ?? this.poNumber,
       orderDate:        orderDate        ?? this.orderDate,
       deliveryDate:     clearDeliveryDate
           ? null : (deliveryDate ?? this.deliveryDate),
-      selectedSupplier: selectedSupplier ?? this.selectedSupplier,
+      selectedSupplier: clearSelectedSupplier
+          ? null : (selectedSupplier ?? this.selectedSupplier),
       poType:           poType           ?? this.poType,
+      invoiceStatus:    invoiceStatus    ?? this.invoiceStatus,
+      paidAmount:       paidAmount       ?? this.paidAmount,
+      createdById:      createdById      ?? this.createdById,
+      createdByName:    createdByName    ?? this.createdByName,
       cartItems:        cartItems        ?? this.cartItems,
       suppliers:        suppliers        ?? this.suppliers,
       products:         products         ?? this.products,
@@ -187,49 +255,39 @@ class PurchaseInvoiceState {
   }
 }
 
-// ── Dummy Data ────────────────────────────────────────────────
-
-final dummyPoSuppliers = [
-  const PoSupplier(id: 's1', name: 'Ahmed Raza',
-      company: 'Raza Traders',     phone: '0300-1234567',
-      paymentTerms: 30),
-  const PoSupplier(id: 's2', name: 'Bilal Khan',
-      company: 'Khan Brothers',    phone: '0311-2345678',
-      paymentTerms: 15),
-  const PoSupplier(id: 's3', name: 'Tariq Mehmood',
-      company: 'TM Distributors',  phone: '0321-3456789',
-      paymentTerms: 45),
-  const PoSupplier(id: 's4', name: 'Kamran Iqbal',
-      company: 'Iqbal & Sons',     phone: '0332-4567890',
-      paymentTerms: 30),
-  const PoSupplier(id: 's5', name: 'Usman Farooq',
-      company: 'Farooq Wholesale', phone: '0343-5678901',
-      paymentTerms: 60),
-];
+// ── Dummy Products (suppliers ab DB se aate hain) ─────────────
 
 final dummyPoProducts = [
-  const PoProduct(id: 'P01', name: 'Sunflower Oil 1L',
+  const PoProduct(
+      id: 'P01', name: 'Sunflower Oil 1L',
       category: 'Cooking Oil', sku: 'SKU-001',
       purchasePrice: 480, salePrice: 650, stock: 18),
-  const PoProduct(id: 'P02', name: 'Basmati Rice 5kg',
+  const PoProduct(
+      id: 'P02', name: 'Basmati Rice 5kg',
       category: 'Rice',        sku: 'SKU-012',
       purchasePrice: 650, salePrice: 850, stock: 12),
-  const PoProduct(id: 'P03', name: 'Surf Excel 1kg',
+  const PoProduct(
+      id: 'P03', name: 'Surf Excel 1kg',
       category: 'Detergent',   sku: 'SKU-034',
       purchasePrice: 320, salePrice: 420, stock: 32),
-  const PoProduct(id: 'P04', name: 'Nestle Milk 1L',
+  const PoProduct(
+      id: 'P04', name: 'Nestle Milk 1L',
       category: 'Dairy',       sku: 'SKU-056',
       purchasePrice: 145, salePrice: 190, stock: 40),
-  const PoProduct(id: 'P05', name: 'Tapal Danedar 500g',
+  const PoProduct(
+      id: 'P05', name: 'Tapal Danedar 500g',
       category: 'Tea',         sku: 'SKU-078',
       purchasePrice: 350, salePrice: 480, stock: 25),
-  const PoProduct(id: 'P06', name: 'Colgate 150g',
+  const PoProduct(
+      id: 'P06', name: 'Colgate 150g',
       category: 'Personal',    sku: 'SKU-103',
       purchasePrice: 185, salePrice: 240, stock: 60),
-  const PoProduct(id: 'P07', name: 'Knorr Noodles 72g',
+  const PoProduct(
+      id: 'P07', name: 'Knorr Noodles 72g',
       category: 'Food',        sku: 'SKU-115',
       purchasePrice: 40,  salePrice: 55,  stock: 200),
-  const PoProduct(id: 'P08', name: 'Dates Box 1kg',
+  const PoProduct(
+      id: 'P08', name: 'Dates Box 1kg',
       category: 'Dry Fruit',   sku: 'SKU-092',
       purchasePrice: 850, salePrice: 1100, stock: 5),
 ];

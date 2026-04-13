@@ -173,15 +173,15 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
               children: [
                 Text(item.product.name,
                     style: const TextStyle(
-                        fontSize:   11,
+                        fontSize:   13,
                         fontWeight: FontWeight.w600,
                         color:      AppColor.textPrimary),
                     maxLines:  1,
                     overflow: TextOverflow.ellipsis),
                 Text(item.product.category,
                     style: const TextStyle(
-                        fontSize: 9,
-                        color:    AppColor.textHint)),
+                        fontSize: 11,
+                        color:    AppColor.textSecondary)),
               ],
             ),
           ),
@@ -425,7 +425,7 @@ class _TFState extends State<_TF> {
         cursorHeight: 12,
         onChanged:    widget.onChanged,
         style: TextStyle(
-            fontSize:   11,
+            fontSize:   13,
             fontWeight: fontWeight,
             color:      textColor),
         decoration: InputDecoration(

@@ -16,6 +16,7 @@ class SupplierLedgerEntry {
   final String?  poId;            // linked PO (nullable)
   final String   entryType;       // 'purchase' | 'payment' | 'return' | 'adjustment'
   final double   amount;          // positive = hum detay hain | negative = payment
+  final double   balanceBefore;   // entry se pehle ka balance
   final double   balanceAfter;    // us entry ke baad running balance
   final String?  notes;
   final String?  createdByName;   // user ka naam
@@ -27,6 +28,7 @@ class SupplierLedgerEntry {
     this.poId,
     required this.entryType,
     required this.amount,
+    required this.balanceBefore,
     required this.balanceAfter,
     this.notes,
     this.createdByName,
@@ -55,6 +57,7 @@ class SupplierLedgerEntry {
       poId:          map['po_id']           as String?,
       entryType:     map['entry_type']      as String,
       amount:        (map['amount']         as num).toDouble(),
+      balanceBefore: (map['balance_before'] as num).toDouble(),
       balanceAfter:  (map['balance_after']  as num).toDouble(),
       notes:         map['notes']           as String?,
       createdByName: map['created_by_name'] as String?,

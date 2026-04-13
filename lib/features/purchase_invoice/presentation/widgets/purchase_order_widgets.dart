@@ -314,7 +314,7 @@ class _PoTableRowState extends State<PoTableRow> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_fmt(o.totalAmount),
+                      Text(o.totalAmount.toString(),
                           style: TextStyle(fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: AppColor.textPrimary)),

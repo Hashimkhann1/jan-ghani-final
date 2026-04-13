@@ -1,40 +1,41 @@
 // =============================================================
 // supplier_model.dart
-// Supplier ka data model — warehouse_schema_v2.sql ke
-// suppliers table + v_supplier_balances view se map kiya hua
 // =============================================================
 
 class SupplierModel {
   // ── suppliers table columns ──────────────────────────────
-  final String id;            // UUID PRIMARY KEY
-  final String tenantId;      // tenant isolation ke liye
-  final String name;          // supplier ka naam (required)
-  final String? companyName;   // company / business ka naam
-  final String? contactPerson;// contact person ka naam
-  final String? email;        // email address
-  final String phone;         // phone number (required)
-  final String? address;      // physical address
-  final String? code;         // auto-generated: 'SUPP-0001' (schema: code TEXT)
-  final String? taxId;        // NTN / tax number
-  final int paymentTerms;     // credit days (default: 30)
-  final bool isActive;        // active/inactive status
-  final String? notes;        // extra notes
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final DateTime? deletedAt;  // soft delete
+  final String  id;
+  final String  warehouseId;
+  final String  name;
+  final String? companyName;
+  final String? contactPerson;
+  final String? email;
+  final String  phone;
+  final String? address;
+  final String? code;
+  final String? taxId;
+  final int     paymentTerms;
+  final bool    isActive;
+  final String? notes;
+  final String?   createdById;    // user UUID
+  final String?   createdByName;  // user full_name (JOIN se)
+  final DateTime  createdAt;
+  final DateTime  updatedAt;
+  final DateTime? deletedAt;
 
-  // ── v_supplier_balances view columns ─────────────────────
-  // FIX 2: balance ab directly suppliers table mein nahi hai
-  // supplier_ledger se compute hota hai — view se aata hai
-  final double outstandingBalance; // positive = hum ne dena hai
+  // ── Balance ───────────────────────────────────────────────
+  // trigger se auto update hota hai
+  // = SUM(supplier_ledger.amount)
+  // opening + purchases - payments - returns
+  final double outstandingBalance;
 
-  // ── purchase_orders se aggregate (UI ke liye) ─────────────
-  final int totalOrders;          // total PO count
-  final double totalPurchaseAmount; // sab POs ka total_amount sum
+  // ── purchase_orders aggregate ─────────────────────────────
+  final int    totalOrders;
+  final double totalPurchaseAmount;
 
   const SupplierModel({
     required this.id,
-    required this.tenantId,
+    required this.warehouseId,
     required this.name,
     this.companyName,
     this.contactPerson,
@@ -46,6 +47,8 @@ class SupplierModel {
     required this.paymentTerms,
     required this.isActive,
     this.notes,
+    this.createdById,
+    this.createdByName,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -56,54 +59,72 @@ class SupplierModel {
 
   // ── Balance helpers ───────────────────────────────────────
 
-  /// Hum ne supplier ko dena hai
-  bool get hasDue => outstandingBalance > 0;
-
-  /// Account bilkul clear hai
+  bool get hasDue  => outstandingBalance > 0;
   bool get isClear => outstandingBalance == 0;
 
-  /// Balance display text
   String get balanceLabel {
     if (isClear) return 'Clear';
-    if (hasDue) return 'Rs ${outstandingBalance.toStringAsFixed(0)} Due';
+    if (hasDue)  return 'Rs ${outstandingBalance.toStringAsFixed(0)} Due';
     return 'Rs ${outstandingBalance.abs().toStringAsFixed(0)} Advance';
   }
 
-  /// Credit days display
   String get paymentTermsLabel => '$paymentTerms days';
 
-  // ── fromMap (Drift / DB se data aane per) ─────────────────
+  // ── fromMap ───────────────────────────────────────────────
   factory SupplierModel.fromMap(Map<String, dynamic> map) {
     return SupplierModel(
-      id:                   map['id']             as String,
-      tenantId:             map['tenant_id']      as String,
-      name:                 map['name']           as String,
-      companyName:          map['company_name']   as String?,
-      contactPerson:        map['contact_person'] as String?,
-      email:                map['email']          as String?,
-      phone:                map['phone']          as String,
-      address:              map['address']        as String?,
-      code:                 map['code']           as String?,
-      taxId:                map['tax_id']         as String?,
-      paymentTerms:         map['payment_terms']  as int? ?? 30,
-      isActive:             map['is_active']      as bool? ?? true,
-      notes:                map['notes']          as String?,
-      createdAt:            DateTime.parse(map['created_at'] as String),
-      updatedAt:            DateTime.parse(map['updated_at'] as String),
-      deletedAt:            map['deleted_at'] != null
-          ? DateTime.parse(map['deleted_at'] as String)
-          : null,
-      outstandingBalance:   (map['outstanding_balance'] as num?)?.toDouble() ?? 0.0,
-      totalOrders:          map['total_orders']   as int? ?? 0,
-      totalPurchaseAmount:  (map['total_purchase_amount'] as num?)?.toDouble() ?? 0.0,
+      id:                  map['id']?.toString()             ?? '',
+      warehouseId:         map['warehouse_id']?.toString()   ?? '',
+      name:                map['name']?.toString()           ?? '',
+      companyName:         map['company_name']?.toString(),
+      contactPerson:       map['contact_person']?.toString(),
+      email:               map['email']?.toString(),
+      phone:               map['phone']?.toString()          ?? '',
+      address:             map['address']?.toString(),
+      code:                map['code']?.toString(),
+      taxId:               map['tax_id']?.toString(),
+      paymentTerms:        _parseInt(map['payment_terms'])   ?? 30,
+      isActive:            map['is_active'] == true ||
+          map['is_active'] == 't',
+      notes:               map['notes']?.toString(),
+      createdById:         map['created_by']?.toString(),
+      createdByName:       map['created_by_name']?.toString(),
+      createdAt:           map['created_at'] is DateTime
+          ? map['created_at'] as DateTime
+          : DateTime.parse(map['created_at'].toString()),
+      updatedAt:           map['updated_at'] is DateTime
+          ? map['updated_at'] as DateTime
+          : DateTime.parse(map['updated_at'].toString()),
+      deletedAt:           map['deleted_at'] == null ? null
+          : map['deleted_at'] is DateTime
+          ? map['deleted_at'] as DateTime
+          : DateTime.parse(map['deleted_at'].toString()),
+      outstandingBalance:  _parseDouble(map['outstanding_balance'])   ?? 0.0,
+      totalOrders:         _parseInt(map['total_orders'])             ?? 0,
+      totalPurchaseAmount: _parseDouble(map['total_purchase_amount']) ?? 0.0,
     );
   }
 
-  // ── toMap (DB mein save karne ke liye) ────────────────────
+  // ── Safe parsers ──────────────────────────────────────────
+  static double? _parseDouble(dynamic v) {
+    if (v == null)   return null;
+    if (v is double) return v;
+    if (v is num)    return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+
+  static int? _parseInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int)  return v;
+    if (v is num)  return v.toInt();
+    return int.tryParse(v.toString());
+  }
+
+  // ── toMap ─────────────────────────────────────────────────
   Map<String, dynamic> toMap() {
     return {
       'id':             id,
-      'tenant_id':      tenantId,
+      'warehouse_id':   warehouseId,
       'name':           name,
       'company_name':   companyName,
       'contact_person': contactPerson,
@@ -115,46 +136,52 @@ class SupplierModel {
       'payment_terms':  paymentTerms,
       'is_active':      isActive,
       'notes':          notes,
+      // outstanding_balance nahi — trigger handle karta hai
     };
   }
 
-  // ── copyWith (state update ke liye) ───────────────────────
+  // ── copyWith ──────────────────────────────────────────────
   SupplierModel copyWith({
-    String?  name,
-    String?  companyName,
-    String?  contactPerson,
-    String?  email,
-    String?  phone,
-    String?  address,
-    String?  code,
-    String?  taxId,
-    int?     paymentTerms,
-    bool?    isActive,
-    String?  notes,
-    double?  outstandingBalance,
-    int?     totalOrders,
-    double?  totalPurchaseAmount,
+    String?   name,
+    String?   companyName,
+    String?   contactPerson,
+    String?   email,
+    String?   phone,
+    String?   address,
+    String?   code,
+    String?   taxId,
+    int?      paymentTerms,
+    bool?     isActive,
+    String?   notes,
+    double?   outstandingBalance,
+    int?      totalOrders,
+    double?   totalPurchaseAmount,
+    String?   createdById,
+    String?   createdByName,
+    DateTime? deletedAt,
   }) {
     return SupplierModel(
-      id:                   id,
-      tenantId:             tenantId,
-      name:                 name              ?? this.name,
-      companyName:          companyName       ?? this.companyName,
-      contactPerson:        contactPerson     ?? this.contactPerson,
-      email:                email             ?? this.email,
-      phone:                phone             ?? this.phone,
-      address:              address           ?? this.address,
-      code:                 code              ?? this.code,
-      taxId:                taxId             ?? this.taxId,
-      paymentTerms:         paymentTerms      ?? this.paymentTerms,
-      isActive:             isActive          ?? this.isActive,
-      notes:                notes             ?? this.notes,
-      createdAt:            createdAt,
-      updatedAt:            DateTime.now(),
-      deletedAt:            deletedAt,
-      outstandingBalance:   outstandingBalance ?? this.outstandingBalance,
-      totalOrders:          totalOrders        ?? this.totalOrders,
-      totalPurchaseAmount:  totalPurchaseAmount ?? this.totalPurchaseAmount,
+      id:                  id,
+      warehouseId:         warehouseId,
+      name:                name                ?? this.name,
+      companyName:         companyName         ?? this.companyName,
+      contactPerson:       contactPerson       ?? this.contactPerson,
+      email:               email               ?? this.email,
+      phone:               phone               ?? this.phone,
+      address:             address             ?? this.address,
+      code:                code                ?? this.code,
+      taxId:               taxId               ?? this.taxId,
+      paymentTerms:        paymentTerms        ?? this.paymentTerms,
+      isActive:            isActive            ?? this.isActive,
+      notes:               notes               ?? this.notes,
+      createdById:         createdById         ?? this.createdById,
+      createdByName:       createdByName       ?? this.createdByName,
+      createdAt:           createdAt,
+      updatedAt:           DateTime.now(),
+      deletedAt:           deletedAt           ?? this.deletedAt,
+      outstandingBalance:  outstandingBalance  ?? this.outstandingBalance,
+      totalOrders:         totalOrders         ?? this.totalOrders,
+      totalPurchaseAmount: totalPurchaseAmount ?? this.totalPurchaseAmount,
     );
   }
 }

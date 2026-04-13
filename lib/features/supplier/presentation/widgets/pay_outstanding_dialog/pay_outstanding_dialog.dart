@@ -6,10 +6,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/features/auth/local/auth_local_storage.dart';
+import 'package:jan_ghani_final/features/supplier/presentation/provider/supplier_detail_provider/supplier_detail_provider.dart';
 import 'package:jan_ghani_final/features/supplier/domian/supplier_model.dart';
 
-class PayOutstandingDialog extends StatefulWidget {
+class PayOutstandingDialog extends ConsumerStatefulWidget {
   final SupplierModel supplier;
 
   const PayOutstandingDialog({super.key, required this.supplier});
@@ -24,11 +27,12 @@ class PayOutstandingDialog extends StatefulWidget {
   }
 
   @override
-  State<PayOutstandingDialog> createState() => _PayOutstandingDialogState();
+  ConsumerState<PayOutstandingDialog> createState() => _PayOutstandingDialogState();
 }
 
-class _PayOutstandingDialogState extends State<PayOutstandingDialog> {
+class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
   final _amountController = TextEditingController();
+  final _notesController  = TextEditingController();
   bool _isSaving          = false;
 
   // ── Live calculations ─────────────────────────────────────
@@ -44,6 +48,7 @@ class _PayOutstandingDialogState extends State<PayOutstandingDialog> {
   @override
   void dispose() {
     _amountController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -75,7 +80,7 @@ class _PayOutstandingDialogState extends State<PayOutstandingDialog> {
                     children: [
                       _SummaryCard(
                         label: 'Outstanding Balance',
-                        value: _fmtRs(_outstanding),
+                        value: _outstanding.toString(),
                         color: _outstanding > 0 ? AppColor.error : AppColor.success,
                         icon:  Icons.account_balance_wallet_outlined,
                       ),
@@ -147,6 +152,38 @@ class _PayOutstandingDialogState extends State<PayOutstandingDialog> {
 
                   // ── Live balance preview ─────────────────
                   // Sirf tab dikhao jab user ne kuch type kiya ho
+                  // ── Notes input ─────────────────────────
+                  const SizedBox(height: 14),
+                  Text('Notes (optional)',
+                      style: TextStyle(fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColor.textPrimary)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _notesController,
+                    maxLines:   2,
+                    style: TextStyle(fontSize: 13, color: AppColor.textPrimary),
+                    decoration: InputDecoration(
+                      hintText:       'Payment ki wajah ya note...',
+                      hintStyle:      TextStyle(fontSize: 13, color: AppColor.textHint),
+                      filled:         true,
+                      fillColor:      AppColor.grey100,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppColor.grey200)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppColor.grey200)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                              color: AppColor.primary, width: 1.5)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
                   if (_enteredAmount > 0) ...[
                     Container(
                       width:   double.infinity,
@@ -160,13 +197,13 @@ class _PayOutstandingDialogState extends State<PayOutstandingDialog> {
                         children: [
                           _PreviewRow(
                             label: 'Outstanding Balance',
-                            value: _fmtRs(_outstanding),
+                            value: _outstanding.toString(),
                             color: AppColor.error,
                           ),
                           const SizedBox(height: 8),
                           _PreviewRow(
                             label: 'Pay Amount',
-                            value: '- ${_fmtRs(_enteredAmount)}',
+                            value: '- ${_enteredAmount}',
                             color: AppColor.success,
                           ),
                           Padding(
@@ -175,7 +212,7 @@ class _PayOutstandingDialogState extends State<PayOutstandingDialog> {
                           ),
                           _PreviewRow(
                             label:   'Balance After Payment',
-                            value:   _fmtRs(_balanceAfterPay),
+                            value:   _balanceAfterPay.toString(),
                             color:   _balanceAfterPay == 0
                                 ? AppColor.success : AppColor.warning,
                             isBold:  true,
@@ -282,25 +319,46 @@ class _PayOutstandingDialogState extends State<PayOutstandingDialog> {
     if (!_hasValidAmount) return;
     setState(() => _isSaving = true);
 
-    // TODO: Drift ke zariye supplier_ledger mein payment entry add karo:
-    // await ledgerRepo.addPayment(
-    //   supplierId: widget.supplier.id,
-    //   amount:     -_enteredAmount,  // negative = payment
-    //   notes:      'Manual payment',
-    // );
+    try {
+      // SharedPreferences se current user lo
+      final userMap = await AuthLocalStorage.loadUser();
+      final userId   = userMap?['id']?.toString();
+      final userName = userMap?['full_name']?.toString();
 
-    await Future.delayed(const Duration(milliseconds: 400)); // dummy delay
-
-    if (mounted) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              '${_fmtRs(_enteredAmount)} payment recorded for ${widget.supplier.name}'),
-          backgroundColor: AppColor.success,
-          duration: const Duration(seconds: 2),
-        ),
+      await ref.read(supplierDetailProvider.notifier).payOutstanding(
+        supplierId: widget.supplier.id,
+        amount:     _enteredAmount,
+        notes:      _notesController.text.trim().isEmpty
+            ? 'Manual payment'
+            : _notesController.text.trim(),
+        userId:     userId,
+        userName: userName
       );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '${_fmtRs(_enteredAmount)} payment recorded — ${widget.supplier.name}'),
+            backgroundColor: AppColor.success,
+            behavior:        SnackBarBehavior.floating,
+            duration:        const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:         Text('Payment mein masla: $e'),
+            backgroundColor: AppColor.error,
+            behavior:        SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 

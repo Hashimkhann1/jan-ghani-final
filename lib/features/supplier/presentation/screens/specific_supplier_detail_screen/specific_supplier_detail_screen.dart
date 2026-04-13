@@ -269,7 +269,7 @@ class _FinancialSummaryRow extends StatelessWidget {
         children: [
           DetailStatCard(
             label:    'Outstanding Balance',
-            value:    'Rs ${_fmt(summary.outstandingBalance)}',
+            value:    'Rs ${summary.outstandingBalance}',
             subtitle: summary.outstandingBalance > 0
                 ? 'Dena baaki hai' : 'Clear',
             icon:     Icons.account_balance_wallet_outlined,
@@ -279,7 +279,7 @@ class _FinancialSummaryRow extends StatelessWidget {
           const SizedBox(width: 12),
           DetailStatCard(
             label:    'Total Purchased',
-            value:    'Rs ${_fmt(summary.totalPurchased)}',
+            value:    'Rs ${summary.totalPurchased}',
             subtitle: '${summary.totalOrders} orders total',
             icon:     Icons.shopping_cart_outlined,
             color:    AppColor.info,
@@ -287,7 +287,7 @@ class _FinancialSummaryRow extends StatelessWidget {
           const SizedBox(width: 12),
           DetailStatCard(
             label:    'Total Paid',
-            value:    'Rs ${_fmt(summary.totalPaid)}',
+            value:    'Rs ${summary.totalPaid}',
             subtitle: '${summary.pendingOrders} orders pending',
             icon:     Icons.payments_outlined,
             color:    AppColor.success,

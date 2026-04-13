@@ -21,6 +21,7 @@ final List<SupplierLedgerEntry> dummyLedgerEntries = [
     notes:         'PO-2026-000001 — grocery items',
     createdByName: 'Ahmed (Owner)',
     createdAt:     DateTime(2026, 1, 5),
+    balanceBefore: 0,
   ),
   SupplierLedgerEntry(
     id:            'led-002',
@@ -32,6 +33,7 @@ final List<SupplierLedgerEntry> dummyLedgerEntries = [
     notes:         'Cash payment',
     createdByName: 'Ahmed (Owner)',
     createdAt:     DateTime(2026, 1, 18),
+    balanceBefore: 0,
   ),
   SupplierLedgerEntry(
     id:            'led-003',
@@ -43,6 +45,7 @@ final List<SupplierLedgerEntry> dummyLedgerEntries = [
     notes:         'PO-2026-000008 — monthly stock',
     createdByName: 'Ahmed (Owner)',
     createdAt:     DateTime(2026, 2, 3),
+    balanceBefore: 0,
   ),
   SupplierLedgerEntry(
     id:            'led-004',
@@ -54,6 +57,7 @@ final List<SupplierLedgerEntry> dummyLedgerEntries = [
     notes:         'Damaged goods return — 5 boxes',
     createdByName: 'Ali (Manager)',
     createdAt:     DateTime(2026, 2, 10),
+    balanceBefore: 0,
   ),
   SupplierLedgerEntry(
     id:            'led-005',
@@ -65,6 +69,7 @@ final List<SupplierLedgerEntry> dummyLedgerEntries = [
     notes:         'Bank transfer',
     createdByName: 'Ahmed (Owner)',
     createdAt:     DateTime(2026, 2, 28),
+    balanceBefore: 0,
   ),
   SupplierLedgerEntry(
     id:            'led-006',
@@ -76,6 +81,7 @@ final List<SupplierLedgerEntry> dummyLedgerEntries = [
     notes:         'PO-2026-000015 — Ramadan stock',
     createdByName: 'Ahmed (Owner)',
     createdAt:     DateTime(2026, 3, 15),
+    balanceBefore: 0,
   ),
   SupplierLedgerEntry(
     id:            'led-007',
@@ -87,6 +93,7 @@ final List<SupplierLedgerEntry> dummyLedgerEntries = [
     notes:         'Partial settlement agreed',
     createdByName: 'Ahmed (Owner)',
     createdAt:     DateTime(2026, 3, 28),
+    balanceBefore: 0,
   ),
 ];
 

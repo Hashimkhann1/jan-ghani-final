@@ -1,9 +1,11 @@
 // =============================================================
 // po_cart_summary_widget.dart
 // Clean + Beautiful summary
-// Save Invoice button:
-//   - disabled: cart empty ya koi bhi item ka salePrice == 0
-//   - enabled:  sab items ki salePrice > 0
+// Save Invoice button disabled when:
+//   1. cart empty
+//   2. koi bhi item ki salePrice == 0
+//   3. supplier select nahi kiya
+//   4. delivery date set nahi ki
 // =============================================================
 
 import 'package:flutter/material.dart';
@@ -22,17 +24,27 @@ class PoCartSummaryWidget extends ConsumerWidget {
     final notifier = ref.read(purchaseInvoiceProvider.notifier);
     final isReturn = state.poType == PoType.purchaseReturn;
 
-    // Save button enable condition:
-    // cart mein items hon AND sab items ki salePrice > 0
-    final bool hasItems     = state.cartItems.isNotEmpty;
-    final bool allHavePrice = state.cartItems.isNotEmpty &&
+    // ── Validation conditions ──────────────────────────────
+    final bool hasItems        = state.cartItems.isNotEmpty;
+    final bool allHavePrice    = state.cartItems.isNotEmpty &&
         state.cartItems.every((i) => i.salePrice > 0);
-    final bool canSave      = hasItems && allHavePrice;
+    final bool hasSupplier     = state.selectedSupplier != null;
+    final bool hasDeliveryDate = state.deliveryDate != null;
 
-    // Kitne items ki sale price missing hai
-    final int missingCount  = state.cartItems
+    final hasPriceError = state.hasPriceError;
+    final bool canSave =
+        hasItems && allHavePrice && hasSupplier && hasDeliveryDate && !hasPriceError;
+
+    // Missing info counts for warnings
+    final int missingPriceCount = state.cartItems
         .where((i) => i.salePrice <= 0)
         .length;
+
+    // ── Which warnings to show ─────────────────────────────
+    // Only show warnings when cart has items (otherwise empty cart msg is enough)
+    final bool showPriceWarning    = hasItems && !allHavePrice;
+    final bool showSupplierWarning = hasItems && !hasSupplier;
+    final bool showDateWarning     = hasItems && !hasDeliveryDate;
 
     return Container(
       decoration: BoxDecoration(
@@ -40,14 +52,15 @@ class PoCartSummaryWidget extends ConsumerWidget {
         border: Border(top: BorderSide(color: AppColor.grey200)),
         boxShadow: [
           BoxShadow(
-            color:       Colors.black.withOpacity(0.04),
-            blurRadius:  8,
-            offset:      const Offset(0, -2),
+            color:      Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset:     const Offset(0, -2),
           ),
         ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
           // ── Totals section ────────────────────────────────
@@ -80,7 +93,6 @@ class PoCartSummaryWidget extends ConsumerWidget {
                       ),
                     ),
                     const Spacer(),
-                    // Return badge
                     if (isReturn)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -141,14 +153,12 @@ class PoCartSummaryWidget extends ConsumerWidget {
                 ],
 
                 const SizedBox(height: 8),
-                const Divider(
-                    color: AppColor.grey200, height: 1),
+                const Divider(color: AppColor.grey200, height: 1),
                 const SizedBox(height: 8),
 
                 // Grand Total — highlighted
                 Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Grand Total',
                         style: TextStyle(
@@ -169,46 +179,63 @@ class PoCartSummaryWidget extends ConsumerWidget {
                     ),
                   ],
                 ),
+                // Paid + Remaining — sirf tab dikhao jab koi amount ho
+                if (state.paidAmount > 0) ...[
+                  const SizedBox(height: 4),
+                  _TRow(
+                    label:      'Paid Amount',
+                    value:      '- Rs ${_fmt(state.paidAmount)}',
+                    valueColor: AppColor.success,
+                  ),
+                  const SizedBox(height: 3),
+                  _TRow(
+                    label: 'Remaining',
+                    value: 'Rs ${_fmt((state.grandTotal - state.paidAmount).clamp(0, double.infinity))}',
+                    valueColor: (state.grandTotal - state.paidAmount) <= 0
+                        ? AppColor.success : AppColor.error,
+                  ),
+                ],
               ],
             ),
           ),
 
-          // ── Sale price warning ────────────────────────────
-          // Jab koi item ki sale price 0 ho
-          if (hasItems && !allHavePrice)
-            Container(
-              margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color:        AppColor.warningLight,
-                borderRadius: BorderRadius.circular(8),
-                border:       Border.all(
-                    color: AppColor.warning.withOpacity(0.4)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded,
-                      size: 13, color: AppColor.warning),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '$missingCount item${missingCount > 1 ? 's' : ''} '
-                          'ki sale price missing hai — '
-                          'Save Invoice disable hai',
-                      style: TextStyle(
-                          fontSize:   10,
-                          fontWeight: FontWeight.w500,
-                          color:      AppColor.warning),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // ── Validation Warnings ───────────────────────────
+
+         Wrap(
+           alignment: WrapAlignment.start,
+           children: [
+             // 1. Sale price missing
+             if (showPriceWarning)
+               _WarningBanner(
+                 icon:    Icons.warning_amber_rounded,
+                 message: '$missingPriceCount item'
+                     '${missingPriceCount > 1 ? 's' : ''} '
+                     'ki sale price missing hai',
+               ),
+
+             if (hasPriceError)
+               _WarningBanner(
+                 icon: Icons.warning_amber_rounded,
+                 message: 'Purchase price sale price se zyada hai',
+               ),
+             // 2. Supplier not selected
+             if (showSupplierWarning)
+               _WarningBanner(
+                 icon:    Icons.person_off_outlined,
+                 message: 'Supplier select karo — Save Invoice disable hai',
+               ),
+
+             // 3. Delivery date missing
+             if (showDateWarning)
+               _WarningBanner(
+                 icon:    Icons.event_busy_outlined,
+                 message: 'Delivery date set karo — Save Invoice disable hai',
+               ),],
+         ),
 
           // ── Buttons ───────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
             child: Row(
               children: [
                 // Clear
@@ -221,19 +248,17 @@ class PoCartSummaryWidget extends ConsumerWidget {
                         style: TextStyle(fontSize: 12)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColor.error,
-                      side: const BorderSide(
-                          color: AppColor.error),
+                      side:    const BorderSide(color: AppColor.error),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 10),
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
 
-                // Save Invoice — disabled jab sale price missing
+                // Save Invoice
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: canSave
@@ -247,22 +272,24 @@ class PoCartSummaryWidget extends ConsumerWidget {
                       size: 15,
                     ),
                     label: Text(
-                      isReturn ? 'Save Return' : 'Save Invoice',
+                      hasPriceError
+                          ? 'Price Error'
+                          : isReturn ? 'Save Return' : 'Save Invoice',
                       style: const TextStyle(
                           fontSize:   13,
                           fontWeight: FontWeight.w600),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isReturn
+                      backgroundColor: hasPriceError
+                          ? AppColor.error
+                          : isReturn
                           ? AppColor.error : AppColor.primary,
                       foregroundColor:         AppColor.white,
                       disabledBackgroundColor: AppColor.grey300,
                       disabledForegroundColor: AppColor.grey500,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 11),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(8)),
                       elevation: 0,
                     ),
                   ),
@@ -302,8 +329,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
 
               // ── Dialog Header ──────────────────────────
               Container(
-                padding: const EdgeInsets.fromLTRB(
-                    20, 16, 16, 16),
+                padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
                 decoration: BoxDecoration(
                   color: isReturn
                       ? AppColor.errorLight.withOpacity(0.15)
@@ -311,8 +337,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                   borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16)),
                   border: Border(
-                      bottom: BorderSide(
-                          color: AppColor.grey200)),
+                      bottom: BorderSide(color: AppColor.grey200)),
                 ),
                 child: Row(
                   children: [
@@ -322,8 +347,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                         color: isReturn
                             ? AppColor.errorLight
                             : AppColor.primary.withOpacity(0.1),
-                        borderRadius:
-                        BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       alignment: Alignment.center,
                       child: Icon(
@@ -339,8 +363,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             isReturn
@@ -349,13 +372,12 @@ class PoCartSummaryWidget extends ConsumerWidget {
                             style: const TextStyle(
                                 fontSize:   15,
                                 fontWeight: FontWeight.w700,
-                                color: AppColor.textPrimary),
+                                color:      AppColor.textPrimary),
                           ),
                           Text('Please review before saving',
                               style: TextStyle(
                                   fontSize: 11,
-                                  color:
-                                  AppColor.textSecondary)),
+                                  color:    AppColor.textSecondary)),
                         ],
                       ),
                     ),
@@ -376,11 +398,9 @@ class PoCartSummaryWidget extends ConsumerWidget {
                           child: _DRow(
                             icon:  Icons.person_outline,
                             label: 'Supplier',
-                            value: state.selectedSupplier
-                                ?.name ??
+                            value: state.selectedSupplier?.name ??
                                 'Not selected',
-                            sub: state
-                                .selectedSupplier?.company,
+                            sub:   state.selectedSupplier?.company,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -411,11 +431,9 @@ class PoCartSummaryWidget extends ConsumerWidget {
                             icon:  Icons.local_shipping_outlined,
                             label: 'Delivery Date',
                             value: state.deliveryDate != null
-                                ? fmt.format(
-                                state.deliveryDate!)
+                                ? fmt.format(state.deliveryDate!)
                                 : 'Not set',
-                            valueColor:
-                            state.deliveryDate == null
+                            valueColor: state.deliveryDate == null
                                 ? AppColor.textHint
                                 : null,
                           ),
@@ -424,8 +442,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    const Divider(
-                        color: AppColor.grey200, height: 1),
+                    const Divider(color: AppColor.grey200, height: 1),
                     const SizedBox(height: 12),
 
                     // Totals
@@ -433,8 +450,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                         value: '${state.totalItems} items'),
                     const SizedBox(height: 5),
                     _SRow(label: 'Sub Total',
-                        value:
-                        'Rs ${_fmt(state.totalBeforeTax)}'),
+                        value: 'Rs ${_fmt(state.totalBeforeTax)}'),
                     if (state.totalTax > 0) ...[
                       const SizedBox(height: 4),
                       _SRow(
@@ -446,8 +462,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                       const SizedBox(height: 4),
                       _SRow(
                         label: 'Total Discount',
-                        value:
-                        '- Rs ${_fmt(state.totalDiscount)}',
+                        value: '- Rs ${_fmt(state.totalDiscount)}',
                         color: AppColor.success,
                       ),
                     ],
@@ -467,16 +482,13 @@ class PoCartSummaryWidget extends ConsumerWidget {
                           horizontal: 14, vertical: 11),
                       decoration: BoxDecoration(
                         color: isReturn
-                            ? AppColor.errorLight
-                            .withOpacity(0.15)
+                            ? AppColor.errorLight.withOpacity(0.15)
                             : AppColor.primary.withOpacity(0.07),
-                        borderRadius:
-                        BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: isReturn
                               ? AppColor.error.withOpacity(0.2)
-                              : AppColor.primary
-                              .withOpacity(0.15),
+                              : AppColor.primary.withOpacity(0.15),
                         ),
                       ),
                       child: Row(
@@ -503,30 +515,54 @@ class PoCartSummaryWidget extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    // Paid + Remaining in dialog
+                    if (state.paidAmount > 0) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color:        AppColor.successLight,
+                          borderRadius: BorderRadius.circular(10),
+                          border:       Border.all(
+                              color: AppColor.success.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          children: [
+                            _SRow(
+                              label: 'Paid Amount',
+                              value: 'Rs ${_fmt(state.paidAmount)}',
+                              color: AppColor.success,
+                            ),
+                            const SizedBox(height: 4),
+                            _SRow(
+                              label: 'Remaining',
+                              value: 'Rs ${_fmt((state.grandTotal - state.paidAmount).clamp(0, double.infinity))}',
+                              color: (state.grandTotal - state.paidAmount) <= 0
+                                  ? AppColor.success : AppColor.error,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
 
               // ── Dialog Buttons ─────────────────────────
               Container(
-                padding: const EdgeInsets.fromLTRB(
-                    20, 0, 20, 16),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 child: Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () =>
-                            Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor:
-                          AppColor.textSecondary,
-                          side: const BorderSide(
-                              color: AppColor.grey300),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(8)),
+                          foregroundColor: AppColor.textSecondary,
+                          side:    const BorderSide(color: AppColor.grey300),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape:   RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         child: const Text('Cancel',
                             style: TextStyle(fontSize: 13)),
@@ -535,24 +571,29 @@ class PoCartSummaryWidget extends ConsumerWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          if (notifier.saveInvoice()) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(SnackBar(
-                              content: Text(isReturn
+                        onPressed: () async {
+                          Navigator.of(context).pop(); // dialog band karo
+                          final error = await notifier.saveInvoice();
+                          if (!context.mounted) return;
+                          final success = error == null;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success
+                                  ? (isReturn
                                   ? 'Purchase Return saved!'
-                                  : 'Purchase Invoice saved!'),
-                              backgroundColor: isReturn
-                                  ? AppColor.error
-                                  : AppColor.success,
-                              behavior:
-                              SnackBarBehavior.floating,
+                                  : 'Purchase Invoice saved!')
+                                  : 'Error: $error'),
+                              backgroundColor: success
+                                  ? (isReturn ? AppColor.error : AppColor.success)
+                                  : AppColor.error,
+                              behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                      8)),
-                            ));
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                          );
+                          // Save successful — PurchaseOrderScreen pe wapas jao
+                          if (success && context.mounted) {
+                            Navigator.of(context).pop();
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -563,8 +604,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               vertical: 12),
                           shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8)),
                           elevation: 0,
                         ),
                         child: const Text('Confirm & Save',
@@ -596,6 +636,47 @@ class PoCartSummaryWidget extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
+// WARNING BANNER
+// ─────────────────────────────────────────────────────────────
+
+class _WarningBanner extends StatelessWidget {
+  final IconData icon;
+  final String   message;
+
+  const _WarningBanner({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 300,
+      margin:  const EdgeInsets.fromLTRB(14, 0, 14, 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color:        Colors.redAccent.withOpacity(.3),
+        borderRadius: BorderRadius.circular(8),
+        border:       Border.all(
+            color: AppColor.warning.withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: Colors.red),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                  fontSize:   10,
+                  fontWeight: FontWeight.w500,
+                  color:      AppColor.black),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // TOTAL ROW — summary section
 // ─────────────────────────────────────────────────────────────
 
@@ -617,20 +698,19 @@ class _TRow extends StatelessWidget {
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 11,
-                color:    AppColor.textSecondary)),
+                fontSize: 11, color: AppColor.textSecondary)),
         Text(value,
             style: TextStyle(
                 fontSize:   11,
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColor.textPrimary)),
+                color:      valueColor ?? AppColor.textPrimary)),
       ],
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// DIALOG DETAIL ROW — icon + label + value
+// DIALOG DETAIL ROW
 // ─────────────────────────────────────────────────────────────
 
 class _DRow extends StatelessWidget {
@@ -682,8 +762,7 @@ class _DRow extends StatelessWidget {
                     style: TextStyle(
                         fontSize:   12,
                         fontWeight: FontWeight.w600,
-                        color: valueColor ??
-                            AppColor.textPrimary),
+                        color:      valueColor ?? AppColor.textPrimary),
                     overflow: TextOverflow.ellipsis),
                 if (sub != null)
                   Text(sub!,
@@ -704,9 +783,9 @@ class _DRow extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _SRow extends StatelessWidget {
-  final String  label;
-  final String  value;
-  final Color?  color;
+  final String label;
+  final String value;
+  final Color? color;
 
   const _SRow({
     required this.label,
@@ -721,13 +800,12 @@ class _SRow extends StatelessWidget {
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 12,
-                color:    AppColor.textSecondary)),
+                fontSize: 12, color: AppColor.textSecondary)),
         Text(value,
             style: TextStyle(
                 fontSize:   12,
                 fontWeight: FontWeight.w600,
-                color: color ?? AppColor.textPrimary)),
+                color:      color ?? AppColor.textPrimary)),
       ],
     );
   }

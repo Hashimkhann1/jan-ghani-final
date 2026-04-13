@@ -377,30 +377,35 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
               // Status badge
               Expanded(
                 flex: 2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color:        statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 6, height: 6,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle, color: statusColor),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 120,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color:        statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      const SizedBox(width: 5),
-                      Text(o.statusLabel,
-                          style: TextStyle(fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: statusColor)),
-                    ],
-                  ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 6, height: 6,
+                            decoration: BoxDecoration(
+                                shape: BoxShape.circle, color: statusColor),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(o.statusLabel,
+                              style: TextStyle(fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: statusColor)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(width: 40,),
@@ -408,7 +413,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
               // Total
               Expanded(
                 flex: 2,
-                child: Text(_fmt(o.totalAmount),
+                child: Text(o.totalAmount.toString(),
                     style: TextStyle(fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: AppColor.textPrimary)),
@@ -417,7 +422,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
               // Paid
               Expanded(
                 flex: 2,
-                child: Text(_fmt(o.paidAmount),
+                child: Text(o.paidAmount.toString(),
                     style: TextStyle(fontSize: 13,
                         color: AppColor.success,
                         fontWeight: FontWeight.w500)),
@@ -427,7 +432,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
               Expanded(
                 flex: 2,
                 child: Text(
-                  o.isFullyPaid ? 'Clear' : _fmt(o.remainingAmount),
+                  o.isFullyPaid ? 'Clear' : o.remainingAmount.toString(),
                   style: TextStyle(
                     fontSize:   13,
                     fontWeight: FontWeight.w600,

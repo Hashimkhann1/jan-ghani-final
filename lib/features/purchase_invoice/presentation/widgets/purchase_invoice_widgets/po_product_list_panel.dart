@@ -1,7 +1,6 @@
 // =============================================================
-// po_product_list_panel.dart
+// po_product_list_panel.dart  — UPDATED (real products from DB)
 // Left panel — products list with search
-// Sale Invoice ke ProductListPanel ki tarah
 // Double tap → cart mein add
 // =============================================================
 
@@ -10,16 +9,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/purchase_invoice/data/purchase_invoice_model.dart';
 import 'package:jan_ghani_final/features/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart';
-
+import 'package:jan_ghani_final/features/warehouse_stock_inventory/data/model/product_model.dart';
+import 'package:jan_ghani_final/features/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 
 class PoProductListPanel extends ConsumerWidget {
   const PoProductListPanel({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state    = ref.watch(purchaseInvoiceProvider);
-    final notifier = ref.read(purchaseInvoiceProvider.notifier);
-    final products = state.filteredProducts;
+    final poState      = ref.watch(purchaseInvoiceProvider);
+    final poNotifier   = ref.read(purchaseInvoiceProvider.notifier);
+    final productState = ref.watch(productProvider);
+
+    // Search query poState se leke products ko filter karo
+    final allProducts = productState.allProducts
+        .where((p) => p.isActive && p.deletedAt == null)
+        .toList();
+
+    final query = poState.searchQuery.toLowerCase();
+    final filtered = query.isEmpty
+        ? allProducts
+        : allProducts.where((p) =>
+    p.name.toLowerCase().contains(query) ||
+        p.sku.toLowerCase().contains(query) ||
+        (p.barcode?.toLowerCase().contains(query) ?? false)).toList();
 
     return Container(
       decoration: const BoxDecoration(
@@ -28,25 +41,44 @@ class PoProductListPanel extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _SearchBar(onChanged: notifier.updateSearch),
+          _SearchBar(onChanged: poNotifier.updateSearch),
+
+          // Loading indicator
+          if (productState.isLoading)
+            const LinearProgressIndicator(minHeight: 2),
+
           Expanded(
-            child: products.isEmpty
+            child: productState.isLoading
+                ? const Center(
+                child: CircularProgressIndicator(strokeWidth: 2))
+                : filtered.isEmpty
                 ? const _EmptyProducts()
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    itemCount: products.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: 6),
-                    itemBuilder: (context, index) {
-                      final product = products[index];
-                      return _ProductListItem(
-                        product:     product,
-                        onDoubleTap: () =>
-                            notifier.addToCart(product),
-                      );
-                    },
-                  ),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              itemCount: filtered.length,
+              separatorBuilder: (_, __) =>
+              const SizedBox(height: 6),
+              itemBuilder: (context, index) {
+                final product = filtered[index];
+                return _ProductListItem(
+                  product: product,
+                  onDoubleTap: () {
+                    // ProductModel → PoProduct convert
+                    final poProduct = PoProduct(
+                      id:            product.id,
+                      name:          product.name,
+                      category:      product.categoryName ?? '-',
+                      sku:           product.sku,
+                      purchasePrice: product.costPrice,
+                      salePrice:     product.sellingPrice,
+                      stock:         product.quantity,
+                    );
+                    poNotifier.addToCart(poProduct);
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -74,7 +106,7 @@ class _SearchBar extends StatelessWidget {
             fontSize: 13, color: AppColor.textPrimary),
         cursorHeight: 14,
         decoration: InputDecoration(
-          hintText:  'Search by name or SKU...',
+          hintText:  'Name, SKU ya barcode se search...',
           hintStyle: const TextStyle(
               fontSize: 13, color: AppColor.textHint),
           prefixIcon: const Icon(Icons.search,
@@ -95,7 +127,7 @@ class _SearchBar extends StatelessWidget {
 // ─── Product List Item ────────────────────────────────────────
 
 class _ProductListItem extends StatefulWidget {
-  final PoProduct    product;
+  final ProductModel product;
   final VoidCallback onDoubleTap;
 
   const _ProductListItem({
@@ -135,8 +167,8 @@ class _ProductListItemState extends State<_ProductListItem>
 
   @override
   Widget build(BuildContext context) {
-    final product = widget.product;
-    final bool inStock = product.stock > 0;
+    final p       = widget.product;
+    final inStock = p.quantity > 0;
 
     return GestureDetector(
       onDoubleTap: _onDoubleTap,
@@ -152,42 +184,50 @@ class _ProductListItemState extends State<_ProductListItem>
           ),
           child: Row(
             children: [
-              // Product ID box
-              Container(
-                width:  38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color:        AppColor.grey100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text(product.id,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColor.textSecondary)),
-              ),
-              const SizedBox(width: 10),
+              // SKU badge
+              // Container(
+              //   constraints: const BoxConstraints(
+              //       minWidth: 48, maxWidth: 70),
+              //   height: 38,
+              //   padding: const EdgeInsets.symmetric(horizontal: 4),
+              //   decoration: BoxDecoration(
+              //     color:        AppColor.grey100,
+              //     borderRadius: BorderRadius.circular(8),
+              //   ),
+              //   alignment: Alignment.center,
+              //   child: Text(
+              //     "Rs ${p.sellingPrice.toString()}",
+              //     style: const TextStyle(
+              //         fontSize: 12,
+              //         fontWeight: FontWeight.w700,
+              //         color: AppColor.textSecondary),
+              //     textAlign: TextAlign.center,
+              //     maxLines:  2,
+              //     overflow:  TextOverflow.ellipsis,
+              //   ),
+              // ),
+              // const SizedBox(width: 10),
 
               // Name + category + cost
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(product.name,
-                        style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.textPrimary),
-                        maxLines:  1,
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      p.name,
+                      style: const TextStyle(
+                          fontSize:14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColor.textPrimary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 2),
                     Text(
-                      '${product.category}  •  '
-                      'Cost: Rs ${product.purchasePrice.toStringAsFixed(0)}',
+                      '${p.categoryName ?? '-'}  •  '
+                          ' Rs ${p.costPrice.toStringAsFixed(0)}',
                       style: const TextStyle(
-                          fontSize: 9,
-                          color: AppColor.textHint),
+                          fontSize: 13,fontWeight: FontWeight.w500, color: AppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -205,9 +245,11 @@ class _ProductListItemState extends State<_ProductListItem>
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  inStock ? '${product.stock.toInt()}' : 'Out',
+                  inStock
+                      ? '${p.quantity.toStringAsFixed(2)} ${p.unitOfMeasure}'
+                      : 'Out',
                   style: TextStyle(
-                    fontSize:   10,
+                    fontSize:   13,
                     fontWeight: FontWeight.w600,
                     color: inStock
                         ? AppColor.success : AppColor.error,
@@ -235,7 +277,7 @@ class _EmptyProducts extends StatelessWidget {
         children: [
           Icon(Icons.search_off, size: 40, color: AppColor.grey300),
           SizedBox(height: 8),
-          Text('No products found',
+          Text('Koi product nahi mila',
               style: TextStyle(
                   fontSize: 13, color: AppColor.textHint)),
         ],

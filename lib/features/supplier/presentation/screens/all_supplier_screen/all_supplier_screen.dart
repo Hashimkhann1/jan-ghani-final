@@ -1,5 +1,6 @@
 // =============================================================
 // all_supplier_screen.dart
+// Delete confirm dialog + Edit dialog connected
 // =============================================================
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:jan_ghani_final/features/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/supplier/presentation/provider/supplier_provider/supplier_provider.dart';
 import 'package:jan_ghani_final/features/supplier/presentation/screens/specific_supplier_detail_screen/specific_supplier_detail_screen.dart';
 import 'package:jan_ghani_final/features/supplier/presentation/widgets/add_supplier_dialog.dart';
+import 'package:jan_ghani_final/features/supplier/presentation/widgets/edit_supplier_dialog/edit_supplier_dialog.dart';
 import 'package:jan_ghani_final/features/supplier/presentation/widgets/supplier_widgets.dart';
 
 class AllSupplierScreen extends ConsumerWidget {
@@ -42,8 +44,9 @@ class AllSupplierScreen extends ConsumerWidget {
             )
                 : _SupplierTable(
               suppliers: state.filteredSuppliers,
-              onDelete:  notifier.deleteSupplier,
+              onDelete:  (s) => _showDeleteConfirm(context, ref, s),
               onEdit:    (s) => _showEditDialog(context, s),
+              ref:       ref,
             ),
           ),
         ],
@@ -51,13 +54,124 @@ class AllSupplierScreen extends ConsumerWidget {
     );
   }
 
+  // ── Add dialog ──────────────────────────────────────────────
   void _showAddDialog(BuildContext context) {
-    showDialog(context: context, builder: (_) => const AddSupplierDialog());
+    showDialog(
+      context:     context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder:     (_) => const AddSupplierDialog(),
+    );
   }
 
+  // ── Edit dialog ─────────────────────────────────────────────
   void _showEditDialog(BuildContext context, SupplierModel supplier) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit: ${supplier.name} — coming soon')),
+    EditSupplierDialog.show(context, supplier);
+  }
+
+  // ── Delete confirm dialog ───────────────────────────────────
+  void _showDeleteConfirm(
+      BuildContext context, WidgetRef ref, SupplierModel supplier) {
+    showDialog(
+      context:     context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        child: SizedBox(
+          width: 400,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  padding:    const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color:        AppColor.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: Icon(Icons.delete_outline_rounded,
+                      color: AppColor.error, size: 28),
+                ),
+                const SizedBox(height: 16),
+
+                // Title
+                Text('Supplier Delete Karen?',
+                    style: TextStyle(
+                        fontSize:   17,
+                        fontWeight: FontWeight.w700,
+                        color:      AppColor.textPrimary)),
+                const SizedBox(height: 8),
+
+                // Supplier name
+                Text(
+                  '"${supplier.name}"',
+                  style: TextStyle(
+                      fontSize:   14,
+                      fontWeight: FontWeight.w600,
+                      color:      AppColor.error),
+                ),
+                const SizedBox(height: 6),
+
+                Text(
+                  'Yeh supplier soft-delete ho jaye ga.\nPurchase history mehfooz rahegi.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13, color: AppColor.textSecondary),
+                ),
+                const SizedBox(height: 24),
+
+                // Buttons
+                Row(
+                  children: [
+                    // Cancel
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColor.textSecondary,
+                          side: BorderSide(color: AppColor.grey300),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Delete confirm
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          ref
+                              .read(supplierProvider.notifier)
+                              .deleteSupplier(supplier.id);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.error,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                        ),
+                        child: const Text('Delete',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -77,18 +191,19 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       color:   AppColor.surface,
       child: Row(
-        mainAxisSize: MainAxisSize.max,
         children: [
           Column(
             mainAxisSize:       MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Suppliers',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700,
-                      color: AppColor.textPrimary)),
+                  style: TextStyle(
+                      fontSize:   22,
+                      fontWeight: FontWeight.w700,
+                      color:      AppColor.textPrimary)),
               Text('Apne suppliers manage karein',
-                  style: TextStyle(fontSize: 13,
-                      color: AppColor.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 13, color: AppColor.textSecondary)),
             ],
           ),
           const Spacer(),
@@ -99,7 +214,8 @@ class _TopBar extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColor.primary,
               foregroundColor: AppColor.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 17),
               minimumSize:   Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(
@@ -128,21 +244,28 @@ class _StatsRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       child: Row(
         children: [
-          SupplierStatCard(label: 'Total Suppliers',
+          SupplierStatCard(
+              label: 'Total Suppliers',
               value: '${state.totalCount}',
-              icon: Icons.people_outline_rounded, color: AppColor.primary),
+              icon:  Icons.people_outline_rounded,
+              color: AppColor.primary),
           const SizedBox(width: 12),
-          SupplierStatCard(label: 'Active',
+          SupplierStatCard(
+              label: 'Active',
               value: '${state.activeCount}',
-              icon: Icons.check_circle_outline_rounded, color: AppColor.success),
+              icon:  Icons.check_circle_outline_rounded,
+              color: AppColor.success),
           const SizedBox(width: 12),
-          SupplierStatCard(label: 'Total Purchase',
+          SupplierStatCard(
+              label: 'Total Purchase',
               value: _fmt(state.totalPurchased),
-              icon: Icons.shopping_cart_outlined, color: AppColor.info),
+              icon:  Icons.shopping_cart_outlined,
+              color: AppColor.info),
           const SizedBox(width: 12),
-          SupplierStatCard(label: 'Total Due',
+          SupplierStatCard(
+              label: 'Total Due',
               value: _fmt(state.totalOutstanding),
-              icon: Icons.account_balance_wallet_outlined,
+              icon:  Icons.account_balance_wallet_outlined,
               color: AppColor.warning),
         ],
       ),
@@ -161,8 +284,8 @@ class _StatsRow extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _SearchFilterBar extends StatefulWidget {
-  final String searchQuery;
-  final String selectedFilter;
+  final String               searchQuery;
+  final String               selectedFilter;
   final ValueChanged<String> onSearch;
   final ValueChanged<String> onFilter;
 
@@ -199,13 +322,15 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
       child: Row(
         children: [
           SizedBox(
-            width: 440, height: 42,
+            width: 440,
+            height: 42,
             child: TextField(
               controller: _controller,
               onChanged:  widget.onSearch,
               decoration: InputDecoration(
-                hintText:   'Name, phone, address se search karein...',
-                hintStyle:  TextStyle(color: AppColor.textHint, fontSize: 14),
+                hintText:  'Name, phone, address se search karein...',
+                hintStyle: TextStyle(
+                    color: AppColor.textHint, fontSize: 14),
                 prefixIcon: Icon(Icons.search_rounded,
                     color: AppColor.grey400, size: 20),
                 suffixIcon: _controller.text.isNotEmpty
@@ -230,20 +355,29 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
                     borderSide: BorderSide(color: AppColor.grey200)),
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                    BorderSide(color: AppColor.primary, width: 1.5)),
+                    borderSide: BorderSide(
+                        color: AppColor.primary, width: 1.5)),
               ),
             ),
           ),
           const Spacer(),
-          SupplierFilterChip(label: 'All',  value: 'all',
-              selectedValue: widget.selectedFilter, onTap: widget.onFilter),
+          SupplierFilterChip(
+              label:         'All',
+              value:         'all',
+              selectedValue: widget.selectedFilter,
+              onTap:         widget.onFilter),
           const SizedBox(width: 6),
-          SupplierFilterChip(label: 'Active', value: 'active',
-              selectedValue: widget.selectedFilter, onTap: widget.onFilter),
+          SupplierFilterChip(
+              label:         'Active',
+              value:         'active',
+              selectedValue: widget.selectedFilter,
+              onTap:         widget.onFilter),
           const SizedBox(width: 6),
-          SupplierFilterChip(label: 'Inactive', value: 'inactive',
-              selectedValue: widget.selectedFilter, onTap: widget.onFilter),
+          SupplierFilterChip(
+              label:         'Inactive',
+              value:         'inactive',
+              selectedValue: widget.selectedFilter,
+              onTap:         widget.onFilter),
         ],
       ),
     );
@@ -252,22 +386,21 @@ class _SearchFilterBarState extends State<_SearchFilterBar> {
 
 // ─────────────────────────────────────────────────────────────
 // SUPPLIER TABLE
-// FIX: ek hi ScrollController header + rows dono pe
-// taake horizontal scroll sync ho
 // ─────────────────────────────────────────────────────────────
 
 class _SupplierTable extends StatefulWidget {
-  final List<SupplierModel> suppliers;
-  final ValueChanged<String>        onDelete;
+  final List<SupplierModel>         suppliers;
+  final ValueChanged<SupplierModel> onDelete;
   final ValueChanged<SupplierModel> onEdit;
+  final WidgetRef                   ref;
 
-  // Table minimum width — isse choti window pe horizontal scroll
   static const double minWidth = 1320;
 
   const _SupplierTable({
     required this.suppliers,
     required this.onDelete,
     required this.onEdit,
+    required this.ref,
   });
 
   @override
@@ -275,7 +408,6 @@ class _SupplierTable extends StatefulWidget {
 }
 
 class _SupplierTableState extends State<_SupplierTable> {
-  // Ek shared ScrollController — header aur rows dono isko use karenge
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -297,81 +429,83 @@ class _SupplierTableState extends State<_SupplierTable> {
         borderRadius: BorderRadius.circular(14),
         child: Column(
           children: [
-            // ── Header — shared controller se scroll hoga ─────
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final tableWidth = constraints.maxWidth > _SupplierTable.minWidth
+            // ── Header ────────────────────────────────────────
+            LayoutBuilder(builder: (context, constraints) {
+              final w = constraints.maxWidth > _SupplierTable.minWidth
+                  ? constraints.maxWidth
+                  : _SupplierTable.minWidth;
+              return SingleChildScrollView(
+                controller:      _scrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                child: SizedBox(
+                  width: w,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color:  AppColor.grey100,
+                      border: Border(
+                          bottom: BorderSide(color: AppColor.grey200)),
+                    ),
+                    child: const Row(
+                      children: [
+                        _HeaderCell(label: 'Supplier',       flex: 3),
+                        _HeaderCell(label: 'Phone',          flex: 2),
+                        _HeaderCell(label: 'Payment Terms',  flex: 1),
+                        _HeaderCell(label: 'Total Purchase', flex: 2),
+                        _HeaderCell(label: 'Balance',        flex: 1),
+                        _HeaderCell(label: 'Orders',         flex: 1),
+                        _HeaderCell(label: 'Status',         flex: 1),
+                        _HeaderCell(label: 'Actions',        flex: 1,
+                            align: TextAlign.center),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+
+            // ── Rows ──────────────────────────────────────────
+            Expanded(
+              child: LayoutBuilder(builder: (context, constraints) {
+                final w = constraints.maxWidth > _SupplierTable.minWidth
                     ? constraints.maxWidth
                     : _SupplierTable.minWidth;
                 return SingleChildScrollView(
-                  controller: _scrollController,
+                  controller:      _scrollController,
                   scrollDirection: Axis.horizontal,
-                  physics: const NeverScrollableScrollPhysics(),
                   child: SizedBox(
-                    width: tableWidth,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      decoration: BoxDecoration(
-                        color:  AppColor.grey100,
-                        border: Border(
-                            bottom: BorderSide(color: AppColor.grey200)),
-                      ),
-                      child: Row(
-                        children: const [
-                          _HeaderCell(label: 'Supplier',       flex: 3),
-                          _HeaderCell(label: 'Phone',          flex: 2),
-                          _HeaderCell(label: 'Payment Terms',  flex: 1),
-                          _HeaderCell(label: 'Total Purchase', flex: 2),
-                          _HeaderCell(label: 'Balance',        flex: 1),
-                          _HeaderCell(label: 'Orders',         flex: 1),
-                          _HeaderCell(label: 'Status',         flex: 1),
-                          _HeaderCell(label: 'Actions',        flex: 1,
-                              align: TextAlign.center),
-                        ],
-                      ),
+                    width: w,
+                    child: ListView.separated(
+                      itemCount: widget.suppliers.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: AppColor.grey100),
+                      itemBuilder: (context, i) {
+                        final s = widget.suppliers[i];
+                        return GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  SpecificSupplierDetailScreen(
+                                      supplier: s),
+                            ),
+                          ).then((_) {
+                            // Detail screen se wapas aane pe reload karo
+                            widget.ref.read(supplierProvider.notifier).loadSuppliers();
+                          }),
+                          child: _SupplierRow(
+                            key:      ValueKey(s.id),
+                            supplier: s,
+                            onDelete: () => widget.onDelete(s),
+                            onEdit:   () => widget.onEdit(s),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 );
-              },
-            ),
-
-            // ── Rows — same shared controller ─────────────────
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final tableWidth = constraints.maxWidth > _SupplierTable.minWidth
-                      ? constraints.maxWidth
-                      : _SupplierTable.minWidth;
-                  return SingleChildScrollView(
-                    controller:      _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: tableWidth,
-                      child: ListView.separated(
-                        itemCount: widget.suppliers.length,
-                        separatorBuilder: (_, __) =>
-                            Divider(height: 1, color: AppColor.grey100),
-                        itemBuilder: (context, i) => GestureDetector(
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => SpecificSupplierDetailScreen(
-                                supplier: widget.suppliers[i],
-                              ),
-                            ),
-                          ),
-                          child: _SupplierRow(
-                            key:      ValueKey(widget.suppliers[i].id),
-                            supplier: widget.suppliers[i],
-                            onDelete: () => widget.onDelete(widget.suppliers[i].id),
-                            onEdit:   () => widget.onEdit(widget.suppliers[i]),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              }),
             ),
 
             // ── Footer ────────────────────────────────────────
@@ -379,15 +513,16 @@ class _SupplierTableState extends State<_SupplierTable> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                  border:
-                  Border(top: BorderSide(color: AppColor.grey100))),
+                  border: Border(
+                      top: BorderSide(color: AppColor.grey100))),
               child: Row(
                 children: [
                   Text(
                     '${widget.suppliers.length} supplier'
                         '${widget.suppliers.length == 1 ? '' : 's'}',
                     style: TextStyle(
-                        fontSize: 12, color: AppColor.textSecondary),
+                        fontSize: 12,
+                        color:    AppColor.textSecondary),
                   ),
                 ],
               ),
@@ -453,12 +588,6 @@ class _SupplierRowState extends State<_SupplierRow> {
   bool _isHovered = false;
 
   @override
-  void deactivate() {
-    _isHovered = false;
-    super.deactivate();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final s = widget.supplier;
 
@@ -469,11 +598,13 @@ class _SupplierRowState extends State<_SupplierRow> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         color: _isHovered
-            ? AppColor.primary.withOpacity(0.04) : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            ? AppColor.primary.withOpacity(0.04)
+            : Colors.transparent,
+        padding: const EdgeInsets.symmetric(
+            horizontal: 20, vertical: 14),
         child: Row(
           children: [
-            // Supplier name + address
+            // Supplier name + company + address
             Expanded(
               flex: 3,
               child: Row(
@@ -485,14 +616,16 @@ class _SupplierRowState extends State<_SupplierRow> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(s.name,
-                            style: TextStyle(fontWeight: FontWeight.w600,
-                                fontSize: 14, color: AppColor.textPrimary),
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize:   14,
+                                color:      AppColor.textPrimary),
                             overflow: TextOverflow.ellipsis),
-                        if (s.contactPerson != null &&
-                            s.contactPerson != s.name)
-                          Text(s.contactPerson!,
-                              style: TextStyle(fontSize: 12,
-                                  color: AppColor.textSecondary),
+                        if (s.companyName != null)
+                          Text(s.companyName!,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color:    AppColor.textSecondary),
                               overflow: TextOverflow.ellipsis),
                         if (s.address != null)
                           Row(children: [
@@ -501,8 +634,9 @@ class _SupplierRowState extends State<_SupplierRow> {
                             const SizedBox(width: 2),
                             Flexible(
                               child: Text(s.address!,
-                                  style: TextStyle(fontSize: 11,
-                                      color: AppColor.grey400),
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color:    AppColor.grey400),
                                   overflow: TextOverflow.ellipsis),
                             ),
                           ]),
@@ -517,34 +651,40 @@ class _SupplierRowState extends State<_SupplierRow> {
             Expanded(
               flex: 2,
               child: Text(s.phone,
-                  style: TextStyle(fontSize: 13,
-                      color: AppColor.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color:    AppColor.textSecondary)),
             ),
 
             // Payment Terms
             Expanded(
-                flex: 1, child: PaymentTermsBadge(days: s.paymentTerms)),
+                flex: 1,
+                child: PaymentTermsBadge(days: s.paymentTerms)),
             const SizedBox(width: 20),
 
             // Total Purchase
             Expanded(
               flex: 2,
               child: Text(_fmt(s.totalPurchaseAmount),
-                  style: TextStyle(fontSize: 13,
+                  style: TextStyle(
+                      fontSize:   13,
                       fontWeight: FontWeight.w500,
-                      color: AppColor.textPrimary)),
+                      color:      AppColor.textPrimary)),
             ),
 
             // Balance
-            Expanded(flex: 1, child: SupplierBalanceBadge(supplier: s)),
+            Expanded(
+                flex: 1,
+                child: SupplierBalanceBadge(supplier: s)),
             const SizedBox(width: 20),
 
             // Orders
             Expanded(
               flex: 1,
               child: Text('${s.totalOrders}',
-                  style: TextStyle(fontSize: 13,
-                      color: AppColor.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color:    AppColor.textSecondary)),
             ),
 
             // Status
@@ -552,7 +692,7 @@ class _SupplierRowState extends State<_SupplierRow> {
                 flex: 1,
                 child: SupplierStatusBadge(isActive: s.isActive)),
 
-            // Actions — hover pe
+            // Actions — hover pe dikhte hain
             Expanded(
               flex: 1,
               child: _isHovered
@@ -560,16 +700,16 @@ class _SupplierRowState extends State<_SupplierRow> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SupplierActionButton(
-                      icon: Icons.edit_outlined,
-                      color: AppColor.info,
+                      icon:    Icons.edit_outlined,
+                      color:   AppColor.info,
                       tooltip: 'Edit',
-                      onTap: widget.onEdit),
+                      onTap:   widget.onEdit),
                   const SizedBox(width: 6),
                   SupplierActionButton(
-                      icon: Icons.delete_outline,
-                      color: AppColor.error,
+                      icon:    Icons.delete_outline,
+                      color:   AppColor.error,
                       tooltip: 'Delete',
-                      onTap: widget.onDelete),
+                      onTap:   widget.onDelete),
                 ],
               )
                   : const SizedBox(),

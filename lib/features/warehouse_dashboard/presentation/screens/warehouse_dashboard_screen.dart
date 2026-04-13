@@ -175,19 +175,6 @@ class _TopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 22, height: 22,
-                  decoration: BoxDecoration(
-                    color:  AppColor.primary.withOpacity(0.1),
-                    shape:  BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text('AO',
-                      style: TextStyle(fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: AppColor.primary)),
-                ),
-                const SizedBox(width: 7),
                 Text('Ahmed',
                     style: TextStyle(fontSize: 12,
                         fontWeight: FontWeight.w600,

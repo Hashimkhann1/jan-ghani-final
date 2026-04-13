@@ -8,7 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/purchase_invoice/presentation/provider/purchase_order_provider.dart';
 import 'package:jan_ghani_final/features/purchase_invoice/presentation/screens/purchase_invoice_screen/purchase_invoice_screen.dart';
+import 'package:jan_ghani_final/features/purchase_invoice/presentation/widgets/po_detail_dialog_widget.dart';
 import 'package:jan_ghani_final/features/purchase_invoice/presentation/widgets/purchase_order_widgets.dart';
+import 'package:jan_ghani_final/features/supplier/presentation/provider/supplier_provider/supplier_provider.dart';
+import 'package:jan_ghani_final/features/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 
 class PurchaseOrderScreen extends ConsumerStatefulWidget {
   const PurchaseOrderScreen({super.key});
@@ -52,7 +55,14 @@ class _PurchaseOrderScreenState
               MaterialPageRoute(
                 builder: (_) => const PurchaseInvoiceScreen(),
               ),
-            ),
+            ).then((_) {
+              // Purchase orders refresh karo
+              ref.read(purchaseOrderProvider.notifier).loadOrders();
+              // Supplier balances bhi refresh karo
+              ref.read(supplierProvider.notifier).loadSuppliers();
+              // Products cost_price + inventory refresh karo
+              ref.read(productProvider.notifier).loadProducts();
+            }),
           ),
           Expanded(
             child: SingleChildScrollView(
@@ -76,7 +86,7 @@ class _PurchaseOrderScreenState
                     isSearching: state.searchQuery.isNotEmpty ||
                         state.filterStatus != 'all',
                     onView: (order) {
-                      // TODO: navigate to PO detail screen
+                      POdetailDialogWidget.show(context, order);
                     },
                     onEdit: (order) {
                       // TODO: navigate to UpdatePurchaseOrderScreen
@@ -175,7 +185,7 @@ class _StatsRow extends StatelessWidget {
             color: AppColor.success),
         const SizedBox(width: 12),
         PoStatCard(label: 'This month',
-            value: _fmt(stats.thisMonthTotal),
+            value: stats.thisMonthTotal.toString(),
             icon: Icons.calendar_month_outlined,
             color: AppColor.info),
         const SizedBox(width: 12),
