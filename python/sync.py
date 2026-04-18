@@ -28,7 +28,7 @@ LOCAL_DB = {
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SECRET_KEY")
 
-SYNC_INTERVAL_MINUTES = int(os.getenv("SYNC_INTERVAL_MINUTES", "5"))
+SYNC_INTERVAL_SECONDS = 20
 
 # ── Startup validation ──────────────────────────
 missing = [k for k, v in {
@@ -212,13 +212,13 @@ if __name__ == "__main__":
 ╚══════════════════════════════════════════╝
     """)
     print(f"  📋 Tables: {len(TABLES)}")
-    print(f"  ⏱️  Interval: Har {SYNC_INTERVAL_MINUTES} minute")
+    print(f"  ⏱️  Interval: Har {SYNC_INTERVAL_SECONDS} seconds")
     print(f"  🛑 Band karne ke liye: CTRL + C\n")
 
     run_sync()
 
-    schedule.every(SYNC_INTERVAL_MINUTES).minutes.do(run_sync)
-    print(f"  ⏰ Next sync {SYNC_INTERVAL_MINUTES} minute mein hoga...\n")
+    schedule.every(SYNC_INTERVAL_SECONDS).seconds.do(run_sync)
+    print(f"  ⏰ Next sync {SYNC_INTERVAL_SECONDS} seconds mein hoga...\n")
 
     try:
         while True:
