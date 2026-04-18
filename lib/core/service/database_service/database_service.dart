@@ -30,4 +30,9 @@ class DatabaseService {
     await _connection?.close();
     _connection = null;
   }
+
+  static Connection get connection {
+    if (_connection == null) throw Exception('Database not connected!');
+    return _connection!;
+  }
 }

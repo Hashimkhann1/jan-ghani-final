@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/features/auth/presentation/provider/auth_provider.dart';
-import 'package:jan_ghani_final/features/auth/presentation/screens/login_screen.dart';
-import 'package:jan_ghani_final/features/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
-import 'package:jan_ghani_final/features/cashier_dashboard/presentation/screen/cashier_dashboard_screen.dart';
-import 'package:jan_ghani_final/features/category/presentation/screens/all_category_screen.dart';
-import 'package:jan_ghani_final/features/counter/presentation/screen/counter_screen.dart';
-import 'package:jan_ghani_final/features/customer/presentation/screen/all_customer_screen.dart';
-import 'package:jan_ghani_final/features/purchase_invoice/presentation/screens/purchase_order_screen.dart';
-import 'package:jan_ghani_final/features/sale_invoice/presentation/screen/sale_invoice_screen.dart';
-import 'package:jan_ghani_final/features/supplier/presentation/screens/all_supplier_screen/all_supplier_screen.dart';
-import 'package:jan_ghani_final/features/warehouse_dashboard/presentation/screens/warehouse_dashboard_screen.dart';
-import 'package:jan_ghani_final/features/warehouse_expense/presentation/screens/warehouse_expense_screen.dart';
-import 'package:jan_ghani_final/features/warehouse_finance/presentation/screens/warehouse_finance_screen/warehouse_finance_screen.dart';
-import 'package:jan_ghani_final/features/warehouse_user/presentation/screens/user_screen.dart';
-import '../../../features/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
-import '../../../features/dashboard/presentation/screen/dashboard_screen.dart';
-import '../../../features/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
+
+import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/auth/presentation/screens/login_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/category/presentation/screens/all_category_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/link_stores/presentation/screens/linked_stores_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/screens/purchase_order_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens/all_supplier_screen/all_supplier_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/screens/warehouse_dashboard_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_expense/presentation/screens/warehouse_expense_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentation/screens/warehouse_finance_screen/warehouse_finance_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/screens/user_screen.dart';
+
 import 'nav_tile_widget.dart';
 
 
@@ -53,19 +50,9 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   late final List<NavItem> _allOthers = [
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
-      label: 'Dashboard',
-      screen: const DashboardScreen(),
-    ),
-    NavItem(
       svg: 'assets/images/dolly-flatbed-alt.svg',
       label: 'Warehouse Stock Inventory',
       screen: const WarehouseStockInventoryScreen(),
-    ),
-    NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
-      label: 'Assign Stock to My Branch',
-      screen: const BranchTransferListScreen(),
     ),
     NavItem(
       svg: 'assets/images/dolly-flatbed-alt.svg',
@@ -150,11 +137,6 @@ class _SideBarState extends ConsumerState<SideBar> {
     ),
     NavItem(
       svg: 'assets/images/dolly-flatbed-alt.svg',
-      label: 'Assign Stock to My Branch',
-      screen: const BranchTransferListScreen(),
-    ),
-    NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
       label: 'Po',
       screen: const PurchaseOrderScreen(),
     ),
@@ -168,6 +150,12 @@ class _SideBarState extends ConsumerState<SideBar> {
       svg: 'assets/images/dolly-flatbed-alt.svg',
       label: 'User',
       screen: const AllUserScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/dolly-flatbed-alt.svg',
+      label: 'Assign Stock',
+      screen: const AssignStockScreen(),
     ),
 
 
@@ -187,6 +175,12 @@ class _SideBarState extends ConsumerState<SideBar> {
       svg: 'assets/images/sale_invoice.svg',
       label: 'Expense',
       screen: const WarehouseExpenseScreen(),
+    ),
+
+    NavItem(
+      svg: 'assets/images/sale_invoice.svg',
+      label: 'Link Stores',
+      screen:  LinkedStoresScreen(warehouseId: 'c519975f-bf0e-4747-b152-ea38fcbf7cc5',),
     ),
 
   ];
