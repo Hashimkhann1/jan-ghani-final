@@ -1,0 +1,13 @@
+{
+  "app_mode": "store",
+  "store_id": "4044fa6f-0eaf-4256-a78a-6c54b9f22f3b",
+  "store_code": "STORE-01",
+  "store_name": "Jan Ghani Store",
+  "store_address": "Peshawar, KPK",
+  "store_phone": "0300-1234567",
+  "db_host": "localhost",
+  "db_name": "store_db",
+  "db_user": "storeuser",
+  "db_password": "branchUser12C3",
+  "store_server_ip": "192.168.1.10"
+}

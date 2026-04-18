@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:jan_ghani_final/features/assign_stock_to_branch/presentation/widget/status_chip_widget.dart';
+import 'package:jan_ghani_final/features/warehouse/assign_stock_to_branch/presentation/widget/status_chip_widget.dart';
 import '../../data/model/stock_transfer_model.dart';
 import '../screen/branch_transfer_list_screen.dart';
 import 'expanded_panel_widget.dart';
