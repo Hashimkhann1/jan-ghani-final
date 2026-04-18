@@ -4,11 +4,19 @@ import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
 import 'package:jan_ghani_final/core/service/warehouse_supabase_sync_service/warehouse_supabase_sync_service.dart';
 import 'package:jan_ghani_final/core/theme/light_theme.dart';
+import 'package:jan_ghani_final/core/widget/sidebar/branch_sidebar_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/screens/login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/config/store_config.dart';
+import 'core/service/db/db_service.dart';
 import 'core/service/stock_assign_services/stock_transfer_sync_provider.dart';
+import 'core/service/sync/sync_service.dart';
 import 'core/widget/sidebar/sidebar_widget.dart';
+
+final syncService = SyncService();
+final supabase = Supabase.instance.client;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,23 +27,11 @@ void main() async {
     anonKey: 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS',
   );
 
-  // 2. Config load
-  await AppConfig.load();
-
-  // 3. DB connect
-  await DatabaseService.getConnection();
-
-  // 4. Sync start — DB aur Supabase dono ready hain
-  WarehouseSupabaseSyncService.instance.start(
-    interval: const Duration(minutes: 1),
-  );
-
-  // 5. App run
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  await SharedPreferences.getInstance();
+  await StoreConfig.load();
+  DataBaseService.getConnection();
+  await syncService.startSync();
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -74,7 +70,7 @@ class _AuthWrapper extends ConsumerWidget {
 
     // Logged in → SideBar
     if (auth.isLoggedIn) {
-      return const SideBar();
+      return const BranchSideBar();
     }
 
     // Not logged in → Login Screen
