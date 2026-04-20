@@ -261,117 +261,147 @@ class AllCustomerScreen extends ConsumerWidget {
             Expanded(
               child: customers.isEmpty ?
               CustomerEmptyState(isSearching: state.searchQuery.isNotEmpty) :
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                    dataRowColor: WidgetStateProperty.resolveWith<Color?>((states) {
-                      if (states.contains(WidgetState.hovered)) {
-                        return AppColor.primary.withValues(alpha: 0.05);
-                      }
-                      return null;
-                    }),
-                    dataRowMinHeight: 52,
-                    dataRowMaxHeight: 52,
-                    columnSpacing: size.width * 0.034,
-                    showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('#')),
-                      DataColumn(label: Text('Customer')),
-                      DataColumn(label: Text('Phone')),
-                      DataColumn(label: Text('Address')),
-                      DataColumn(label: Text('Type')),
-                      DataColumn(label: Text('Credit Limit')),
-                      DataColumn(label: Text('Balance')),
-                      DataColumn(label: Text('Status')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: List.generate(customers.length, (i) {
-                      final c = customers[i];
-                      return DataRow(
-                        onSelectChanged: (_){},
-                        cells: [
-                          DataCell(Text(c.code, style: const TextStyle(color: AppColor.textSecondary, fontSize: 12))),
-                          DataCell(GestureDetector(onTap: (){}, child: Text(c.name, style: const TextStyle(color: AppColor.primary, fontWeight: FontWeight.w600, fontSize: 13,)),)),
-                          DataCell(Text(c.phone, style: const TextStyle(fontSize: 13))),
-                          DataCell(SizedBox(
-                            width: 150,
-                            child: Text(
-                              c.address ?? '—',
-                              style: const TextStyle(fontSize: 13),
-                              overflow:
-                              TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          )),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  const double minTableWidth = 950;
+                  final tableWidth =
+                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
 
-                          DataCell(CustomerTypeBadge(customerType: c.customerType)),
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                            if (states.contains(WidgetState.hovered)) {
+                              return AppColor.primary.withValues(alpha: 0.05);
+                            }
+                            return null;
+                          }),
+                          dataRowMinHeight: 52,
+                          dataRowMaxHeight: 52,
+                          columnSpacing: (tableWidth * 0.03).clamp(16.0, 48.0),
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('#')),
+                            DataColumn(label: Text('Customer')),
+                            DataColumn(label: Text('Phone')),
+                            DataColumn(label: Text('Address')),
+                            DataColumn(label: Text('Type')),
+                            DataColumn(label: Text('Credit Limit')),
+                            DataColumn(label: Text('Balance')),
+                            DataColumn(label: Text('Status')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: List.generate(customers.length, (i) {
+                            final c = customers[i];
+                            return DataRow(
+                              onSelectChanged: (_) {},
+                              cells: [
+                                DataCell(Text(c.code,
+                                    style: const TextStyle(
+                                        color: AppColor.textSecondary, fontSize: 12))),
 
-                          DataCell(Text(c.creditLimitLabel, style: const TextStyle(fontSize: 13))),
+                                DataCell(GestureDetector(
+                                  onTap: () {},
+                                  child: Text(c.name,
+                                      style: const TextStyle(
+                                          color: AppColor.primary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13)),
+                                )),
 
-                          DataCell(Text(c.balance.toString(), style: const TextStyle(fontSize: 13))),
+                                DataCell(Text(c.phone,
+                                    style: const TextStyle(fontSize: 13))),
 
-                          DataCell(CustomerStatusBadge(isActive: c.isActive)),
+                                DataCell(SizedBox(
+                                  width: 150,
+                                  child: Text(
+                                    c.address ?? '—',
+                                    style: const TextStyle(fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                )),
 
-                          DataCell(Row(
-                            children: [
-                              CustomerActionButton(
-                                icon:    Icons.edit_outlined,
-                                color:   AppColor.primary,
-                                tooltip: 'Edit',
-                                onTap:   () => {
-                                  if(auth.isManager){
-                                    _openDialog(context, customer: c),
-                                  }else{
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text("don't edit this only access manager"),
-                                        backgroundColor: AppColor.error,
-                                        behavior: SnackBarBehavior.floating,
-                                        action: SnackBarAction(
-                                          label: 'OK',
-                                          textColor: Colors.white,
-                                          onPressed: () =>
-                                              ref.read(customerProvider.notifier).clearError(),
-                                        ),
-                                      ),
+                                DataCell(CustomerTypeBadge(customerType: c.customerType)),
+
+                                DataCell(Text(c.creditLimitLabel,
+                                    style: const TextStyle(fontSize: 13))),
+
+                                DataCell(Text(c.balance.toString(),
+                                    style: const TextStyle(fontSize: 13))),
+
+                                DataCell(CustomerStatusBadge(isActive: c.isActive)),
+
+                                DataCell(Row(
+                                  children: [
+                                    CustomerActionButton(
+                                      icon: Icons.edit_outlined,
+                                      color: AppColor.primary,
+                                      tooltip: 'Edit',
+                                      onTap: () {
+                                        if (auth.isManager) {
+                                          _openDialog(context, customer: c);
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: const Text(
+                                                  "Only manager can edit customers"),
+                                              backgroundColor: AppColor.error,
+                                              behavior: SnackBarBehavior.floating,
+                                              action: SnackBarAction(
+                                                label: 'OK',
+                                                textColor: Colors.white,
+                                                onPressed: () => ref
+                                                    .read(customerProvider.notifier)
+                                                    .clearError(),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
                                     ),
-                                  }
-                                },
-                              ),
-                              const SizedBox(width: 6),
-                              CustomerActionButton(
-                                icon: Icons.delete_outline_rounded,
-                                color: AppColor.error,
-                                tooltip: 'Delete',
-                                onTap: () => {
-                                  if(auth.isManager){
-                                    _confirmDelete(context, ref, c),
-                                  }else{
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text("don't delete this only access manager"),
-                                        backgroundColor: AppColor.error,
-                                        behavior: SnackBarBehavior.floating,
-                                        action: SnackBarAction(
-                                          label: 'OK',
-                                          textColor: Colors.white,
-                                          onPressed: () =>
-                                              ref.read(customerProvider.notifier).clearError(),
-                                        ),
-                                      ),
+                                    const SizedBox(width: 6),
+                                    CustomerActionButton(
+                                      icon: Icons.delete_outline_rounded,
+                                      color: AppColor.error,
+                                      tooltip: 'Delete',
+                                      onTap: () {
+                                        if (auth.isManager) {
+                                          _confirmDelete(context, ref, c);
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: const Text(
+                                                  "Only manager can delete customers"),
+                                              backgroundColor: AppColor.error,
+                                              behavior: SnackBarBehavior.floating,
+                                              action: SnackBarAction(
+                                                label: 'OK',
+                                                textColor: Colors.white,
+                                                onPressed: () => ref
+                                                    .read(customerProvider.notifier)
+                                                    .clearError(),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
                                     ),
-                                  }
-                                },
-                              ),
-                            ],
-                          )),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
+                                  ],
+                                )),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

@@ -1,4 +1,5 @@
 // lib/features/sale_invoice/presentation/provider/sale_invoice_provider.dart
+// ── MODIFIED: hold/resume support added ──────────────────────
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -11,7 +12,9 @@ import '../../../cash_counter/presentation/provider/cash_counter_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
 import '../../../customer/presentation/provider/customer_provider.dart';
 import '../../data/datasource/sale_invoice_datasource.dart';
+import '../../data/model/held_invoice_model.dart';
 import '../../data/model/sale_invoice_model.dart';
+import 'held_invoice_provider.dart';
 
 class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   final SaleInvoiceDatasource _ds;
@@ -32,7 +35,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   String? get _counterId => _ref.read(authProvider).counterId;
   String  get _userId    => _ref.read(authProvider).userId;
 
-  // ── Init invoice number ───────────────────────────────────
+  // ── Init invoice number ───────────────────────────────────────
   Future<void> _initInvoiceNo() async {
     try {
       final no = await _ds.generateInvoiceNo(_storeId);
@@ -45,22 +48,46 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     }
   }
 
-  // ── Customer ──────────────────────────────────────────────
+  // ── Customer ──────────────────────────────────────────────────
   void selectCustomer(CustomerModel? customer) {
     state = state.copyWith(
       selectedCustomer: customer,
       clearCustomer:    customer == null,
     );
-    // Customer hata diya toh credit payments bhi hata do
     if (customer == null) {
-      final updatedPayments = state.payments
-          .where((p) => p.method != 'credit')
-          .toList();
+      final updatedPayments =
+      state.payments.where((p) => p.method != 'credit').toList();
       state = state.copyWith(payments: updatedPayments);
     }
   }
 
-  // ── Cart ──────────────────────────────────────────────────
+  // ── Cart ──────────────────────────────────────────────────────
+
+  /// Barcode/SKU exact match se product add karo (scanner ke liye)
+  bool addToCartByBarcode(String query) {
+    final allProducts =
+        _ref.read(branchStockProvider).allProducts;
+
+    // Exact barcode match first
+    BranchStockModel? found;
+    found = allProducts.cast<BranchStockModel?>().firstWhere(
+          (p) =>
+      p!.barcode != null &&
+          p.barcode!.toLowerCase() == query.toLowerCase(),
+      orElse: () => null,
+    );
+
+    // Exact SKU match fallback
+    found ??= allProducts.cast<BranchStockModel?>().firstWhere(
+          (p) => p!.sku.toLowerCase() == query.toLowerCase(),
+      orElse: () => null,
+    );
+
+    if (found == null) return false;
+    addToCart(found);
+    return true;
+  }
+
   void addToCart(BranchStockModel product) {
     final idx = state.cartItems
         .indexWhere((i) => i.product.productId == product.productId);
@@ -84,7 +111,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
         ],
       );
     }
-    _resetPayments(); // cart change hone pe payments reset
+    _resetPayments();
   }
 
   void removeFromCart(String cartId) {
@@ -140,30 +167,21 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   void updateSearch(String query) =>
       state = state.copyWith(searchQuery: query);
 
-  // ── Payments ──────────────────────────────────────────────
+  // ── Payments ──────────────────────────────────────────────────
+  void _resetPayments() => state = state.copyWith(payments: []);
 
-  // Cart change hone pe payments reset karo
-  void _resetPayments() {
-    state = state.copyWith(payments: []);
-  }
-
-  // Payment amount update karo
   updatePayment(String method, double amount) {
-    // Credit ke liye customer required
     if (method == 'credit' && state.selectedCustomer == null) {
       state = state.copyWith(
           errorMessage: 'Credit payment ke liye customer select karein');
       return;
     }
-
-    final existing = state.payments.where((p) => p.method != method).toList();
-    if (amount > 0) {
-      existing.add(PaymentEntry(method: method, amount: amount));
-    }
+    final existing =
+    state.payments.where((p) => p.method != method).toList();
+    if (amount > 0) existing.add(PaymentEntry(method: method, amount: amount));
     state = state.copyWith(payments: existing);
   }
 
-  // Quick set — single payment type
   void setQuickPayment(String method) {
     if (method == 'credit' && state.selectedCustomer == null) {
       state = state.copyWith(
@@ -175,39 +193,76 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     );
   }
 
-  // ── Save Invoice ──────────────────────────────────────────
+  // ── Hold Invoice ──────────────────────────────────────────────
+  /// Current invoice ko hold mein dalo aur naya start karo
+  Future<void> holdCurrentInvoice({String? label}) async {
+    if (state.cartItems.isEmpty) return;
+
+    await _ref.read(heldInvoicesProvider.notifier).holdInvoice(
+      invoiceNo:  state.invoiceNo,
+      customer:   state.selectedCustomer,
+      items:      state.cartItems,
+      grandTotal: state.grandTotal,
+      label:      label,
+    );
+
+    // Naya clean invoice start karo
+    await _clearAndReset();
+    state = state.copyWith(successMessage: 'Invoice hold kar diya gaya');
+  }
+
+  /// Held invoice resume karo
+  Future<void> resumeHeldInvoice(HeldInvoice held) async {
+    // Agar current cart mein kuch hai to pehle usse bhi hold karo
+    if (state.cartItems.isNotEmpty) {
+      await holdCurrentInvoice(label: 'Auto-held');
+    }
+
+    // Held invoice restore karo
+    state = SaleInvoiceState(
+      invoiceNo:        held.invoiceNo,
+      date:             held.heldAt,
+      selectedCustomer: held.customer,
+      cartItems:        List.from(held.cartItems),
+      payments:         [],
+    );
+
+    // Hold release karo (DB + memory)
+    await _ref
+        .read(heldInvoicesProvider.notifier)
+        .releaseHold(held.id, discard: false);
+  }
+
+  // ── Save Invoice ──────────────────────────────────────────────
   Future<bool> saveInvoice() async {
     if (state.cartItems.isEmpty) return false;
 
-    // Credit payment — customer required
     if (state.hasCreditPayment && state.selectedCustomer == null) {
       state = state.copyWith(
           errorMessage: 'Credit payment ke liye customer select karein');
       return false;
     }
-
-    // Payment valid hona chahiye
     if (state.payments.isEmpty) {
       state = state.copyWith(errorMessage: 'Payment method select karein');
       return false;
     }
-
     if (!state.isPaymentValid) {
       state = state.copyWith(
           errorMessage:
-          'Payment total Rs ${state.totalPaid.toStringAsFixed(0)} grand total Rs ${state.grandTotal.toStringAsFixed(0)} se match nahi karta');
+          'Payment total Rs ${state.totalPaid.toStringAsFixed(0)} grand total '
+              'Rs ${state.grandTotal.toStringAsFixed(0)} se match nahi karta');
       return false;
     }
-
     if (_counterId == null || _counterId!.isEmpty) {
-      state = state.copyWith(errorMessage: 'Counter assign nahi — login karein');
+      state =
+          state.copyWith(errorMessage: 'Counter assign nahi — login karein');
       return false;
     }
 
     state = state.copyWith(isSaving: true);
     try {
       await _ds.saveInvoice(
-        storeId:     _storeId,
+        storeId:       _storeId,
         counterId:     _counterId!,
         userId:        _userId,
         customerId:    state.selectedCustomer?.id,
@@ -252,11 +307,13 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     _initInvoiceNo();
   }
 
-
   void setSaleType(SaleType type) =>
       state = state.copyWith(saleType: type);
 
-  void clearError() => state = state.copyWith(errorMessage: null);
+  void clearError() =>
+      state = state.copyWith(errorMessage: null, clearSuccess: true);
+
+  void clearSuccess() => state = state.copyWith(clearSuccess: true);
 }
 
 final saleInvoiceProvider =

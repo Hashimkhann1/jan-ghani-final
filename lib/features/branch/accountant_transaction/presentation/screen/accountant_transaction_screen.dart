@@ -134,52 +134,62 @@ class AccountantTransactionScreen extends ConsumerWidget {
 
             // ── Table ─────────────────────────────────────────────
             Expanded(
-              child: state.transactions.isEmpty
-                  ? const _EmptyState()
-                  : Container(
+              child: state.transactions.isEmpty ?
+              const _EmptyState() :
+              Container(
                 decoration: BoxDecoration(
-                  color:        Colors.white,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                      color: AppColor.grey300.withOpacity(0.5)),
+                  border: Border.all(color: AppColor.grey300.withOpacity(0.5)),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SingleChildScrollView(
-                      child: DataTable(
-                        headingRowColor:
-                        WidgetStateProperty.all(AppColor.grey100),
-                        headingTextStyle: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize:   13,
-                            color:      AppColor.textPrimary),
-                        dataRowColor:
-                        WidgetStateProperty.resolveWith(
-                              (s) => s.contains(WidgetState.hovered)
-                              ? AppColor.primary.withOpacity(0.04)
-                              : null,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final availableWidth = constraints.maxWidth;
+                      const double minTableWidth = 900;
+                      final tableWidth =
+                      availableWidth > minTableWidth ? availableWidth : minTableWidth;
+
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: tableWidth),
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              headingRowColor:
+                              WidgetStateProperty.all(AppColor.grey100),
+                              headingTextStyle: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: AppColor.textPrimary),
+                              dataRowColor: WidgetStateProperty.resolveWith(
+                                    (s) => s.contains(WidgetState.hovered)
+                                    ? AppColor.primary.withOpacity(0.04)
+                                    : null,
+                              ),
+                              dataRowMinHeight: 54,
+                              dataRowMaxHeight: 54,
+                              columnSpacing: (tableWidth * 0.03).clamp(16.0, 52.0),
+                              showCheckboxColumn: false,
+                              dividerThickness: 0.5,
+                              columns: const [
+                                DataColumn(label: Text('Type')),
+                                DataColumn(label: Text('Accountant')),
+                                DataColumn(label: Text('Previous')),
+                                DataColumn(label: Text('Amount')),
+                                DataColumn(label: Text('Remaining')),
+                                DataColumn(label: Text('Description')),
+                                DataColumn(label: Text('Date & Time')),
+                              ],
+                              rows: state.transactions
+                                  .map((t) => _buildRow(t))
+                                  .toList(),
+                            ),
+                          ),
                         ),
-                        dataRowMinHeight:   54,
-                        dataRowMaxHeight:   54,
-                        columnSpacing:      size.width * 0.04,
-                        showCheckboxColumn: false,
-                        dividerThickness:   0.5,
-                        columns: const [
-                          DataColumn(label: Text('Type')),
-                          DataColumn(label: Text('Accountant')),
-                          DataColumn(label: Text('Previous')),
-                          DataColumn(label: Text('Amount')),
-                          DataColumn(label: Text('Remaining')),
-                          DataColumn(label: Text('Description')),
-                          DataColumn(label: Text('Date & Time')),
-                        ],
-                        rows: state.transactions
-                            .map((t) => _buildRow(t))
-                            .toList(),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ),
               ),

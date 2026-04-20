@@ -171,66 +171,98 @@ class _AllCustomerLedgerScreenState
             Expanded(
               child: ledgers.isEmpty ?
               EmptyState(isSearching: state.searchQuery.isNotEmpty) :
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                    dataRowColor:
-                    WidgetStateProperty.resolveWith<Color?>((s) => s.contains(WidgetState.hovered) ? AppColor.primary.withValues(alpha: 0.05) : null),
-                    dataRowMinHeight:   52,
-                    dataRowMaxHeight:   52,
-                    columnSpacing: size.width * 0.04,
-                    showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('Customer')),
-                      DataColumn(label: Text('Counter')),
-                      DataColumn(label: Text('Previous')),
-                      DataColumn(label: Text('Paid')),
-                      DataColumn(label: Text('Remaining')),
-                      DataColumn(label: Text('Notes')),
-                      DataColumn(label: Text('Date & Time')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: ledgers.map((l) {
-                      final counterName = l.counterId != null
-                          ? counters
-                          .where((c) => c.id == l.counterId)
-                          .map((c) => c.counterName)
-                          .firstOrNull
-                          : null;
-                      return DataRow(
-                        cells: [
-                          DataCell(CustomerCell(l: l)),
-                          DataCell(CounterChip(counterName: counterName)),
-                          DataCell(AmountBadge(amount: l.previousAmount, color:  AppColor.grey500)),
-                          DataCell(AmountBadge(amount: l.payAmount, color:  AppColor.success)),
-                          DataCell(AmountBadge(amount: l.newAmount, color:  l.newAmount > 0 ? AppColor.error : l.newAmount < 0 ? AppColor.info : AppColor.success)),
-                          DataCell(SizedBox(
-                            width: 140,
-                            child: Text(l.notes ?? '—',
-                              style: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          )),
-                          DataCell(Text(fmt.format(l.createdAt),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColor.textSecondary,
-                            ),
-                          ),),
-                          DataCell(CustomerActionButton(
-                            icon:    Icons.delete_outline_rounded,
-                            color:   AppColor.error,
-                            tooltip: 'Delete',
-                            onTap: () => _confirmDelete(context, l),
-                          )),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  const double minTableWidth = 950;
+                  final tableWidth =
+                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                                (s) => s.contains(WidgetState.hovered)
+                                ? AppColor.primary.withValues(alpha: 0.05)
+                                : null,
+                          ),
+                          dataRowMinHeight: 52,
+                          dataRowMaxHeight: 52,
+                          columnSpacing: (tableWidth * 0.03).clamp(16.0, 48.0),
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('Customer')),
+                            DataColumn(label: Text('Counter')),
+                            DataColumn(label: Text('Previous')),
+                            DataColumn(label: Text('Paid')),
+                            DataColumn(label: Text('Remaining')),
+                            DataColumn(label: Text('Notes')),
+                            DataColumn(label: Text('Date & Time')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: ledgers.map((l) {
+                            final counterName = l.counterId != null
+                                ? counters
+                                .where((c) => c.id == l.counterId)
+                                .map((c) => c.counterName)
+                                .firstOrNull
+                                : null;
+                            return DataRow(
+                              cells: [
+                                DataCell(CustomerCell(l: l)),
+
+                                DataCell(CounterChip(counterName: counterName)),
+
+                                DataCell(AmountBadge(
+                                    amount: l.previousAmount, color: AppColor.grey500)),
+
+                                DataCell(AmountBadge(
+                                    amount: l.payAmount, color: AppColor.success)),
+
+                                DataCell(AmountBadge(
+                                  amount: l.newAmount,
+                                  color: l.newAmount > 0
+                                      ? AppColor.error
+                                      : l.newAmount < 0
+                                      ? AppColor.info
+                                      : AppColor.success,
+                                )),
+
+                                DataCell(SizedBox(
+                                  width: 140,
+                                  child: Text(
+                                    l.notes ?? '—',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: AppColor.textSecondary),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                )),
+
+                                DataCell(Text(
+                                  fmt.format(l.createdAt),
+                                  style: const TextStyle(
+                                      fontSize: 11, color: AppColor.textSecondary),
+                                )),
+
+                                DataCell(CustomerActionButton(
+                                  icon: Icons.delete_outline_rounded,
+                                  color: AppColor.error,
+                                  tooltip: 'Delete',
+                                  onTap: () => _confirmDelete(context, l),
+                                )),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

@@ -7,16 +7,16 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 class SyncConfig {
   // ── Local PostgreSQL ──────────────────────────────
-  static const String dbHost     = 'localhost';
-  static const int    dbPort     = 5432;
-  static const String dbName     = 'store_db';
-  static const String dbUser     = 'storeuser';
+  static const String dbHost = 'localhost';
+  static const int    dbPort = 5432;
+  static const String dbName = 'store_db';
+  static const String dbUser = 'storeuser';
   static const String dbPassword = 'branchUser12C3';
 
   static const String supabaseUrl = 'https://wwngqwvshtgbkfxdqpmt.supabase.co';
   static const String supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqanRxZnJ1eGhqY3h3dnh3ZmZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTU1NzAsImV4cCI6MjA5MTg5MTU3MH0.qrX7xIQAEVP3Vp6E6aBxL0a18W3VF0p54YL8IHZQpZ0';
 
-  static const int syncIntervalSeconds = 30;
+  static const int syncIntervalSeconds = 120;
 
   static const List<String> tables = [
     'branch',
