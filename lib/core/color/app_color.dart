@@ -9,6 +9,12 @@ class AppColor {
   static const Color primaryLight = Color(0xFF9D97FF);
   static const Color primaryDark = Color(0xFF3D35CC);
 
+
+  static const Color textMuted = Color(0xFF6B7280);
+  static const Color cashIn = Color(0xFF22C55E);
+  static const Color cashOut = Color(0xFFEF4444);
+  static const Color cardBg = Color(0xFFFFFFFF);
+
   /// Secondary Colors
   static const Color secondary = Color(0xFF03DAC6);
   static const Color secondaryLight = Color(0xFF66FFF8);

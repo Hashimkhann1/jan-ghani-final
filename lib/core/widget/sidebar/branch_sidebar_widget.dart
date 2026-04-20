@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/features/branch/accountant_transaction/presentation/screen/accountant_transaction_screen.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';
@@ -56,7 +57,7 @@ final _managerItems = <NavItem>[
   NavItem(icon: Icons.savings_rounded,                label: 'Cash Counter',   screen: const CashCounterScreen()),
   NavItem(icon: Icons.store_rounded,                  label: 'Store Summary',  screen: const StoreSummaryScreen()),
   NavItem(icon: Icons.inventory_2_rounded,            label: 'Branch Stock',   screen: const BranchStockInventoryScreen()),
-  // NavItem(icon: Icons.local_shipping_rounded,         label: 'Assign Stock',   screen: const BranchTransferListScreen()),
+  NavItem(icon: Icons.local_shipping_rounded,         label: 'Accountant Transactions',   screen: const AccountantTransactionScreen()),
   NavItem(icon: Icons.point_of_sale_rounded,          label: 'Counter',        screen: const AllCounterScreen()),
   NavItem(icon: Icons.bar_chart_rounded,              label: 'Invoice Report', screen: const SaleInvoiceListScreen()),
 ];
