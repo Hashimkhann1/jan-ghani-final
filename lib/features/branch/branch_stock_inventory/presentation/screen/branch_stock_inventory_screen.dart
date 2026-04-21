@@ -165,151 +165,161 @@ class _BranchStockInventoryScreenState
 
             // ── Table ─────────────────────────────────
             Expanded(
-              child: products.isEmpty
-                  ? _EmptyState(
-                  isSearching: state.searchQuery.isNotEmpty)
-                  : SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                    dataRowColor:
-                    WidgetStateProperty.resolveWith<Color?>((s) => s.contains(WidgetState.hovered) ? AppColor.primary.withValues(alpha: 0.05) : null),
-                    dataRowMinHeight: 60,
-                    dataRowMaxHeight: 60,
-                    columnSpacing: 12,
-                    showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('SKU')),
-                      DataColumn(label: Text('Barcode')),
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Unit')),
-                      DataColumn(label: Text('Cost Price')),
-                      DataColumn(label: Text('Sale Price')),
-                      DataColumn(label: Text('Wholesale')),
-                      DataColumn(label: Text('Tax')),
-                      DataColumn(label: Text('Discount')),
-                      DataColumn(label: Text('Min Stock')),
-                      DataColumn(label: Text('Max Stock')),
-                      DataColumn(label: Text('Quantity')),
-                    ],
-                    rows: products.map((p) => DataRow(
-                      cells: [
-                        // SKU
-                        DataCell(Text(p.sku, style: const TextStyle(fontSize: 12, color: AppColor.textSecondary))),
-                        // Barcode
-                        DataCell(
-                          SizedBox(
-                            width: 140,
-                            child: Text(
-                              BranchStockDataSource().parseBarcode(p.barcode).toString(),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColor.textSecondary,
-                              ),
-                            ),
+              child: products.isEmpty ?
+              _EmptyState(isSearching: state.searchQuery.isNotEmpty) :
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  const double minTableWidth = 1200;
+                  final tableWidth =
+                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                                (s) => s.contains(WidgetState.hovered)
+                                ? AppColor.primary.withValues(alpha: 0.05)
+                                : null,
                           ),
-                        ),
-                        // Name
-                        DataCell(SizedBox(
-                          width: 140,
-                          child: Column(
-                            mainAxisAlignment:
-                            MainAxisAlignment.center,
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                            children: [
-                              Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize:   13), overflow: TextOverflow.ellipsis, maxLines: 1),
-                              if (p.description != null)
-                                Text(p.description!,
-                                    style: const TextStyle(fontSize: 10, color: AppColor.textSecondary),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
+                          dataRowMinHeight: 60,
+                          dataRowMaxHeight: 60,
+                          columnSpacing: (tableWidth * 0.02).clamp(12.0, 40.0),
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('SKU')),
+                            DataColumn(label: Text('Barcode')),
+                            DataColumn(label: Text('Name')),
+                            DataColumn(label: Text('Unit')),
+                            DataColumn(label: Text('Cost Price')),
+                            DataColumn(label: Text('Sale Price')),
+                            DataColumn(label: Text('Wholesale')),
+                            DataColumn(label: Text('Tax')),
+                            DataColumn(label: Text('Discount')),
+                            DataColumn(label: Text('Min Stock')),
+                            DataColumn(label: Text('Max Stock')),
+                            DataColumn(label: Text('Quantity')),
+                          ],
+                          rows: products.map((p) => DataRow(
+                            cells: [
+                              // SKU
+                              DataCell(Text(p.sku,
+                                  style: const TextStyle(
+                                      fontSize: 12, color: AppColor.textSecondary))),
+
+                              // Barcode
+                              DataCell(SizedBox(
+                                width: 140,
+                                child: Text(
+                                  BranchStockDataSource().parseBarcode(p.barcode).toString(),
+                                  style: const TextStyle(
+                                      fontSize: 12, color: AppColor.textSecondary),
                                 ),
+                              )),
+
+                              // Name
+                              DataCell(SizedBox(
+                                width: 140,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(p.name,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600, fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1),
+                                    if (p.description != null)
+                                      Text(p.description!,
+                                          style: const TextStyle(
+                                              fontSize: 10,
+                                              color: AppColor.textSecondary),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1),
+                                  ],
+                                ),
+                              )),
+
+                              // Unit
+                              DataCell(Container(
+                                padding:
+                                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColor.grey100,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(p.unitOfMeasure,
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColor.textSecondary)),
+                              )),
+
+                              // Cost Price
+                              DataCell(Text(p.costPriceLabel,
+                                  style: const TextStyle(fontSize: 13))),
+
+                              // Sale Price
+                              DataCell(Text(p.sellingPriceLabel,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColor.primary))),
+
+                              // Wholesale
+                              DataCell(Text(p.wholesalePriceLabel,
+                                  style: const TextStyle(
+                                      fontSize: 13, color: AppColor.textSecondary))),
+
+                              // Tax
+                              DataCell(p.taxRate > 0
+                                  ? _PercentBadge(value: p.taxRateLabel, color: AppColor.info)
+                                  : const Text('—',
+                                  style: TextStyle(
+                                      fontSize: 13, color: AppColor.textSecondary))),
+
+                              // Discount
+                              DataCell(p.discount > 0
+                                  ? _PercentBadge(
+                                  value: p.discountLabel, color: AppColor.warning)
+                                  : const Text('—',
+                                  style: TextStyle(
+                                      fontSize: 13, color: AppColor.textSecondary))),
+
+                              // Min Stock
+                              DataCell(Text('${p.minStockLevel} ${p.unitOfMeasure}',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: AppColor.textSecondary))),
+
+                              // Max Stock
+                              DataCell(Text('${p.maxStockLevel} ${p.unitOfMeasure}',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: AppColor.textSecondary))),
+
+                              // Quantity
+                              DataCell(Text(
+                                p.quantityLabel,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: p.isOutOfStock
+                                      ? AppColor.error
+                                      : p.isLowStock
+                                      ? AppColor.warning
+                                      : AppColor.success,
+                                ),
+                              )),
                             ],
-                          ),
-                        )),
-
-                        // Unit
-                        DataCell(Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColor.grey100,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(p.unitOfMeasure,
-                              style: const TextStyle(
-                                  fontSize:   11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColor.textSecondary)),
-                        )),
-
-                        // Cost Price
-                        DataCell(Text(p.costPriceLabel,
-                            style: const TextStyle(fontSize: 13))),
-
-                        // Sale Price
-                        DataCell(Text(p.sellingPriceLabel,
-                            style: const TextStyle(
-                                fontSize:   13,
-                                fontWeight: FontWeight.w700,
-                                color:      AppColor.primary))),
-
-                        // Wholesale
-                        DataCell(Text(p.wholesalePriceLabel,
-                            style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColor.textSecondary))),
-
-                        // Tax Rate
-                        DataCell(p.taxRate > 0
-                            ? _PercentBadge(
-                            value: p.taxRateLabel,
-                            color: AppColor.info)
-                            : const Text('—',
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: AppColor.textSecondary))),
-
-                        // Discount
-                        DataCell(p.discount > 0
-                            ? _PercentBadge(
-                            value: p.discountLabel,
-                            color: AppColor.warning)
-                            : const Text('—',
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: AppColor.textSecondary))),
-
-                        // Min Stock
-                        DataCell(Text(
-                            '${p.minStockLevel} ${p.unitOfMeasure}',
-                            style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColor.textSecondary))),
-
-                        // Max Stock
-                        DataCell(Text(
-                            '${p.maxStockLevel} ${p.unitOfMeasure}',
-                            style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColor.textSecondary))),
-
-                        // Quantity
-                        DataCell(Text(
-                          p.quantityLabel,
-                          style: TextStyle(
-                            fontSize:   13,
-                            fontWeight: FontWeight.w700,
-                            color: p.isOutOfStock ? AppColor.error : p.isLowStock ? AppColor.warning : AppColor.success,
-                          ),
-                        )),
-
-                        ],
-                    )).toList(),
-                  ),
-                ),
+                          )).toList(),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

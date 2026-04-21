@@ -158,113 +158,110 @@ class _AllCounterScreenState extends ConsumerState<AllCounterScreen> {
 
             // ── Table ────────────────────────────────
             Expanded(
-              child: counters.isEmpty
-                  ? const _EmptyState()
-                  : SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(
-                        AppColor.grey100),
-                    dataRowColor:
-                    WidgetStateProperty.resolveWith<Color?>(
-                            (s) => s.contains(
-                            WidgetState.hovered)
-                            ? AppColor.primary
-                            .withValues(alpha: 0.05)
-                            : null),
-                    dataRowMinHeight:   56,
-                    dataRowMaxHeight:   56,
-                    columnSpacing: 200,
-                    showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('#')),
-                      DataColumn(label: Text('Counter Name')),
-                      DataColumn(label: Text('Created Date')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: List.generate(counters.length, (i) {
-                      final c = counters[i];
-                      return DataRow(
-                        cells: [
-                          // Sr #
-                          DataCell(Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                                color:    AppColor.textSecondary,
-                                fontSize: 13),
-                          )),
+              child: counters.isEmpty ? const _EmptyState() :
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  const double minTableWidth = 600;
+                  final tableWidth =
+                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
 
-                          // Counter Name
-                          DataCell(Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppColor.primary
-                                      .withValues(alpha: 0.08),
-                                  borderRadius:
-                                  BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.point_of_sale_outlined,
-                                  size:  15,
-                                  color: AppColor.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                c.counterName,
-                                style: const TextStyle(
-                                    fontSize:   13,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          )),
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                                (s) => s.contains(WidgetState.hovered)
+                                ? AppColor.primary.withValues(alpha: 0.05)
+                                : null,
+                          ),
+                          dataRowMinHeight: 56,
+                          dataRowMaxHeight: 56,
+                          columnSpacing: (tableWidth * 0.08).clamp(24.0, 120.0),
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('#')),
+                            DataColumn(label: Text('Counter Name')),
+                            DataColumn(label: Text('Created Date')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: List.generate(counters.length, (i) {
+                            final c = counters[i];
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(
+                                  '${i + 1}',
+                                  style: const TextStyle(
+                                      color: AppColor.textSecondary, fontSize: 13),
+                                )),
 
-                          // Created Date
-                          DataCell(Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today_outlined,
-                                size:  13,
-                                color: AppColor.textSecondary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                dateFmt.format(c.createdAt),
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColor.textSecondary),
-                              ),
-                            ],
-                          )),
+                                DataCell(Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppColor.primary.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.point_of_sale_outlined,
+                                        size: 15,
+                                        color: AppColor.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      c.counterName,
+                                      style: const TextStyle(
+                                          fontSize: 13, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                )),
 
-                          // Actions
-                          DataCell(Row(
-                            children: [
-                              CustomerActionButton(
-                                icon:    Icons.edit_outlined,
-                                color:   AppColor.primary,
-                                tooltip: 'Edit',
-                                onTap: () =>
-                                    _openDialog(context, counter: c),
-                              ),
-                              const SizedBox(width: 6),
-                              CustomerActionButton(
-                                icon:    Icons.delete_outline_rounded,
-                                color:   AppColor.error,
-                                tooltip: 'Delete',
-                                onTap: () =>
-                                    _confirmDelete(context, c),
-                              ),
-                            ],
-                          )),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
+                                DataCell(Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 13,
+                                      color: AppColor.textSecondary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      dateFmt.format(c.createdAt),
+                                      style: const TextStyle(
+                                          fontSize: 13, color: AppColor.textSecondary),
+                                    ),
+                                  ],
+                                )),
+
+                                DataCell(Row(
+                                  children: [
+                                    CustomerActionButton(
+                                      icon: Icons.edit_outlined,
+                                      color: AppColor.primary,
+                                      tooltip: 'Edit',
+                                      onTap: () => _openDialog(context, counter: c),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    CustomerActionButton(
+                                      icon: Icons.delete_outline_rounded,
+                                      color: AppColor.error,
+                                      tooltip: 'Delete',
+                                      onTap: () => _confirmDelete(context, c),
+                                    ),
+                                  ],
+                                )),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

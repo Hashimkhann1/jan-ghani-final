@@ -179,60 +179,80 @@ class _CounterCashTransactionScreenState
             Expanded(
               child: transactions.isEmpty ?
               const _EmptyState() :
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                    dataRowColor:
-                    WidgetStateProperty.resolveWith<Color?>((s) => s.contains(WidgetState.hovered) ? AppColor.primary.withValues(alpha: 0.05) : null),
-                    dataRowMinHeight:   54,
-                    dataRowMaxHeight:   54,
-                    columnSpacing: size.width * 0.07,
-                    showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('Type')),
-                      DataColumn(label: Text('Previous')),
-                      DataColumn(label: Text('Amount')),
-                      DataColumn(label: Text('Remaining')),
-                      DataColumn(label: Text('Description')),
-                      DataColumn(label: Text('Date & Time')),
-                    ],
-                    rows: transactions.map((t) => DataRow(
-                      cells: [
-                        DataCell(_TypeBadge(t: t)),
-                        DataCell(Text(t.previousAmountLabel,
-                            style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColor.textSecondary))),
-                        DataCell(Text(t.cashOutAmount.toString(),
-                            style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColor.textSecondary))),
-                        DataCell(Text(t.remainingAmountLabel,
-                            style: TextStyle(
-                                fontSize:   13,
-                                fontWeight: FontWeight.w600,
-                                color: t.remainingAmount >= 0
-                                    ? AppColor.textPrimary
-                                    : AppColor.error))),
-                        DataCell(SizedBox(
-                          width: 180,
-                          child: Text(t.description ?? '—',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColor.textSecondary),
-                              overflow:  TextOverflow.ellipsis,
-                              maxLines:  1),
-                        )),
-                        DataCell(Text(fmt.format(t.createdAt),
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColor.textSecondary))),
-                      ],
-                    )).toList(),
-                  ),
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  const double minTableWidth = 850;
+                  final tableWidth =
+                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                                (s) => s.contains(WidgetState.hovered)
+                                ? AppColor.primary.withValues(alpha: 0.05)
+                                : null,
+                          ),
+                          dataRowMinHeight: 54,
+                          dataRowMaxHeight: 54,
+                          columnSpacing: (tableWidth * 0.04).clamp(16.0, 56.0),
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('Type')),
+                            DataColumn(label: Text('Previous')),
+                            DataColumn(label: Text('Amount')),
+                            DataColumn(label: Text('Remaining')),
+                            DataColumn(label: Text('Description')),
+                            DataColumn(label: Text('Date & Time')),
+                          ],
+                          rows: transactions.map((t) => DataRow(
+                            cells: [
+                              DataCell(_TypeBadge(t: t)),
+
+                              DataCell(Text(t.previousAmountLabel,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColor.textSecondary))),
+
+                              DataCell(Text(t.cashOutAmount.toString(),
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColor.textSecondary))),
+
+                              DataCell(Text(t.remainingAmountLabel,
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: t.remainingAmount >= 0
+                                          ? AppColor.textPrimary
+                                          : AppColor.error))),
+
+                              DataCell(SizedBox(
+                                width: 180,
+                                child: Text(t.description ?? '—',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColor.textSecondary),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1),
+                              )),
+
+                              DataCell(Text(fmt.format(t.createdAt),
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColor.textSecondary))),
+                            ],
+                          )).toList(),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

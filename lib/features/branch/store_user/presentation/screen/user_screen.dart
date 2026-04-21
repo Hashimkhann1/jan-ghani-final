@@ -246,126 +246,117 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
 
             // ── Table ────────────────────────────────
             Expanded(
-              child: users.isEmpty
-                  ? UserEmptyStateWidget(
-                  isSearching: state.searchQuery.isNotEmpty)
-                  : SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(
-                        AppColor.grey100),
-                    dataRowColor:
-                    WidgetStateProperty.resolveWith<Color?>(
-                            (s) => s.contains(
-                            WidgetState.hovered)
-                            ? AppColor.primary
-                            .withValues(alpha: 0.05)
-                            : null),
-                    dataRowMinHeight:   52,
-                    dataRowMaxHeight:   52,
-                    columnSpacing: size.width * 0.04,
-                    showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('Full Name')),
-                      DataColumn(label: Text('Username')),
-                      DataColumn(label: Text('Phone')),
-                      DataColumn(label: Text('Role')),
-                      DataColumn(label: Text('Counter')),  // ← new
-                      DataColumn(label: Text('Last Login')),
-                      DataColumn(label: Text('Status')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: users.map((u) {
-                      // Counter name find karo
-                      final counterName = u.counterId != null
-                          ? counters
-                          .where((c) => c.id == u.counterId)
-                          .map((c) => c.counterName)
-                          .firstOrNull
-                          : null;
+              child: users.isEmpty ?
+              UserEmptyStateWidget(isSearching: state.searchQuery.isNotEmpty) :
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
 
-                      return DataRow(
-                        cells: [
-                          // Full Name
-                          DataCell(Row(
-                            children: [
-                              CircleAvatar(
-                                radius:          16,
-                                backgroundColor: AppColor.primary
-                                    .withValues(alpha: 0.1),
-                                child: Text(
-                                  u.fullName.isNotEmpty
-                                      ? u.fullName[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                      fontSize:   13,
-                                      fontWeight: FontWeight.w700,
-                                      color:      AppColor.primary),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(u.fullName,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize:   13)),
-                            ],
-                          )),
+                  // Columns ki estimated minimum width
+                  const double minTableWidth = 900;
 
-                          // Username
-                          DataCell(Text('@${u.username}',
-                              style: const TextStyle(
-                                  color:    AppColor.textSecondary,
-                                  fontSize: 13))),
+                  final tableWidth =
+                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
 
-                          // Phone
-                          DataCell(Text(u.phone ?? '—',
-                              style: const TextStyle(
-                                  fontSize: 13))),
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor:
+                          WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                                (s) => s.contains(WidgetState.hovered)
+                                ? AppColor.primary.withValues(alpha: 0.05)
+                                : null,
+                          ),
+                          dataRowMinHeight: 52,
+                          dataRowMaxHeight: 52,
 
-                          // Role
-                          DataCell(UserRoleBadge(role: u.role)),
+                          // ✅ Fixed: size.width ki bajaye available width se calculate karo
+                          columnSpacing: (tableWidth * 0.03).clamp(16.0, 48.0),
 
-                          // Counter ← new
-                          DataCell(_CounterChip(
-                            counterName: counterName,
-                          )),
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('Full Name')),
+                            DataColumn(label: Text('Username')),
+                            DataColumn(label: Text('Phone')),
+                            DataColumn(label: Text('Role')),
+                            DataColumn(label: Text('Counter')),
+                            DataColumn(label: Text('Last Login')),
+                            DataColumn(label: Text('Status')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: users.map((u) {
+                            final counterName = u.counterId != null
+                                ? counters
+                                .where((c) => c.id == u.counterId)
+                                .map((c) => c.counterName)
+                                .firstOrNull
+                                : null;
 
-                          // Last Login
-                          DataCell(Text(u.lastLoginLabel,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColor.textSecondary))),
-
-                          // Status
-                          DataCell(CustomerStatusBadge(
-                              isActive: u.isActive)),
-
-                          // Actions
-                          DataCell(Row(
-                            children: [
-                              CustomerActionButton(
-                                icon:    Icons.edit_outlined,
-                                color:   AppColor.primary,
-                                tooltip: 'Edit',
-                                onTap: () =>
-                                    _openDialog(context, user: u),
-                              ),
-                              const SizedBox(width: 6),
-                              CustomerActionButton(
-                                icon:    Icons.delete_outline_rounded,
-                                color:   AppColor.error,
-                                tooltip: 'Delete',
-                                onTap: () =>
-                                    _confirmDelete(context, u),
-                              ),
-                            ],
-                          )),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                ),
+                            return DataRow(
+                              cells: [
+                                DataCell(Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor:
+                                      AppColor.primary.withValues(alpha: 0.1),
+                                      child: Text(
+                                        u.fullName.isNotEmpty
+                                            ? u.fullName[0].toUpperCase()
+                                            : '?',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColor.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(u.fullName,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600, fontSize: 13)),
+                                  ],
+                                )),
+                                DataCell(Text('@${u.username}',
+                                    style: const TextStyle(
+                                        color: AppColor.textSecondary, fontSize: 13))),
+                                DataCell(Text(u.phone ?? '—',
+                                    style: const TextStyle(fontSize: 13))),
+                                DataCell(UserRoleBadge(role: u.role)),
+                                DataCell(_CounterChip(counterName: counterName)),
+                                DataCell(Text(u.lastLoginLabel,
+                                    style: const TextStyle(
+                                        fontSize: 12, color: AppColor.textSecondary))),
+                                DataCell(CustomerStatusBadge(isActive: u.isActive)),
+                                DataCell(Row(
+                                  children: [
+                                    CustomerActionButton(
+                                      icon: Icons.edit_outlined,
+                                      color: AppColor.primary,
+                                      tooltip: 'Edit',
+                                      onTap: () => _openDialog(context, user: u),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    CustomerActionButton(
+                                      icon: Icons.delete_outline_rounded,
+                                      color: AppColor.error,
+                                      tooltip: 'Delete',
+                                      onTap: () => _confirmDelete(context, u),
+                                    ),
+                                  ],
+                                )),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

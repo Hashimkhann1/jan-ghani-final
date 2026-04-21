@@ -245,124 +245,126 @@ class AllExpenseScreen extends ConsumerWidget {
 
             // ── Table ────────────────────────────────
             Expanded(
-              child: expenses.isEmpty
-                  ? _EmptyState(
-                  isSearching: state.searchQuery.isNotEmpty)
-                  : SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(
-                        AppColor.grey100),
-                    dataRowColor:
-                    WidgetStateProperty.resolveWith<Color?>((s) => s.contains(WidgetState.hovered) ? AppColor.primary.withValues(alpha: 0.05) : null),
-                    dataRowMinHeight: 52,
-                    dataRowMaxHeight: 52,
-                    columnSpacing: size.width * 0.12,
-                    showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('Expense Head')),
-                      DataColumn(label: Text('Amount')),
-                      DataColumn(label: Text('Description')),
-                      DataColumn(label: Text('Date')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: expenses.map((e) => DataRow(
-                      cells: [
-                        // Expense Head
-                        DataCell(Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: AppColor.primary
-                                    .withValues(alpha: 0.08),
-                                borderRadius:
-                                BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.receipt_outlined,
-                                size:  14,
-                                color: AppColor.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              e.expenseHead,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize:   13),
-                            ),
+              child: expenses.isEmpty ?
+              _EmptyState(isSearching: state.searchQuery.isNotEmpty) :
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  const double minTableWidth = 750;
+                  final tableWidth =
+                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                                (s) => s.contains(WidgetState.hovered)
+                                ? AppColor.primary.withValues(alpha: 0.05)
+                                : null,
+                          ),
+                          dataRowMinHeight: 52,
+                          dataRowMaxHeight: 52,
+                          columnSpacing: (tableWidth * 0.04).clamp(16.0, 60.0),
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('Expense Head')),
+                            DataColumn(label: Text('Amount')),
+                            DataColumn(label: Text('Description')),
+                            DataColumn(label: Text('Date')),
+                            DataColumn(label: Text('Actions')),
                           ],
-                        )),
+                          rows: expenses.map((e) => DataRow(
+                            cells: [
+                              // Expense Head
+                              DataCell(Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: AppColor.primary.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.receipt_outlined,
+                                      size: 14,
+                                      color: AppColor.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    e.expenseHead,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600, fontSize: 13),
+                                  ),
+                                ],
+                              )),
 
-                        // Amount
-                        DataCell(Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColor.error
-                                .withValues(alpha: 0.08),
-                            borderRadius:
-                            BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            e.amountLabel,
-                            style: const TextStyle(
-                              fontSize:   12,
-                              fontWeight: FontWeight.w700,
-                              color:      AppColor.error,
-                            ),
-                          ),
-                        )),
+                              // Amount
+                              DataCell(Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColor.error.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  e.amountLabel,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColor.error,
+                                  ),
+                                ),
+                              )),
 
-                        // Description
-                        DataCell(SizedBox(
-                          width: 220,
-                          child: Text(
-                            e.description ?? '—',
-                            style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColor.textSecondary),
-                            overflow:  TextOverflow.ellipsis,
-                            maxLines:  1,
-                          ),
-                        )),
+                              // Description
+                              DataCell(SizedBox(
+                                width: 220,
+                                child: Text(
+                                  e.description ?? '—',
+                                  style: const TextStyle(
+                                      fontSize: 13, color: AppColor.textSecondary),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              )),
 
-                        // Date
-                        DataCell(Text(
-                          fmt.format(e.createdAt),
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColor.textSecondary),
-                        )),
+                              // Date
+                              DataCell(Text(
+                                fmt.format(e.createdAt),
+                                style: const TextStyle(
+                                    fontSize: 12, color: AppColor.textSecondary),
+                              )),
 
-                        // Actions
-                        DataCell(Row(
-                          children: [
-                            CustomerActionButton(
-                              icon:    Icons.edit_outlined,
-                              color:   AppColor.primary,
-                              tooltip: 'Edit',
-                              onTap: () =>
-                                  _openDialog(context,
-                                      expense: e),
-                            ),
-                            const SizedBox(width: 6),
-                            CustomerActionButton(
-                              icon:    Icons.delete_outline_rounded,
-                              color:   AppColor.error,
-                              tooltip: 'Delete',
-                              onTap: () =>
-                                  _confirmDelete(
-                                      context, ref, e),
-                            ),
-                          ],
-                        )),
-                      ],
-                    )).toList(),
-                  ),
-                ),
+                              // Actions
+                              DataCell(Row(
+                                children: [
+                                  CustomerActionButton(
+                                    icon: Icons.edit_outlined,
+                                    color: AppColor.primary,
+                                    tooltip: 'Edit',
+                                    onTap: () => _openDialog(context, expense: e),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  CustomerActionButton(
+                                    icon: Icons.delete_outline_rounded,
+                                    color: AppColor.error,
+                                    tooltip: 'Delete',
+                                    onTap: () => _confirmDelete(context, ref, e),
+                                  ),
+                                ],
+                              )),
+                            ],
+                          )).toList(),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

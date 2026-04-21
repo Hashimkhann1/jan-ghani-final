@@ -144,94 +144,103 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
 
             // ── Table ─────────────────────────────────
             Expanded(
-              child: records.isEmpty
-                  ? _EmptyState(
-                  isSearching: state.searchQuery.isNotEmpty)
-                  : SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(
-                        AppColor.grey100),
-                    dataRowColor:
-                    WidgetStateProperty.resolveWith<Color?>(
-                            (s) => s.contains(
-                            WidgetState.hovered)
-                            ? AppColor.primary
-                            .withValues(alpha: 0.05)
-                            : null),
-                    dataRowMinHeight:   56,
-                    dataRowMaxHeight:   56,
-                    columnSpacing: size.width * 0.03,
-                    showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('Date')),
-                      DataColumn(label: Text('Cash Sale')),
-                      DataColumn(label: Text('Card Sale')),
-                      DataColumn(label: Text('Credit Sale')),
-                      DataColumn(label: Text('Total Sale')),
-                      DataColumn(label: Text('Installment')),
-                      DataColumn(label: Text('Cash In')),
-                      DataColumn(label: Text('Cash Out')),
-                      DataColumn(label: Text('Expense')),
-                      DataColumn(label: Text('Net Amount')),
-                    ],
-                    rows: records.map((r) => DataRow(
-                      cells: [
-                        // Date
-                        DataCell(Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: AppColor.primary
-                                    .withValues(alpha: 0.08),
-                                borderRadius:
-                                BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                  Icons.calendar_today_outlined,
-                                  size:  14,
-                                  color: AppColor.primary),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              dateFmt.format(r.counterDate),
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize:   13),
-                            ),
-                          ],
-                        )),
-                        DataCell(_Cell(value: r.totalCashSaleLabel,    color: AppColor.primary)),
-                        DataCell(_Cell(value: r.totalCardSaleLabel,    color: AppColor.info)),
-                        DataCell(_Cell(value: r.totalCreditSaleLabel,  color: AppColor.warning)),
-                        DataCell(_Cell(value: r.totalSaleLabel,        color: AppColor.primary, isBold: true)),
-                        DataCell(_Cell(value: r.totalInstallmentLabel, color: AppColor.grey500)),
-                        DataCell(_Cell(value: r.totalCashInLabel,      color: AppColor.success)),
-                        DataCell(_Cell(value: r.totalCashOutLabel,     color: AppColor.error)),
-                        DataCell(_Cell(value: r.totalExpenseLabel,     color: AppColor.error)),
-                        DataCell(Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: AppColor.success
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: AppColor.success
-                                    .withValues(alpha: 0.3)),
+              child: records.isEmpty ?
+              _EmptyState(isSearching: state.searchQuery.isNotEmpty) :
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  const double minTableWidth = 1100;
+                  final tableWidth =
+                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                                (s) => s.contains(WidgetState.hovered)
+                                ? AppColor.primary.withValues(alpha: 0.05)
+                                : null,
                           ),
-                          child: Text(r.totalAmountLabel,
-                              style: const TextStyle(
-                                  fontSize:   13,
-                                  fontWeight: FontWeight.w800,
-                                  color:      AppColor.success)),
-                        )),
-                      ],
-                    )).toList(),
-                  ),
-                ),
+                          dataRowMinHeight: 56,
+                          dataRowMaxHeight: 56,
+                          columnSpacing: (tableWidth * 0.025).clamp(14.0, 44.0),
+                          showCheckboxColumn: false,
+                          columns: const [
+                            DataColumn(label: Text('Date')),
+                            DataColumn(label: Text('Cash Sale')),
+                            DataColumn(label: Text('Card Sale')),
+                            DataColumn(label: Text('Credit Sale')),
+                            DataColumn(label: Text('Total Sale')),
+                            DataColumn(label: Text('Installment')),
+                            DataColumn(label: Text('Cash In')),
+                            DataColumn(label: Text('Cash Out')),
+                            DataColumn(label: Text('Expense')),
+                            DataColumn(label: Text('Net Amount')),
+                          ],
+                          rows: records.map((r) => DataRow(
+                            cells: [
+                              // Date
+                              DataCell(Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: AppColor.primary.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 14,
+                                      color: AppColor.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    dateFmt.format(r.counterDate),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600, fontSize: 13),
+                                  ),
+                                ],
+                              )),
+
+                              DataCell(_Cell(value: r.totalCashSaleLabel,    color: AppColor.primary)),
+                              DataCell(_Cell(value: r.totalCardSaleLabel,    color: AppColor.info)),
+                              DataCell(_Cell(value: r.totalCreditSaleLabel,  color: AppColor.warning)),
+                              DataCell(_Cell(value: r.totalSaleLabel,        color: AppColor.primary, isBold: true)),
+                              DataCell(_Cell(value: r.totalInstallmentLabel, color: AppColor.grey500)),
+                              DataCell(_Cell(value: r.totalCashInLabel,      color: AppColor.success)),
+                              DataCell(_Cell(value: r.totalCashOutLabel,     color: AppColor.error)),
+                              DataCell(_Cell(value: r.totalExpenseLabel,     color: AppColor.error)),
+
+                              // Net Amount
+                              DataCell(Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: AppColor.success.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: AppColor.success.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  r.totalAmountLabel,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColor.success),
+                                ),
+                              )),
+                            ],
+                          )).toList(),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
