@@ -12,6 +12,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/domain/warehouse_dashboard_models.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/purchase_filter_bar/purchase_filter_bar.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
+import '../../../../branch/authentication/presentation/provider/auth_provider.dart';
 import '../provider/warehouse_dashboard_provider.dart';
 
 class WarehouseDashboardScreen extends ConsumerStatefulWidget {
@@ -180,7 +181,7 @@ class _TopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Ahmed',
+                Text("Ahmad",
                     style: TextStyle(fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppColor.textPrimary)),

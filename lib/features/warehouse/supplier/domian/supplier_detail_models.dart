@@ -155,6 +155,7 @@ class PurchaseOrderItem {
   final double  quantityOrdered;
   final double  quantityReceived;
   final double  unitCost;
+  final double?  salePrice;
   final double  totalCost;
 
   const PurchaseOrderItem({
@@ -166,6 +167,7 @@ class PurchaseOrderItem {
     required this.quantityOrdered,
     required this.quantityReceived,
     required this.unitCost,
+    this.salePrice,
     required this.totalCost,
   });
 
@@ -191,6 +193,7 @@ class PurchaseOrderItem {
       quantityOrdered:   (map['quantity_ordered'] as num).toDouble(),
       quantityReceived:  (map['quantity_received'] as num).toDouble(),
       unitCost:          (map['unit_cost']        as num).toDouble(),
+      salePrice:          (map['sale_price']        as num).toDouble(),
       totalCost:         (map['total_cost']       as num).toDouble(),
     );
   }

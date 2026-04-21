@@ -128,17 +128,21 @@ class _ProductTable extends StatelessWidget {
 
   const _ProductTable({required this.products, required this.onEdit, required this.onHistory, required this.onDelete});
 
-  static const _cols = ['SKU','Product Name','Category','Unit','Purchase Price','Sale Price','Stock','Min Stock','Stock Status','Actions'];
+  static const _cols = ['SKU','Product Name','Category','Purchase Price','Sale Price','Stock','Stock Status','Actions'];
 
   int _flex(String h) {
     switch(h) {
       case 'Product Name': return 3;
-      case 'Unit':         return 1;
-      case 'Min Stock':    return 1;
-      case 'Stock':        return 1;  // ← yeh add karo
+      case 'Category':     return 2;
+      case 'Purchase Price': return 2;
+      case 'Sale Price':   return 2;
+      case 'Stock':        return 2;
+      case 'Stock Status': return 2;
+      case 'Actions':      return 1;  // ← FIX added
       default:             return 2;
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -219,41 +223,108 @@ class _ProductRowState extends State<_ProductRow> {
           children: [
             Expanded(flex: widget.flex('SKU'),          child: Text(p.sku, style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: Color(0xFF6C7280)))),
             Expanded(flex: widget.flex('Product Name'), child: Text(p.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)))),
-            Expanded(flex: widget.flex('Category'),     child: Row(
-              children: [
-                SizedBox(width: 130, child: ChipWidget(label: p.categoryName ?? '—', bg: const Color(0xFFEEF2FF), textColor: const Color(0xFF6366F1))),
-              ],
-            )),
-            Expanded(flex: widget.flex('Unit'),         child: Text(p.unitOfMeasure, style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
+            // Category cell
+            Expanded(
+              flex: widget.flex('Category'),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: ChipWidget(
+                    label: p.categoryName!.length > 10 ? p.categoryName!.substring(0, 10) : p.categoryName ?? '—',
+                    bg: const Color(0xFFEEF2FF),
+                    textColor: const Color(0xFF6366F1),
+                  ),
+                ),
+              ),
+            ),
             Expanded(flex: widget.flex('Purchase Invoice'),         child: Text('Rs. ${p.purchasePrice.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
             Expanded(flex: widget.flex('Sale Price'),   child: Text('Rs. ${p.sellingPrice.toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF10B981)))),
-            Expanded(flex: widget.flex('Stock'),        child: Text('${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: p.isLowStock ? const Color(0xFFEF4444) : const Color(0xFF1A1D23)))),
-            Expanded(flex: widget.flex('Min Stock'),    child: Text('${p.minStockLevel}', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
+            Expanded(
+              flex: widget.flex('Stock'),
+              child: Text(
+                '${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}',
+                overflow: TextOverflow.ellipsis, // ← yeh add karo
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: p.isLowStock ? const Color(0xFFEF4444) : const Color(0xFF1A1D23),
+                ),
+              ),
+            ),            // Expanded(flex: widget.flex('Min Stock'),    child: Text('${p.minStockLevel}', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
+            SizedBox(width: 6,),
+            // Stock Status cell
             Expanded(
               flex: widget.flex('Stock Status'),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 120,
-                    child: ChipWidget(
-                      label:     p.quantity <= 0 ? 'Out of Stock' : p.isLowStock ? 'Low Stock' : 'In Stock',
-                      bg:        p.quantity <= 0 ? const Color(0xFFFEE2E2) : p.isLowStock ? const Color(0xFFFEF3C7) : const Color(0xFFD1FAE5),
-                      textColor: p.quantity <= 0 ? const Color(0xFFEF4444) : p.isLowStock ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
-                    ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: ChipWidget(
+                    label: p.quantity <= 0 ? 'Out of Stock' : p.isLowStock ? 'Low Stock' : 'In Stock',
+                    bg: p.quantity <= 0 ? const Color(0xFFFEE2E2) : p.isLowStock ? const Color(0xFFFEF3C7) : const Color(0xFFD1FAE5),
+                    textColor: p.quantity <= 0 ? const Color(0xFFEF4444) : p.isLowStock ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
                   ),
-                ],
+                ),
               ),
             ),
             Expanded(
               flex: widget.flex('Actions'),
-              child: Row(children: [
-                ActionBtn(icon: Icons.edit_rounded,    color: const Color(0xFF6366F1), onTap: widget.onEdit),
-                const SizedBox(width: 6),
-                ActionBtn(icon: Icons.history_rounded, color: const Color(0xFF10B981), onTap: widget.onHistory),
-                const SizedBox(width: 6),
-                ActionBtn(icon: Icons.delete_rounded,  color: const Color(0xFFEF4444), onTap: widget.onDelete),
-              ]),
+              child: PopupMenuButton<String>(
+                onSelected: (value) {
+                  switch (value) {
+                    case 'edit':
+                      widget.onEdit();
+                      break;
+                    case 'history':
+                      widget.onHistory();
+                      break;
+                    case 'delete':
+                      widget.onDelete();
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: ListTile(
+                      leading: const Icon(Icons.edit_rounded, color: Color(0xFF6366F1)),
+                      title: const Text("Edit"),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'history',
+                    child: ListTile(
+                      leading: const Icon(Icons.history_rounded, color: Color(0xFF10B981)),
+                      title: const Text("History"),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: const Icon(Icons.delete_rounded, color: Color(0xFFEF4444)),
+                      title: const Text("Delete"),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+
+                ],
+                child: const Icon(Icons.more_vert, color: Color(0xFF6C7280)),
+              ),
             ),
+
+            // Expanded(
+            //   flex: widget.flex('Actions'),
+            //   child: Row(children: [
+            //     ActionBtn(icon: Icons.edit_rounded,    color: const Color(0xFF6366F1), onTap: widget.onEdit),
+            //     const SizedBox(width: 6),
+            //     ActionBtn(icon: Icons.history_rounded, color: const Color(0xFF10B981), onTap: widget.onHistory),
+            //     const SizedBox(width: 6),
+            //     ActionBtn(icon: Icons.delete_rounded,  color: const Color(0xFFEF4444), onTap: widget.onDelete),
+            //   ]),
+            // ),
           ],
         ),
       ),

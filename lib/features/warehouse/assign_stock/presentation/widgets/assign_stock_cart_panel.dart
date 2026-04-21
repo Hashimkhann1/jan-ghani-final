@@ -126,7 +126,7 @@ class AssignStockCartPanel extends ConsumerWidget {
 
               // Notes field
               SizedBox(
-                width: 200,
+                width: 170,
                 child: TextField(
                   onChanged: notifier.updateNotes,
                   style: const TextStyle(

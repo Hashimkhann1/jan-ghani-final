@@ -73,7 +73,7 @@ class AssignStockScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: const [
                 SizedBox(
-                  width: 420,
+                  width: 300,
                   child: AssignStockProductListPanel(),
                 ),
                 Expanded(

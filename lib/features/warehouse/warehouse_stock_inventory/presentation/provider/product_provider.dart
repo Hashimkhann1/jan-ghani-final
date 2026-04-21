@@ -1,6 +1,8 @@
 // =============================================================
 // product_provider.dart
 // UPDATED: barcode String? → barcodes List<String>
+// UPDATED: dependency injection — ProductRemoteDataSource inject ho
+// UPDATED: AppConfig.warehouseId inject ho — test mein mock ho sake
 // =============================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,10 +38,9 @@ class ProductState {
       if (filterCategory != 'all' && p.categoryId != filterCategory) return false;
       if (searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
-        return p.name.toLowerCase().contains(q)              ||
-            p.sku.toLowerCase().contains(q)                  ||
-            // ← barcodes list mein se koi bhi match ho
-            p.barcodes.any((b) => b.toLowerCase().contains(q)) ||
+        return p.name.toLowerCase().contains(q)                    ||
+            p.sku.toLowerCase().contains(q)                        ||
+            p.barcodes.any((b) => b.toLowerCase().contains(q))    ||
             (p.categoryName?.toLowerCase().contains(q) ?? false);
       }
       return true;
@@ -51,9 +52,12 @@ class ProductState {
   int get lowStockCount => allProducts.where((p) => p.isLowStock && p.deletedAt == null).length;
 
   ProductState copyWith({
-    List<ProductModel>? allProducts, String? searchQuery,
-    String? filterStatus, String? filterCategory,
-    bool? isLoading, String? errorMessage,
+    List<ProductModel>? allProducts,
+    String?             searchQuery,
+    String?             filterStatus,
+    String?             filterCategory,
+    bool?               isLoading,
+    String?             errorMessage,
   }) => ProductState(
     allProducts:    allProducts    ?? this.allProducts,
     searchQuery:    searchQuery    ?? this.searchQuery,
@@ -67,21 +71,23 @@ class ProductState {
 // ── Notifier ──────────────────────────────────────────────────
 class ProductNotifier extends StateNotifier<ProductState> {
   final ProductRemoteDataSource _ds;
-  String get _wid => AppConfig.warehouseId;
+  final String _wid;             // ✅ inject — AppConfig direct nahi
 
-  ProductNotifier()
-      : _ds = ProductRemoteDataSource(),
-        super(const ProductState()) {
-    loadProducts();
-  }
+  // ✅ warehouseId bhi inject — test mein 'wh-001' pass kar sako
+  ProductNotifier(this._ds, this._wid) : super(const ProductState());
 
   Future<({String? id, String? name})> _currentUser() async {
-    final userMap = await AuthLocalStorage.loadUser();
-    if (userMap == null) return (id: null, name: null);
-    return (
-    id:   userMap['id']?.toString(),
-    name: userMap['full_name']?.toString() ?? userMap['username']?.toString(),
-    );
+    try {
+      final userMap = await AuthLocalStorage.loadUser();
+      if (userMap == null) return (id: null, name: null);
+      return (
+      id:   userMap['id']?.toString(),
+      name: userMap['full_name']?.toString() ?? userMap['username']?.toString(),
+      );
+    } catch (_) {
+      // Test environment mein SharedPreferences nahi hoti
+      return (id: null, name: null);
+    }
   }
 
   // ── Load ──────────────────────────────────────────────────
@@ -98,22 +104,22 @@ class ProductNotifier extends StateNotifier<ProductState> {
 
   // ── Add ───────────────────────────────────────────────────
   Future<void> addProduct({
-    required String       sku,
-    required String       name,
-    List<String>          barcodes = const [],   // ← was: String? barcode
-    String?               description,
-    String?               categoryId,
-    required String       unitOfMeasure,
-    required double       purchasePrice,
-    required double       sellingPrice,
-    double?               wholesalePrice,
-    required double       taxRate,
-    required int          minStockLevel,
-    int?                  maxStockLevel,
-    required int          reorderPoint,
-    required bool         isActive,
-    required bool         isTrackStock,
-    required double       initialQty,
+    required String  sku,
+    required String  name,
+    List<String>     barcodes = const [],
+    String?          description,
+    String?          categoryId,
+    required String  unitOfMeasure,
+    required double  purchasePrice,
+    required double  sellingPrice,
+    double?          wholesalePrice,
+    required double  taxRate,
+    required int     minStockLevel,
+    int?             maxStockLevel,
+    required int     reorderPoint,
+    required bool    isActive,
+    required bool    isTrackStock,
+    required double  initialQty,
   }) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -124,10 +130,10 @@ class ProductNotifier extends StateNotifier<ProductState> {
         return;
       }
 
-      final user = await _currentUser();
+      final user    = await _currentUser();
       final product = ProductModel(
         id: '', warehouseId: _wid, sku: sku,
-        barcodes: barcodes,                     // ← list
+        barcodes: barcodes,
         name: name, description: description,
         categoryId: categoryId,
         unitOfMeasure: unitOfMeasure,
@@ -196,7 +202,8 @@ class ProductNotifier extends StateNotifier<ProductState> {
       );
       final updated = state.allProducts
           .map((p) => p.id == id
-          ? p.copyWith(deletedAt: DateTime.now()) : p)
+          ? p.copyWith(deletedAt: DateTime.now())
+          : p)
           .toList();
       state = state.copyWith(allProducts: updated, isLoading: false);
     } catch (e) {
@@ -206,27 +213,40 @@ class ProductNotifier extends StateNotifier<ProductState> {
   }
 
   // ── Filters ───────────────────────────────────────────────
-  void onSearchChanged(String q)        => state = state.copyWith(searchQuery: q);
-  void onFilterStatusChanged(String f)  => state = state.copyWith(filterStatus: f);
-  void onFilterCategoryChanged(String c)=> state = state.copyWith(filterCategory: c);
-  void clearError()                     => state = state.copyWith(errorMessage: null);
+  void onSearchChanged(String q)         => state = state.copyWith(searchQuery: q);
+  void onFilterStatusChanged(String f)   => state = state.copyWith(filterStatus: f);
+  void onFilterCategoryChanged(String c) => state = state.copyWith(filterCategory: c);
+  void clearError()                      => state = state.copyWith(errorMessage: null);
 }
 
-// ── Provider ──────────────────────────────────────────────────
+// ── Datasource Provider ───────────────────────────────────────
+// ✅ Alag provider — test mein override karna easy
+final productDataSourceProvider = Provider<ProductRemoteDataSource>(
+      (ref) => ProductRemoteDataSource(),
+);
+
+// ── Main Provider ─────────────────────────────────────────────
+// ✅ ds aur warehouseId dono inject
 final productProvider =
-StateNotifierProvider<ProductNotifier, ProductState>(
-        (ref) => ProductNotifier());
+StateNotifierProvider<ProductNotifier, ProductState>((ref) {
+  final ds       = ref.watch(productDataSourceProvider);
+  final wid      = AppConfig.warehouseId;           // sirf yahan AppConfig
+  final notifier = ProductNotifier(ds, wid);
+  notifier.loadProducts();
+  return notifier;
+});
 
 
 
 // // =============================================================
 // // product_provider.dart
+// // UPDATED: barcode String? → barcodes List<String>
 // // =============================================================
 //
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:flutter_riverpod/legacy.dart';
 // import 'package:jan_ghani_final/core/config/app_config.dart';
-// import 'package:jan_ghani_final/features/auth/local/auth_local_storage.dart';
+// import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 // import '../../data/datasource/product_remote_datasource.dart';
 // import '../../data/model/product_model.dart';
 //
@@ -257,8 +277,9 @@ StateNotifierProvider<ProductNotifier, ProductState>(
 //       if (searchQuery.isNotEmpty) {
 //         final q = searchQuery.toLowerCase();
 //         return p.name.toLowerCase().contains(q)              ||
-//             p.sku.toLowerCase().contains(q)               ||
-//             (p.barcode?.toLowerCase().contains(q) ?? false)||
+//             p.sku.toLowerCase().contains(q)                  ||
+//             // ← barcodes list mein se koi bhi match ho
+//             p.barcodes.any((b) => b.toLowerCase().contains(q)) ||
 //             (p.categoryName?.toLowerCase().contains(q) ?? false);
 //       }
 //       return true;
@@ -294,7 +315,6 @@ StateNotifierProvider<ProductNotifier, ProductState>(
 //     loadProducts();
 //   }
 //
-//   // Current user SharedPreferences se
 //   Future<({String? id, String? name})> _currentUser() async {
 //     final userMap = await AuthLocalStorage.loadUser();
 //     if (userMap == null) return (id: null, name: null);
@@ -311,37 +331,48 @@ StateNotifierProvider<ProductNotifier, ProductState>(
 //       final products = await _ds.getAll(_wid);
 //       state = state.copyWith(allProducts: products, isLoading: false);
 //     } catch (e) {
-//       state = state.copyWith(isLoading: false, errorMessage: 'Load karne mein masla: $e');
+//       state = state.copyWith(
+//           isLoading: false, errorMessage: 'Load karne mein masla: $e');
 //     }
 //   }
 //
 //   // ── Add ───────────────────────────────────────────────────
 //   Future<void> addProduct({
-//     required String  sku,    required String  name,
-//     String?          barcode, String?          description,
-//     String?          categoryId,
-//     required String  unitOfMeasure,
-//     required double  costPrice,   required double  sellingPrice,
-//     double?          wholesalePrice, required double  taxRate,
-//     required int     minStockLevel,  int?             maxStockLevel,
-//     required int     reorderPoint,
-//     required bool    isActive,    required bool    isTrackStock,
-//     required double  initialQty,
+//     required String       sku,
+//     required String       name,
+//     List<String>          barcodes = const [],   // ← was: String? barcode
+//     String?               description,
+//     String?               categoryId,
+//     required String       unitOfMeasure,
+//     required double       purchasePrice,
+//     required double       sellingPrice,
+//     double?               wholesalePrice,
+//     required double       taxRate,
+//     required int          minStockLevel,
+//     int?                  maxStockLevel,
+//     required int          reorderPoint,
+//     required bool         isActive,
+//     required bool         isTrackStock,
+//     required double       initialQty,
 //   }) async {
 //     state = state.copyWith(isLoading: true);
 //     try {
 //       final exists = await _ds.skuExists(sku, _wid);
 //       if (exists) {
-//         state = state.copyWith(isLoading: false, errorMessage: 'SKU "$sku" already exists');
+//         state = state.copyWith(
+//             isLoading: false, errorMessage: 'SKU "$sku" already exists');
 //         return;
 //       }
 //
 //       final user = await _currentUser();
 //       final product = ProductModel(
-//         id: '', warehouseId: _wid, sku: sku, barcode: barcode,
-//         name: name, description: description, categoryId: categoryId,
-//         unitOfMeasure: unitOfMeasure, costPrice: costPrice,
-//         sellingPrice: sellingPrice, wholesalePrice: wholesalePrice,
+//         id: '', warehouseId: _wid, sku: sku,
+//         barcodes: barcodes,                     // ← list
+//         name: name, description: description,
+//         categoryId: categoryId,
+//         unitOfMeasure: unitOfMeasure,
+//         purchasePrice: purchasePrice, sellingPrice: sellingPrice,
+//         wholesalePrice: wholesalePrice,
 //         taxRate: taxRate, minStockLevel: minStockLevel,
 //         maxStockLevel: maxStockLevel, reorderPoint: reorderPoint,
 //         isActive: isActive, isTrackStock: isTrackStock,
@@ -352,9 +383,11 @@ StateNotifierProvider<ProductNotifier, ProductState>(
 //         product: product, initialQty: initialQty,
 //         userId: user.id, userName: user.name,
 //       );
-//       state = state.copyWith(allProducts: [...state.allProducts, saved], isLoading: false);
+//       state = state.copyWith(
+//           allProducts: [...state.allProducts, saved], isLoading: false);
 //     } catch (e) {
-//       state = state.copyWith(isLoading: false, errorMessage: 'Add karne mein masla: $e');
+//       state = state.copyWith(
+//           isLoading: false, errorMessage: 'Add karne mein masla: $e');
 //     }
 //   }
 //
@@ -362,14 +395,17 @@ StateNotifierProvider<ProductNotifier, ProductState>(
 //   Future<void> updateProduct(ProductModel updated, {double? newQty}) async {
 //     state = state.copyWith(isLoading: true);
 //     try {
-//       final exists = await _ds.skuExists(updated.sku, _wid, excludeId: updated.id);
+//       final exists = await _ds.skuExists(updated.sku, _wid,
+//           excludeId: updated.id);
 //       if (exists) {
-//         state = state.copyWith(isLoading: false, errorMessage: 'SKU "${updated.sku}" already exists');
+//         state = state.copyWith(
+//             isLoading: false,
+//             errorMessage: 'SKU "${updated.sku}" already exists');
 //         return;
 //       }
 //
-//       // Old product dhundo
-//       final oldProduct = state.allProducts.firstWhere((p) => p.id == updated.id);
+//       final oldProduct =
+//       state.allProducts.firstWhere((p) => p.id == updated.id);
 //       final user = await _currentUser();
 //
 //       final fresh = await _ds.update(
@@ -377,10 +413,13 @@ StateNotifierProvider<ProductNotifier, ProductState>(
 //         newQty: newQty ?? updated.quantity,
 //         userId: user.id, userName: user.name,
 //       );
-//       final list = state.allProducts.map((p) => p.id == fresh.id ? fresh : p).toList();
+//       final list = state.allProducts
+//           .map((p) => p.id == fresh.id ? fresh : p)
+//           .toList();
 //       state = state.copyWith(allProducts: list, isLoading: false);
 //     } catch (e) {
-//       state = state.copyWith(isLoading: false, errorMessage: 'Update karne mein masla: $e');
+//       state = state.copyWith(
+//           isLoading: false, errorMessage: 'Update karne mein masla: $e');
 //     }
 //   }
 //
@@ -388,27 +427,29 @@ StateNotifierProvider<ProductNotifier, ProductState>(
 //   Future<void> deleteProduct(String id) async {
 //     state = state.copyWith(isLoading: true);
 //     try {
-//       final product  = state.allProducts.firstWhere((p) => p.id == id);
-//       final user     = await _currentUser();
+//       final product = state.allProducts.firstWhere((p) => p.id == id);
+//       final user    = await _currentUser();
 //
 //       await _ds.delete(
 //         id: id, product: product,
 //         userId: user.id, userName: user.name,
 //       );
 //       final updated = state.allProducts
-//           .map((p) => p.id == id ? p.copyWith(deletedAt: DateTime.now()) : p)
+//           .map((p) => p.id == id
+//           ? p.copyWith(deletedAt: DateTime.now()) : p)
 //           .toList();
 //       state = state.copyWith(allProducts: updated, isLoading: false);
 //     } catch (e) {
-//       state = state.copyWith(isLoading: false, errorMessage: 'Delete karne mein masla: $e');
+//       state = state.copyWith(
+//           isLoading: false, errorMessage: 'Delete karne mein masla: $e');
 //     }
 //   }
 //
 //   // ── Filters ───────────────────────────────────────────────
-//   void onSearchChanged(String q)       => state = state.copyWith(searchQuery: q);
-//   void onFilterStatusChanged(String f) => state = state.copyWith(filterStatus: f);
+//   void onSearchChanged(String q)        => state = state.copyWith(searchQuery: q);
+//   void onFilterStatusChanged(String f)  => state = state.copyWith(filterStatus: f);
 //   void onFilterCategoryChanged(String c)=> state = state.copyWith(filterCategory: c);
-//   void clearError()                    => state = state.copyWith(errorMessage: null);
+//   void clearError()                     => state = state.copyWith(errorMessage: null);
 // }
 //
 // // ── Provider ──────────────────────────────────────────────────

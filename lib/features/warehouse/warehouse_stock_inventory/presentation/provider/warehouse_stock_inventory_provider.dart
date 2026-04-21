@@ -7,7 +7,7 @@ final stockInventoryServiceProvider = Provider<WarehouseStockInventoryService>((
   return WarehouseStockInventoryService();
 });
 
-final stockInventoryProvider = FutureProvider<List<WarehouseStockInventory>>((ref) async {
-  final service = ref.watch(stockInventoryServiceProvider);
-  return service.getStockInventories();
-});
+// final stockInventoryProvider = FutureProvider<List<WarehouseStockInventory>>((ref) async {
+//   final service = ref.watch(stockInventoryServiceProvider);
+//   return service.getStockInventories();
+// });

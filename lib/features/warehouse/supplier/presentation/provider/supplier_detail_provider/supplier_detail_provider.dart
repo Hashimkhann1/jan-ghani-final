@@ -207,32 +207,77 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
   }
 
   // ── 2. Purchase orders ────────────────────────────────────
+// ── 2. Purchase orders (with items) ──────────────────────
   Future<List<SupplierPurchaseOrder>> _loadPurchaseOrders(
       String supplierId) async {
     final conn = await _db;
 
-    final result = await conn.execute(
+    // Step 1: PO headers
+    final poResult = await conn.execute(
       Sql.named('''
-        SELECT
-          id, po_number, order_date, expected_date,
-          received_date, status, subtotal, discount_amount,
-          tax_amount, total_amount, paid_amount, notes, created_at
-        FROM purchase_orders
-        WHERE supplier_id  = @supplierId
-          AND warehouse_id = @wid
-          AND deleted_at   IS NULL
-        ORDER BY order_date DESC
-      '''),
+      SELECT
+        id, po_number, order_date, expected_date,
+        received_date, status, subtotal, discount_amount,
+        tax_amount, total_amount, paid_amount, notes, created_at
+      FROM purchase_orders
+      WHERE supplier_id  = @supplierId
+        AND warehouse_id = @wid
+        AND deleted_at   IS NULL
+      ORDER BY order_date DESC
+    '''),
+      parameters: {'supplierId': supplierId, 'wid': _wid},
+    );
+
+    if (poResult.isEmpty) return [];
+
+    // Step 2: Sab POs ke items ek saath load karo (ANY operator se)
+    final poIds = poResult
+        .map((r) => r.toColumnMap()['id'].toString())
+        .toList();
+
+    final itemsResult = await conn.execute(
+      Sql.named('''
+      SELECT
+        id, po_id, product_id, product_name, sku,
+        quantity_ordered, quantity_received, unit_cost, total_cost, sale_price
+      FROM purchase_order_items
+      WHERE po_id        = ANY(@poIds)
+        AND warehouse_id = @wid
+      ORDER BY po_id
+    '''),
       parameters: {
-        'supplierId': supplierId,
-        'wid':        _wid,
+        'poIds': poIds,   // postgres driver List<String> ko UUID[] mein convert karta hai
+        'wid':   _wid,
       },
     );
 
-    return result.map((row) {
-      final m = row.toColumnMap();
+    // Step 3: Items ko po_id ke hisaab se group karo
+    final Map<String, List<PurchaseOrderItem>> itemsMap = {};
+    for (final row in itemsResult) {
+      final m    = row.toColumnMap();
+      final poId = m['po_id'].toString();
+      itemsMap.putIfAbsent(poId, () => []).add(
+        PurchaseOrderItem(
+          id:               m['id'].toString(),
+          poId:             poId,
+          productId:        m['product_id']?.toString(),
+          productName:      m['product_name'].toString(),
+          sku:              m['sku']?.toString(),
+          quantityOrdered:  _toDouble(m['quantity_ordered']),
+          quantityReceived: _toDouble(m['quantity_received']),
+          unitCost:         _toDouble(m['unit_cost']),
+          totalCost:        _toDouble(m['total_cost']),
+          salePrice:  _toDouble(m['sale_price']),
+        ),
+      );
+    }
+
+    // Step 4: Har PO mein uske items attach karo
+    return poResult.map((row) {
+      final m  = row.toColumnMap();
+      final id = m['id'].toString();
       return SupplierPurchaseOrder(
-        id:             m['id'].toString(),
+        id:             id,
         poNumber:       m['po_number'].toString(),
         orderDate:      _toDate(m['order_date'])!,
         expectedDate:   _toDate(m['expected_date']),
@@ -245,6 +290,7 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
         paidAmount:     _toDouble(m['paid_amount']),
         notes:          m['notes']?.toString(),
         createdAt:      _toDate(m['created_at'])!,
+        items:          itemsMap[id] ?? [],  // ← yahan items attach hain
       );
     }).toList();
   }

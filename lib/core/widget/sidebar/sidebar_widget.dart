@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/core/config/app_config.dart';
 
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
@@ -180,7 +181,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     NavItem(
       svg: 'assets/images/sale_invoice.svg',
       label: 'Link Stores',
-      screen:  LinkedStoresScreen(warehouseId: 'c519975f-bf0e-4747-b152-ea38fcbf7cc5',),
+      screen:  LinkedStoresScreen(warehouseId: AppConfig.warehouseId,),
     ),
 
   ];

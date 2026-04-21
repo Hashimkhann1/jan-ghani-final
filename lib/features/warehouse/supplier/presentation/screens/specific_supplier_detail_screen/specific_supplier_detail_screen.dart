@@ -12,6 +12,7 @@ import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_deta
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_detail_provider/supplier_detail_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/pay_outstanding_dialog/pay_outstanding_dialog.dart';
+import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/po_details_dialog_widget/po_details_dialog_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_detail_widgets/supplier_detail_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_info_dialog/supplier_info_dialog.dart';
 
