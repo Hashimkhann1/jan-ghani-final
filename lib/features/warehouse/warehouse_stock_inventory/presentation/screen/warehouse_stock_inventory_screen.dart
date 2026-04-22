@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/core/widget/textfield/app_text_field.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/Print_barcode_widget.dart';
 import '../../data/model/product_model.dart';
 import '../../presentation/provider/product_provider.dart';
-import '../widget/action_button_widget.dart';
 import '../widget/chip_widget.dart';
 import '../widget/stock_inventory_dialog.dart';
 import '../widget/product_audit_dialog.dart';
@@ -180,6 +180,7 @@ class _ProductTable extends StatelessWidget {
                     onEdit:    () => onEdit(e.value),
                     onHistory: () => onHistory(e.value),
                     onDelete:  () => onDelete(e.value),
+                    onPrintQR: () => PrintBarcodeWidget.show(context, e.value),
                   )).toList(),
                 ),
               ),
@@ -199,8 +200,9 @@ class _ProductRow extends StatefulWidget {
   final VoidCallback     onEdit;
   final VoidCallback     onHistory;
   final VoidCallback     onDelete;
+  final VoidCallback     onPrintQR;
 
-  const _ProductRow({required this.product, required this.isEven, required this.flex, required this.onEdit, required this.onHistory, required this.onDelete});
+  const _ProductRow({required this.product, required this.isEven, required this.flex, required this.onEdit, required this.onHistory, required this.onDelete,required this.onPrintQR});
 
   @override
   State<_ProductRow> createState() => _ProductRowState();
@@ -282,6 +284,9 @@ class _ProductRowState extends State<_ProductRow> {
                     case 'delete':
                       widget.onDelete();
                       break;
+                    case 'printQr':
+                      widget.onPrintQR();
+                      break;
                   }
                 },
                 itemBuilder: (context) => [
@@ -306,6 +311,14 @@ class _ProductRowState extends State<_ProductRow> {
                     child: ListTile(
                       leading: const Icon(Icons.delete_rounded, color: Color(0xFFEF4444)),
                       title: const Text("Delete"),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'printQr',
+                    child: ListTile(
+                      leading: Icon(Icons.print, color: Color(0xFF268DF1)),
+                      title: const Text("Print QR"),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
