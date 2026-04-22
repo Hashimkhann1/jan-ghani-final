@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
+import 'package:jan_ghani_final/features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';

@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -53,99 +55,72 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
   }
 
   Future<void> _printAll() async {
-    await _doPrint(barcodes: _barcodes, copies: _count);
+    final copies = _count; // ← pehle capture karo
+    debugPrint('🖨️ copies = $copies'); // check karo log mein
+    await _doPrint(barcodes: _barcodes, copies: copies);
   }
 
-  // ── Barcode PNG generate — canvas se directly draw karo ──
+  // ── Barcode PNG generate — RepaintBoundary se (reliable) ──
   Future<Uint8List> _generateBarcodePng(String data) async {
-    // High resolution ke liye bada canvas banao
-    // 203 DPI printer ke liye: 50mm = ~400px, 20mm bars height = ~160px
-    const double canvasW = 800.0;
-    const double canvasH = 300.0;
+    if (!mounted) return Uint8List(0);
 
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, canvasW, canvasH));
+    final repaintKey = GlobalKey();
+    final completer = Completer<Uint8List>();
 
-    // White background
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, canvasW, canvasH),
-      Paint()..color = const Color(0xFFFFFFFF),
+    late OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: -9999,
+        top: -9999,
+        child: Material(                          // ✅ Windows pe Material zaroor chahiye
+          color: Colors.transparent,
+          child: RepaintBoundary(
+            key: repaintKey,
+            child: SizedBox(
+              width: 400,
+              height: 150,
+              child: BarcodeWidget(
+                barcode: Barcode.code128(),
+                data: data,
+                width: 400,
+                height: 150,
+                drawText: false,
+                color: Colors.black,
+                backgroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
 
-    // barcode package se SVG banao
-    final barcodeGen = bc.Barcode.code128();
-    final svgStr = barcodeGen.toSvg(
-      data,
-      width: canvasW,
-      height: canvasH,
-      drawText: false,
-    );
+    Overlay.of(context).insert(overlayEntry);
 
-    debugPrint('🖨️ [PNG] SVG snippet: ${svgStr.substring(0, svgStr.length.clamp(0, 500))}');
+    // ✅ Windows pe rendering thoda slow — 2 frames wait karo
+    await Future.delayed(const Duration(milliseconds: 400));
 
-    // SVG ke rect elements parse karo — multiple attribute orders handle karo
-    int count = 0;
-    final blackPaint = Paint()..color = const Color(0xFF000000);
+    try {
+      final RenderRepaintBoundary boundary =
+      repaintKey.currentContext!.findRenderObject()
+      as RenderRepaintBoundary;
 
-    // Pattern 1: x="N" width="N" height="N"  — double quotes only
-    final reg1 = RegExp(
-        r'<rect[^>]+x="([0-9.]+)"[^>]+width="([0-9.]+)"[^>]+height="([0-9.]+)"');
-    for (final m in reg1.allMatches(svgStr)) {
-      final x  = double.tryParse(m.group(1)!) ?? 0;
-      final rw = double.tryParse(m.group(2)!) ?? 0;
-      final rh = double.tryParse(m.group(3)!) ?? 0;
-      if (rw < canvasW * 0.9 && rh > 1) {
-        canvas.drawRect(Rect.fromLTWH(x, 0, rw, rh), blackPaint);
-        count++;
+      // ✅ Windows pe check karo ke render complete hua
+      if (boundary.debugNeedsPaint) {
+        await Future.delayed(const Duration(milliseconds: 200));
       }
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData!.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('🖨️ PNG generation error: $e');
+      return Uint8List(0);             // ✅ crash nahi karega
+    } finally {
+      overlayEntry.remove();
     }
-
-    // Pattern 2: width pehle — width="N" height="N" x="N"
-    if (count == 0) {
-      final reg2 = RegExp(
-          r'<rect[^>]+width="([0-9.]+)"[^>]+height="([0-9.]+)"[^>]+x="([0-9.]+)"');
-      for (final m in reg2.allMatches(svgStr)) {
-        final rw = double.tryParse(m.group(1)!) ?? 0;
-        final rh = double.tryParse(m.group(2)!) ?? 0;
-        final x  = double.tryParse(m.group(3)!) ?? 0;
-        if (rw < canvasW * 0.9 && rh > 1) {
-          canvas.drawRect(Rect.fromLTWH(x, 0, rw, rh), blackPaint);
-          count++;
-        }
-      }
-    }
-
-    // Pattern 3: har rect tag se individually x, width, height nikalo
-    if (count == 0) {
-      final reg3 = RegExp(r'<rect[^/]*/?>');
-      for (final m in reg3.allMatches(svgStr)) {
-        final tag = m.group(0)!;
-        final xMatch = RegExp(r'x="([0-9.]+)"').firstMatch(tag);
-        final wMatch = RegExp(r'width="([0-9.]+)"').firstMatch(tag);
-        final hMatch = RegExp(r'height="([0-9.]+)"').firstMatch(tag);
-        if (xMatch != null && wMatch != null && hMatch != null) {
-          final x  = double.tryParse(xMatch.group(1)!) ?? 0;
-          final rw = double.tryParse(wMatch.group(1)!) ?? 0;
-          final rh = double.tryParse(hMatch.group(1)!) ?? 0;
-          if (rw < canvasW * 0.9 && rh > 1) {
-            canvas.drawRect(Rect.fromLTWH(x, 0, rw, rh), blackPaint);
-            count++;
-          }
-        }
-      }
-    }
-
-    debugPrint('🖨️ [PNG] Drew $count bars — canvas ${canvasW}x$canvasH');
-
-    final picture = recorder.endRecording();
-    final img = await picture.toImage(canvasW.toInt(), canvasH.toInt());
-    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-    final bytes = byteData!.buffer.asUint8List();
-    debugPrint('🖨️ [PNG] PNG size: ${bytes.length} bytes');
-    return bytes;
   }
 
-  // ── PDF banao — XP-420B ke liye 50mm x 30mm label ───────
+// ── PDF banao — XP-420B ke liye 50mm x 30mm label ───────
   Future<Uint8List> _buildPdf({
     required List<String> barcodes,
     required int copies,
@@ -160,24 +135,25 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
     );
 
     for (final barcode in barcodes) {
-      for (int i = 0; i < copies; i++) {
-        debugPrint('🖨️ [PDF] Generating PNG for barcode: $barcode');
-        final pngBytes = await _generateBarcodePng(barcode);
-        final barcodeImg = pw.MemoryImage(pngBytes);
+      // ✅ FIX: PNG sirf BAAR generate karo — copies loop ke BAHAR
+      debugPrint('🖨️ [PDF] Generating PNG for barcode: $barcode');
+      final pngBytes = await _generateBarcodePng(barcode);
+      final barcodeImg = pw.MemoryImage(pngBytes);
+      debugPrint('🖨️ [PDF] PNG ready ✅');
 
+      for (int i = 0; i < copies; i++) {
+        debugPrint('🖨️ [PDF] Adding page ${i + 1} of $copies for $barcode');
         doc.addPage(
           pw.Page(
-            // XP-420B standard barcode sticker: 50mm x 30mm
             pageFormat: PdfPageFormat(
               50 * PdfPageFormat.mm,
               30 * PdfPageFormat.mm,
-              marginAll: 2 * PdfPageFormat.mm,
+              marginAll: 3 * PdfPageFormat.mm,
             ),
             build: (pw.Context ctx) => pw.Column(
               mainAxisAlignment: pw.MainAxisAlignment.center,
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                // Jan Ghani
                 pw.Text(
                   'Jan Ghani',
                   style: pw.TextStyle(
@@ -186,7 +162,6 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
                   textAlign: pw.TextAlign.center,
                 ),
                 pw.SizedBox(height: 1),
-                // Product name
                 pw.Text(
                   widget.product.name,
                   style: pw.TextStyle(font: fontRegular, fontSize: 7),
@@ -194,21 +169,18 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
                   maxLines: 1,
                 ),
                 pw.SizedBox(height: 2),
-                // Barcode image — full width
                 pw.Image(
                   barcodeImg,
-                  width: 44 * PdfPageFormat.mm,
+                  width: 38 * PdfPageFormat.mm,
                   height: 10 * PdfPageFormat.mm,
                   fit: pw.BoxFit.fill,
                 ),
                 pw.SizedBox(height: 1),
-                // Barcode number
                 pw.Text(
                   barcode,
                   style: pw.TextStyle(font: fontRegular, fontSize: 6),
                 ),
                 pw.SizedBox(height: 1),
-                // Price
                 pw.Text(
                   'Rs. ${widget.product.sellingPrice.toStringAsFixed(0)}',
                   style: pw.TextStyle(
@@ -219,7 +191,7 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
             ),
           ),
         );
-        debugPrint('🖨️ [PDF] Page added ✅');
+        debugPrint('🖨️ [PDF] Page ${i + 1} added ✅');
       }
     }
     return doc.save();

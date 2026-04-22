@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/widgets/assign_stock_cart_panel.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/widgets/assign_stock_product_list_panel.dart';
 
@@ -63,6 +64,22 @@ class AssignStockScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+                Spacer(),
+
+                InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => AssignStockReportScreen()));
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12,vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColor.primary,
+                      borderRadius: BorderRadius.circular(12)
+                    ),
+                    child: Text("Assigned Stock Report",style: TextStyle(fontSize: 15,color: Colors.white),)
+                  ),
+                )
+
               ],
             ),
           ),
