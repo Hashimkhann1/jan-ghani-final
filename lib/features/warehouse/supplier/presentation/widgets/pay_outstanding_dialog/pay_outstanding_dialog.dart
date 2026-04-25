@@ -107,10 +107,21 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                   TextField(
                     controller:   _amountController,
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: false),
+                        decimal: true),
                     // Sirf numbers — koi decimal, space, alphabet nahi
                     inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
+                      FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),  // digits + dot allow
+                      TextInputFormatter.withFunction((oldValue, newValue) {
+                        final text = newValue.text;
+                        // Ek se zyada dots block karo
+                        if (text.split('.').length > 2) return oldValue;
+                        // Decimal ke baad 2 se zyada digits block karo
+                        if (text.contains('.')) {
+                          final parts = text.split('.');
+                          if (parts[1].length > 2) return oldValue;
+                        }
+                        return newValue;
+                      }),
                     ],
                     onChanged: (_) => setState(() {}), // live update
                     style: TextStyle(fontSize: 15,

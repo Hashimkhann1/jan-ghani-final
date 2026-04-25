@@ -7,17 +7,45 @@ class WarehouseDashboardRemoteDataSource {
   Future<Connection> get _db => DatabaseService.getConnection();
   String get _wid => AppConfig.warehouseId;
 
+  // ── DATE CONDITION HELPER ─────────────────────────────────
+  String _buildDateCondition(
+      PurchaseDateFilter filter,
+      DateTime?          dateFrom,
+      DateTime?          dateTo,
+      ) {
+    switch (filter) {
+      case PurchaseDateFilter.today:
+        return "DATE(created_at AT TIME ZONE 'Asia/Karachi') = CURRENT_DATE";
+
+      case PurchaseDateFilter.thisWeek:
+        return "created_at AT TIME ZONE 'Asia/Karachi' >= "
+            "DATE_TRUNC('week', NOW() AT TIME ZONE 'Asia/Karachi')";
+
+      case PurchaseDateFilter.thisMonth:
+        return "DATE_TRUNC('month', created_at AT TIME ZONE 'Asia/Karachi') = "
+            "DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Karachi')";
+
+      case PurchaseDateFilter.last3Months:
+        return "created_at AT TIME ZONE 'Asia/Karachi' >= "
+            "(NOW() AT TIME ZONE 'Asia/Karachi' - INTERVAL '3 months')";
+
+      case PurchaseDateFilter.custom:
+        if (dateFrom != null && dateTo != null) {
+          return "DATE(created_at AT TIME ZONE 'Asia/Karachi') "
+              "BETWEEN @dateFrom::date AND @dateTo::date";
+        }
+        return "DATE(created_at AT TIME ZONE 'Asia/Karachi') = CURRENT_DATE";
+    }
+  }
+
   // ── STATS ─────────────────────────────────────────────────
   Future<DashboardStats> getStats({
     PurchaseDateFilter filter    = PurchaseDateFilter.today,
     DateTime?          dateFrom,
     DateTime?          dateTo,
   }) async {
-    final conn = await _db;
-
+    final conn          = await _db;
     final dateCondition = _buildDateCondition(filter, dateFrom, dateTo);
-
-    // Parameters — custom filter mein hi dateFrom/dateTo pass karo
     final Map<String, dynamic> params = {'wid': _wid};
     if (filter == PurchaseDateFilter.custom &&
         dateFrom != null &&
@@ -70,7 +98,7 @@ class WarehouseDashboardRemoteDataSource {
         (SELECT COALESCE(SUM(total_amount), 0)
          FROM purchase_orders
          WHERE warehouse_id = @wid
-           AND status       = 'received'
+           AND status       != 'cancelled'
            AND deleted_at   IS NULL
            AND $dateCondition
         ) AS total_purchase_amount,
@@ -82,7 +110,7 @@ class WarehouseDashboardRemoteDataSource {
            AND deleted_at   IS NULL
            AND $dateCondition
         ) AS total_orders_count
-    '''),
+      '''),
       parameters: params,
     );
 
@@ -99,37 +127,181 @@ class WarehouseDashboardRemoteDataSource {
     );
   }
 
-  String _buildDateCondition(
-      PurchaseDateFilter filter,
-      DateTime?          dateFrom,
-      DateTime?          dateTo,
-      ) {
+  // ── PURCHASE TREND ────────────────────────────────────────
+  Future<List<PurchaseTrendPoint>> getPurchaseTrend({
+    PurchaseDateFilter filter    = PurchaseDateFilter.today,
+    DateTime?          dateFrom,
+    DateTime?          dateTo,
+  }) async {
+    final conn = await _db;
+    final Map<String, dynamic> params = {'wid': _wid};
+    String query;
+
     switch (filter) {
       case PurchaseDateFilter.today:
-        return "DATE(created_at AT TIME ZONE 'Asia/Karachi') = CURRENT_DATE";
+        query = '''
+          SELECT
+            EXTRACT(HOUR FROM created_at AT TIME ZONE 'Asia/Karachi')::int AS period,
+            COALESCE(SUM(total_amount), 0) AS amount
+          FROM purchase_orders
+          WHERE warehouse_id = @wid
+            AND status       != 'cancelled'
+            AND deleted_at   IS NULL
+            AND DATE(created_at AT TIME ZONE 'Asia/Karachi') = CURRENT_DATE
+          GROUP BY period
+          ORDER BY period
+        ''';
+        break;
 
       case PurchaseDateFilter.thisWeek:
-        return "created_at AT TIME ZONE 'Asia/Karachi' >= "
-            "DATE_TRUNC('week', NOW() AT TIME ZONE 'Asia/Karachi')";
+        query = '''
+          SELECT
+            DATE(created_at AT TIME ZONE 'Asia/Karachi') AS period,
+            COALESCE(SUM(total_amount), 0) AS amount
+          FROM purchase_orders
+          WHERE warehouse_id = @wid
+            AND status       != 'cancelled'
+            AND deleted_at   IS NULL
+            AND created_at AT TIME ZONE 'Asia/Karachi'
+                >= DATE_TRUNC('week', NOW() AT TIME ZONE 'Asia/Karachi')
+          GROUP BY period
+          ORDER BY period
+        ''';
+        break;
 
       case PurchaseDateFilter.thisMonth:
-        return "DATE_TRUNC('month', created_at AT TIME ZONE 'Asia/Karachi') = "
-            "DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Karachi')";
+        query = '''
+          SELECT
+            DATE(created_at AT TIME ZONE 'Asia/Karachi') AS period,
+            COALESCE(SUM(total_amount), 0) AS amount
+          FROM purchase_orders
+          WHERE warehouse_id = @wid
+            AND status       != 'cancelled'
+            AND deleted_at   IS NULL
+            AND DATE_TRUNC('month', created_at AT TIME ZONE 'Asia/Karachi')
+                = DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Karachi')
+          GROUP BY period
+          ORDER BY period
+        ''';
+        break;
 
       case PurchaseDateFilter.last3Months:
-        return "created_at AT TIME ZONE 'Asia/Karachi' >= "
-            "(NOW() AT TIME ZONE 'Asia/Karachi' - INTERVAL '3 months')";
+        query = '''
+          SELECT
+            DATE_TRUNC('week', created_at AT TIME ZONE 'Asia/Karachi')::date AS period,
+            COALESCE(SUM(total_amount), 0) AS amount
+          FROM purchase_orders
+          WHERE warehouse_id = @wid
+            AND status       != 'cancelled'
+            AND deleted_at   IS NULL
+            AND created_at AT TIME ZONE 'Asia/Karachi'
+                >= (NOW() AT TIME ZONE 'Asia/Karachi' - INTERVAL '3 months')
+          GROUP BY period
+          ORDER BY period
+        ''';
+        break;
 
       case PurchaseDateFilter.custom:
-        if (dateFrom != null && dateTo != null) {
-          return "DATE(created_at AT TIME ZONE 'Asia/Karachi') "
-              "BETWEEN @dateFrom::date AND @dateTo::date";
+        if (dateFrom == null || dateTo == null) return [];
+        params['dateFrom'] = dateFrom.toIso8601String().substring(0, 10);
+        params['dateTo']   = dateTo.toIso8601String().substring(0, 10);
+        final diff = dateTo.difference(dateFrom).inDays;
+        if (diff <= 14) {
+          query = '''
+            SELECT
+              DATE(created_at AT TIME ZONE 'Asia/Karachi') AS period,
+              COALESCE(SUM(total_amount), 0) AS amount
+            FROM purchase_orders
+            WHERE warehouse_id = @wid
+              AND status       != 'cancelled'
+              AND deleted_at   IS NULL
+              AND DATE(created_at AT TIME ZONE 'Asia/Karachi')
+                  BETWEEN @dateFrom::date AND @dateTo::date
+            GROUP BY period
+            ORDER BY period
+          ''';
+        } else {
+          query = '''
+            SELECT
+              DATE_TRUNC('week', created_at AT TIME ZONE 'Asia/Karachi')::date AS period,
+              COALESCE(SUM(total_amount), 0) AS amount
+            FROM purchase_orders
+            WHERE warehouse_id = @wid
+              AND status       != 'cancelled'
+              AND deleted_at   IS NULL
+              AND DATE(created_at AT TIME ZONE 'Asia/Karachi')
+                  BETWEEN @dateFrom::date AND @dateTo::date
+            GROUP BY period
+            ORDER BY period
+          ''';
         }
-        return "DATE(created_at AT TIME ZONE 'Asia/Karachi') = CURRENT_DATE";
+        break;
     }
+
+    final result = await conn.execute(
+      Sql.named(query),
+      parameters: params,
+    );
+
+    return result.map((row) {
+      final m      = row.toColumnMap();
+      final period = m['period'];
+      final amount = _toDouble(m['amount']);
+
+      String label;
+      if (filter == PurchaseDateFilter.today) {
+        final h   = (period as num).toInt();
+        final am  = h < 12 ? 'AM' : 'PM';
+        final h12 = h % 12 == 0 ? 12 : h % 12;
+        label = '$h12$am';
+      } else if (filter == PurchaseDateFilter.thisWeek) {
+        final dt   = period is DateTime
+            ? period : DateTime.parse(period.toString());
+        final days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        label = days[dt.weekday - 1];
+      } else {
+        final dt     = period is DateTime
+            ? period : DateTime.parse(period.toString());
+        final months = ['Jan','Feb','Mar','Apr','May','Jun',
+          'Jul','Aug','Sep','Oct','Nov','Dec'];
+        label = '${dt.day} ${months[dt.month - 1]}';
+      }
+
+      return PurchaseTrendPoint(label: label, amount: amount);
+    }).toList();
   }
 
-  // ── RECENT POs ────────────────────────────────────────────
+  // ── SUPPLIER OUTSTANDING BARS ─────────────────────────────
+  Future<List<SupplierOutstandingBar>> getSupplierOutstandingBars() async {
+    final conn   = await _db;
+    final result = await conn.execute(
+      Sql.named('''
+        SELECT
+          id                  AS supplier_id,
+          name                AS supplier_name,
+          outstanding_balance
+        FROM suppliers
+        WHERE warehouse_id        = @wid
+          AND is_active           = true
+          AND deleted_at          IS NULL
+          AND outstanding_balance > 0
+        ORDER BY outstanding_balance DESC
+        LIMIT 6
+      '''),
+      parameters: {'wid': _wid},
+    );
+
+    return result.map((row) {
+      final m = row.toColumnMap();
+      return SupplierOutstandingBar(
+        supplierId:        m['supplier_id'].toString(),
+        supplierName:      m['supplier_name'].toString(),
+        outstandingAmount: _toDouble(m['outstanding_balance']),
+      );
+    }).toList();
+  }
+
+  // ── RECENT POs — pending pehle ────────────────────────────
   Future<List<RecentPurchaseOrder>> getRecentPOs() async {
     final conn   = await _db;
     final result = await conn.execute(
@@ -145,7 +317,16 @@ class WarehouseDashboardRemoteDataSource {
         LEFT JOIN suppliers s ON s.id = po.supplier_id
         WHERE po.warehouse_id = @wid
           AND po.deleted_at   IS NULL
-        ORDER BY po.created_at DESC
+        ORDER BY
+          CASE po.status
+            WHEN 'ordered'   THEN 1
+            WHEN 'partial'   THEN 2
+            WHEN 'draft'     THEN 3
+            WHEN 'received'  THEN 4
+            WHEN 'cancelled' THEN 5
+            ELSE 6
+          END,
+          po.created_at DESC
         LIMIT 5
       '''),
       parameters: {'wid': _wid},

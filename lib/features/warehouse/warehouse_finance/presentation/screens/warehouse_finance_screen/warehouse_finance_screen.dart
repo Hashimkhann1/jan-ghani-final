@@ -366,7 +366,7 @@ class _FilterTabs extends StatelessWidget {
   static const _tabs = [
     {'key': 'all',              'label': 'All'},
     {'key': 'cash_in',         'label': 'Cash In'},
-    {'key': 'purchase',        'label': 'Purchase'},
+    // {'key': 'purchase',        'label': 'Purchase'},
     {'key': 'supplier_payment','label': 'Supplier Pay'},
     {'key': 'expense',         'label': 'Expense'},
   ];

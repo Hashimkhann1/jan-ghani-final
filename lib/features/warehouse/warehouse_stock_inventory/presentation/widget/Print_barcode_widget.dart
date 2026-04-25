@@ -1,8 +1,5 @@
-import 'dart:async';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -10,9 +7,13 @@ import 'package:barcode/barcode.dart' as bc;
 import 'package:barcode_widget/barcode_widget.dart';
 import '../../data/model/product_model.dart';
 
-/// PrintBarcodeWidget — Xprinter XP-420B ke liye
-/// Label size: 50mm x 30mm (standard barcode sticker)
-/// Usage: PrintBarcodeWidget.show(context, product)
+/// PrintBarcodeWidget — Xprinter XP-420B
+/// Label size: 40mm x 30mm
+/// Fixes:
+///   1. Label size 40x30mm (was 50x30 → cut off + blank sticker)
+///   2. SVG barcode — no RepaintBoundary, no blank PNG ever
+///   3. drawText: false → barcode number sirf 1 baar print hoga
+///   4. Margins sahi → kuch bhi clip nahi hoga
 class PrintBarcodeWidget extends StatefulWidget {
   final ProductModel product;
 
@@ -51,249 +52,178 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
   }
 
   Future<void> _printOne(String barcodeValue) async {
-    await _doPrint(barcodes: [barcodeValue], copies: 1);
+    await _doPrint(barcodes: [barcodeValue], copies: _count); // ← _count use karo, 1 nahi
   }
 
   Future<void> _printAll() async {
-    final copies = _count; // ← pehle capture karo
-    debugPrint('🖨️ copies = $copies'); // check karo log mein
-    await _doPrint(barcodes: _barcodes, copies: copies);
+    await _doPrint(barcodes: _barcodes, copies: _count);
   }
 
-  // ── Barcode PNG generate — RepaintBoundary se (reliable) ──
-  Future<Uint8List> _generateBarcodePng(String data) async {
-    if (!mounted) return Uint8List(0);
-
-    final repaintKey = GlobalKey();
-    final completer = Completer<Uint8List>();
-
-    late OverlayEntry overlayEntry;
-    overlayEntry = OverlayEntry(
-      builder: (_) => Positioned(
-        left: -9999,
-        top: -9999,
-        child: Material(                          // ✅ Windows pe Material zaroor chahiye
-          color: Colors.transparent,
-          child: RepaintBoundary(
-            key: repaintKey,
-            child: SizedBox(
-              width: 400,
-              height: 150,
-              child: BarcodeWidget(
-                barcode: Barcode.code128(),
-                data: data,
-                width: 400,
-                height: 150,
-                drawText: false,
-                color: Colors.black,
-                backgroundColor: Colors.white,
-              ),
-            ),
-          ),
-        ),
-      ),
+  // SVG barcode — drawText:false → duplicate number band
+  pw.Widget _buildPdfBarcode(String data) {
+    final svgString = bc.Barcode.code128().toSvg(
+      data,
+      width: 34 * PdfPageFormat.mm,
+      height: 11 * PdfPageFormat.mm,
+      drawText: false,
     );
-
-    Overlay.of(context).insert(overlayEntry);
-
-    // ✅ Windows pe rendering thoda slow — 2 frames wait karo
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    try {
-      final RenderRepaintBoundary boundary =
-      repaintKey.currentContext!.findRenderObject()
-      as RenderRepaintBoundary;
-
-      // ✅ Windows pe check karo ke render complete hua
-      if (boundary.debugNeedsPaint) {
-        await Future.delayed(const Duration(milliseconds: 200));
-      }
-
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      return byteData!.buffer.asUint8List();
-    } catch (e) {
-      debugPrint('🖨️ PNG generation error: $e');
-      return Uint8List(0);             // ✅ crash nahi karega
-    } finally {
-      overlayEntry.remove();
-    }
+    return pw.SvgImage(svg: svgString);
   }
 
-// ── PDF banao — XP-420B ke liye 50mm x 30mm label ───────
+  // PDF — 40mm x 30mm
   Future<Uint8List> _buildPdf({
     required List<String> barcodes,
     required int copies,
   }) async {
-    debugPrint('🖨️ [PDF] Loading fonts...');
     final fontRegular = await PdfGoogleFonts.nunitoRegular();
     final fontBold    = await PdfGoogleFonts.nunitoBold();
-    debugPrint('🖨️ [PDF] Fonts loaded ✅');
 
     final doc = pw.Document(
       theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
     );
 
-    for (final barcode in barcodes) {
-      // ✅ FIX: PNG sirf BAAR generate karo — copies loop ke BAHAR
-      debugPrint('🖨️ [PDF] Generating PNG for barcode: $barcode');
-      final pngBytes = await _generateBarcodePng(barcode);
-      final barcodeImg = pw.MemoryImage(pngBytes);
-      debugPrint('🖨️ [PDF] PNG ready ✅');
+    const double labelW = 40 * PdfPageFormat.mm;
+    const double labelH = 30 * PdfPageFormat.mm;
+    const double margin =  2 * PdfPageFormat.mm;
 
+    for (final barcode in barcodes) {
       for (int i = 0; i < copies; i++) {
-        debugPrint('🖨️ [PDF] Adding page ${i + 1} of $copies for $barcode');
+        final barcodeWidget = _buildPdfBarcode(barcode);
+
         doc.addPage(
           pw.Page(
             pageFormat: PdfPageFormat(
-              50 * PdfPageFormat.mm,
-              30 * PdfPageFormat.mm,
-              marginAll: 3 * PdfPageFormat.mm,
+              labelW,
+              labelH,
+              marginAll: margin,
             ),
-            build: (pw.Context ctx) => pw.Column(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'Jan Ghani',
-                  style: pw.TextStyle(
-                      font: fontBold, fontSize: 8,
-                      fontWeight: pw.FontWeight.bold),
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 1),
-                pw.Text(
-                  widget.product.name,
-                  style: pw.TextStyle(font: fontRegular, fontSize: 7),
-                  textAlign: pw.TextAlign.center,
-                  maxLines: 1,
-                ),
-                pw.SizedBox(height: 2),
-                pw.Image(
-                  barcodeImg,
-                  width: 38 * PdfPageFormat.mm,
-                  height: 10 * PdfPageFormat.mm,
-                  fit: pw.BoxFit.fill,
-                ),
-                pw.SizedBox(height: 1),
-                pw.Text(
-                  barcode,
-                  style: pw.TextStyle(font: fontRegular, fontSize: 6),
-                ),
-                pw.SizedBox(height: 1),
-                pw.Text(
-                  'Rs. ${widget.product.sellingPrice.toStringAsFixed(0)}',
-                  style: pw.TextStyle(
-                      font: fontBold, fontSize: 7,
-                      fontWeight: pw.FontWeight.bold),
-                ),
-              ],
-            ),
+            build: (pw.Context ctx) {
+              return pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'JAN GHANI',
+                    style: pw.TextStyle(
+                      font: fontBold,
+                      fontSize: 8,
+                      letterSpacing: 1.2,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 1),
+                  pw.Text(
+                    widget.product.name.length > 26
+                        ? '${widget.product.name.substring(0, 24)}...'
+                        : widget.product.name,
+                    style: pw.TextStyle(font: fontRegular, fontSize: 6.5),
+                    textAlign: pw.TextAlign.center,
+                    maxLines: 1,
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.SizedBox(
+                    width:  34 * PdfPageFormat.mm,
+                    height: 11 * PdfPageFormat.mm,
+                    child: barcodeWidget,
+                  ),
+                  pw.SizedBox(height: 1),
+                  pw.Text(
+                    barcode,
+                    style: pw.TextStyle(
+                      font: fontRegular,
+                      fontSize: 6,
+                      letterSpacing: 1.2,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 1.5),
+                  pw.Text(
+                    'Rs. ${widget.product.sellingPrice.toStringAsFixed(0)}',
+                    style: pw.TextStyle(
+                      font: fontBold,
+                      fontSize: 8,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ],
+              );
+            },
           ),
         );
-        debugPrint('🖨️ [PDF] Page ${i + 1} added ✅');
       }
     }
+
     return doc.save();
   }
 
-  // ── Core print ────────────────────────────────────────────
   Future<void> _doPrint({
     required List<String> barcodes,
     required int copies,
   }) async {
     setState(() => _isPrinting = true);
-    debugPrint('🖨️ [PRINT] Starting — barcodes: $barcodes copies: $copies');
 
     try {
-      // Step 1: PDF banao
-      debugPrint('🖨️ [PRINT] Step 1: Building PDF...');
       final pdfBytes = await _buildPdf(barcodes: barcodes, copies: copies);
-      debugPrint('🖨️ [PRINT] Step 1: PDF ready — ${pdfBytes.length} bytes ✅');
 
       if (!mounted) return;
 
-      // Step 2: Printers list karo
-      debugPrint('🖨️ [PRINT] Step 2: Listing printers...');
       final printers = await Printing.listPrinters().timeout(
         const Duration(seconds: 5),
-        onTimeout: () {
-          debugPrint('🖨️ [PRINT] listPrinters timeout');
-          return [];
-        },
+        onTimeout: () => [],
       );
-      debugPrint('🖨️ [PRINT] Step 2: Found ${printers.length} — ${printers.map((p) => '${p.name}(${p.isDefault})').toList()}');
 
       if (!mounted) return;
 
       if (printers.isEmpty) {
-        // Printer nahi mila
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Koi printer nahi mila — USB check karo'),
-              backgroundColor: Color(0xFFEF4444),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+        _showSnack('Koi printer nahi mila — USB check karo', isError: true);
         return;
       }
 
-      // Step 3: Xprinter dhundho, nahi mila toh default use karo
       final xprinter = printers.firstWhere(
-            (p) => p.name.toLowerCase().contains('xprint') ||
+            (p) =>
+        p.name.toLowerCase().contains('xprint') ||
             p.name.toLowerCase().contains('420'),
         orElse: () => printers.firstWhere(
               (p) => p.isDefault,
           orElse: () => printers.first,
         ),
       );
-      debugPrint('🖨️ [PRINT] Step 3: Using printer: ${xprinter.name}');
 
-      // Step 4: Direct print — no dialog, no PDF popup
-      debugPrint('🖨️ [PRINT] Step 4: Printing directly...');
       final result = await Printing.directPrintPdf(
         printer: xprinter,
         onLayout: (_) async => pdfBytes,
         name: '${widget.product.name}_Barcode',
       );
-      debugPrint('🖨️ [PRINT] Step 4: Result = $result ✅');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result
-                ? '✅ Print ho gaya — ${xprinter.name}'
-                : '❌ Print fail hua'),
-            backgroundColor:
-            result ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-          ),
+        _showSnack(
+          result ? '✅ Print ho gaya — ${xprinter.name}' : '❌ Print fail hua',
+          isError: !result,
         );
         if (result) Navigator.pop(context);
       }
-    } catch (e, stack) {
-      debugPrint('🖨️ [PRINT] ❌ ERROR: $e');
-      debugPrint('🖨️ [PRINT] ❌ STACK: $stack');
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Print Error: $e'),
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 6),
-          ),
-        );
+        _showSnack('Print Error: $e', isError: true, duration: 6);
       }
     } finally {
       if (mounted) setState(() => _isPrinting = false);
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // UI
-  // ─────────────────────────────────────────────────────────
+  void _showSnack(String msg, {bool isError = false, int duration = 3}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor:
+        isError ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: duration),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -311,8 +241,9 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
               _Header(product: widget.product),
               const SizedBox(height: 18),
               _CopiesRow(
-                  controller: _countController,
-                  onChanged: () => setState(() {})),
+                controller: _countController,
+                onChanged: () => setState(() {}),
+              ),
               const SizedBox(height: 16),
               Flexible(
                 child: Container(
@@ -364,10 +295,11 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
                     onPressed: _isPrinting ? null : _printAll,
                     icon: _isPrinting
                         ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
                         : const Icon(Icons.print_rounded, size: 18),
                     label: Text(
                       _isPrinting
@@ -393,35 +325,39 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
   }
 }
 
-// ── Header ────────────────────────────────────────────────────
+// Header
 class _Header extends StatelessWidget {
   final ProductModel product;
   const _Header({required this.product});
+
   @override
   Widget build(BuildContext context) {
     return Row(children: [
       Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-            color: const Color(0xFFEEF2FF),
-            borderRadius: BorderRadius.circular(12)),
+          color: const Color(0xFFEEF2FF),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: const Icon(Icons.barcode_reader,
             color: Color(0xFF6366F1), size: 22),
       ),
       const SizedBox(width: 12),
       Expanded(
-        child:
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Print Barcode',
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1D23))),
-          Text('${product.name}  •  SKU: ${product.sku}',
-              overflow: TextOverflow.ellipsis,
-              style:
-              const TextStyle(fontSize: 12, color: Color(0xFF6C7280))),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Print Barcode',
+                style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1D23))),
+            Text('${product.name}  •  SKU: ${product.sku}',
+                overflow: TextOverflow.ellipsis,
+                style:
+                const TextStyle(fontSize: 12, color: Color(0xFF6C7280))),
+          ],
+        ),
       ),
       IconButton(
         onPressed: () => Navigator.pop(context),
@@ -433,19 +369,21 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ── Copies Row ────────────────────────────────────────────────
+// Copies Row
 class _CopiesRow extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onChanged;
   const _CopiesRow({required this.controller, required this.onChanged});
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB))),
+        color: const Color(0xFFF8F9FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
       child: Row(children: [
         const Icon(Icons.content_copy_rounded,
             size: 18, color: Color(0xFF6366F1)),
@@ -479,12 +417,10 @@ class _CopiesRow extends StatelessWidget {
               const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide:
-                  const BorderSide(color: Color(0xFFE5E7EB))),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide:
-                  const BorderSide(color: Color(0xFF6366F1))),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1))),
               filled: true,
               fillColor: Colors.white,
             ),
@@ -495,8 +431,8 @@ class _CopiesRow extends StatelessWidget {
               if (filtered != val) {
                 controller.value = TextEditingValue(
                   text: filtered,
-                  selection: TextSelection.collapsed(
-                      offset: filtered.length),
+                  selection:
+                  TextSelection.collapsed(offset: filtered.length),
                 );
               }
               onChanged();
@@ -521,6 +457,7 @@ class _CountBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   const _CountBtn({required this.icon, required this.onTap});
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -529,15 +466,16 @@ class _CountBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-            color: const Color(0xFFEEF2FF),
-            borderRadius: BorderRadius.circular(6)),
+          color: const Color(0xFFEEF2FF),
+          borderRadius: BorderRadius.circular(6),
+        ),
         child: Icon(icon, size: 16, color: const Color(0xFF6366F1)),
       ),
     );
   }
 }
 
-// ── Single Barcode Row ────────────────────────────────────────
+// Single Barcode Row
 class _BarcodeRow extends StatelessWidget {
   final int index;
   final String barcodeValue;
@@ -562,14 +500,14 @@ class _BarcodeRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Index badge
           Container(
             width: 24,
             height: 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: const Color(0xFFEEF2FF),
-                borderRadius: BorderRadius.circular(6)),
+              color: const Color(0xFFEEF2FF),
+              borderRadius: BorderRadius.circular(6),
+            ),
             child: Text('${index + 1}',
                 style: const TextStyle(
                     fontSize: 11,
@@ -577,8 +515,6 @@ class _BarcodeRow extends StatelessWidget {
                     color: Color(0xFF6366F1))),
           ),
           const SizedBox(width: 12),
-
-          // Label preview card
           Expanded(
             child: Container(
               padding:
@@ -591,12 +527,12 @@ class _BarcodeRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text('Jan Ghani',
+                  const Text('JAN GHANI',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1A1D23),
-                          letterSpacing: 0.5)),
+                          letterSpacing: 1.0)),
                   const SizedBox(height: 2),
                   Text(productName,
                       maxLines: 1,
@@ -632,10 +568,7 @@ class _BarcodeRow extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
-          // Print button
           Tooltip(
             message: '1 copy print karo',
             child: InkWell(
@@ -644,9 +577,10 @@ class _BarcodeRow extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                    color: const Color(0xFFEEF2FF),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE0E7FF))),
+                  color: const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE0E7FF)),
+                ),
                 child: const Icon(Icons.print_rounded,
                     size: 20, color: Color(0xFF6366F1)),
               ),

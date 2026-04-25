@@ -1,8 +1,9 @@
 // =============================================================
 // purchase_order_model.dart
+// UPDATED: discountAmount field added to PurchaseOrderItem
 // Schema tables:
 //   purchase_orders        — PO head
-//   purchase_order_items   — line items (sale_price added)
+//   purchase_order_items   — line items (sale_price, discount_amount added)
 //   suppliers              — supplier info
 //   locations              — destination
 // =============================================================
@@ -21,8 +22,10 @@ class PurchaseOrderItem {
   final double  quantityOrdered;
   final double  quantityReceived;
   final double  unitCost;
-  final double  totalCost;        // qty × unitCost
-  final double? salePrice;        // NAYA — user manually enter karta hai
+  final double  totalCost;        // qty × unitCost (discount ke baad)
+  final double? salePrice;        // user manually enter karta hai
+  final double  discountAmount;   // NAYA — per-item discount (Rs mein)
+  final double discountPercent;
 
   const PurchaseOrderItem({
     required this.id,
@@ -36,6 +39,9 @@ class PurchaseOrderItem {
     required this.unitCost,
     required this.totalCost,
     this.salePrice,
+    this.discountAmount = 0,  // default 0
+    this.discountPercent = 0,
+
   });
 
   // ── Helpers ───────────────────────────────────────────────
@@ -81,6 +87,12 @@ class PurchaseOrderItem {
       salePrice:         map['sale_price'] != null
           ? (map['sale_price'] as num).toDouble()
           : null,
+      discountAmount: map['discount_amount'] != null
+          ? (map['discount_amount'] as num).toDouble()
+          : 0,
+      discountPercent: map['discount_percent'] != null
+          ? (map['discount_percent'] as num).toDouble()
+          : 0,
     );
   }
 
@@ -96,6 +108,9 @@ class PurchaseOrderItem {
     'unit_cost':         unitCost,
     'total_cost':        totalCost,
     'sale_price':        salePrice,
+    'discount_amount':   discountAmount,
+    'discount_percent': discountPercent,
+
   };
 
   PurchaseOrderItem copyWith({
@@ -104,6 +119,8 @@ class PurchaseOrderItem {
     double? unitCost,
     double? totalCost,
     double? salePrice,
+    double? discountAmount,
+    double? discountPercent,
   }) {
     return PurchaseOrderItem(
       id:               id,
@@ -117,6 +134,8 @@ class PurchaseOrderItem {
       unitCost:         unitCost         ?? this.unitCost,
       totalCost:        totalCost        ?? this.totalCost,
       salePrice:        salePrice        ?? this.salePrice,
+      discountAmount:   discountAmount   ?? this.discountAmount,
+      discountPercent: discountPercent ?? this.discountPercent,
     );
   }
 }

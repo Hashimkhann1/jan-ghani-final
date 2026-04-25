@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/category/data/model/category_model.dart';
 import 'package:jan_ghani_final/features/warehouse/category/presentation/provider/category_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/category/presentation/widget/add_category_dialog.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/section_label_widget.dart';
@@ -429,22 +430,22 @@ class _StockInventoryDialogState
                       const SizedBox(height: 24),
 
                       // ── Status ────────────────────────────
-                      SectionLabel(
-                          label: "Status",
-                          icon:  Icons.toggle_on_rounded),
-                      const SizedBox(height: 12),
+                      // SectionLabel(
+                      //     label: "Status",
+                      //     icon:  Icons.toggle_on_rounded),
+                      // const SizedBox(height: 12),
 
-                      StatusToggle(
-                        isActive:  _isActive,
-                        onChanged: (v) => setState(() => _isActive = v),
-                      ),
-                      const SizedBox(height: 10),
+                      // StatusToggle(
+                      //   isActive:  _isActive,
+                      //   onChanged: (v) => setState(() => _isActive = v),
+                      // ),
+                      // const SizedBox(height: 10),
 
-                      _TrackStockToggle(
-                        isTrackStock: _isTrackStock,
-                        onChanged:
-                            (v) => setState(() => _isTrackStock = v),
-                      ),
+                      // _TrackStockToggle(
+                      //   isTrackStock: _isTrackStock,
+                      //   onChanged:
+                      //       (v) => setState(() => _isTrackStock = v),
+                      // ),
 
                       const SizedBox(height: 28),
 
@@ -716,17 +717,45 @@ class _CategoryDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final validIds = categories.map((c) => c.id).toSet();
+    final safeValue = (selectedCategoryId != null && validIds.contains(selectedCategoryId))
+        ? selectedCategoryId
+        : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Category',
-            style: TextStyle(
-                fontSize:   12,
-                fontWeight: FontWeight.w600,
-                color:      Color(0xFF374151))),
+        // ── Label + New Category Button ──────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Category',
+                style: TextStyle(
+                    fontSize:   12,
+                    fontWeight: FontWeight.w600,
+                    color:      Color(0xFF374151))),
+            GestureDetector(
+              onTap: () => AddCategoryDialog.show(context),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.add_circle_outline_rounded,
+                      size: 13, color: Color(0xFF6366F1)),
+                  SizedBox(width: 3),
+                  Text('New Category',
+                      style: TextStyle(
+                          fontSize:   11,
+                          fontWeight: FontWeight.w600,
+                          color:      Color(0xFF6366F1))),
+                ],
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value:      selectedCategoryId,
+          value:      safeValue,
           isExpanded: true,
           decoration: InputDecoration(
             hintText:  'Select category',

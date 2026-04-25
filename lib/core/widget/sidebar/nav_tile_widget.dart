@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/sidebar/sidebar_widget.dart';
 
 const _kGrey     = Color(0xFFD3D3D3);
-const _kBg       = Color(0xFFF8F8F8);
-const _kDark     = Color(0xFF333333);
 const _kMid      = Color(0xFF666666);
-const _kSelected = Color(0xFF455A64);
+const _kSelected = AppColor.primary;
 
 class NavTile extends StatelessWidget {
   final NavItem item;
@@ -38,21 +36,12 @@ class NavTile extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-
-            // Icon
-            isSettings ? Icon(Icons.settings_outlined, size: 22, color: selected ? _kSelected : _kMid) : SvgPicture.asset(
-              item.svg,
-              height: 22,
-              width: 22,
-              colorFilter: ColorFilter.mode(
-                selected ? _kSelected : _kMid,
-                BlendMode.srcIn,
-              ),
+            Icon(
+              isSettings ? Icons.settings_outlined : item.icon,
+              size: 22,
+              color: selected ? _kSelected : _kMid,
             ),
-
             const SizedBox(height: 5),
-
-            // Label
             Text(
               item.label,
               textAlign: TextAlign.center,
@@ -64,8 +53,6 @@ class NavTile extends StatelessWidget {
                 height: 1.2,
               ),
             ),
-
-            // Selected indicator
             if (selected) ...[
               const SizedBox(height: 6),
               Container(

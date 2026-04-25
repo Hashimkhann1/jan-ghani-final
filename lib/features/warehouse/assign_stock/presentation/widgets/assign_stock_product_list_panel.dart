@@ -188,7 +188,7 @@ class _ProductItemState extends State<_ProductItem>
                     color: AppColor.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text('Added',
+                  child: Text('${p.quantity.toStringAsFixed(2)} ${p.unitOfMeasure}',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,

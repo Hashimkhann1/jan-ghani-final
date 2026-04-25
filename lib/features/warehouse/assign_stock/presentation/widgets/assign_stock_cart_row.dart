@@ -122,6 +122,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
             flex: 2,
             child: _TF(
               controller: _purchasePriceCtrl,
+              enabled: false,
               prefix: 'Rs',
               onFocusChange: (f) {
                 if (!f) {
@@ -141,6 +142,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
             flex: 2,
             child: _TF(
               controller: _salePriceCtrl,
+              enabled: false,
               prefix: 'Rs',
               isPurple: true,
               onFocusChange: (f) {
@@ -188,6 +190,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
             flex: 2,
             child: _TF(
               controller: _taxCtrl,
+              enabled: false,
               prefix: 'Rs',
               onFocusChange: (f) {
                 if (!f) {
@@ -207,6 +210,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
             flex: 2,
             child: _TF(
               controller: _disCtrl,
+              enabled: false,
               prefix: 'Rs',
               onFocusChange: (f) {
                 if (!f) {
@@ -268,6 +272,7 @@ class _TF extends StatefulWidget {
   final ValueChanged<String> onSubmitted;
   final String? prefix;
   final bool isPurple;
+  final bool? enabled;
 
   const _TF({
     required this.controller,
@@ -275,6 +280,7 @@ class _TF extends StatefulWidget {
     required this.onSubmitted,
     this.prefix,
     this.isPurple = false,
+    this.enabled = true,
   });
 
   @override
@@ -311,6 +317,7 @@ class _TFState extends State<_TF> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: TextField(
+        enabled: widget.enabled,
         controller: widget.controller,
         focusNode: _focus,
         onSubmitted: widget.onSubmitted,

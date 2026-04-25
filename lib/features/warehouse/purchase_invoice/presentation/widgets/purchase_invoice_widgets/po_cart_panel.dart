@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/add_supplier_dialog.dart';
 import 'po_cart_row_widget.dart';
 import 'po_cart_table_header.dart';
 import 'po_cart_summary_widget.dart';
@@ -64,6 +65,8 @@ class PoCartPanel extends ConsumerWidget {
 // HEADER WIDGET
 // ─────────────────────────────────────────────────────────────
 
+
+
 class PoInvoiceHeaderWidget extends ConsumerStatefulWidget {
   const PoInvoiceHeaderWidget({super.key});
 
@@ -79,6 +82,14 @@ class _PoInvoiceHeaderWidgetState
   // local copy nahi rakhte — warna edit mode mein sync nahi hoga
   final TextEditingController _paidCtrl =
   TextEditingController(text: '0');
+
+  void showPOAddSupplierDialog(BuildContext context) {
+    showDialog(
+      context:     context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder:     (_) => const AddSupplierDialog(),
+    );
+  }
 
   @override
   void dispose() {
@@ -167,11 +178,33 @@ class _PoInvoiceHeaderWidgetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Supplier',
-                        style: TextStyle(
-                            fontSize:   10,
-                            fontWeight: FontWeight.w600,
-                            color:      AppColor.textSecondary)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Supplier',
+                            style: TextStyle(
+                                fontSize:   10,
+                                fontWeight: FontWeight.w600,
+                                color:      AppColor.textSecondary)),
+                        GestureDetector(
+                          onTap: () => showPOAddSupplierDialog(context),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.add_circle_outline_rounded,
+                                  size: 13, color: Color(0xFF6366F1)),
+                              SizedBox(width: 3),
+                              Text('New Supplier',
+                                  style: TextStyle(
+                                      fontSize:   11,
+                                      fontWeight: FontWeight.w600,
+                                      color:      Color(0xFF6366F1))),
+                            ],
+                          ),
+                        ),
+
+                      ],
+                    ),
                     const SizedBox(height: 4),
                     DropdownSearch<PoSupplier>(
                       items:        (f, _) => state.suppliers,

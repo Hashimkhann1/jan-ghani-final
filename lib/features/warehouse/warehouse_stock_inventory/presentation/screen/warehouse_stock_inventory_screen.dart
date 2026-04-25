@@ -240,8 +240,8 @@ class _ProductRowState extends State<_ProductRow> {
                 ),
               ),
             ),
-            Expanded(flex: widget.flex('Purchase Invoice'),         child: Text('Rs. ${p.purchasePrice.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
-            Expanded(flex: widget.flex('Sale Price'),   child: Text('Rs. ${p.sellingPrice.toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF10B981)))),
+            Expanded(flex: widget.flex('Purchase Invoice'),         child: Text('Rs. ${p.purchasePrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
+            Expanded(flex: widget.flex('Sale Price'),   child: Text('Rs. ${p.sellingPrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF10B981)))),
             Expanded(
               flex: widget.flex('Stock'),
               child: Text(
@@ -281,9 +281,9 @@ class _ProductRowState extends State<_ProductRow> {
                     case 'history':
                       widget.onHistory();
                       break;
-                    case 'delete':
-                      widget.onDelete();
-                      break;
+                    // case 'delete':
+                    //   widget.onDelete();
+                    //   break;
                     case 'printQr':
                       widget.onPrintQR();
                       break;
@@ -306,14 +306,14 @@ class _ProductRowState extends State<_ProductRow> {
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      leading: const Icon(Icons.delete_rounded, color: Color(0xFFEF4444)),
-                      title: const Text("Delete"),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
+                  // PopupMenuItem(
+                  //   value: 'delete',
+                  //   child: ListTile(
+                  //     leading: const Icon(Icons.delete_rounded, color: Color(0xFFEF4444)),
+                  //     title: const Text("Delete"),
+                  //     contentPadding: EdgeInsets.zero,
+                  //   ),
+                  // ),
                   PopupMenuItem(
                     value: 'printQr',
                     child: ListTile(

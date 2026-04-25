@@ -61,181 +61,183 @@ class AvailableStoreCard extends StatelessWidget {
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header row with store icon and name
-                    Row(
+                  padding: const EdgeInsets.all(16),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Animated icon container
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            gradient: isAlreadyLinked
-                                ? LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.grey.shade300,
-                                Colors.grey.shade100,
-                              ],
-                            )
-                                : LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.blue.shade600,
-                                Colors.blue.shade400,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: isAlreadyLinked
-                                ? []
-                                : [
-                              BoxShadow(
-                                color: Colors.blue.shade200,
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.storefront_rounded,
-                            size: 24,
-                            color: isAlreadyLinked
-                                ? Colors.grey.shade500
-                                : Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                store.storeName,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: isAlreadyLinked
-                                      ? Colors.grey.shade600
-                                      : Colors.grey.shade900,
-                                  letterSpacing: -0.3,
+                        // Header row with store icon and name
+                        Row(
+                          children: [
+                            // Animated icon container
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                gradient: isAlreadyLinked
+                                    ? LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.grey.shade300,
+                                    Colors.grey.shade100,
+                                  ],
+                                )
+                                    : LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.blue.shade600,
+                                    Colors.blue.shade400,
+                                  ],
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  store.storeCode,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey.shade600,
-                                    letterSpacing: 0.5,
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: isAlreadyLinked
+                                    ? []
+                                    : [
+                                  BoxShadow(
+                                    color: Colors.blue.shade200,
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isAlreadyLinked)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.green.shade50,
-                                  Colors.green.shade100,
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                  color: Colors.green.shade300, width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.green.shade200,
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
+                              child: Icon(
+                                Icons.storefront_rounded,
+                                size: 24,
+                                color: isAlreadyLinked
+                                    ? Colors.grey.shade500
+                                    : Colors.white,
+                              ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.check_circle_rounded,
-                                    size: 14, color: Colors.green.shade700),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Linked',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.green.shade800,
-                                    fontWeight: FontWeight.w700,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    store.storeName,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: isAlreadyLinked
+                                          ? Colors.grey.shade600
+                                          : Colors.grey.shade900,
+                                      letterSpacing: -0.3,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      store.storeCode,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey.shade600,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isAlreadyLinked)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.green.shade50,
+                                      Colors.green.shade100,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: Colors.green.shade300, width: 1.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.green.shade200,
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
                                 ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.check_circle_rounded,
+                                        size: 14, color: Colors.green.shade700),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Linked',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.green.shade800,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Divider with gradient
+                        Container(
+                          height: 1,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Colors.grey.shade300,
+                                Colors.transparent,
                               ],
                             ),
                           ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Info section with better styling
+                        if (store.storePhone != null)
+                          _infoRow(
+                            Icons.phone_android_rounded,
+                            store.storePhone!,
+                            isAlreadyLinked,
+                          ),
+                        if (store.storeAddress != null)
+                          _infoRow(
+                            Icons.location_on_rounded,
+                            store.storeAddress!,
+                            isAlreadyLinked,
+                          ),
+
+
+                        const SizedBox(height: 16),
+
+                        // Button with animation
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: double.infinity,
+                          height: 42,
+                          child: isAlreadyLinked
+                              ? _buildLinkedButton()
+                              : _buildLinkButton(),
+                        ),
                       ],
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Divider with gradient
-                    Container(
-                      height: 1,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            Colors.grey.shade300,
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Info section with better styling
-                    if (store.storePhone != null)
-                      _infoRow(
-                        Icons.phone_android_rounded,
-                        store.storePhone!,
-                        isAlreadyLinked,
-                      ),
-                    if (store.storeAddress != null)
-                      _infoRow(
-                        Icons.location_on_rounded,
-                        store.storeAddress!,
-                        isAlreadyLinked,
-                      ),
-
-
-                    const SizedBox(height: 16),
-
-                    // Button with animation
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: double.infinity,
-                      height: 42,
-                      child: isAlreadyLinked
-                          ? _buildLinkedButton()
-                          : _buildLinkButton(),
-                    ),
-                  ],
-                ),
+                  )
               ),
             ],
           ),

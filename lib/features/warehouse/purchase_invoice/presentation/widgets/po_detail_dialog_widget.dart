@@ -483,8 +483,8 @@ class _ItemsTable extends StatelessWidget {
                 children: [
                   _TH(label: 'Product', flex: 3),
                   _TH(label: 'Ordered', flex: 2, center: true),
-                  _TH(label: 'Received', flex: 2, center: true),
                   _TH(label: 'Purchase Price', flex: 2, center: true),
+                  _TH(label: 'Discount', flex: 2, center: true),
                   _TH(label: 'Sale Price', flex: 2, center: true),
                   _TH(label: 'Total', flex: 2, center: true),
                 ],
@@ -590,21 +590,6 @@ class _ItemRow extends StatelessWidget {
             ),
           ),
 
-          // Received
-          Expanded(
-            flex: 2,
-            child: Text(
-              _fmtQty(item.quantityReceived),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: item.isFullyReceived
-                    ? const Color(0xFF16A34A)
-                    : const Color(0xFF374151),
-              ),
-            ),
-          ),
 
           // Purchase Price
           Expanded(
@@ -614,6 +599,22 @@ class _ItemRow extends StatelessWidget {
               textAlign: TextAlign.center,
               style:
               const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+            ),
+          ),
+
+          // Discount
+          Expanded(
+            flex: 2,
+            child: Text(
+              _fmtQty(item.discountAmount),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: item.isFullyReceived
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFF374151),
+              ),
             ),
           ),
 

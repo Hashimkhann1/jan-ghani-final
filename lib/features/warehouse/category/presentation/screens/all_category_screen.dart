@@ -440,12 +440,12 @@ class _CategoryCardState extends State<_CategoryCard> {
                     onTap:   widget.onEdit,
                   ),
                   const SizedBox(width: 6),
-                  _ActionBtn(
-                    icon:    Icons.delete_outline_rounded,
-                    color:   AppColor.error,
-                    tooltip: 'Delete',
-                    onTap:   widget.onDelete,
-                  ),
+                  // _ActionBtn(
+                  //   icon:    Icons.delete_outline_rounded,
+                  //   color:   AppColor.error,
+                  //   tooltip: 'Delete',
+                  //   onTap:   widget.onDelete,
+                  // ),
                 ],
               ),
           ],

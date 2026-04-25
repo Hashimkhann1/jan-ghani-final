@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
-import 'package:jan_ghani_final/features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
@@ -18,26 +17,23 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/s
 
 import 'nav_tile_widget.dart';
 
-
 const _kGrey     = Color(0xFFD3D3D3);
 const _kBg       = Color(0xFFF8F8F8);
 const _kDark     = Color(0xFF333333);
 const _kMid      = Color(0xFF666666);
 const _kSelected = Color(0xFF455A64);
 
-
 class NavItem {
-  final String svg;
+  final IconData icon;
   final String label;
   final Widget screen;
 
   const NavItem({
-    required this.svg,
+    required this.icon,
     required this.label,
     required this.screen,
   });
 }
-
 
 class SideBar extends ConsumerStatefulWidget {
   const SideBar({super.key});
@@ -52,142 +48,117 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   late final List<NavItem> _allOthers = [
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
-      label: 'Warehouse Stock Inventory',
+      icon: Icons.inventory_2_outlined,
+      label: 'Warehouse Stock',
       screen: const WarehouseStockInventoryScreen(),
     ),
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
+      icon: Icons.receipt_long_outlined,
       label: 'Po',
       screen: const PurchaseOrderScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
+      icon: Icons.people_outline,
       label: 'Supplier',
       screen: const AllSupplierScreen(),
     ),
-
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.category_outlined,
       label: 'Category',
       screen: const AllCategoryScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.account_balance_wallet_outlined,
       label: 'WA Finance',
       screen: const WarehouseFinanceScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.money_off_outlined,
       label: 'Expense',
       screen: const WarehouseExpenseScreen(),
     ),
-
   ];
 
-  // data entry
   late final List<NavItem> _dataEntry = [
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
-      label: 'Warehouse Stock Inventory',
+      icon: Icons.inventory_2_outlined,
+      label: 'Warehouse Stock',
       screen: const WarehouseStockInventoryScreen(),
     ),
-
-
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
+      icon: Icons.people_outline,
       label: 'Supplier',
       screen: const AllSupplierScreen(),
     ),
-
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.category_outlined,
       label: 'Category',
       screen: const AllCategoryScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.account_balance_wallet_outlined,
       label: 'WA Finance',
       screen: const WarehouseFinanceScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.money_off_outlined,
       label: 'Expense',
       screen: const WarehouseExpenseScreen(),
     ),
-
   ];
 
-  // warehouse manager
   late final List<NavItem> _warehouseManager = [
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.dashboard_outlined,
       label: 'Dashboard',
       screen: const WarehouseDashboardScreen(),
     ),
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
-      label: 'Warehouse Stock Inventory',
+      icon: Icons.inventory_2_outlined,
+      label: 'Warehouse Stock',
       screen: const WarehouseStockInventoryScreen(),
     ),
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
+      icon: Icons.receipt_long_outlined,
       label: 'Po',
       screen: const PurchaseOrderScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
+      icon: Icons.people_outline,
       label: 'Supplier',
       screen: const AllSupplierScreen(),
     ),
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
+      icon: Icons.person_outline,
       label: 'User',
       screen: const AllUserScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/dolly-flatbed-alt.svg',
+      icon: Icons.move_to_inbox_outlined,
       label: 'Assign Stock',
       screen: const AssignStockScreen(),
     ),
-
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.category_outlined,
       label: 'Category',
       screen: const AllCategoryScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.account_balance_wallet_outlined,
       label: 'WA Finance',
       screen: const WarehouseFinanceScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.money_off_outlined,
       label: 'Expense',
       screen: const WarehouseExpenseScreen(),
     ),
-
     NavItem(
-      svg: 'assets/images/sale_invoice.svg',
+      icon: Icons.store_outlined,
       label: 'Link Stores',
-      screen:  LinkedStoresScreen(warehouseId: AppConfig.warehouseId,),
+      screen: LinkedStoresScreen(warehouseId: AppConfig.warehouseId),
     ),
-
   ];
-
-
 
   List<NavItem> _getItemsByRole(String? role) {
     switch (role) {
@@ -214,7 +185,6 @@ class _SideBarState extends ConsumerState<SideBar> {
             color: Colors.white,
             child: Column(
               children: [
-                // Logo
                 Container(
                   height: 56,
                   width: double.infinity,
@@ -233,8 +203,6 @@ class _SideBarState extends ConsumerState<SideBar> {
                     ),
                   ),
                 ),
-
-                // Nav Items
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -249,8 +217,6 @@ class _SideBarState extends ConsumerState<SideBar> {
                     ),
                   ),
                 ),
-
-                // Logout button
                 IconButton(
                   onPressed: () async {
                     await ref.read(authProvider.notifier).logout();
@@ -268,9 +234,7 @@ class _SideBarState extends ConsumerState<SideBar> {
               ],
             ),
           ),
-
           Container(width: 1, color: _kGrey),
-
           Expanded(
             child: items[_index].screen,
           ),
@@ -279,4 +243,3 @@ class _SideBarState extends ConsumerState<SideBar> {
     );
   }
 }
-

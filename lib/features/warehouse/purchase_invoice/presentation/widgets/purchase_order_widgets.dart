@@ -126,8 +126,6 @@ class PoStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color bg, fg, dot;
 
-    print(status);
-
     switch (status) {
       case 'ordered':
         bg = AppColor.infoLight;    fg = AppColor.info;

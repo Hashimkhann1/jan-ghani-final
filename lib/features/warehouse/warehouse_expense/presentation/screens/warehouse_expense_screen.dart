@@ -689,19 +689,19 @@ class _ExpenseRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 // Delete
-                GestureDetector(
-                  onTap: onDelete,
-                  child: Container(
-                    width:  32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color:        AppColor.errorLight,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.delete_outline_rounded,
-                        size: 15, color: AppColor.error),
-                  ),
-                ),
+                // GestureDetector(
+                //   onTap: onDelete,
+                //   child: Container(
+                //     width:  32,
+                //     height: 32,
+                //     decoration: BoxDecoration(
+                //       color:        AppColor.errorLight,
+                //       borderRadius: BorderRadius.circular(8),
+                //     ),
+                //     child: const Icon(Icons.delete_outline_rounded,
+                //         size: 15, color: AppColor.error),
+                //   ),
+                // ),
               ],
             ),
           ),

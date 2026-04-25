@@ -1,6 +1,11 @@
 // =============================================================
 // purchase_order_remote_datasource.dart
-// UPDATED: updatePO() function add kiya — edit mode ke liye
+// UPDATED: discount_amount per-item — DB insert, fetch, mapping
+// =============================================================
+
+// =============================================================
+// purchase_order_remote_datasource.dart
+// UPDATED: discount_amount + discount_percent per-item
 // =============================================================
 
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/domain/purchase_order_model.dart';
@@ -178,11 +183,13 @@ class PurchaseOrderRemoteDataSource {
           INSERT INTO purchase_order_items (
             po_id, warehouse_id, product_id, product_name,
             sku, quantity_ordered, quantity_received,
-            unit_cost, total_cost, sale_price
+            unit_cost, total_cost, sale_price,
+            discount_amount, discount_percent
           ) VALUES (
             @poId, @warehouseId, @productId, @productName,
             @sku, @quantityOrdered, 0,
-            @unitCost, @totalCost, @salePrice
+            @unitCost, @totalCost, @salePrice,
+            @discountAmount, @discountPercent
           )
         '''),
         parameters: {
@@ -195,6 +202,8 @@ class PurchaseOrderRemoteDataSource {
           'unitCost':        item.unitCost,
           'totalCost':       item.totalCost,
           'salePrice':       item.salePrice,
+          'discountAmount':  item.discountAmount,
+          'discountPercent': item.discountPercent,
         },
       );
     }
@@ -273,11 +282,13 @@ class PurchaseOrderRemoteDataSource {
           INSERT INTO purchase_order_items (
             po_id, warehouse_id, product_id, product_name,
             sku, quantity_ordered, quantity_received,
-            unit_cost, total_cost, sale_price
+            unit_cost, total_cost, sale_price,
+            discount_amount, discount_percent
           ) VALUES (
             @poId, @warehouseId, @productId, @productName,
             @sku, @quantityOrdered, @quantityReceived,
-            @unitCost, @totalCost, @salePrice
+            @unitCost, @totalCost, @salePrice,
+            @discountAmount, @discountPercent
           )
         '''),
         parameters: {
@@ -291,6 +302,8 @@ class PurchaseOrderRemoteDataSource {
           'unitCost':         item.unitCost,
           'totalCost':        item.totalCost,
           'salePrice':        item.salePrice,
+          'discountAmount':   item.discountAmount,
+          'discountPercent':  item.discountPercent,
         },
       );
     }
@@ -464,7 +477,8 @@ class PurchaseOrderRemoteDataSource {
           DO UPDATE SET
             quantity         = warehouse_inventory.quantity + EXCLUDED.quantity,
             last_movement_at = NOW(),
-            updated_at       = NOW()
+            updated_at       = NOW(),
+            is_synced        = false
         '''),
         parameters: {
           'warehouseId': warehouseId,
@@ -484,7 +498,8 @@ class PurchaseOrderRemoteDataSource {
           UPDATE warehouse_products SET
             purchase_price = @avgCost,
             selling_price  = COALESCE(@salePrice, selling_price),
-            updated_at     = NOW()
+            updated_at     = NOW(),
+            is_synced      = false
           WHERE id           = @productId
             AND warehouse_id = @warehouseId
         '''),
@@ -556,7 +571,9 @@ class PurchaseOrderRemoteDataSource {
           id, po_id, warehouse_id AS tenant_id,
           product_id, product_name, sku,
           quantity_ordered, quantity_received,
-          unit_cost, total_cost, sale_price
+          unit_cost, total_cost, sale_price,
+          COALESCE(discount_amount, 0)  AS discount_amount,
+          COALESCE(discount_percent, 0) AS discount_percent
         FROM purchase_order_items
         WHERE po_id = @poId
         ORDER BY id
@@ -580,6 +597,8 @@ class PurchaseOrderRemoteDataSource {
         salePrice: m['sale_price'] != null
             ? _toDouble(m['sale_price'])
             : null,
+        discountAmount:  _toDouble(m['discount_amount']),
+        discountPercent: _toDouble(m['discount_percent']),
       );
     }).toList();
   }
@@ -647,15 +666,16 @@ class PurchaseOrderRemoteDataSource {
 }
 
 
+
 // // =============================================================
 // // purchase_order_remote_datasource.dart
 // // UPDATED: updatePO() function add kiya — edit mode ke liye
 // // =============================================================
 //
+// import 'package:jan_ghani_final/features/warehouse/purchase_invoice/domain/purchase_order_model.dart';
 // import 'package:postgres/postgres.dart';
 // import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
-// import 'package:jan_ghani_final/features/purchase_invoice/domain/purchase_order_model.dart';
-// import 'package:jan_ghani_final/features/purchase_invoice/presentation/provider/purchase_order_provider.dart';
+// import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/provider/purchase_order_provider.dart';
 //
 // class PurchaseOrderRemoteDataSource {
 //   Future<Connection> get _db => DatabaseService.getConnection();
@@ -695,7 +715,7 @@ class PurchaseOrderRemoteDataSource {
 //         FROM purchase_orders po
 //         LEFT JOIN suppliers s  ON s.id  = po.supplier_id
 //         LEFT JOIN locations l  ON l.id  = po.destination_location_id
-//         LEFT JOIN users u      ON u.id  = po.created_by
+//         LEFT JOIN warehouse_users u      ON u.id  = po.created_by
 //         WHERE po.warehouse_id = @warehouseId
 //           AND po.deleted_at   IS NULL
 //         ORDER BY po.created_at DESC
@@ -748,7 +768,7 @@ class PurchaseOrderRemoteDataSource {
 //         FROM purchase_orders po
 //         LEFT JOIN suppliers s  ON s.id  = po.supplier_id
 //         LEFT JOIN locations l  ON l.id  = po.destination_location_id
-//         LEFT JOIN users u      ON u.id  = po.created_by
+//         LEFT JOIN warehouse_users u      ON u.id  = po.created_by
 //         WHERE po.id = @id
 //           AND po.deleted_at IS NULL
 //         LIMIT 1
@@ -850,8 +870,6 @@ class PurchaseOrderRemoteDataSource {
 //
 //     await _handleReceivedInventory(conn, newPoId, warehouseId, status ?? 'draft', items);
 //
-//     // Supplier ledger sirf tab update karo jab maal actually receive ho
-//     // Draft ya Pending (ordered/partial) pe balance nahi badalna chahiye
 //     if ((status ?? 'draft') == 'received') {
 //       await _handleSupplierLedger(conn, newPoId, warehouseId, supplierId, poNumber, remainingAmount, createdBy);
 //     }
@@ -860,13 +878,10 @@ class PurchaseOrderRemoteDataSource {
 //   }
 //
 //   // ── UPDATE PO — edit mode ke liye ─────────────────────────
-//   // Purani items delete karke naye insert karta hai
-//   // Agar status 'received' ho raha hai (was pending → now received)
-//   // tab inventory bhi update hoti hai
 //   Future<PurchaseOrderModel> updatePO({
 //     required String                  poId,
 //     required String                  warehouseId,
-//     required String                  oldStatus,   // pehla status (pending/draft)
+//     required String                  oldStatus,
 //     String?                          supplierId,
 //     String?                          status,
 //     DateTime?                        expectedDate,
@@ -883,7 +898,6 @@ class PurchaseOrderRemoteDataSource {
 //   }) async {
 //     final conn = await _db;
 //
-//     // 1. PO head update karo
 //     await conn.execute(
 //       Sql.named('''
 //         UPDATE purchase_orders SET
@@ -917,14 +931,11 @@ class PurchaseOrderRemoteDataSource {
 //       },
 //     );
 //
-//     // 2. Purani items delete karo
 //     await conn.execute(
-//       Sql.named(
-//           'DELETE FROM purchase_order_items WHERE po_id = @poId'),
+//       Sql.named('DELETE FROM purchase_order_items WHERE po_id = @poId'),
 //       parameters: {'poId': poId},
 //     );
 //
-//     // 3. Naye items insert karo
 //     for (final item in items) {
 //       await conn.execute(
 //         Sql.named('''
@@ -953,19 +964,13 @@ class PurchaseOrderRemoteDataSource {
 //       );
 //     }
 //
-//     // 4. Agar status ab 'received' ho raha hai (pehle nahi tha)
-//     //    tab inventory update karo
 //     final newStatus = status ?? oldStatus;
-//     final becomingReceived =
-//         newStatus == 'received' && oldStatus != 'received';
+//     final becomingReceived = newStatus == 'received' && oldStatus != 'received';
 //
 //     if (becomingReceived) {
-//       await _handleReceivedInventory(
-//           conn, poId, warehouseId, newStatus, items);
+//       await _handleReceivedInventory(conn, poId, warehouseId, newStatus, items);
 //
-//       // Supplier ledger mein remaining amount update karo
 //       if (supplierId != null && supplierId.isNotEmpty) {
-//         // Pehle purani purchase entry hatao (agar thi)
 //         await conn.execute(
 //           Sql.named('''
 //             DELETE FROM supplier_ledger
@@ -975,7 +980,6 @@ class PurchaseOrderRemoteDataSource {
 //           parameters: {'poId': poId},
 //         );
 //
-//         // Nai entry daalo updated amount ke saath
 //         final balResult = await conn.execute(
 //           Sql.named('''
 //             SELECT outstanding_balance FROM suppliers
@@ -984,19 +988,17 @@ class PurchaseOrderRemoteDataSource {
 //           parameters: {'supplierId': supplierId},
 //         );
 //         final currentBalance = balResult.isNotEmpty
-//             ? _toDouble(
-//             balResult.first.toColumnMap()['outstanding_balance'])
+//             ? _toDouble(balResult.first.toColumnMap()['outstanding_balance'])
 //             : 0.0;
 //         final newBalance = currentBalance + remainingAmount;
 //
-//         // PO number lazim hai ledger note ke liye
 //         final poRow = await conn.execute(
-//           Sql.named(
-//               'SELECT po_number FROM purchase_orders WHERE id = @poId'),
+//           Sql.named('SELECT po_number FROM purchase_orders WHERE id = @poId'),
 //           parameters: {'poId': poId},
 //         );
-//         final poNumber =
-//         poRow.isNotEmpty ? poRow.first.toColumnMap()['po_number'] : poId;
+//         final poNumber = poRow.isNotEmpty
+//             ? poRow.first.toColumnMap()['po_number']
+//             : poId;
 //
 //         await conn.execute(
 //           Sql.named('''
@@ -1044,8 +1046,7 @@ class PurchaseOrderRemoteDataSource {
 //   Future<void> delete(String poId) async {
 //     final conn = await _db;
 //     await conn.execute(
-//       Sql.named(
-//           'UPDATE purchase_orders SET deleted_at = NOW() WHERE id = @id'),
+//       Sql.named('UPDATE purchase_orders SET deleted_at = NOW() WHERE id = @id'),
 //       parameters: {'id': poId},
 //     );
 //   }
@@ -1104,9 +1105,9 @@ class PurchaseOrderRemoteDataSource {
 //       final oldQtyResult = await conn.execute(
 //         Sql.named('''
 //           SELECT COALESCE(i.quantity, 0) AS qty,
-//                  p.cost_price
-//           FROM inventory i
-//           JOIN products p ON p.id = i.product_id
+//                  p.purchase_price
+//           FROM warehouse_inventory i
+//           JOIN warehouse_products p ON p.id = i.product_id
 //           WHERE i.product_id   = @productId
 //             AND i.warehouse_id = @warehouseId
 //           LIMIT 1
@@ -1121,16 +1122,16 @@ class PurchaseOrderRemoteDataSource {
 //           ? _toDouble(oldQtyResult.first.toColumnMap()['qty'])
 //           : 0.0;
 //       final oldCost = oldQtyResult.isNotEmpty
-//           ? _toDouble(oldQtyResult.first.toColumnMap()['cost_price'])
+//           ? _toDouble(oldQtyResult.first.toColumnMap()['purchase_price'])
 //           : item.unitCost;
 //
 //       await conn.execute(
 //         Sql.named('''
-//           INSERT INTO inventory (warehouse_id, product_id, quantity)
+//           INSERT INTO warehouse_inventory (warehouse_id, product_id, quantity)
 //           VALUES (@warehouseId, @productId, @qty)
 //           ON CONFLICT (warehouse_id, product_id)
 //           DO UPDATE SET
-//             quantity         = inventory.quantity + EXCLUDED.quantity,
+//             quantity         = warehouse_inventory.quantity + EXCLUDED.quantity,
 //             last_movement_at = NOW(),
 //             updated_at       = NOW()
 //         '''),
@@ -1149,10 +1150,10 @@ class PurchaseOrderRemoteDataSource {
 //
 //       await conn.execute(
 //         Sql.named('''
-//           UPDATE products SET
-//             cost_price    = @avgCost,
-//             selling_price = COALESCE(@salePrice, selling_price),
-//             updated_at    = NOW()
+//           UPDATE warehouse_products SET
+//             purchase_price = @avgCost,
+//             selling_price  = COALESCE(@salePrice, selling_price),
+//             updated_at     = NOW()
 //           WHERE id           = @productId
 //             AND warehouse_id = @warehouseId
 //         '''),
@@ -1186,8 +1187,7 @@ class PurchaseOrderRemoteDataSource {
 //       parameters: {'supplierId': supplierId},
 //     );
 //     final currentBalance = balResult.isNotEmpty
-//         ? _toDouble(
-//         balResult.first.toColumnMap()['outstanding_balance'])
+//         ? _toDouble(balResult.first.toColumnMap()['outstanding_balance'])
 //         : 0.0;
 //     final newBalance = currentBalance + remainingAmount;
 //

@@ -1,7 +1,7 @@
+// =============================================================
+// warehouse_dashboard_models.dart
+// =============================================================
 
-
-
-// Filter enum add karo — file ke upar
 enum PurchaseDateFilter {
   today,
   thisWeek,
@@ -32,7 +32,30 @@ class DashboardStats {
   });
 }
 
-// Baaki models same rahenge — copy karo as-is
+// ── Purchase Trend Chart — ek point (label + amount) ─────────
+class PurchaseTrendPoint {
+  final String label;   // "Mon", "10 Apr", "9 AM" etc
+  final double amount;
+
+  const PurchaseTrendPoint({
+    required this.label,
+    required this.amount,
+  });
+}
+
+// ── Supplier Outstanding Chart — ek supplier bar ─────────────
+class SupplierOutstandingBar {
+  final String supplierId;
+  final String supplierName;
+  final double outstandingAmount;
+
+  const SupplierOutstandingBar({
+    required this.supplierId,
+    required this.supplierName,
+    required this.outstandingAmount,
+  });
+}
+
 class RecentPurchaseOrder {
   final String   id;
   final String   poNumber;

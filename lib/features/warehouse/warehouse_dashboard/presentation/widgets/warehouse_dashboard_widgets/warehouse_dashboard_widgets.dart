@@ -441,7 +441,7 @@ class SupplierDueRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(_fmt(item.outstandingAmount),
+              Text(item.outstandingAmount.toStringAsFixed(2),
                   style: TextStyle(fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: isHighDue

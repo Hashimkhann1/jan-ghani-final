@@ -303,20 +303,28 @@ class PurchaseInvoiceNotifier
           .clamp(0.0, double.infinity);
 
       final items = state.cartItems
-          .map((i) => PurchaseOrderItem(
-        id:               const Uuid().v4(),
-        poId:             _existingOrderId ?? '',
-        tenantId:         AppConfig.warehouseId,
-        productId:        i.product.id,
-        productName:      i.product.name,
-        sku:              i.product.sku,
-        quantityOrdered:  i.quantity,
-        quantityReceived: 0,
-        unitCost:         i.purchasePrice,
-        totalCost:        i.purchasePrice * i.quantity,
-        salePrice:        i.salePrice,
-      ))
-          .toList();
+          .map((i) {
+        final lineTotal = i.purchasePrice * i.quantity;
+        final discPct = lineTotal > 0
+            ? (i.discountAmount / lineTotal) * 100
+            : 0.0;
+
+        return PurchaseOrderItem(
+          id:               const Uuid().v4(),
+          poId:             _existingOrderId ?? '',
+          tenantId:         AppConfig.warehouseId,
+          productId:        i.product.id,
+          productName:      i.product.name,
+          sku:              i.product.sku,
+          quantityOrdered:  i.quantity,
+          quantityReceived: 0,
+          unitCost:         i.purchasePrice,
+          totalCost:        i.subTotal,
+          salePrice:        i.salePrice,
+          discountAmount:   i.discountAmount,
+          discountPercent:  double.parse(discPct.toStringAsFixed(2)),
+        );
+      }).toList();
 
       // ── EDIT MODE: update karo ────────────────────────────
       if (isEditMode) {

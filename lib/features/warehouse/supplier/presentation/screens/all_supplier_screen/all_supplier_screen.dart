@@ -27,7 +27,7 @@ class AllSupplierScreen extends ConsumerWidget {
           ? const Center(child: CircularProgressIndicator())
           : Column(
         children: [
-          _TopBar(onAddTap: () => _showAddDialog(context)),
+          _TopBar(onAddTap: () => showAddDialog(context)),
           _StatsRow(state: state),
           _SearchFilterBar(
             searchQuery:    state.searchQuery,
@@ -55,7 +55,7 @@ class AllSupplierScreen extends ConsumerWidget {
   }
 
   // ── Add dialog ──────────────────────────────────────────────
-  void _showAddDialog(BuildContext context) {
+  void showAddDialog(BuildContext context) {
     showDialog(
       context:     context,
       barrierColor: Colors.black.withOpacity(0.35),

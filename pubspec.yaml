@@ -31,6 +31,7 @@ dependencies:
   barcode: ^2.2.9
   barcode_widget: ^2.0.4
   google_fonts: ^8.0.2
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:
