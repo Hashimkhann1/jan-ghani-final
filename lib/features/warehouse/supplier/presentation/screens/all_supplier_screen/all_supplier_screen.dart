@@ -665,7 +665,7 @@ class _SupplierRowState extends State<_SupplierRow> {
             // Total Purchase
             Expanded(
               flex: 2,
-              child: Text(_fmt(s.totalPurchaseAmount),
+              child: Text(s.totalPurchaseAmount.toStringAsFixed(2),
                   style: TextStyle(
                       fontSize:   13,
                       fontWeight: FontWeight.w500,
@@ -673,9 +673,7 @@ class _SupplierRowState extends State<_SupplierRow> {
             ),
 
             // Balance
-            Expanded(
-                flex: 1,
-                child: SupplierBalanceBadge(supplier: s)),
+            SizedBox(child: SupplierBalanceBadge(supplier: s)),
             const SizedBox(width: 20),
 
             // Orders

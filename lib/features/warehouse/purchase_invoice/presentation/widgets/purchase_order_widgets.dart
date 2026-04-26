@@ -343,7 +343,7 @@ class _PoTableRowState extends State<PoTableRow> {
                       Text(
                         o.isFullyPaid
                             ? 'Clear'
-                            : o.remainingAmount.toString(),
+                            : o.remainingAmount.toStringAsFixed(2),
                         style: TextStyle(fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: o.isFullyPaid

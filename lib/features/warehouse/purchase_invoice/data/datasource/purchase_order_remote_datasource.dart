@@ -20,53 +20,81 @@ class PurchaseOrderRemoteDataSource {
   Future<List<PurchaseOrderModel>> getAll(String warehouseId) async {
     final conn = await _db;
 
+    // Step 1: Sab orders ek saath fetch karo
     final result = await conn.execute(
       Sql.named('''
-        SELECT
-          po.id,
-          po.warehouse_id          AS tenant_id,
-          po.po_number,
-          po.supplier_id,
-          s.name                   AS supplier_name,
-          s.company_name           AS supplier_company,
-          s.phone                  AS supplier_phone,
-          s.address                AS supplier_address,
-          s.tax_id                 AS supplier_tax_id,
-          s.payment_terms          AS supplier_payment_terms,
-          po.destination_location_id,
-          l.name                   AS destination_name,
-          po.status,
-          po.order_date,
-          po.expected_date,
-          po.received_date,
-          po.subtotal,
-          po.discount_amount,
-          po.tax_amount,
-          po.total_amount,
-          po.paid_amount,
-          po.notes,
-          u.full_name              AS created_by_name,
-          po.created_at,
-          po.updated_at
-        FROM purchase_orders po
-        LEFT JOIN suppliers s  ON s.id  = po.supplier_id
-        LEFT JOIN locations l  ON l.id  = po.destination_location_id
-        LEFT JOIN warehouse_users u      ON u.id  = po.created_by
-        WHERE po.warehouse_id = @warehouseId
-          AND po.deleted_at   IS NULL
-        ORDER BY po.created_at DESC
-      '''),
+      SELECT
+        po.id, po.warehouse_id AS tenant_id, po.po_number,
+        po.supplier_id,
+        s.name AS supplier_name, s.company_name AS supplier_company,
+        s.phone AS supplier_phone, s.address AS supplier_address,
+        s.tax_id AS supplier_tax_id, s.payment_terms AS supplier_payment_terms,
+        po.destination_location_id, l.name AS destination_name,
+        po.status, po.order_date, po.expected_date, po.received_date,
+        po.subtotal, po.discount_amount, po.tax_amount,
+        po.total_amount, po.paid_amount, po.notes,
+        u.full_name AS created_by_name, po.created_at, po.updated_at
+      FROM purchase_orders po
+      LEFT JOIN suppliers s      ON s.id = po.supplier_id
+      LEFT JOIN locations l      ON l.id = po.destination_location_id
+      LEFT JOIN warehouse_users u ON u.id = po.created_by
+      WHERE po.warehouse_id = @warehouseId
+        AND po.deleted_at IS NULL
+      ORDER BY po.created_at DESC
+    '''),
       parameters: {'warehouseId': warehouseId},
     );
 
-    final orders = <PurchaseOrderModel>[];
-    for (final row in result) {
+    if (result.isEmpty) return [];
+
+    // Step 2: Sab order IDs ek list mein nikalo
+    final orderIds = result.map((r) => r.toColumnMap()['id'].toString()).toList();
+
+    // Step 3: Sab orders ke items EK query mein fetch karo — N+1 khatam
+    final itemsResult = await conn.execute(
+      Sql.named('''
+      SELECT
+        id, po_id, warehouse_id AS tenant_id,
+        product_id, product_name, sku,
+        quantity_ordered, quantity_received,
+        unit_cost, total_cost, sale_price,
+        COALESCE(discount_amount, 0)  AS discount_amount,
+        COALESCE(discount_percent, 0) AS discount_percent
+      FROM purchase_order_items
+      WHERE po_id = ANY(@orderIds)
+      ORDER BY po_id, id
+    '''),
+      parameters: {'orderIds': orderIds},
+    );
+
+    // Step 4: Items ko po_id ke hisaab se group karo
+    final itemsByPoId = <String, List<PurchaseOrderItem>>{};
+    for (final row in itemsResult) {
+      final m    = row.toColumnMap();
+      final poId = m['po_id'].toString();
+      itemsByPoId.putIfAbsent(poId, () => []).add(PurchaseOrderItem(
+        id:               m['id'].toString(),
+        poId:             poId,
+        tenantId:         m['tenant_id'].toString(),
+        productId:        m['product_id']?.toString(),
+        productName:      m['product_name'].toString(),
+        sku:              m['sku']?.toString(),
+        quantityOrdered:  _toDouble(m['quantity_ordered']),
+        quantityReceived: _toDouble(m['quantity_received']),
+        unitCost:         _toDouble(m['unit_cost']),
+        totalCost:        _toDouble(m['total_cost']),
+        salePrice:        m['sale_price'] != null ? _toDouble(m['sale_price']) : null,
+        discountAmount:   _toDouble(m['discount_amount']),
+        discountPercent:  _toDouble(m['discount_percent']),
+      ));
+    }
+
+    // Step 5: Orders aur unke items combine karo
+    return result.map((row) {
       final m    = row.toColumnMap();
       final poId = m['id'].toString();
-      final items = await _getItems(conn, poId);
-      orders.add(_mapToModel(m, items));
-    }
-    return orders;
+      return _mapToModel(m, itemsByPoId[poId] ?? []);
+    }).toList();
   }
 
   // ── GET BY ID ─────────────────────────────────────────────
@@ -238,8 +266,13 @@ class PurchaseOrderRemoteDataSource {
   }) async {
     final conn = await _db;
 
-    await conn.execute(
-      Sql.named('''
+    // ✅ Transaction shuru — ya sab hoga ya kuch nahi
+    await conn.execute('BEGIN');
+
+    try {
+      // ── Step 1: PO header update ──────────────────────────
+      await conn.execute(
+        Sql.named('''
         UPDATE purchase_orders SET
           supplier_id      = @supplierId,
           status           = @status,
@@ -255,30 +288,32 @@ class PurchaseOrderRemoteDataSource {
         WHERE id           = @poId
           AND warehouse_id = @warehouseId
       '''),
-      parameters: {
-        'poId':            poId,
-        'warehouseId':     warehouseId,
-        'supplierId':      supplierId,
-        'status':          status ?? oldStatus,
-        'expectedDate':    expectedDate,
-        'subtotal':        subtotal,
-        'discountAmount':  discountAmount,
-        'taxAmount':       taxAmount,
-        'totalAmount':     totalAmount,
-        'paidAmount':      paidAmount,
-        'remainingAmount': remainingAmount,
-        'notes':           notes,
-      },
-    );
+        parameters: {
+          'poId':            poId,
+          'warehouseId':     warehouseId,
+          'supplierId':      supplierId,
+          'status':          status ?? oldStatus,
+          'expectedDate':    expectedDate,
+          'subtotal':        subtotal,
+          'discountAmount':  discountAmount,
+          'taxAmount':       taxAmount,
+          'totalAmount':     totalAmount,
+          'paidAmount':      paidAmount,
+          'remainingAmount': remainingAmount,
+          'notes':           notes,
+        },
+      );
 
-    await conn.execute(
-      Sql.named('DELETE FROM purchase_order_items WHERE po_id = @poId'),
-      parameters: {'poId': poId},
-    );
-
-    for (final item in items) {
+      // ── Step 2: Purane items delete ───────────────────────
       await conn.execute(
-        Sql.named('''
+        Sql.named('DELETE FROM purchase_order_items WHERE po_id = @poId'),
+        parameters: {'poId': poId},
+      );
+
+      // ── Step 3: Naye items insert ─────────────────────────
+      for (final item in items) {
+        await conn.execute(
+          Sql.named('''
           INSERT INTO purchase_order_items (
             po_id, warehouse_id, product_id, product_name,
             sku, quantity_ordered, quantity_received,
@@ -291,61 +326,62 @@ class PurchaseOrderRemoteDataSource {
             @discountAmount, @discountPercent
           )
         '''),
-        parameters: {
-          'poId':             poId,
-          'warehouseId':      warehouseId,
-          'productId':        item.productId,
-          'productName':      item.productName,
-          'sku':              item.sku,
-          'quantityOrdered':  item.quantityOrdered,
-          'quantityReceived': item.quantityReceived,
-          'unitCost':         item.unitCost,
-          'totalCost':        item.totalCost,
-          'salePrice':        item.salePrice,
-          'discountAmount':   item.discountAmount,
-          'discountPercent':  item.discountPercent,
-        },
-      );
-    }
+          parameters: {
+            'poId':             poId,
+            'warehouseId':      warehouseId,
+            'productId':        item.productId,
+            'productName':      item.productName,
+            'sku':              item.sku,
+            'quantityOrdered':  item.quantityOrdered,
+            'quantityReceived': item.quantityReceived,
+            'unitCost':         item.unitCost,
+            'totalCost':        item.totalCost,
+            'salePrice':        item.salePrice,
+            'discountAmount':   item.discountAmount,
+            'discountPercent':  item.discountPercent,
+          },
+        );
+      }
 
-    final newStatus = status ?? oldStatus;
-    final becomingReceived = newStatus == 'received' && oldStatus != 'received';
+      // ── Step 4: Received logic ────────────────────────────
+      final newStatus        = status ?? oldStatus;
+      final becomingReceived = newStatus == 'received' && oldStatus != 'received';
 
-    if (becomingReceived) {
-      await _handleReceivedInventory(conn, poId, warehouseId, newStatus, items);
+      if (becomingReceived) {
+        await _handleReceivedInventory(conn, poId, warehouseId, newStatus, items);
 
-      if (supplierId != null && supplierId.isNotEmpty) {
-        await conn.execute(
-          Sql.named('''
+        if (supplierId != null && supplierId.isNotEmpty) {
+          await conn.execute(
+            Sql.named('''
             DELETE FROM supplier_ledger
             WHERE po_id      = @poId
               AND entry_type = 'purchase'
           '''),
-          parameters: {'poId': poId},
-        );
+            parameters: {'poId': poId},
+          );
 
-        final balResult = await conn.execute(
-          Sql.named('''
+          final balResult = await conn.execute(
+            Sql.named('''
             SELECT outstanding_balance FROM suppliers
             WHERE id = @supplierId
           '''),
-          parameters: {'supplierId': supplierId},
-        );
-        final currentBalance = balResult.isNotEmpty
-            ? _toDouble(balResult.first.toColumnMap()['outstanding_balance'])
-            : 0.0;
-        final newBalance = currentBalance + remainingAmount;
+            parameters: {'supplierId': supplierId},
+          );
+          final currentBalance = balResult.isNotEmpty
+              ? _toDouble(balResult.first.toColumnMap()['outstanding_balance'])
+              : 0.0;
+          final newBalance = currentBalance + remainingAmount;
 
-        final poRow = await conn.execute(
-          Sql.named('SELECT po_number FROM purchase_orders WHERE id = @poId'),
-          parameters: {'poId': poId},
-        );
-        final poNumber = poRow.isNotEmpty
-            ? poRow.first.toColumnMap()['po_number']
-            : poId;
+          final poRow = await conn.execute(
+            Sql.named('SELECT po_number FROM purchase_orders WHERE id = @poId'),
+            parameters: {'poId': poId},
+          );
+          final poNumber = poRow.isNotEmpty
+              ? poRow.first.toColumnMap()['po_number']
+              : poId;
 
-        await conn.execute(
-          Sql.named('''
+          await conn.execute(
+            Sql.named('''
             INSERT INTO supplier_ledger (
               warehouse_id, supplier_id, po_id,
               entry_type, amount, balance_before,
@@ -356,21 +392,30 @@ class PurchaseOrderRemoteDataSource {
               @balanceAfter, @notes, @createdBy
             )
           '''),
-          parameters: {
-            'warehouseId':   warehouseId,
-            'supplierId':    supplierId,
-            'poId':          poId,
-            'amount':        remainingAmount,
-            'balanceBefore': currentBalance,
-            'balanceAfter':  newBalance,
-            'notes':         'PO $poNumber — received ho gaya',
-            'createdBy':     updatedBy,
-          },
-        );
+            parameters: {
+              'warehouseId':   warehouseId,
+              'supplierId':    supplierId,
+              'poId':          poId,
+              'amount':        remainingAmount,
+              'balanceBefore': currentBalance,
+              'balanceAfter':  newBalance,
+              'notes':         'PO $poNumber — received ho gaya',
+              'createdBy':     updatedBy,
+            },
+          );
+        }
       }
-    }
 
-    return (await getById(poId))!;
+      // ✅ Sab theek — commit karo
+      await conn.execute('COMMIT');
+
+      return (await getById(poId))!;
+
+    } catch (e) {
+      // ✅ Koi bhi error aaya — rollback, kuch nahi banega
+      await conn.execute('ROLLBACK');
+      rethrow; // error upar tak pahunchao
+    }
   }
 
   // ── UPDATE STATUS ─────────────────────────────────────────

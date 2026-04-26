@@ -54,7 +54,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     ),
     NavItem(
       icon: Icons.receipt_long_outlined,
-      label: 'Po',
+      label: 'Purchase Order',
       screen: const PurchaseOrderScreen(),
     ),
     NavItem(
@@ -120,7 +120,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     ),
     NavItem(
       icon: Icons.receipt_long_outlined,
-      label: 'Po',
+      label: 'Purchase Order',
       screen: const PurchaseOrderScreen(),
     ),
     NavItem(
@@ -128,11 +128,7 @@ class _SideBarState extends ConsumerState<SideBar> {
       label: 'Supplier',
       screen: const AllSupplierScreen(),
     ),
-    NavItem(
-      icon: Icons.person_outline,
-      label: 'User',
-      screen: const AllUserScreen(),
-    ),
+
     NavItem(
       icon: Icons.move_to_inbox_outlined,
       label: 'Assign Stock',
@@ -157,6 +153,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       icon: Icons.store_outlined,
       label: 'Link Stores',
       screen: LinkedStoresScreen(warehouseId: AppConfig.warehouseId),
+    ),
+    NavItem(
+      icon: Icons.person_outline,
+      label: 'User',
+      screen: const AllUserScreen(),
     ),
   ];
 

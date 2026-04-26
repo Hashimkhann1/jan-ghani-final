@@ -38,34 +38,17 @@ class PurchaseOrderState {
   final String                   filterStatus;
   final bool                     isLoading;
   final String?                  errorMessage;
+  final List<PurchaseOrderModel> filteredOrders; // ✅ getter nahi, cached field
 
   const PurchaseOrderState({
-    this.allOrders    = const [],
+    this.allOrders      = const [],
     this.stats,
-    this.searchQuery  = '',
-    this.filterStatus = 'all',
-    this.isLoading    = false,
+    this.searchQuery    = '',
+    this.filterStatus   = 'all',
+    this.isLoading      = false,
     this.errorMessage,
+    this.filteredOrders = const [], // ✅
   });
-
-  List<PurchaseOrderModel> get filteredOrders {
-    var result = allOrders;
-
-    if (filterStatus != 'all') {
-      result = result.where((o) => o.status == filterStatus).toList();
-    }
-
-    if (searchQuery.isNotEmpty) {
-      final q = searchQuery.toLowerCase();
-      result = result.where((o) {
-        return o.poNumber.toLowerCase().contains(q) ||
-            (o.supplierName?.toLowerCase().contains(q) ?? false) ||
-            (o.supplierCompany?.toLowerCase().contains(q) ?? false);
-      }).toList();
-    }
-
-    return result;
-  }
 
   PurchaseOrderState copyWith({
     List<PurchaseOrderModel>? allOrders,
@@ -75,14 +58,47 @@ class PurchaseOrderState {
     bool?                     isLoading,
     String?                   errorMessage,
   }) {
+    final newAllOrders    = allOrders    ?? this.allOrders;
+    final newSearchQuery  = searchQuery  ?? this.searchQuery;
+    final newFilterStatus = filterStatus ?? this.filterStatus;
+
+    // ✅ Sirf tab recalculate hoga jab in teen mein se koi change ho
+    final newFiltered = (allOrders != null || searchQuery != null || filterStatus != null)
+        ? _computeFiltered(newAllOrders, newSearchQuery, newFilterStatus)
+        : filteredOrders; // ← same list reuse, no loop
+
     return PurchaseOrderState(
-      allOrders:    allOrders    ?? this.allOrders,
-      stats:        stats        ?? this.stats,
-      searchQuery:  searchQuery  ?? this.searchQuery,
-      filterStatus: filterStatus ?? this.filterStatus,
-      isLoading:    isLoading    ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      allOrders:      newAllOrders,
+      stats:          stats        ?? this.stats,
+      searchQuery:    newSearchQuery,
+      filterStatus:   newFilterStatus,
+      isLoading:      isLoading    ?? this.isLoading,
+      errorMessage:   errorMessage,
+      filteredOrders: newFiltered,  // ✅
     );
+  }
+
+  static List<PurchaseOrderModel> _computeFiltered(
+      List<PurchaseOrderModel> all,
+      String query,
+      String status,
+      ) {
+    var result = all;
+
+    if (status != 'all') {
+      result = result.where((o) => o.status == status).toList();
+    }
+
+    if (query.isNotEmpty) {
+      final q = query.toLowerCase();
+      result = result.where((o) =>
+      o.poNumber.toLowerCase().contains(q) ||
+          (o.supplierName?.toLowerCase().contains(q) ?? false) ||
+          (o.supplierCompany?.toLowerCase().contains(q) ?? false)
+      ).toList();
+    }
+
+    return result;
   }
 }
 

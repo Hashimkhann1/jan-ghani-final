@@ -593,7 +593,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                           );
                           // Save successful — PurchaseOrderScreen pe wapas jao
                           if (success && context.mounted) {
-                            Navigator.of(context).pop();
+                            Navigator.of(context).pop(true); // ← true pass karo
                           }
                         },
                         style: ElevatedButton.styleFrom(

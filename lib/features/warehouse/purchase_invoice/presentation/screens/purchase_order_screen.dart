@@ -26,12 +26,12 @@ class _PurchaseOrderScreenState
 
   final _searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() =>
-        ref.read(purchaseOrderProvider.notifier).loadOrders());
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   Future.microtask(() =>
+  //       ref.read(purchaseOrderProvider.notifier).loadOrders());
+  // }
 
   @override
   void dispose() {
@@ -41,17 +41,20 @@ class _PurchaseOrderScreenState
 
   // ── Naya PO ya Edit — dono ke baad refresh karo ──────────
   Future<void> _navigateToInvoice({dynamic existingOrder}) async {
-    await Navigator.of(context).push(
+    final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => PurchaseInvoiceScreen(
-          existingOrder: existingOrder, // null = new, set = edit
+          existingOrder: existingOrder,
         ),
       ),
     );
-    // Wapas aane ke baad sab refresh karo
-    ref.read(purchaseOrderProvider.notifier).loadOrders();
-    ref.read(supplierProvider.notifier).loadSuppliers();
-    ref.read(productProvider.notifier).loadProducts();
+
+    // ✅ Sirf tab refresh karo jab actually save hua ho
+    if (saved == true) {
+      ref.read(purchaseOrderProvider.notifier).loadOrders();
+      ref.read(supplierProvider.notifier).loadSuppliers();
+      ref.read(productProvider.notifier).loadProducts(); // optional
+    }
   }
 
   @override
@@ -65,38 +68,40 @@ class _PurchaseOrderScreenState
           ? const Center(child: CircularProgressIndicator())
           : Column(
         children: [
-          _TopBar(
-            onNewPO: () => _navigateToInvoice(),
+          _TopBar(onNewPO: () => _navigateToInvoice()),
+
+          // ✅ SingleChildScrollView HATA DIYA
+          // Stats + Toolbar fixed rahenge, sirf table scroll karega
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Column(
+              children: [
+                _StatsRow(stats: state.stats),
+                const SizedBox(height: 14),
+                _Toolbar(
+                  controller:     _searchController,
+                  selectedFilter: state.filterStatus,
+                  onSearch: (q) {
+                    notifier.onSearchChanged(q);
+                    setState(() {});
+                  },
+                  onFilter: notifier.onFilterChanged,
+                ),
+                const SizedBox(height: 14),
+              ],
+            ),
           ),
+
+          // ✅ Table Expanded mein — bounded height milegi
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _StatsRow(stats: state.stats),
-                  const SizedBox(height: 14),
-                  _Toolbar(
-                    controller:     _searchController,
-                    selectedFilter: state.filterStatus,
-                    onSearch: (q) {
-                      notifier.onSearchChanged(q);
-                      setState(() {});
-                    },
-                    onFilter: notifier.onFilterChanged,
-                  ),
-                  const SizedBox(height: 14),
-                  _OrdersTable(
-                    orders:      state.filteredOrders,
-                    isSearching: state.searchQuery.isNotEmpty ||
-                        state.filterStatus != 'all',
-                    onView: (order) {
-                      POdetailDialogWidget.show(context, order);
-                    },
-                    // ── UPDATED: Edit click → invoice screen ──
-                    onEdit: (order) =>
-                        _navigateToInvoice(existingOrder: order),
-                  ),
-                ],
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: _OrdersTable(
+                orders:      state.filteredOrders,
+                isSearching: state.searchQuery.isNotEmpty ||
+                    state.filterStatus != 'all',
+                onView: (order) => POdetailDialogWidget.show(context, order),
+                onEdit: (order) => _navigateToInvoice(existingOrder: order),
               ),
             ),
           ),
@@ -145,7 +150,7 @@ class _TopBar extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: onNewPO,
             icon:  const Icon(Icons.add_rounded, size: 18),
-            label: const Text('New PO'),
+            label: const Text('New Purchase Order'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColor.primary,
               foregroundColor: AppColor.white,
@@ -392,32 +397,27 @@ class _ScrollableTableState extends State<_ScrollableTable> {
 
         return Column(
           children: [
-            // ✅ Scrollbar + horizontal scroll (header + rows together)
-            Scrollbar(
-              controller: _scrollController,
-              thumbVisibility: true,   // ✅ hamesha visible rahe
-              trackVisibility: true,   // ✅ track bhi dikh e
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(), // ✅ Windows pe better
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minWidth: constraints.maxWidth, // ✅ chhota nahi hoga
-                  ),
+            Expanded(
+              child: Scrollbar(
+                controller:      _scrollController,
+                thumbVisibility: true,
+                trackVisibility: true,
+                child: SingleChildScrollView(
+                  controller:      _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  physics:         const ClampingScrollPhysics(),
                   child: SizedBox(
                     width: tableWidth,
                     child: Column(
                       children: [
-                        // Header
+                        // ── Header ───────────────────────
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 11),
                           decoration: BoxDecoration(
-                            color: AppColor.grey100,
+                            color:  AppColor.grey100,
                             border: Border(
-                                bottom:
-                                BorderSide(color: AppColor.grey200)),
+                                bottom: BorderSide(color: AppColor.grey200)),
                           ),
                           child: const Row(
                             children: [
@@ -427,13 +427,12 @@ class _ScrollableTableState extends State<_ScrollableTable> {
                               _TH(label: 'Status',       flex: 2),
                               _TH(label: 'Total / Paid', flex: 2),
                               _TH(label: 'Remaining',    flex: 2),
-                              _TH(label: 'Actions',
-                                  flex: 1, center: true),
+                              _TH(label: 'Actions', flex: 1, center: true),
                             ],
                           ),
                         ),
 
-                        // Rows
+                        // ── Rows ─────────────────────────
                         if (widget.orders.isEmpty)
                           SizedBox(
                             height: 220,
@@ -441,22 +440,25 @@ class _ScrollableTableState extends State<_ScrollableTable> {
                                 isSearching: widget.isSearching),
                           )
                         else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics:
-                            const NeverScrollableScrollPhysics(),
-                            itemCount: widget.orders.length,
-                            separatorBuilder: (_, __) => Divider(
-                                height: 1, color: AppColor.grey100),
-                            itemBuilder: (_, i) => PoTableRow(
-                              key: ValueKey(widget.orders[i].id),
-                              order: widget.orders[i],
-                              onView: () =>
-                                  widget.onView(widget.orders[i]),
-                              onEdit: widget.orders[i].canEdit
-                                  ? () =>
-                                  widget.onEdit(widget.orders[i])
-                                  : null,
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount:  widget.orders.length,
+                              itemExtent: 78, // ✅ fixed height — scroll fast
+                              itemBuilder: (_, i) => Column(
+                                children: [
+                                  RepaintBoundary(
+                                    child: PoTableRow(
+                                      key:    ValueKey(widget.orders[i].id),
+                                      order:  widget.orders[i],
+                                      onView: () => widget.onView(widget.orders[i]),
+                                      onEdit: widget.orders[i].canEdit
+                                          ? () => widget.onEdit(widget.orders[i])
+                                          : null,
+                                    ),
+                                  ),
+                                  Divider(height: 1, color: AppColor.grey100),
+                                ],
+                              ),
                             ),
                           ),
                       ],
@@ -466,7 +468,7 @@ class _ScrollableTableState extends State<_ScrollableTable> {
               ),
             ),
 
-            // Footer
+            // ── Footer ───────────────────────────────────
             Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: 20, vertical: 10),
@@ -479,7 +481,7 @@ class _ScrollableTableState extends State<_ScrollableTable> {
                     '${widget.orders.length} purchase orders',
                     style: TextStyle(
                         fontSize: 12,
-                        color: AppColor.textSecondary),
+                        color:    AppColor.textSecondary),
                   ),
                 ],
               ),

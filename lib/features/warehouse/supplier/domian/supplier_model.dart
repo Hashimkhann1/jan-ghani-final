@@ -64,7 +64,7 @@ class SupplierModel {
 
   String get balanceLabel {
     if (isClear) return 'Clear';
-    if (hasDue)  return 'Rs ${outstandingBalance.toStringAsFixed(0)} Due';
+    if (hasDue)  return 'Rs ${outstandingBalance.toStringAsFixed(2)} Due';
     return 'Rs ${outstandingBalance.abs().toStringAsFixed(0)} Advance';
   }
 

@@ -96,7 +96,7 @@ class _StockInventoryDialogState
     _taxCtrl         = TextEditingController(
         text: p != null ? p.taxRate.toStringAsFixed(0) : '0');
     _minStockCtrl    = TextEditingController(
-        text: p?.minStockLevel.toString() ?? '0');
+        text: p?.minStockLevel.toString() ?? '10');
     _maxStockCtrl    = TextEditingController(
         text: p?.maxStockLevel?.toString() ?? '');
     _reorderCtrl     = TextEditingController(
@@ -400,6 +400,7 @@ class _StockInventoryDialogState
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly],
+                          validator: _required,
                         ),
                       ]),
                       const SizedBox(height: 14),

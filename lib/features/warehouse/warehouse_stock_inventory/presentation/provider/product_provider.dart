@@ -20,27 +20,66 @@ class ProductState {
   final String             filterCategory;
   final bool               isLoading;
   final String?            errorMessage;
+  final List<ProductModel> filteredProducts; // ✅ ab cached field hai, getter nahi
 
   const ProductState({
-    this.allProducts    = const [],
-    this.searchQuery    = '',
-    this.filterStatus   = 'all',
-    this.filterCategory = 'all',
-    this.isLoading      = false,
+    this.allProducts     = const [],
+    this.searchQuery     = '',
+    this.filterStatus    = 'all',
+    this.filterCategory  = 'all',
+    this.isLoading       = false,
     this.errorMessage,
+    this.filteredProducts = const [], // ✅
   });
 
-  List<ProductModel> get filteredProducts {
-    return allProducts.where((p) {
-      if (p.deletedAt != null)                                        return false;
-      if (filterStatus   == 'active'   && !p.isActive)               return false;
-      if (filterStatus   == 'inactive' &&  p.isActive)               return false;
-      if (filterCategory != 'all' && p.categoryId != filterCategory) return false;
-      if (searchQuery.isNotEmpty) {
-        final q = searchQuery.toLowerCase();
-        return p.name.toLowerCase().contains(q)                    ||
-            p.sku.toLowerCase().contains(q)                        ||
-            p.barcodes.any((b) => b.toLowerCase().contains(q))    ||
+  // ✅ Sirf yahan calculate hota hai — copyWith ke andar
+  ProductState copyWith({
+    List<ProductModel>? allProducts,
+    String?             searchQuery,
+    String?             filterStatus,
+    String?             filterCategory,
+    bool?               isLoading,
+    String?             errorMessage,
+  }) {
+    final newAllProducts    = allProducts    ?? this.allProducts;
+    final newSearchQuery    = searchQuery    ?? this.searchQuery;
+    final newFilterStatus   = filterStatus   ?? this.filterStatus;
+    final newFilterCategory = filterCategory ?? this.filterCategory;
+
+    // ✅ Sirf tab recalculate hoga jab in 3 mein se koi change ho
+    final newFiltered = (allProducts != null || searchQuery != null ||
+        filterStatus != null || filterCategory != null)
+        ? _computeFiltered(newAllProducts, newSearchQuery, newFilterStatus, newFilterCategory)
+        : filteredProducts; // ← same list reuse, no loop
+
+    return ProductState(
+      allProducts:      newAllProducts,
+      searchQuery:      newSearchQuery,
+      filterStatus:     newFilterStatus,
+      filterCategory:   newFilterCategory,
+      isLoading:        isLoading  ?? this.isLoading,
+      errorMessage:     errorMessage,
+      filteredProducts: newFiltered,
+    );
+  }
+
+  // ✅ Static method — class ke bahar koi dependency nahi
+  static List<ProductModel> _computeFiltered(
+      List<ProductModel> all,
+      String query,
+      String status,
+      String category,
+      ) {
+    return all.where((p) {
+      if (p.deletedAt != null)                               return false;
+      if (status   == 'active'   && !p.isActive)            return false;
+      if (status   == 'inactive' &&  p.isActive)            return false;
+      if (category != 'all' && p.categoryId != category)    return false;
+      if (query.isNotEmpty) {
+        final q = query.toLowerCase();
+        return p.name.toLowerCase().contains(q)              ||
+            p.sku.toLowerCase().contains(q)               ||
+            p.barcodes.any((b) => b.toLowerCase().contains(q)) ||
             (p.categoryName?.toLowerCase().contains(q) ?? false);
       }
       return true;
@@ -50,22 +89,6 @@ class ProductState {
   int get totalCount    => allProducts.where((p) => p.deletedAt == null).length;
   int get activeCount   => allProducts.where((p) => p.isActive && p.deletedAt == null).length;
   int get lowStockCount => allProducts.where((p) => p.isLowStock && p.deletedAt == null).length;
-
-  ProductState copyWith({
-    List<ProductModel>? allProducts,
-    String?             searchQuery,
-    String?             filterStatus,
-    String?             filterCategory,
-    bool?               isLoading,
-    String?             errorMessage,
-  }) => ProductState(
-    allProducts:    allProducts    ?? this.allProducts,
-    searchQuery:    searchQuery    ?? this.searchQuery,
-    filterStatus:   filterStatus   ?? this.filterStatus,
-    filterCategory: filterCategory ?? this.filterCategory,
-    isLoading:      isLoading      ?? this.isLoading,
-    errorMessage:   errorMessage,
-  );
 }
 
 // ── Notifier ──────────────────────────────────────────────────

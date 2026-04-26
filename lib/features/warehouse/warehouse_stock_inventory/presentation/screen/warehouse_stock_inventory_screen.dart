@@ -120,29 +120,37 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
 }
 
 // ── Product Table ─────────────────────────────────────────────
+// ── Product Table ─────────────────────────────────────────────
 class _ProductTable extends StatelessWidget {
   final List<ProductModel>         products;
   final ValueChanged<ProductModel> onEdit;
   final ValueChanged<ProductModel> onHistory;
   final ValueChanged<ProductModel> onDelete;
 
-  const _ProductTable({required this.products, required this.onEdit, required this.onHistory, required this.onDelete});
+  const _ProductTable({
+    required this.products,
+    required this.onEdit,
+    required this.onHistory,
+    required this.onDelete,
+  });
 
-  static const _cols = ['SKU','Product Name','Category','Purchase Price','Sale Price','Stock','Stock Status','Actions'];
+  static const _cols = [
+    'SKU', 'Product Name', 'Category',
+    'Purchase Price', 'Sale Price', 'Stock', 'Stock Status', 'Actions'
+  ];
 
   int _flex(String h) {
-    switch(h) {
-      case 'Product Name': return 3;
-      case 'Category':     return 2;
-      case 'Purchase Price': return 2;
-      case 'Sale Price':   return 2;
-      case 'Stock':        return 2;
-      case 'Stock Status': return 2;
-      case 'Actions':      return 1;  // ← FIX added
-      default:             return 2;
+    switch (h) {
+      case 'Product Name':    return 3;
+      case 'Category':        return 2;
+      case 'Purchase Price':  return 2;
+      case 'Sale Price':      return 2;
+      case 'Stock':           return 2;
+      case 'Stock Status':    return 2;
+      case 'Actions':         return 1;
+      default:                return 2;
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -151,38 +159,59 @@ class _ProductTable extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Column(
           children: [
-            // Header
+            // ── Header ───────────────────────────────────────
             Container(
               color:   const Color(0xFFF8F9FF),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: _cols.map((h) => Expanded(
                   flex: _flex(h),
-                  child: Text(h, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6C7280), letterSpacing: 0.4)),
+                  child: Text(
+                    h,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF6C7280),
+                      letterSpacing: 0.4,
+                    ),
+                  ),
                 )).toList(),
               ),
             ),
             const Divider(height: 1, color: Color(0xFFE5E7EB)),
-            // Rows
+
+            // ── Rows — ListView.builder (MAIN FIX) ──────────
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: products.asMap().entries.map((e) => _ProductRow(
-                    product:   e.value,
-                    isEven:    e.key.isEven,
-                    flex:      _flex,
-                    onEdit:    () => onEdit(e.value),
-                    onHistory: () => onHistory(e.value),
-                    onDelete:  () => onDelete(e.value),
-                    onPrintQR: () => PrintBarcodeWidget.show(context, e.value),
-                  )).toList(),
-                ),
+              child: ListView.builder(
+                // ✅ Sirf visible rows build hongi (~15-20), 2000 nahi
+                itemCount: products.length,
+                itemExtent: 52, // ✅ Fixed height — scroll calculation fast hoti hai
+                itemBuilder: (context, index) {
+                  return RepaintBoundary( // ✅ Ek row ka repaint doosri ko affect nahi karega
+                    child: _ProductRow(
+                      key:       ValueKey(products[index].id), // ✅ Correct diffing
+                      product:   products[index],
+                      isEven:    index.isEven,
+                      flex:      _flex,
+                      onEdit:    () => onEdit(products[index]),
+                      onHistory: () => onHistory(products[index]),
+                      onDelete:  () => onDelete(products[index]),
+                      onPrintQR: () => PrintBarcodeWidget.show(context, products[index]),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -192,101 +221,156 @@ class _ProductTable extends StatelessWidget {
   }
 }
 
-// ── Product Row with hover ────────────────────────────────────
-class _ProductRow extends StatefulWidget {
-  final ProductModel     product;
-  final bool             isEven;
+// ── Product Row — StatelessWidget + ValueNotifier ─────────────
+// ✅ StatefulWidget hataya — setState se rebuild nahi hoga
+class _ProductRow extends StatelessWidget {
+  final ProductModel         product;
+  final bool                 isEven;
   final int Function(String) flex;
-  final VoidCallback     onEdit;
-  final VoidCallback     onHistory;
-  final VoidCallback     onDelete;
-  final VoidCallback     onPrintQR;
+  final VoidCallback         onEdit;
+  final VoidCallback         onHistory;
+  final VoidCallback         onDelete;
+  final VoidCallback         onPrintQR;
 
-  const _ProductRow({required this.product, required this.isEven, required this.flex, required this.onEdit, required this.onHistory, required this.onDelete,required this.onPrintQR});
+  // ✅ ValueNotifier — sirf AnimatedContainer rebuild hoga, poora Row nahi
+  final _hovered = ValueNotifier<bool>(false);
 
-  @override
-  State<_ProductRow> createState() => _ProductRowState();
-}
-
-class _ProductRowState extends State<_ProductRow> {
-  bool _hovered = false;
+  _ProductRow({
+    required super.key,
+    required this.product,
+    required this.isEven,
+    required this.flex,
+    required this.onEdit,
+    required this.onHistory,
+    required this.onDelete,
+    required this.onPrintQR,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final p = widget.product;
+    final p = product;
+
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit:  (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        color: _hovered ? const Color(0xFFEEF2FF) : widget.isEven ? Colors.white : const Color(0xFFFAFAFC),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      onEnter: (_) => _hovered.value = true,
+      onExit:  (_) => _hovered.value = false,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _hovered,
+        builder: (_, hovered, child) => AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          // ✅ Sirf yeh line rebuild hoti hai hover par
+          color: hovered
+              ? const Color(0xFFEEF2FF)
+              : isEven ? Colors.white : const Color(0xFFFAFAFC),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: child, // ✅ child rebuild nahi hoga
+        ),
+        // ✅ Yeh static child hai — hover par rebuild skip hoga
         child: Row(
           children: [
-            Expanded(flex: widget.flex('SKU'),          child: Text(p.sku, style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: Color(0xFF6C7280)))),
-            Expanded(flex: widget.flex('Product Name'), child: Text(p.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)))),
-            // Category cell
             Expanded(
-              flex: widget.flex('Category'),
+              flex: flex('SKU'),
+              child: Text(
+                p.sku,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'monospace',
+                  color: Color(0xFF6C7280),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: flex('Product Name'),
+              child: Text(
+                p.name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1D23),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: flex('Category'),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: ChipWidget(
-                    label: p.categoryName!.length > 10 ? p.categoryName!.substring(0, 10) : p.categoryName ?? '—',
-                    bg: const Color(0xFFEEF2FF),
+                    label: (p.categoryName?.length ?? 0) > 10
+                        ? p.categoryName!.substring(0, 10)
+                        : p.categoryName ?? '—',
+                    bg:        const Color(0xFFEEF2FF),
                     textColor: const Color(0xFF6366F1),
                   ),
                 ),
               ),
             ),
-            Expanded(flex: widget.flex('Purchase Invoice'),         child: Text('Rs. ${p.purchasePrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
-            Expanded(flex: widget.flex('Sale Price'),   child: Text('Rs. ${p.sellingPrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF10B981)))),
             Expanded(
-              flex: widget.flex('Stock'),
+              flex: flex('Purchase Price'),
+              child: Text(
+                'Rs. ${p.purchasePrice.toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)),
+              ),
+            ),
+            Expanded(
+              flex: flex('Sale Price'),
+              child: Text(
+                'Rs. ${p.sellingPrice.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: flex('Stock'),
               child: Text(
                 '${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}',
-                overflow: TextOverflow.ellipsis, // ← yeh add karo
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: p.isLowStock ? const Color(0xFFEF4444) : const Color(0xFF1A1D23),
+                  color: p.isLowStock
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFF1A1D23),
                 ),
               ),
-            ),            // Expanded(flex: widget.flex('Min Stock'),    child: Text('${p.minStockLevel}', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
-            SizedBox(width: 6,),
-            // Stock Status cell
+            ),
+            const SizedBox(width: 6),
             Expanded(
-              flex: widget.flex('Stock Status'),
+              flex: flex('Stock Status'),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: ChipWidget(
-                    label: p.quantity <= 0 ? 'Out of Stock' : p.isLowStock ? 'Low Stock' : 'In Stock',
-                    bg: p.quantity <= 0 ? const Color(0xFFFEE2E2) : p.isLowStock ? const Color(0xFFFEF3C7) : const Color(0xFFD1FAE5),
-                    textColor: p.quantity <= 0 ? const Color(0xFFEF4444) : p.isLowStock ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                    label: p.quantity <= 0
+                        ? 'Out of Stock'
+                        : p.isLowStock ? 'Low Stock' : 'In Stock',
+                    bg: p.quantity <= 0
+                        ? const Color(0xFFFEE2E2)
+                        : p.isLowStock
+                        ? const Color(0xFFFEF3C7)
+                        : const Color(0xFFD1FAE5),
+                    textColor: p.quantity <= 0
+                        ? const Color(0xFFEF4444)
+                        : p.isLowStock
+                        ? const Color(0xFFF59E0B)
+                        : const Color(0xFF10B981),
                   ),
                 ),
               ),
             ),
             Expanded(
-              flex: widget.flex('Actions'),
+              flex: flex('Actions'),
               child: PopupMenuButton<String>(
                 onSelected: (value) {
                   switch (value) {
-                    case 'edit':
-                      widget.onEdit();
-                      break;
-                    case 'history':
-                      widget.onHistory();
-                      break;
-                    // case 'delete':
-                    //   widget.onDelete();
-                    //   break;
-                    case 'printQr':
-                      widget.onPrintQR();
-                      break;
+                    case 'edit':    onEdit();    break;
+                    case 'history': onHistory(); break;
+                    case 'printQr': onPrintQR(); break;
                   }
                 },
                 itemBuilder: (context) => [
@@ -306,38 +390,18 @@ class _ProductRowState extends State<_ProductRow> {
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  // PopupMenuItem(
-                  //   value: 'delete',
-                  //   child: ListTile(
-                  //     leading: const Icon(Icons.delete_rounded, color: Color(0xFFEF4444)),
-                  //     title: const Text("Delete"),
-                  //     contentPadding: EdgeInsets.zero,
-                  //   ),
-                  // ),
                   PopupMenuItem(
                     value: 'printQr',
                     child: ListTile(
-                      leading: Icon(Icons.print, color: Color(0xFF268DF1)),
+                      leading: const Icon(Icons.print, color: Color(0xFF268DF1)),
                       title: const Text("Print QR"),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-
                 ],
                 child: const Icon(Icons.more_vert, color: Color(0xFF6C7280)),
               ),
             ),
-
-            // Expanded(
-            //   flex: widget.flex('Actions'),
-            //   child: Row(children: [
-            //     ActionBtn(icon: Icons.edit_rounded,    color: const Color(0xFF6366F1), onTap: widget.onEdit),
-            //     const SizedBox(width: 6),
-            //     ActionBtn(icon: Icons.history_rounded, color: const Color(0xFF10B981), onTap: widget.onHistory),
-            //     const SizedBox(width: 6),
-            //     ActionBtn(icon: Icons.delete_rounded,  color: const Color(0xFFEF4444), onTap: widget.onDelete),
-            //   ]),
-            // ),
           ],
         ),
       ),
