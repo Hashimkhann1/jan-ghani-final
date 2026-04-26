@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/link_stores/data/models/store_model/store_model.dart';
 import '../providers/link_stores_provider.dart';
 import '../widgets/available_store_card.dart';
@@ -177,7 +178,7 @@ class AvailableStoresScreen extends ConsumerWidget {
       final linkStore = ref.read(linkStoreProvider);
       await linkStore(
         warehouseId: warehouseId,
-        warehouseName: 'Jan Ghani Warehouse 001',
+        warehouseName: AppConfig.warehouseName,
         store: store,
         linkedByName: 'M Hashim',
         linkedById: null,

@@ -13,12 +13,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/config/app_config.dart';
+import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/domain/warehouse_dashboard_models.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/dashboard_chart_widgets/dashboard_chart_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/purchase_filter_bar/purchase_filter_bar.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
-import '../../../../branch/authentication/presentation/provider/auth_provider.dart';
 import '../provider/warehouse_dashboard_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
 
 class WarehouseDashboardScreen extends ConsumerStatefulWidget {
   const WarehouseDashboardScreen({super.key});
@@ -115,14 +117,14 @@ class _WarehouseDashboardScreenState
 // ─────────────────────────────────────────────────────────────
 // TOP BAR
 // ─────────────────────────────────────────────────────────────
-
-class _TopBar extends StatelessWidget {
+class _TopBar extends ConsumerWidget {
   final stats;
   const _TopBar({this.stats});
 
   @override
-  Widget build(BuildContext context) {
-    final now     = DateTime.now();
+  Widget build(BuildContext context, WidgetRef ref) {
+
+    final now = DateTime.now();
     final weekday = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
     [now.weekday - 1];
     final month   = ['Jan','Feb','Mar','Apr','May','Jun','Jul',
@@ -157,7 +159,7 @@ class _TopBar extends StatelessWidget {
                       fontSize:   16,
                       fontWeight: FontWeight.w700,
                       color:      AppColor.textPrimary)),
-              Text('$dateStr  •  WH-MAIN',
+              Text('$dateStr  •  ${AppConfig.warehouseName}',
                   style: TextStyle(
                       fontSize: 11, color: AppColor.textSecondary)),
             ],
@@ -202,26 +204,33 @@ class _TopBar extends StatelessWidget {
               border:       Border.all(color: AppColor.grey200),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Ahmad',
-                    style: TextStyle(
-                        fontSize:   12,
-                        fontWeight: FontWeight.w600,
-                        color:      AppColor.textPrimary)),
-                const SizedBox(width: 5),
-                Container(
-                    width: 4, height: 4,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColor.success)),
-                const SizedBox(width: 4),
-                Text('Owner',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color:    AppColor.textSecondary)),
-              ],
+            child: Consumer(
+                builder: (context, ref, child) {
+
+                  final userData = ref.watch(authProvider);
+
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(userData.user!.fullName.toString(),
+                        style: TextStyle(
+                            fontSize:   12,
+                            fontWeight: FontWeight.w600,
+                            color:      AppColor.textPrimary)),
+                    const SizedBox(width: 5),
+                    Container(
+                        width: 4, height: 4,
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColor.success)),
+                    const SizedBox(width: 4),
+                    Text(userData.user!.role.toString(),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color:    AppColor.textSecondary)),
+                  ],
+                );
+              }
             ),
           ),
         ],
