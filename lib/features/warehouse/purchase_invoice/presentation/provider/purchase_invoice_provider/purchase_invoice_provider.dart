@@ -75,6 +75,11 @@ class PurchaseInvoiceNotifier
     products:         dummyPoProducts,
   ));
 
+  /// Test ke liye — supplierProvider dependency nahi hogi
+  /// DB config initialize nahi hogi isliye tests crash karte the
+  factory PurchaseInvoiceNotifier.forTesting() =>
+      PurchaseInvoiceNotifier();
+
   static String _generatePoNo() {
     final now = DateTime.now();
     return 'PO-${now.year}'
@@ -130,7 +135,7 @@ class PurchaseInvoiceNotifier
         purchasePrice: item.unitCost,
         salePrice:     item.salePrice ?? 0,
         taxAmount:     0,
-        discountAmount: 0,
+        discountAmount: item.discountAmount,
       );
     }).toList();
 
@@ -328,6 +333,15 @@ class PurchaseInvoiceNotifier
 
       // ── EDIT MODE: update karo ────────────────────────────
       if (isEditMode) {
+        // ── Old PO data lao — diff calculations ke liye ─────
+        final oldPo         = await _ds.getById(_existingOrderId!);
+        final oldPaidAmount = oldPo?.paidAmount ?? 0.0;
+        final oldItems      = oldPo?.items      ?? [];
+
+        final becomingReceived =
+            state.invoiceStatus.dbValue == 'received' &&
+                _existingStatus        != 'received';
+
         await _ds.updatePO(
           poId:            _existingOrderId!,
           warehouseId:     AppConfig.warehouseId,
@@ -343,23 +357,59 @@ class PurchaseInvoiceNotifier
           remainingAmount: remaining,
           updatedBy:       userId,
           updatedByName:   userName,
+          oldItems:        oldItems,   // datasource ko diff ke liye chahiye
           items:           items,
         );
 
-        // Agar ab received ho raha hai aur paidAmount > 0
-        // to supplier payment bhi log karo
-        final becomingReceived =
-            state.invoiceStatus.dbValue == 'received' &&
-                _existingStatus != 'received';
+        // ── Payment diff handle karo ───────────────────────
+        // Sirf received PO pe — draft/ordered pe payment nahi hoti
+        final isReceivedNow = state.invoiceStatus.dbValue == 'received';
 
-        if (becomingReceived && state.paidAmount > 0) {
-          await WarehouseFinanceRepository.instance.addSupplierPayment(
-            amount:        state.paidAmount,
-            supplierId:    state.selectedSupplier!.id,
-            notes:         'PO ${state.poNumber} — received, payment',
-            createdBy:     userId,
-            createdByName: userName,
-          );
+        if (isReceivedNow) {
+          final paidDiff = state.paidAmount - oldPaidAmount;
+
+          if (paidDiff > 0) {
+            final poNum    = state.poNumber;
+            final oldPaidS = oldPaidAmount.toStringAsFixed(0);
+            final newPaidS = state.paidAmount.toStringAsFixed(0);
+
+            // ── Cash transaction (cash out) ───────────────
+            await WarehouseFinanceRepository.instance.addSupplierPayment(
+              amount:        paidDiff,
+              supplierId:    state.selectedSupplier!.id,
+              notes:         'PO $poNum — payment: Rs $oldPaidS → Rs $newPaidS',
+              createdBy:     userId,
+              createdByName: userName,
+            );
+
+            // ── Supplier ledger mein payment entry ────────
+            // FIX: addSupplierPayment sirf cash karta hai
+            // supplier outstanding balance ke liye alag ledger entry chahiye
+            await _ds.insertSupplierPaymentLedger(
+              warehouseId:   AppConfig.warehouseId,
+              supplierId:    state.selectedSupplier!.id,
+              poId:          _existingOrderId!,
+              amount:        paidDiff,
+              notes:         'PO $poNum — payment: Rs $oldPaidS → Rs $newPaidS',
+              createdBy:     userId,
+            );
+
+          } else if (paidDiff < 0) {
+            final poNum    = state.poNumber;
+            final oldPaidS = oldPaidAmount.toStringAsFixed(0);
+            final newPaidS = state.paidAmount.toStringAsFixed(0);
+
+            // Kam payment — sirf supplier ledger correction
+            // Cash wapas nahi aata physically
+            await WarehouseFinanceRepository.instance.reverseSupplierPayment(
+              amount:        paidDiff.abs(),
+              supplierId:    state.selectedSupplier!.id,
+              notes:         'PO $poNum — payment correction: Rs $oldPaidS → Rs $newPaidS',
+              createdBy:     userId,
+              createdByName: userName,
+            );
+          }
+          // paidDiff == 0 — kuch nahi karna
         }
       }
       // ── NEW MODE: create karo ─────────────────────────────
@@ -383,13 +433,26 @@ class PurchaseInvoiceNotifier
         );
 
         if (state.paidAmount > 0) {
+          final poNum  = state.poNumber;
+          final supName = state.selectedSupplier!.name;
+
+          // Cash transaction
           await WarehouseFinanceRepository.instance.addSupplierPayment(
             amount:        state.paidAmount,
             supplierId:    state.selectedSupplier!.id,
-            notes:
-            'PO ${state.poNumber} — ${state.selectedSupplier!.name} ko payment',
+            notes:         'PO $poNum — $supName ko payment',
             createdBy:     userId,
             createdByName: userName,
+          );
+
+          // Supplier ledger payment entry — outstanding balance katega
+          await _ds.insertSupplierPaymentLedger(
+            warehouseId:   AppConfig.warehouseId,
+            supplierId:    state.selectedSupplier!.id,
+            poId:          _existingOrderId ?? '',
+            amount:        state.paidAmount,
+            notes:         'PO $poNum — $supName ko payment',
+            createdBy:     userId,
           );
         }
       }

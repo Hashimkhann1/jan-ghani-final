@@ -36,7 +36,6 @@ class WarehouseFinanceRepository {
   Future<WarehouseFinanceModel> getOrCreate() async {
     final conn = await _db;
 
-    // Pehle check karo row hai ya nahi
     final result = await conn.execute(
       Sql.named('''
         SELECT id, warehouse_id, cash_in_hand, updated_at
@@ -47,12 +46,10 @@ class WarehouseFinanceRepository {
       parameters: {'wid': _wid},
     );
 
-    // Row hai toh return karo
     if (result.isNotEmpty) {
       return WarehouseFinanceModel.fromMap(result.first.toColumnMap());
     }
 
-    // Row nahi hai toh banao
     final newResult = await conn.execute(
       Sql.named('''
         INSERT INTO warehouse_finance (id, warehouse_id, cash_in_hand)
@@ -72,38 +69,46 @@ class WarehouseFinanceRepository {
   // 2. Cash transactions list lo
   // ─────────────────────────────────────────────────────────
   Future<List<CashTransactionModel>> getTransactions({
-    String? entryType,   // filter by type
+    String? entryType,
     int     limit = 50,
   }) async {
     final conn = await _db;
 
+    // Sql.named() mein Dart interpolation nahi chalti —
+    // alag queries use karo filter ke liye
+    final sql = entryType != null
+        ? '''
+          SELECT
+            ct.id, ct.warehouse_id, ct.entry_type, ct.amount,
+            ct.cash_in_hand_before, ct.cash_in_hand_after,
+            ct.reference_id, ct.notes, ct.created_by,
+            ct.created_by_name, ct.created_at,
+            ct.sync_id, ct.is_synced, ct.synced_at
+          FROM warehouse_cash_transactions ct
+          WHERE ct.warehouse_id = @wid
+            AND ct.entry_type   = @entryType
+          ORDER BY ct.created_at DESC
+          LIMIT @limit
+        '''
+        : '''
+          SELECT
+            ct.id, ct.warehouse_id, ct.entry_type, ct.amount,
+            ct.cash_in_hand_before, ct.cash_in_hand_after,
+            ct.reference_id, ct.notes, ct.created_by,
+            ct.created_by_name, ct.created_at,
+            ct.sync_id, ct.is_synced, ct.synced_at
+          FROM warehouse_cash_transactions ct
+          WHERE ct.warehouse_id = @wid
+          ORDER BY ct.created_at DESC
+          LIMIT @limit
+        ''';
+
     final result = await conn.execute(
-      Sql.named('''
-        SELECT
-          ct.id,
-          ct.warehouse_id,
-          ct.entry_type,
-          ct.amount,
-          ct.cash_in_hand_before,
-          ct.cash_in_hand_after,
-          ct.reference_id,
-          ct.notes,
-          ct.created_by,
-          ct.created_by_name,
-          ct.created_at,
-          ct.sync_id,
-          ct.is_synced,
-          ct.synced_at
-        FROM warehouse_cash_transactions ct
-        WHERE ct.warehouse_id = @wid
-          ${entryType != null ? 'AND ct.entry_type = @entryType' : ''}
-        ORDER BY ct.created_at DESC
-        LIMIT @limit
-      '''),
+      Sql.named(sql),
       parameters: {
-        'wid':       _wid,
+        'wid':                                   _wid,
         if (entryType != null) 'entryType': entryType,
-        'limit':     limit,
+        'limit':                                 limit,
       },
     );
 
@@ -171,6 +176,71 @@ class WarehouseFinanceRepository {
   }
 
   // ─────────────────────────────────────────────────────────
+  // 5b. Supplier payment reverse karo (edit mein payment kam ki)
+  //
+  // Cash in hand NAHI badlega — paise ja chuke hain physically
+  // Sirf supplier_ledger mein 'adjustment' entry jaegi
+  // Supplier outstanding_balance barhega (trigger se automatic)
+  //
+  // Example: 1000 pay tha, edit mein 800 kiya
+  //   → reverseSupplierPayment(amount: 200)
+  //   → supplier outstanding += 200
+  // ─────────────────────────────────────────────────────────
+  Future<void> reverseSupplierPayment({
+    required double amount,       // kitna reverse karna hai (positive value)
+    required String supplierId,
+    String?         notes,
+    String?         createdBy,
+    String?         createdByName,
+  }) async {
+    final conn = await _db;
+
+    // Current outstanding balance fetch karo
+    final balResult = await conn.execute(
+      Sql.named(
+        'SELECT outstanding_balance FROM suppliers WHERE id = @supplierId',
+      ),
+      parameters: {'supplierId': supplierId},
+    );
+
+    final currentBalance = balResult.isNotEmpty
+        ? _toDouble(balResult.first.toColumnMap()['outstanding_balance'])
+        : 0.0;
+
+    // Balance barhega — supplier ko ab zyada dena hoga
+    final newBalance = currentBalance + amount;
+
+    await conn.execute(
+      Sql.named('''
+        INSERT INTO supplier_ledger (
+          warehouse_id,  supplier_id,
+          entry_type,    amount,
+          balance_before, balance_after,
+          notes,         created_by
+        ) VALUES (
+          @warehouseId,  @supplierId,
+          'adjustment',  @amount,
+          @balanceBefore, @balanceAfter,
+          @notes,        @createdBy
+        )
+      '''),
+      parameters: {
+        'warehouseId':   _wid,
+        'supplierId':    supplierId,
+        'amount':        amount,
+        'balanceBefore': currentBalance,
+        'balanceAfter':  newBalance,
+        'notes':         notes ??
+            'Payment correction — Rs ${amount.toStringAsFixed(0)} reverse',
+        'createdBy':     createdBy,
+      },
+    );
+    // Note: warehouse_cash_transactions mein kuch nahi insert hoga
+    // Cash physically ja chuka hai — sirf supplier ledger correction
+    // trg_supplier_balance trigger outstanding_balance auto update karega
+  }
+
+  // ─────────────────────────────────────────────────────────
   // 6. Expense entry karo
   // ─────────────────────────────────────────────────────────
   Future<CashTransactionModel> addExpenseEntry({
@@ -197,10 +267,8 @@ class WarehouseFinanceRepository {
     final conn = await _db;
 
     final results = await Future.wait([
-      // cash_in_hand
       getOrCreate(),
 
-      // Aaj ka in/out
       conn.execute(
         Sql.named('''
           SELECT
@@ -213,7 +281,6 @@ class WarehouseFinanceRepository {
         parameters: {'wid': _wid},
       ),
 
-      // Is mahine ka in/out
       conn.execute(
         Sql.named('''
           SELECT
@@ -226,7 +293,6 @@ class WarehouseFinanceRepository {
         parameters: {'wid': _wid},
       ),
 
-      // Total supplier due
       conn.execute(
         Sql.named('''
           SELECT COALESCE(SUM(outstanding_balance), 0) AS total_due
@@ -256,7 +322,6 @@ class WarehouseFinanceRepository {
 
   // ─────────────────────────────────────────────────────────
   // PRIVATE: Transaction insert karo
-  // balance_before/after calculate karke save karo
   // ─────────────────────────────────────────────────────────
   Future<CashTransactionModel> _insertTransaction({
     required String entryType,
@@ -268,17 +333,13 @@ class WarehouseFinanceRepository {
   }) async {
     final conn = await _db;
 
-    // 1. Current cash_in_hand lo
     final finance        = await getOrCreate();
     final balanceBefore  = finance.cashInHand;
 
-    // 2. Balance calculate karo
     final balanceAfter = entryType == 'cash_in'
         ? balanceBefore + amount
         : balanceBefore - amount;
 
-    // 3. Transaction insert karo
-    // Trigger automatically warehouse_finance.cash_in_hand update karega
     final result = await conn.execute(
       Sql.named('''
         INSERT INTO warehouse_cash_transactions (

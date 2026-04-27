@@ -255,7 +255,7 @@ class PurchaseOrderModel {
 
   /// Kya edit ho sakta hai — status ke hisaab se
   bool get canEdit =>
-      status == 'draft' || status == 'ordered' || status == 'partial';
+      status == 'draft' || status == 'ordered' || status == 'partial' || status == 'received';
 
   bool get canCancel =>
       status == 'draft' || status == 'ordered';

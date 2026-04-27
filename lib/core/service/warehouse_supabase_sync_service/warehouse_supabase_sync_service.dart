@@ -29,7 +29,7 @@ class WarehouseSupabaseSyncService {
   static const _dbUser     = 'warehouseuser';
   static const _dbPassword = 'warehouseUser123';
 
-  // ── Sare 19 Tables — Dependency order mein ───────────────
+  // ── Sare 20 Tables — Dependency order mein ───────────────
   static const _allTables = [
     // ── Level 1: Koi dependency nahi ──
     'warehouses',
@@ -67,6 +67,7 @@ class WarehouseSupabaseSyncService {
     // ── Level 9: audit / logs ──
     'product_audit_log',
     'warehouse_sync_log',
+    'po_audit_log',         // ← PO edit history (har create/update/delete)
   ];
 
   // ── Start ─────────────────────────────────────────────────
@@ -172,8 +173,6 @@ class WarehouseSupabaseSyncService {
   }
 
   // ── DEDICATED: warehouse_finance sync ────────────────────
-  // Trigger (fn_update_cash_in_hand) ne is_synced = false set kiya
-  // ab yeh method us row ko Supabase pe push karti hai
   Future<int> _syncWarehouseFinanceAfterTransactions(Connection conn) async {
     try {
       final result = await conn.execute(
@@ -212,8 +211,6 @@ class WarehouseSupabaseSyncService {
   }
 
   // ── DEDICATED: suppliers outstanding_balance sync ────────
-  // Trigger (fn_update_supplier_balance) ne is_synced = false set kiya
-  // ab yeh method us row ko Supabase pe push karti hai
   Future<int> _syncSuppliersAfterLedger(Connection conn) async {
     try {
       final result = await conn.execute(
