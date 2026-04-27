@@ -2,7 +2,6 @@
 // category_provider.dart
 // =============================================================
 
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import '../../data/model/category_model.dart';

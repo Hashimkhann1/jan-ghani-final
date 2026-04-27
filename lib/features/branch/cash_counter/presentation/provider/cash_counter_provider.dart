@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/datasource/cash_counter_remote_datasource.dart';
 import '../../data/model/cash_counter_model.dart';

@@ -14,7 +14,7 @@ import '../../data/model/sale_invoice_model.dart';
 import '../../data/model/sale_return_model.dart';
 import '../provider/sale_invoice_provider.dart';
 import '../provider/sale_return_provider.dart';
-import '../screen/sale_invoice_screen.dart' show payNowTriggerProvider, posCustomerFocusProvider, customerDropdownKeyProvider;
+import '../screen/sale_invoice_screen.dart' show payNowTriggerProvider, posCustomerFocusProvider, customerDropdownKeyProvider, saleTypeFocusProvider;
 import '../screen/return_payment_dialog.dart';
 import 'cart_row_widget.dart';
 import 'cart_summary_widget.dart';
@@ -22,6 +22,8 @@ import 'cart_table_header_widget.dart';
 import 'disable_text_field_widget.dart';
 import 'held_invoices_sheet.dart';
 import '../widget/payment_dialog.dart';
+
+String _fmtD(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
 
 class CartPanel extends ConsumerWidget {
   const CartPanel({super.key});
@@ -101,7 +103,7 @@ class CartPanel extends ConsumerWidget {
                 separatorBuilder: (_, __) =>
                 const SizedBox(height: 5),
                 itemBuilder: (context, index) =>
-                    CartItemRow(cartItem: state.cartItems[index]),
+                    CartItemRow(cartItem: state.cartItems[index], rowIndex: index),
               ),
             ),
           ])),
@@ -178,6 +180,7 @@ class InvoiceHeaderWidget extends ConsumerWidget {
           Expanded(
             flex: 2,
             child: SaleTypeDropdown(
+              focusNode: ref.read(saleTypeFocusProvider),
               value:     state.saleType,
               onChanged: (v) { if (v != null) notifier.setSaleType(v); },
             ),
@@ -497,8 +500,7 @@ class _ReturnBody extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           itemCount: returnState.cartItems.length,
           separatorBuilder: (_, __) => const SizedBox(height: 5),
-          itemBuilder: (_, i) =>
-              _ReturnItemRow(item: returnState.cartItems[i]),
+          itemBuilder: (_, i) => _ReturnItemRow(item: returnState.cartItems[i]),
         ),
       ),
     ]);
@@ -520,7 +522,7 @@ class _ReturnSummary extends ConsumerWidget {
         border: Border(top: BorderSide(color: AppColor.grey200)),
       ),
       child: Column(children: [
-        _RSR(label: 'Items',          value: '${returnState.totalItems}', isCount: true),
+        _RSR(label: 'Items', value: '${returnState.totalItems}', isCount: true),
         const SizedBox(height: 5),
         _RSR(label: 'Sub Total',      value: _fmt(returnState.totalBeforeTax)),
         _RSR(label: 'Total Discount', value: '-${_fmt(returnState.totalDiscount)}',
@@ -615,10 +617,8 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
   void initState() {
     super.initState();
     _qtyCtrl   = TextEditingController(text: _fmt(widget.item.quantity));
-    _priceCtrl = TextEditingController(
-        text: widget.item.returnPrice.toStringAsFixed(0));
-    _disCtrl   = TextEditingController(
-        text: widget.item.discountAmount.toStringAsFixed(0));
+    _priceCtrl = TextEditingController(text: _fmtD(widget.item.returnPrice));
+    _disCtrl   = TextEditingController(text: _fmtD(widget.item.discountAmount));
   }
 
   @override
@@ -628,9 +628,9 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
       final q = _fmt(widget.item.quantity);
       if (_qtyCtrl.text != q) _qtyCtrl.text = q;
     }
-    final p = widget.item.returnPrice.toStringAsFixed(0);
+    final p = _fmtD(widget.item.returnPrice);
     if (_priceCtrl.text != p) _priceCtrl.text = p;
-    final d = widget.item.discountAmount.toStringAsFixed(0);
+    final d = _fmtD(widget.item.discountAmount);
     if (_disCtrl.text != d) _disCtrl.text = d;
   }
 
@@ -712,7 +712,7 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
         )),
         Expanded(
           flex: 2,
-          child: Text('Rs ${item.subTotal.toStringAsFixed(0)}',
+          child: Text('Rs ${_fmtD(item.subTotal)}}',
               textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize:   13,

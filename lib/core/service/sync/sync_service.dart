@@ -1,20 +1,25 @@
+// lib/services/sync_service.dart
+
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'package:postgres/postgres.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:supabase/supabase.dart'; // ✅ Isolate ke liye — pure Dart
 
-
+// ─────────────────────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────────────────────
 class SyncConfig {
   // ── Local PostgreSQL ──────────────────────────────
-  static const String dbHost = 'localhost';
-  static const int    dbPort = 5432;
-  static const String dbName = 'store_db';
-  static const String dbUser = 'storeuser';
+  static const String dbHost     = '127.0.0.1'; // ✅ localhost nahi — Windows fix
+  static const int    dbPort     = 5432;
+  static const String dbName     = 'store_db';
+  static const String dbUser     = 'storeuser';
   static const String dbPassword = 'branchUser12C3';
 
-  static const String supabaseUrl = 'https://wwngqwvshtgbkfxdqpmt.supabase.co';
-  static const String supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqanRxZnJ1eGhqY3h3dnh3ZmZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTU1NzAsImV4cCI6MjA5MTg5MTU3MH0.qrX7xIQAEVP3Vp6E6aBxL0a18W3VF0p54YL8IHZQpZ0';
+  // ── Supabase ──────────────────────────────────────
+  static const String supabaseUrl = 'https://kjjtqfruxhjcxwvxwffz.supabase.co';
+  static const String supabaseKey = 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS';
 
   static const int syncIntervalSeconds = 120;
 
@@ -38,39 +43,47 @@ class SyncConfig {
   ];
 
   static const Map<String, String> timestampColumns = {
-    'sale_invoice_items': 'created_at',
+    'sale_invoice_items'    : 'created_at',
+    'sale_invoice_payments' : 'created_at',
+    'sale_return_payments'  : 'created_at',
+    'sale_return_items'     : 'created_at',
   };
 
   static String getTimestampColumn(String table) =>
       timestampColumns[table] ?? 'updated_at';
+
+  static const Map<String, String> conflictColumns = {};
+
+  static String getConflictColumn(String table) =>
+      conflictColumns[table] ?? 'id';
 }
 
 // ─────────────────────────────────────────────────
 //  SYNC STATUS MODEL
 // ─────────────────────────────────────────────────
 class SyncStatus {
-  final bool isSyncing;
-  final bool hasInternet;
-  final DateTime? lastSyncTime;
-  final int totalSynced;
-  final String? lastError;
+  final bool                isSyncing;
+  final bool                hasInternet;
+  final DateTime?           lastSyncTime;
+  final int                 totalSynced;
+  final String?             lastError;
   final Map<String, String> tableStatus;
 
   SyncStatus({
-    this.isSyncing   = false,
-    this.hasInternet = false,
+    this.isSyncing    = false,
+    this.hasInternet  = false,
     this.lastSyncTime,
-    this.totalSynced = 0,
+    this.totalSynced  = 0,
     this.lastError,
-    this.tableStatus = const {},
+    this.tableStatus  = const {},
   });
 
   SyncStatus copyWith({
-    bool? isSyncing,
-    bool? hasInternet,
-    DateTime? lastSyncTime,
-    int? totalSynced,
-    String? lastError,
+    bool?                isSyncing,
+    bool?                hasInternet,
+    DateTime?            lastSyncTime,
+    int?                 totalSynced,
+    String?              lastError,
     Map<String, String>? tableStatus,
   }) =>
       SyncStatus(
@@ -84,7 +97,7 @@ class SyncStatus {
 }
 
 // ─────────────────────────────────────────────────
-//  ISOLATE ARGS — sendPort + config ek saath pass
+//  ISOLATE ARGS
 // ─────────────────────────────────────────────────
 class _IsolateArgs {
   final SendPort sendPort;
@@ -106,22 +119,36 @@ class SyncService {
   factory SyncService() => _instance;
   SyncService._internal();
 
-  Isolate?      _isolate;
-  ReceivePort?  _receivePort;
-  Timer?        _syncTimer;
-  bool          _isRunning = false;
+  Isolate?     _isolate;
+  ReceivePort? _receivePort;
+  Timer?       _syncTimer;
+  Timer?       _monitorTimer;
+  bool         _isRunning = false;
 
   final StreamController<SyncStatus> _statusController =
   StreamController<SyncStatus>.broadcast();
 
-  Stream<SyncStatus> get statusStream  => _statusController.stream;
+  Stream<SyncStatus> get statusStream => _statusController.stream;
   SyncStatus _currentStatus = SyncStatus();
-  SyncStatus get currentStatus         => _currentStatus;
+  SyncStatus get currentStatus => _currentStatus;
 
   // ── Start ─────────────────────────────────────
   Future<void> start() async {
     if (_isRunning) return;
     _isRunning = true;
+
+    // ✅ Windows par isolate ke unhandled errors catch karo
+    final errorPort = RawReceivePort((pair) {
+      final error = (pair as List)[0];
+      final stack = (pair as List)[1];
+      print('🔴 Isolate uncaught error: $error');
+      print('🔴 Stack: $stack');
+      _updateStatus(_currentStatus.copyWith(
+        isSyncing: false,
+        lastError: error.toString(),
+      ));
+    });
+    Isolate.current.addErrorListener(errorPort.sendPort);
 
     print('╔══════════════════════════════════════╗');
     print('║   🏪 Store DB Sync Service Start      ║');
@@ -139,20 +166,40 @@ class SyncService {
   // ── Stop ──────────────────────────────────────
   void stop() {
     _syncTimer?.cancel();
-    _isolate?.kill();
-    _isRunning = false;
+    _monitorTimer?.cancel();
+    _isolate?.kill(priority: Isolate.immediate);
+    _receivePort?.close();
+    _isolate     = null;
+    _receivePort = null;
+    _isRunning   = false;
     print('🛑 Sync service band ho gayi');
   }
 
-  // ── Internet Monitor ──────────────────────────
+  // ── Internet Check ────────────────────────────
+  // dart:io use karta hai — Linux/Windows/Mac sab par safe
+  // connectivity_plus Linux par crash karta hai isliye yeh approach
+  static Future<bool> _hasInternet() async {
+    try {
+      final result = await InternetAddress.lookup('supabase.co')
+          .timeout(const Duration(seconds: 5));
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Internet Monitor (polling every 15s) ──────
   void _monitorInternet() {
-    Connectivity().onConnectivityChanged.listen((results) {
-      final hasNet = results.any((r) => r != ConnectivityResult.none);
+    _monitorTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      final hasNet = await _hasInternet();
+      final wasNet = _currentStatus.hasInternet;
+
       _updateStatus(_currentStatus.copyWith(hasInternet: hasNet));
-      if (hasNet) {
+
+      if (hasNet && !wasNet) {
         print('🌐 Internet aa gaya — Sync shuru...');
         _runSync();
-      } else {
+      } else if (!hasNet && wasNet) {
         print('📵 Internet chala gaya');
       }
     });
@@ -160,8 +207,12 @@ class SyncService {
 
   // ── Run Sync ──────────────────────────────────
   Future<void> _runSync() async {
-    final connectivity = await Connectivity().checkConnectivity();
-    final hasNet = connectivity.any((r) => r != ConnectivityResult.none);
+    if (_currentStatus.isSyncing) {
+      print('⏳ Sync pehle se chal rahi hai — skip');
+      return;
+    }
+
+    final hasNet = await _hasInternet();
 
     if (!hasNet) {
       print('📵 Internet nahi — sync skip');
@@ -169,12 +220,17 @@ class SyncService {
       return;
     }
 
-    _updateStatus(_currentStatus.copyWith(isSyncing: true, hasInternet: true));
+    _updateStatus(_currentStatus.copyWith(
+      isSyncing:   true,
+      hasInternet: true,
+    ));
 
+    // Purana isolate/port clean up
+    _isolate?.kill(priority: Isolate.immediate);
+    _receivePort?.close();
     _receivePort = ReceivePort();
 
     try {
-      // ✅ URL + Key isolate ko args mein pass karo
       _isolate = await Isolate.spawn(
         _syncIsolate,
         _IsolateArgs(
@@ -182,6 +238,7 @@ class SyncService {
           supabaseUrl: SyncConfig.supabaseUrl,
           supabaseKey: SyncConfig.supabaseKey,
         ),
+        errorsAreFatal: false, // ✅ Error par isolate band nahi hoga
         debugName: 'StoreSyncIsolate',
       );
 
@@ -191,11 +248,12 @@ class SyncService {
         }
         if (message == 'DONE') {
           _receivePort!.close();
+          _receivePort = null;
           break;
         }
       }
     } catch (e) {
-      print('❌ Isolate error: $e');
+      print('❌ Isolate spawn error: $e');
       _updateStatus(_currentStatus.copyWith(
         isSyncing: false,
         lastError: e.toString(),
@@ -211,7 +269,7 @@ class SyncService {
         final table  = msg['table'] as String;
         final count  = msg['count'] as int;
         final newMap = Map<String, String>.from(_currentStatus.tableStatus);
-        newMap[table] = 'ok';
+        newMap[table] = 'ok ($count)';
         _updateStatus(_currentStatus.copyWith(
           tableStatus: newMap,
           totalSynced: _currentStatus.totalSynced + count,
@@ -225,7 +283,7 @@ class SyncService {
         newMap[table] = 'error';
         _updateStatus(_currentStatus.copyWith(
           tableStatus: newMap,
-          lastError:   error,
+          lastError:   '[$table] $error',
         ));
         break;
 
@@ -233,6 +291,7 @@ class SyncService {
         _updateStatus(_currentStatus.copyWith(
           isSyncing:    false,
           lastSyncTime: DateTime.now(),
+          lastError:    null,
         ));
         break;
     }
@@ -240,28 +299,33 @@ class SyncService {
 
   void _updateStatus(SyncStatus status) {
     _currentStatus = status;
-    _statusController.add(status);
+    if (!_statusController.isClosed) {
+      _statusController.add(status);
+    }
   }
 
   // ═══════════════════════════════════════════════
   //  🏭 ISOLATE — Background Thread
+  //  ✅ Yahan sirf 'supabase' (pure Dart) use hoga
+  //  ✅ 'supabase_flutter' yahan kabhi nahi aayega
   // ═══════════════════════════════════════════════
   static Future<void> _syncIsolate(_IsolateArgs args) async {
     final sendPort = args.sendPort;
     final now      = DateTime.now();
 
-    print('\n${'═' * 50}');
-    print('  🕐 Sync: ${now.hour}:${now.minute}:${now.second}');
-    print('${'═' * 50}');
+    print('\n${"═" * 50}');
+    print('  🕐 Sync shuru: ${now.hour}:${now.minute.toString().padLeft(2, "0")}:${now.second.toString().padLeft(2, "0")}');
+    print('${"═" * 50}');
 
     Connection?     localConn;
     SupabaseClient? supabase;
 
     try {
-      // ── Local PostgreSQL ──────────────────────
+      // ── Local PostgreSQL connect ──────────────
+      print('  🔌 Local PostgreSQL se connect ho raha hai...');
       localConn = await Connection.open(
         Endpoint(
-          host:     SyncConfig.dbHost,
+          host:     '127.0.0.1', // ✅ Windows par localhost ki jagah
           port:     SyncConfig.dbPort,
           database: SyncConfig.dbName,
           username: SyncConfig.dbUser,
@@ -269,35 +333,53 @@ class SyncService {
         ),
         settings: ConnectionSettings(sslMode: SslMode.disable),
       );
+      print('  ✅ Local DB connected');
 
-      // ✅ Direct SupabaseClient — NO initialize(), NO Flutter binding
-      supabase = SupabaseClient(args.supabaseUrl, args.supabaseKey);
+      // ── Supabase connect ──────────────────────
+      // ✅ package:supabase/supabase.dart — pure Dart
+      // ✅ Isolate mein safe — platform channels nahi use karta
+      print('  🔌 Supabase se connect ho raha hai...');
+      supabase = SupabaseClient(
+        args.supabaseUrl,
+        args.supabaseKey,
+        authOptions: const AuthClientOptions(
+          autoRefreshToken: false, // ✅ Isolate mein background timer issue se bachao
+        ),
+      );
+      print('  ✅ Supabase client ready');
 
       // ── Tables Sync ───────────────────────────
       for (final table in SyncConfig.tables) {
-        final count = await _syncTable(localConn, supabase, table, sendPort);
+        final count = await _syncTable(
+          localConn,
+          supabase,
+          table,
+          sendPort,
+        );
         print(count > 0
             ? '   🔄 $table: $count records sync hue!'
             : '   ✅ $table: Sab sync hai');
       }
 
       sendPort.send({'type': 'sync_complete'});
-      print('${'─' * 50}');
+      print('${"─" * 50}');
       print('  ✅ Sync Complete!');
+      print('${"═" * 50}\n');
 
-    } catch (e) {
-      print('  ❌ Connection Error: $e');
+    } catch (e, stack) {
+      print('  ❌ Connection/Sync Error: $e');
+      print('  Stack: $stack');
       sendPort.send({
         'type':  'table_error',
         'table': 'connection',
         'error': e.toString(),
       });
     } finally {
+      // ✅ finally mein rakha — error ho ya na ho DONE hamesha jayega
       await localConn?.close();
-      supabase?.dispose(); // ✅ cleanup
+      supabase?.dispose();
+      sendPort.send('DONE');
     }
-
-    sendPort.send('DONE');
   }
 
   // ─────────────────────────────────────────────
@@ -310,9 +392,10 @@ class SyncService {
       SendPort       sendPort,
       ) async {
     try {
-      final tsCol = SyncConfig.getTimestampColumn(tableName);
+      final tsCol       = SyncConfig.getTimestampColumn(tableName);
+      final conflictCol = SyncConfig.getConflictColumn(tableName);
 
-      // Supabase mein last record ka timestamp lo
+      // ── Supabase mein last timestamp lo ───────
       String? lastSync;
       try {
         final result = await supabase
@@ -323,18 +406,24 @@ class SyncService {
 
         if (result.isNotEmpty && result[0][tsCol] != null) {
           lastSync = result[0][tsCol].toString();
+          print('   📅 $tableName — last sync: $lastSync');
+        } else {
+          print('   📅 $tableName — Supabase empty, full sync karega');
         }
-      } catch (_) {
+      } catch (e) {
+        print('   ⚠️  $tableName lastSync fetch failed: $e');
         lastSync = null;
       }
 
-      // Local se naye records lo
+      // ── Local se rows lo ──────────────────────
       List<Map<String, dynamic>> rows;
 
       if (lastSync != null) {
         final result = await localConn.execute(
           Sql.named(
-            'SELECT * FROM "$tableName" WHERE "$tsCol" > @lastSync ORDER BY "$tsCol" ASC',
+            'SELECT * FROM "$tableName" '
+                'WHERE "$tsCol" > @lastSync::timestamptz '
+                'ORDER BY "$tsCol" ASC',
           ),
           parameters: {'lastSync': lastSync},
         );
@@ -346,38 +435,72 @@ class SyncService {
         rows = result.map((r) => _convertRow(r.toColumnMap())).toList();
       }
 
+      print('   📦 $tableName: ${rows.length} rows local se mile');
+
       if (rows.isEmpty) return 0;
 
-      // Batch upsert
+      // ── Batch upsert ──────────────────────────
       const batchSize = 50;
-      int total = 0;
+      int total       = 0;
 
       for (int i = 0; i < rows.length; i += batchSize) {
-        final batch = rows.sublist(
-          i,
-          (i + batchSize) > rows.length ? rows.length : i + batchSize,
-        );
-        await supabase.from(tableName).upsert(batch, onConflict: 'id');
-        total += batch.length;
+        final end   = (i + batchSize) > rows.length ? rows.length : i + batchSize;
+        final batch = rows.sublist(i, end);
+
+        try {
+          await supabase
+              .from(tableName)
+              .upsert(batch, onConflict: conflictCol);
+          total += batch.length;
+        } catch (batchErr) {
+          print('   ⚠️  $tableName batch fail, row-by-row try: $batchErr');
+          for (final row in batch) {
+            try {
+              await supabase
+                  .from(tableName)
+                  .upsert(row, onConflict: conflictCol);
+              total++;
+            } catch (rowErr) {
+              print('   ❌ $tableName row skip: $rowErr');
+              print('      Row: $row');
+            }
+          }
+        }
       }
 
-      sendPort.send({'type': 'table_success', 'table': tableName, 'count': total});
+      sendPort.send({
+        'type':  'table_success',
+        'table': tableName,
+        'count': total,
+      });
       return total;
 
-    } catch (e) {
-      sendPort.send({'type': 'table_error', 'table': tableName, 'error': e.toString()});
+    } catch (e, stack) {
+      print('   ❌ $tableName sync error: $e');
+      print('      Stack: $stack');
+      sendPort.send({
+        'type':  'table_error',
+        'table': tableName,
+        'error': e.toString(),
+      });
       return 0;
     }
   }
 
   // ─────────────────────────────────────────────
-  //  🔧 Row Convert
+  //  🔧 Row Convert — Type-safe
   // ─────────────────────────────────────────────
   static Map<String, dynamic> _convertRow(Map<String, dynamic> row) {
     return row.map((key, value) {
-      if (value is DateTime) return MapEntry(key, value.toIso8601String());
       if (value == null)     return MapEntry(key, null);
-      return MapEntry(key, value.toString() == value ? value : value.toString());
+      if (value is DateTime) return MapEntry(key, value.toUtc().toIso8601String());
+      if (value is int)      return MapEntry(key, value);
+      if (value is double)   return MapEntry(key, value);
+      if (value is bool)     return MapEntry(key, value);
+      if (value is String)   return MapEntry(key, value);
+      if (value is List)     return MapEntry(key, value);
+      if (value is Map)      return MapEntry(key, value);
+      return MapEntry(key, value.toString());
     });
   }
 

@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../data/datasources/accountant_auth_local_datasource.dart';
 import '../../data/datasources/accountant_auth_remote_datasource.dart';
 import '../../data/repositories/accountant_auth_repository_impl.dart';

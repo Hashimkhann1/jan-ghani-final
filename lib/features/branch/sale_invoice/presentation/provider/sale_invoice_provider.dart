@@ -1,8 +1,4 @@
-// lib/features/sale_invoice/presentation/provider/sale_invoice_provider.dart
-// ── MODIFIED: hold/resume support added ──────────────────────
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:jan_ghani_final/features/branch/dashboard/presentation/provider/dashboard_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';

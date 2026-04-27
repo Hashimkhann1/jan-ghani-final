@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/datasource/store_summary_datasource.dart';
 import '../../data/model/store_summary_model.dart';

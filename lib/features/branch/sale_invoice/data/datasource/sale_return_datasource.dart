@@ -34,7 +34,7 @@ class SaleReturnDatasource {
 
     await conn.runTx((tx) async {
 
-      // 1. Insert sale_return
+      // 1. Insert sale_return header
       final result = await tx.execute(
         Sql.named('''
         INSERT INTO public.sale_returns (
@@ -64,7 +64,11 @@ class SaleReturnDatasource {
 
       returnId = result.first.toColumnMap()['id'].toString();
 
-      // 2. Insert items + stock wapas add karo
+      // 2. Insert items
+      // ⚠️ IMPORTANT: Stock update sirf ek jagah honi chahiye
+      // Agar aapke DB mein sale_return_items pe trigger hai jo stock update karta hai
+      // to neeche wala explicit UPDATE block karo (comment out rakho)
+      // Agar trigger NAHI hai to explicit UPDATE rakho
       for (final item in items) {
 
         // Return item insert
@@ -94,22 +98,9 @@ class SaleReturnDatasource {
           },
         );
 
-        // ✅ Branch stock wapas add karo
-        await tx.execute(
-          Sql.named('''
-          UPDATE public.branch_stock_inventory
-          SET
-            stock      = stock + @qty,
-            updated_at = NOW()
-          WHERE store_id   = @storeId
-            AND product_id = @productId
-        '''),
-          parameters: {
-            'qty':       item.quantity,
-            'storeId':   storeId,
-            'productId': item.product.productId,
-          },
-        );
+        // ✅ Stock update yahan NAHI — DB trigger handle karta hai
+        // trg_return_item_inventory → fn_return_item_inventory()
+        // INSERT hote hi automatically stock + qty ho jaata hai
       }
 
       // 3. Payments insert

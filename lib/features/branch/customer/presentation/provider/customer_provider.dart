@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/model/customer_model.dart';
 import '../../data/repository/customer_repository_impl.dart';

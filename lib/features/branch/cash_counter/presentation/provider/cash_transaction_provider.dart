@@ -1,6 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
-// import 'package:jan_ghani_final/config/store_config.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import 'cash_counter_provider.dart';
 import '../../data/datasource/cash_transaction_remote_datasource.dart';

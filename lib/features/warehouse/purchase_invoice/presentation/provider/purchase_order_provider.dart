@@ -1,8 +1,7 @@
 // =============================================================
 // purchase_order_provider.dart  — UPDATED (real DB)
 // =============================================================
-
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/datasource/purchase_order_remote_datasource.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/domain/purchase_order_model.dart';

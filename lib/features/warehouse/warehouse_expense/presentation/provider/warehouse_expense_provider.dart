@@ -4,7 +4,6 @@
 // =============================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/data/warehouse_expense_repository.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/domain/warehouse_expense_model.dart';
 

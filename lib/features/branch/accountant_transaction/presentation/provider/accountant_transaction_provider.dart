@@ -1,67 +1,121 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/datasource/accountant_transaction_datasource.dart';
-import '../../data/model/account_transaction_model.dart';
-import '../../data/model/accountant_user_model.dart';
+import '../../data/repository/accountant_repository_impl.dart';
+import '../../domain/entity/accountant_transaction_entity.dart';
+import '../../domain/entity/accountant_user_entity.dart';
+import '../../domain/repository/i_accountant_repository.dart';
+import '../../domain/usecase/accountant_usecases.dart';
 
-// ── Infrastructure ──────────────────────────────────────────────────────────
-final accountantDataSourceProvider = Provider<AccountantDataSource>((ref) => AccountantDataSource(Supabase.instance.client),);
+// ── DI ────────────────────────────────────────────────────────────────────────
 
-// ── Branch Today Total Amount (local DB) ────────────────────────────────────
-final branchTotalAmountProvider = FutureProvider.family<double, String>((ref, branchId) async {
-  return ref.read(accountantDataSourceProvider).getBranchTotalAmount(branchId);
+final _dataSourceProvider = Provider<AccountantDataSource>((ref) => AccountantDataSource(Supabase.instance.client),
+);
+
+final accountantRepositoryProvider = Provider<IAccountantRepository>(
+      (ref) => AccountantRepositoryImpl(ref.read(_dataSourceProvider)),
+);
+
+// ── Use case providers ────────────────────────────────────────────────────────
+
+final _getBranchTotalUseCaseProvider =
+Provider((ref) => GetBranchTotalAmountUseCase(
+  ref.read(accountantRepositoryProvider),
+));
+
+final _getAccountantsUseCaseProvider =
+Provider((ref) => GetActiveAccountantsUseCase(
+  ref.read(accountantRepositoryProvider),
+));
+
+final _getTransactionsUseCaseProvider =
+Provider((ref) => GetTransactionsUseCase(
+  ref.read(accountantRepositoryProvider),
+));
+
+final _cashOutUseCaseProvider = Provider(
+      (ref) => CashOutUseCase(ref.read(accountantRepositoryProvider)),
+);
+
+final _cashInUseCaseProvider = Provider(
+      (ref) => CashInUseCase(ref.read(accountantRepositoryProvider)),
+);
+
+final _syncUseCaseProvider = Provider(
+      (ref) => SyncPendingTransactionsUseCase(
+      ref.read(accountantRepositoryProvider)),
+);
+
+// ── Simple FutureProviders ────────────────────────────────────────────────────
+
+final branchTotalAmountProvider =
+FutureProvider.family<double, String>((ref, branchId) async {
+  return ref.read(_getBranchTotalUseCaseProvider).call(branchId);
 });
 
-// ── Active Accountants List ─────────────────────────────────────────────────
 final accountantsProvider =
-FutureProvider<List<AccountantUserModel>>((ref) async {
-  return ref.read(accountantDataSourceProvider).getActiveAccountants();
+FutureProvider<List<AccountantUserEntity>>((ref) async {
+  return ref.read(_getAccountantsUseCaseProvider).call();
 });
 
-// ── State ───────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
+
 class AccountantTransactionState {
-  final List<AccountantTransactionModel> transactions;
-  final bool    isLoading;
+  final List<AccountantTransactionEntity> transactions;
+  final bool isLoading;
   final String? error;
 
   const AccountantTransactionState({
     this.transactions = const [],
-    this.isLoading    = false,
+    this.isLoading = false,
     this.error,
   });
 
-  double get totalCashIn  =>
+  double get totalCashIn =>
       transactions.where((t) => t.isCashIn).fold(0, (s, t) => s + t.amount);
   double get totalCashOut =>
       transactions.where((t) => !t.isCashIn).fold(0, (s, t) => s + t.amount);
 
   AccountantTransactionState copyWith({
-    List<AccountantTransactionModel>? transactions,
-    bool?   isLoading,
+    List<AccountantTransactionEntity>? transactions,
+    bool? isLoading,
     String? error,
   }) =>
       AccountantTransactionState(
         transactions: transactions ?? this.transactions,
-        isLoading:    isLoading    ?? this.isLoading,
-        error:        error,
+        isLoading: isLoading ?? this.isLoading,
+        error: error,
       );
 }
 
-// ── Notifier ─────────────────────────────────────────────────────────────────
-class AccountantTransactionNotifier extends StateNotifier<AccountantTransactionState> {
-  final AccountantDataSource _ds;
+// ── Notifier ──────────────────────────────────────────────────────────────────
+
+class AccountantTransactionNotifier
+    extends StateNotifier<AccountantTransactionState> {
+  final GetTransactionsUseCase _getTransactions;
+  final CashOutUseCase _cashOut;
+  final CashInUseCase _cashIn;
+  final SyncPendingTransactionsUseCase _sync;
   final String branchId;
 
-  AccountantTransactionNotifier(this._ds, this.branchId)
-      : super(const AccountantTransactionState()) {
+  AccountantTransactionNotifier({
+    required this.branchId,
+    required GetTransactionsUseCase getTransactions,
+    required CashOutUseCase cashOut,
+    required CashInUseCase cashIn,
+    required SyncPendingTransactionsUseCase sync,
+  })  : _getTransactions = getTransactions,
+        _cashOut = cashOut,
+        _cashIn = cashIn,
+        _sync = sync,
+        super(const AccountantTransactionState()) {
     load();
   }
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final list = await _ds.getTransactions(branchId);
+      final list = await _getTransactions(branchId);
       state = state.copyWith(transactions: list, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Load error: $e');
@@ -77,7 +131,7 @@ class AccountantTransactionNotifier extends StateNotifier<AccountantTransactionS
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final tx = await _ds.cashOut(
+      final tx = await _cashOut(CashParams(
         accountantId:    accountantId,
         accountantName:  accountantName,
         branchId:        branchId,
@@ -85,10 +139,10 @@ class AccountantTransactionNotifier extends StateNotifier<AccountantTransactionS
         previousAmount:  branchCurrentBalance,
         remainingAmount: branchCurrentBalance - amount,
         description:     description,
-      );
+      ));
       state = state.copyWith(
         transactions: [tx, ...state.transactions],
-        isLoading:    false,
+        isLoading: false,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Cash out fail: $e');
@@ -105,7 +159,7 @@ class AccountantTransactionNotifier extends StateNotifier<AccountantTransactionS
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final tx = await _ds.cashIn(
+      final tx = await _cashIn(CashParams(
         accountantId:    accountantId,
         accountantName:  accountantName,
         branchId:        branchId,
@@ -113,10 +167,10 @@ class AccountantTransactionNotifier extends StateNotifier<AccountantTransactionS
         previousAmount:  branchCurrentBalance,
         remainingAmount: branchCurrentBalance + amount,
         description:     description,
-      );
+      ));
       state = state.copyWith(
         transactions: [tx, ...state.transactions],
-        isLoading:    false,
+        isLoading: false,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Cash in fail: $e');
@@ -126,21 +180,25 @@ class AccountantTransactionNotifier extends StateNotifier<AccountantTransactionS
 
   Future<void> syncIfOnline() async {
     try {
-      await _ds.syncPendingTransactions();
-      await load(); // list refresh karo
+      await _sync();
+      await load();
     } catch (e) {
       print('Sync skip: $e');
     }
   }
 }
 
-// ── Provider Family ───────────────────────────────────────────────────────────
-final accountantTransactionProvider = StateNotifierProvider.family
-<AccountantTransactionNotifier,
+// ── Provider family ───────────────────────────────────────────────────────────
+
+final accountantTransactionProvider = StateNotifierProvider.family<
+    AccountantTransactionNotifier,
     AccountantTransactionState,
     String>(
       (ref, branchId) => AccountantTransactionNotifier(
-    ref.read(accountantDataSourceProvider),
-    branchId,
+    branchId:        branchId,
+    getTransactions: ref.read(_getTransactionsUseCaseProvider),
+    cashOut:         ref.read(_cashOutUseCaseProvider),
+    cashIn:          ref.read(_cashInUseCaseProvider),
+    sync:            ref.read(_syncUseCaseProvider),
   ),
 );

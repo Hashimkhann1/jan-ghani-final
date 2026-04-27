@@ -1,4 +1,5 @@
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../../core/service/session/accountant_session.dart';
 import '../../domain/usecases/login_accountant_usecase.dart';
 import '../../domain/usecases/save_session_usecase.dart';

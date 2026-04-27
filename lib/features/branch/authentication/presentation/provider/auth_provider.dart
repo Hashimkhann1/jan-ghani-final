@@ -1,4 +1,5 @@
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../../core/service/session/session_service.dart';
 import '../../../store_user/data/model/user_model.dart';
 import '../../data/datasource/auth_remote_datasource.dart';

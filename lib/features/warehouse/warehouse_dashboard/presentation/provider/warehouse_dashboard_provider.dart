@@ -1,4 +1,5 @@
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/warehouse_dashboard_models.dart';
 import '../../data/warehouse_dashboard_remote_datasource.dart';
 import '../../data/warehouse_dashboard_dummy_data.dart';

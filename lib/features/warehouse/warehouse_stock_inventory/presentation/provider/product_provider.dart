@@ -6,7 +6,6 @@
 // =============================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import '../../data/datasource/product_remote_datasource.dart';

@@ -57,7 +57,10 @@ class SaleInvoiceDatasource {
 
       invoiceId = result.first.toColumnMap()['id'].toString();
 
-      // ── 2. Items insert + stock deduct ─────────────────
+      // ── 2. Items insert ────────────────────────────────
+      // NOTE: Stock deduction DB trigger (fn_sale_item_inventory)
+      //       automatically handles inventory update on INSERT.
+      //       Manual UPDATE yahan nahi karna — double deduction hoga.
       for (final item in items) {
         await tx.execute(
           Sql.named('''
@@ -82,22 +85,6 @@ class SaleInvoiceDatasource {
             'subtotal':    item.salePrice * item.quantity,
             'discount':    item.discountAmount,
             'totalAmount': item.subTotal,
-          },
-        );
-
-        await tx.execute(
-          Sql.named('''
-            UPDATE public.branch_stock_inventory
-            SET
-              stock      = GREATEST(stock - @qty, 0),
-              updated_at = NOW()
-            WHERE store_id   = @storeId
-              AND product_id = @productId
-          '''),
-          parameters: {
-            'qty':       item.quantity,
-            'storeId':   storeId,
-            'productId': item.product.productId,
           },
         );
       }

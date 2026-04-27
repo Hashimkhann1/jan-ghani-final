@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/datasource/sale_invoice_list_datasource.dart';
 import '../../data/model/sale_invoice_list_model.dart';

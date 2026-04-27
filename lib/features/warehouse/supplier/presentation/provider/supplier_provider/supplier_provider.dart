@@ -3,7 +3,6 @@
 // =============================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/data/supplier_repository.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 

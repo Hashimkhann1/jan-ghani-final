@@ -1,7 +1,4 @@
-// lib/features/branch/sale_invoice/presentation/provider/sale_return_provider.dart
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:uuid/uuid.dart';

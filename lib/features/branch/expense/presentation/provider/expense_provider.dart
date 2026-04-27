@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import '../../../cash_store/presentation/provider/store_summary_provider.dart';
 import '../../data/model/expense_model.dart';
