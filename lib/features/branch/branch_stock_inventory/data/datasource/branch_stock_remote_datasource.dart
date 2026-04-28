@@ -1,4 +1,3 @@
-
 import 'package:postgres/postgres.dart';
 import '../../../../../core/service/db/db_service.dart';
 import '../model/branch_stock_model.dart';
@@ -44,21 +43,18 @@ class BranchStockDataSource {
   }
 
   // ── Inventory screen ke liye: paginated + server-side search/filter ──
-  // DB pe sirf zarori rows — 10k products hone pe bhi fast
   Future<({List<BranchStockModel> rows, int totalCount})> getPaginated({
     required String storeId,
-    required int    page,        // 0-based
+    required int    page,
     required int    pageSize,
-    String          search      = '',
-    String          filterStatus = 'all', // all | in_stock | low_stock | out_of_stock
+    String          search       = '',
+    String          filterStatus = 'all',
   }) async {
     final conn = await DataBaseService.getConnection();
 
-    // ── WHERE conditions build karo ─────────────────────────
     final conditions = <String>['store_id = @storeId'];
     final params     = <String, dynamic>{'storeId': storeId};
 
-    // Search — name, SKU, barcode
     if (search.trim().isNotEmpty) {
       conditions.add('''
         (
@@ -70,26 +66,25 @@ class BranchStockDataSource {
       params['search'] = '%${search.trim().toLowerCase()}%';
     }
 
-    // Stock filter — reorder_point se compare karo
     if (filterStatus == 'in_stock') {
-      conditions.add('stock > reorder_point');
+      conditions.add('stock > min_stock');
     } else if (filterStatus == 'low_stock') {
-      conditions.add('stock <= reorder_point AND stock > 0');
+      conditions.add('stock <= min_stock AND stock > 0');
     } else if (filterStatus == 'out_of_stock') {
       conditions.add('stock <= 0');
     }
 
     final whereClause = conditions.join(' AND ');
 
-    // ── Total count (pagination ke liye) ────────────────────
     final countResult = await conn.execute(
-      Sql.named('SELECT COUNT(*) FROM public.branch_stock_inventory WHERE $whereClause'),
+      Sql.named(
+          'SELECT COUNT(*) FROM public.branch_stock_inventory WHERE $whereClause'),
       parameters: params,
     );
     final totalCount = int.tryParse(
-        countResult.first.toColumnMap().values.first.toString()) ?? 0;
+        countResult.first.toColumnMap().values.first.toString()) ??
+        0;
 
-    // ── Paginated rows ───────────────────────────────────────
     params['limit']  = pageSize;
     params['offset'] = page * pageSize;
 
@@ -133,6 +128,54 @@ class BranchStockDataSource {
     );
   }
 
+  // ── Product Update ──────────────────────────────────────────────
+  Future<void> updateProduct(BranchStockInventory p) async {
+    final conn = await DataBaseService.getConnection();
+    await conn.execute(
+      Sql.named('''
+        UPDATE public.branch_stock_inventory SET
+          product_name    = @productName,
+          sku             = @sku,
+          barcode         = @barcode,
+          purchase_price  = @purchasePrice,
+          sale_price      = @salePrice,
+          wholesale_price = @wholesalePrice,
+          stock           = @stock,
+          min_stock       = @minStock,
+          max_stock       = @maxStock,
+          unit            = @unit,
+          updated_at      = @updatedAt
+        WHERE id = @id AND store_id = @storeId
+      '''),
+      parameters: {
+        'id':             p.id,
+        'storeId':        p.storeId,
+        'productName':    p.productName,
+        'sku':            p.sku,
+        'barcode':        p.barcode,
+        'purchasePrice':  p.purchasePrice,
+        'salePrice':      p.salePrice,
+        'wholesalePrice': p.wholesalePrice,
+        'stock':          p.stock,
+        'minStock':       p.minStock,
+        'maxStock':       p.maxStock,
+        'unit':           p.unit,
+        'updatedAt':      DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
+  // ── Product Delete ──────────────────────────────────────────────
+  Future<void> deleteProduct(String id) async {
+    final conn = await DataBaseService.getConnection();
+    await conn.execute(
+      Sql.named(
+          'DELETE FROM public.branch_stock_inventory WHERE id = @id'),
+      parameters: {'id': id},
+    );
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────
   String? parseBarcode(dynamic value) {
     if (value == null) return null;
     return value.toString().replaceAll('{', '').replaceAll('}', '');
@@ -169,21 +212,21 @@ class BranchStockDataSource {
   }
 }
 
-// ── BranchStockInventory model (unchanged) ─────────────────────────
+// ── BranchStockInventory model ──────────────────────────────────────
 class BranchStockInventory {
-  final String?        id;
-  final String         storeId;
-  final String         productId;
-  final List<String>   barcode;
-  final String         sku;
-  final String         productName;
-  final double         purchasePrice;
-  final double         salePrice;
-  final double         wholesalePrice;
-  final double         stock;
-  final double         minStock;
-  final double         maxStock;
-  final String         unit;
+  final String?      id;
+  final String       storeId;
+  final String       productId;
+  final List<String> barcode;
+  final String       sku;
+  final String       productName;
+  final double       purchasePrice;
+  final double       salePrice;
+  final double       wholesalePrice;
+  final double       stock;
+  final double       minStock;
+  final double       maxStock;
+  final String       unit;
 
   BranchStockInventory({
     this.id,

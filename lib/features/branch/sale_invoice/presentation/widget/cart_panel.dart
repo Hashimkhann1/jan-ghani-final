@@ -21,7 +21,7 @@ import 'cart_summary_widget.dart';
 import 'cart_table_header_widget.dart';
 import 'disable_text_field_widget.dart';
 import 'held_invoices_sheet.dart';
-import '../widget/payment_dialog.dart';
+import '../screen/payment_dialog.dart';
 
 String _fmtD(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
 

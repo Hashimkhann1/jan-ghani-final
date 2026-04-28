@@ -1,14 +1,17 @@
-// lib/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/data/model/branch_stock_model.dart';
+import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/presentation/widget/customer_filter_chip_widget.dart';
+import '../../../customer/presentation/widget/customer_action_button_widget.dart';
 import '../../data/datasource/branch_stock_remote_datasource.dart';
 import '../provider/branch_stock_inventory_provider.dart';
+import '../widget/delete_dilog_widget.dart';
+import '../widget/edit_dilog_widget.dart';
+
 
 class BranchStockInventoryScreen extends ConsumerStatefulWidget {
   const BranchStockInventoryScreen({super.key});
@@ -32,8 +35,6 @@ class _BranchStockInventoryScreenState
   Widget build(BuildContext context) {
     final state    = ref.watch(inventoryPageProvider);
     final notifier = ref.read(inventoryPageProvider.notifier);
-
-    // POS provider se sirf stats lenge (already loaded hai)
     final posState = ref.watch(branchStockProvider);
 
     ref.listen<InventoryPageState>(inventoryPageProvider, (_, next) {
@@ -79,9 +80,9 @@ class _BranchStockInventoryScreenState
             Builder(builder: (_) {
               final products     = posState.allProducts;
               final totalQty     = products.fold(0.0, (s, p) => s + p.quantity);
-              final totalCostVal = products.fold(0.0, (s, p) => s + p.costPrice    * p.quantity);
+              final totalCostVal = products.fold(0.0, (s, p) => s + p.costPrice * p.quantity);
               final totalSaleVal = products.fold(0.0, (s, p) => s + p.sellingPrice * p.quantity);
-              String fmtAmt(double v) => 'Rs ${v.toStringAsFixed(0)}';
+              String fmtAmt(double v) => 'Rs ${v.toStringAsFixed(2)}';
 
               return Row(children: [
                 SummaryCard(
@@ -93,7 +94,7 @@ class _BranchStockInventoryScreenState
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Total Quantity',
-                  value: totalQty.toStringAsFixed(0),
+                  value: totalQty.toString(),
                   icon:  Icons.layers_outlined,
                   color: AppColor.info,
                 ),
@@ -156,10 +157,10 @@ class _BranchStockInventoryScreenState
                 ),
                 const SizedBox(width: 12),
                 ...[
-                  ('all',           'All'),
-                  ('in_stock',      'In Stock'),
-                  ('low_stock',     'Low Stock'),
-                  ('out_of_stock',  'Out of Stock'),
+                  ('all',          'All'),
+                  ('in_stock',     'In Stock'),
+                  ('low_stock',    'Low Stock'),
+                  ('out_of_stock', 'Out of Stock'),
                 ].map((f) => Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: CustomerFilterChip(
@@ -184,7 +185,8 @@ class _BranchStockInventoryScreenState
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : state.rows.isEmpty
-                  ? _EmptyState(isSearching: state.searchQuery.isNotEmpty)
+                  ? _EmptyState(
+                  isSearching: state.searchQuery.isNotEmpty)
                   : _InventoryTable(rows: state.rows),
             ),
 
@@ -211,7 +213,6 @@ class _PaginationBar extends StatelessWidget {
     if (state.totalCount == 0) return const SizedBox.shrink();
 
     return Row(children: [
-      // ── Row info ───────────────────────────────────────────
       Text(
         '${state.fromRow}–${state.toRow} of ${state.totalCount} products',
         style: const TextStyle(
@@ -219,17 +220,18 @@ class _PaginationBar extends StatelessWidget {
       ),
       const Spacer(),
 
-      // ── Page jump ──────────────────────────────────────────
       if (state.totalPages > 1) ...[
-        Text('Page', style: const TextStyle(fontSize: 13, color: AppColor.textSecondary)),
+        Text('Page',
+            style: const TextStyle(
+                fontSize: 13, color: AppColor.textSecondary)),
         const SizedBox(width: 6),
         _PageJumper(state: state, notifier: notifier),
         Text(' of ${state.totalPages}',
-            style: const TextStyle(fontSize: 13, color: AppColor.textSecondary)),
+            style: const TextStyle(
+                fontSize: 13, color: AppColor.textSecondary)),
         const SizedBox(width: 12),
       ],
 
-      // ── Prev / Next ─────────────────────────────────────────
       _NavBtn(
         icon:      Icons.chevron_left_rounded,
         tooltip:   'Previous page',
@@ -238,16 +240,16 @@ class _PaginationBar extends StatelessWidget {
       ),
       const SizedBox(width: 4),
 
-      // ── Visible page numbers ────────────────────────────────
       ..._visiblePages(state).map((p) => p == -1
           ? const Padding(
         padding: EdgeInsets.symmetric(horizontal: 4),
-        child: Text('…', style: TextStyle(color: AppColor.textSecondary)),
+        child: Text('…',
+            style: TextStyle(color: AppColor.textSecondary)),
       )
           : _PageNumBtn(
-        page:       p,
-        isCurrent:  p == state.currentPage,
-        onTap:      () => notifier.goToPage(p),
+        page:      p,
+        isCurrent: p == state.currentPage,
+        onTap:     () => notifier.goToPage(p),
       )),
 
       const SizedBox(width: 4),
@@ -260,7 +262,6 @@ class _PaginationBar extends StatelessWidget {
     ]);
   }
 
-  // Page numbers dikhane ki logic: first, last, current ± 2, baaki "…"
   List<int> _visiblePages(InventoryPageState s) {
     final total   = s.totalPages;
     final current = s.currentPage;
@@ -274,7 +275,7 @@ class _PaginationBar extends StatelessWidget {
     final sorted = pages.toList()..sort();
     final result = <int>[];
     for (int i = 0; i < sorted.length; i++) {
-      if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.add(-1); // ellipsis
+      if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.add(-1);
       result.add(sorted[i]);
     }
     return result;
@@ -283,8 +284,8 @@ class _PaginationBar extends StatelessWidget {
 
 // ── Page Number Button ─────────────────────────────────────────────
 class _PageNumBtn extends StatelessWidget {
-  final int  page;
-  final bool isCurrent;
+  final int        page;
+  final bool       isCurrent;
   final VoidCallback onTap;
 
   const _PageNumBtn({
@@ -297,8 +298,8 @@ class _PageNumBtn extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 2),
     child: InkWell(
-      onTap:         isCurrent ? null : onTap,
-      borderRadius:  BorderRadius.circular(6),
+      onTap:        isCurrent ? null : onTap,
+      borderRadius: BorderRadius.circular(6),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         width: 32, height: 32,
@@ -317,7 +318,8 @@ class _PageNumBtn extends StatelessWidget {
           style: TextStyle(
             fontSize:   12,
             fontWeight: FontWeight.w600,
-            color:      isCurrent ? Colors.white : AppColor.textPrimary,
+            color:
+            isCurrent ? Colors.white : AppColor.textPrimary,
           ),
         ),
       ),
@@ -343,14 +345,18 @@ class _NavBtn extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
     message: tooltip,
     child: IconButton(
-      onPressed:  enabled ? onPressed : null,
-      icon:       Icon(icon, size: 20),
-      style:      IconButton.styleFrom(
-        backgroundColor: enabled ? AppColor.grey100 : Colors.transparent,
-        foregroundColor: enabled ? AppColor.textPrimary : AppColor.grey300,
+      onPressed: enabled ? onPressed : null,
+      icon:      Icon(icon, size: 20),
+      style: IconButton.styleFrom(
+        backgroundColor: enabled
+            ? AppColor.grey100
+            : Colors.transparent,
+        foregroundColor: enabled
+            ? AppColor.textPrimary
+            : AppColor.grey300,
         fixedSize: const Size(32, 32),
         padding:   EdgeInsets.zero,
-        shape:     RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6)),
       ),
     ),
@@ -395,19 +401,21 @@ class _PageJumperState extends State<_PageJumper> {
   void _jump() {
     final page = int.tryParse(_ctrl.text.trim());
     if (page == null) return;
-    widget.notifier.goToPage(page - 1); // 0-based
+    widget.notifier.goToPage(page - 1);
   }
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 48,
-    height: 30,
+    width: 48, height: 30,
     child: TextField(
       controller:   _ctrl,
       textAlign:    TextAlign.center,
       keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly
+      ],
+      style: const TextStyle(
+          fontSize: 13, fontWeight: FontWeight.w600),
       cursorHeight: 14,
       onSubmitted:  (_) => _jump(),
       decoration: InputDecoration(
@@ -431,16 +439,18 @@ class _PageJumperState extends State<_PageJumper> {
 }
 
 // ── Inventory Table ───────────────────────────────────────────────
-class _InventoryTable extends StatelessWidget {
+class _InventoryTable extends ConsumerWidget {
   final List<BranchStockModel> rows;
 
   const _InventoryTable({required this.rows});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        const double minTableWidth = 1200;
+        const double minTableWidth = 1350;
         final tableWidth = constraints.maxWidth > minTableWidth
             ? constraints.maxWidth
             : minTableWidth;
@@ -451,15 +461,18 @@ class _InventoryTable extends StatelessWidget {
             constraints: BoxConstraints(minWidth: tableWidth),
             child: SingleChildScrollView(
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                headingRowColor:
+                WidgetStateProperty.all(AppColor.grey100),
+                dataRowColor:
+                WidgetStateProperty.resolveWith<Color?>(
                       (s) => s.contains(WidgetState.hovered)
                       ? AppColor.primary.withValues(alpha: 0.05)
                       : null,
                 ),
-                dataRowMinHeight:  52,
-                dataRowMaxHeight:  52,
-                columnSpacing: (tableWidth * 0.02).clamp(12.0, 40.0),
+                dataRowMinHeight:   52,
+                dataRowMaxHeight:   52,
+                columnSpacing:
+                (tableWidth * 0.02).clamp(12.0, 40.0),
                 showCheckboxColumn: false,
                 columns: const [
                   DataColumn(label: Text('SKU')),
@@ -474,19 +487,25 @@ class _InventoryTable extends StatelessWidget {
                   DataColumn(label: Text('Min Stock')),
                   DataColumn(label: Text('Max Stock')),
                   DataColumn(label: Text('Quantity')),
+                  DataColumn(label: Text('Actions')),   // ← NEW
                 ],
-                rows: rows.map((p) => DataRow(cells: [
+                rows: rows
+                    .map((p) => DataRow(cells: [
 
                   DataCell(Text(p.sku,
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary))),
+                          fontSize: 12,
+                          color: AppColor.textSecondary))),
 
                   DataCell(SizedBox(
                     width: 140,
                     child: Text(
-                      BranchStockDataSource().parseBarcode(p.barcode) ?? '—',
+                      BranchStockDataSource()
+                          .parseBarcode(p.barcode) ??
+                          '—',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary),
+                          fontSize: 12,
+                          color: AppColor.textSecondary),
                       overflow: TextOverflow.ellipsis,
                     ),
                   )),
@@ -494,19 +513,23 @@ class _InventoryTable extends StatelessWidget {
                   DataCell(SizedBox(
                     width: 140,
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment:
+                      MainAxisAlignment.center,
+                      crossAxisAlignment:
+                      CrossAxisAlignment.start,
                       children: [
                         Text(p.name,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 13),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1),
                         if (p.description != null)
                           Text(p.description!,
                               style: const TextStyle(
                                   fontSize: 10,
-                                  color: AppColor.textSecondary),
+                                  color:
+                                  AppColor.textSecondary),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1),
                       ],
@@ -524,11 +547,12 @@ class _InventoryTable extends StatelessWidget {
                         style: const TextStyle(
                             fontSize:   11,
                             fontWeight: FontWeight.w600,
-                            color:      AppColor.textSecondary)),
+                            color: AppColor.textSecondary)),
                   )),
 
                   DataCell(Text(p.costPriceLabel,
-                      style: const TextStyle(fontSize: 13))),
+                      style:
+                      const TextStyle(fontSize: 13))),
 
                   DataCell(Text(p.sellingPriceLabel,
                       style: const TextStyle(
@@ -538,29 +562,38 @@ class _InventoryTable extends StatelessWidget {
 
                   DataCell(Text(p.wholesalePriceLabel,
                       style: const TextStyle(
-                          fontSize: 13, color: AppColor.textSecondary))),
+                          fontSize: 13,
+                          color: AppColor.textSecondary))),
 
                   DataCell(p.taxRate > 0
                       ? _PercentBadge(
-                      value: p.taxRateLabel, color: AppColor.info)
+                      value: p.taxRateLabel,
+                      color: AppColor.info)
                       : const Text('—',
                       style: TextStyle(
-                          fontSize: 13, color: AppColor.textSecondary))),
+                          fontSize: 13,
+                          color: AppColor.textSecondary))),
 
                   DataCell(p.discount > 0
                       ? _PercentBadge(
-                      value: p.discountLabel, color: AppColor.warning)
+                      value: p.discountLabel,
+                      color: AppColor.warning)
                       : const Text('—',
                       style: TextStyle(
-                          fontSize: 13, color: AppColor.textSecondary))),
+                          fontSize: 13,
+                          color: AppColor.textSecondary))),
 
-                  DataCell(Text('${p.minStockLevel} ${p.unitOfMeasure}',
+                  DataCell(Text(
+                      '${p.minStockLevel} ${p.unitOfMeasure}',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary))),
+                          fontSize: 12,
+                          color: AppColor.textSecondary))),
 
-                  DataCell(Text('${p.maxStockLevel} ${p.unitOfMeasure}',
+                  DataCell(Text(
+                      '${p.maxStockLevel} ${p.unitOfMeasure}',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary))),
+                          fontSize: 12,
+                          color: AppColor.textSecondary))),
 
                   DataCell(Text(
                     p.quantityLabel,
@@ -575,12 +608,81 @@ class _InventoryTable extends StatelessWidget {
                     ),
                   )),
 
-                ])).toList(),
+                  // ── Actions ────────────────────────────
+                  DataCell(Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CustomerActionButton(
+                        icon:    Icons.edit_outlined,
+                        color:   AppColor.primary,
+                        tooltip: 'Edit',
+                        onTap: () {
+                          if (auth.isManager) {
+                            _openEditDialog(context, p);
+                          } else {
+                            _showDenied(context, ref, 'edit');
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      CustomerActionButton(
+                        icon:    Icons.delete_outline_rounded,
+                        color:   AppColor.error,
+                        tooltip: 'Delete',
+                        onTap: () {
+                          if (auth.isManager) {
+                            _openDeleteDialog(context, p);
+                          } else {
+                            _showDenied(
+                                context, ref, 'delete');
+                          }
+                        },
+                      ),
+                    ],
+                  )),
+                ]))
+                    .toList(),
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  // ── Edit Dialog open karo ───────────────────────────────────────
+  void _openEditDialog(BuildContext context, BranchStockModel product) {
+    showDialog(
+      context:           context,
+      barrierDismissible: false,
+      builder: (_) => EditStockDialog(product: product),
+    );
+  }
+
+  // ── Delete Dialog open karo ─────────────────────────────────────
+  void _openDeleteDialog(
+      BuildContext context, BranchStockModel product) {
+    showDialog(
+      context: context,
+      builder: (_) => DeleteStockDialog(product: product),
+    );
+  }
+
+  // ── Access Denied SnackBar ──────────────────────────────────────
+  void _showDenied(BuildContext context, WidgetRef ref, String action) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Only manager can $action products'),
+        backgroundColor: AppColor.error,
+        behavior:        SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label:     'OK',
+          textColor: Colors.white,
+          onPressed: () => ref.read(inventoryPageProvider.notifier).clearError(),
+        ),
+      ),
     );
   }
 }
@@ -625,7 +727,9 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          isSearching ? 'Koi product nahi mila' : 'Koi stock nahi',
+          isSearching
+              ? 'Koi product nahi mila'
+              : 'Koi stock nahi',
           style: const TextStyle(
               fontSize:   16,
               fontWeight: FontWeight.w600,
@@ -636,7 +740,8 @@ class _EmptyState extends StatelessWidget {
           isSearching
               ? 'Search query change karein'
               : 'Products add hone ke baad yahan data aayega',
-          style: const TextStyle(fontSize: 13, color: AppColor.textHint),
+          style: const TextStyle(
+              fontSize: 13, color: AppColor.textHint),
         ),
       ],
     ),

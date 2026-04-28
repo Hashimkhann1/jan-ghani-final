@@ -152,21 +152,21 @@ class _CounterCashTransactionScreenState
               children: [
                 SummaryCard(
                   title: 'Today Total',
-                  value: 'Rs ${state.todayTotal.toStringAsFixed(0)}',
+                  value: 'Rs ${state.todayTotal}',
                   icon:  Icons.account_balance_wallet_outlined,
                   color: state.todayTotal >= 0 ? AppColor.success : AppColor.error,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Cash In',
-                  value: 'Rs ${transactions.where((t) => t.isCashIn).fold(0.0, (s, t) => s + t.cashOutAmount).toStringAsFixed(0)}',
+                  value: 'Rs ${transactions.where((t) => t.isCashIn).fold(0.0, (s, t) => s + t.cashOutAmount)}',
                   icon:  Icons.arrow_downward_rounded,
                   color: AppColor.success,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Cash Out',
-                  value: 'Rs ${transactions.where((t) => t.isCashOut).fold(0.0, (s, t) => s + t.cashOutAmount).toStringAsFixed(0)}',
+                  value: 'Rs ${transactions.where((t) => t.isCashOut).fold(0.0, (s, t) => s + t.cashOutAmount)}',
                   icon:  Icons.arrow_upward_rounded,
                   color: AppColor.error,
                 ),

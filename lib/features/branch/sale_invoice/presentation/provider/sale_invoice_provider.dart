@@ -61,10 +61,8 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
 
   /// Barcode/SKU exact match se product add karo (scanner ke liye)
   bool addToCartByBarcode(String query) {
-    final allProducts =
-        _ref.read(branchStockProvider).allProducts;
+    final allProducts = _ref.read(branchStockProvider).allProducts;
 
-    // Exact barcode match first
     BranchStockModel? found;
     found = allProducts.cast<BranchStockModel?>().firstWhere(
           (p) =>
@@ -73,7 +71,6 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
       orElse: () => null,
     );
 
-    // Exact SKU match fallback
     found ??= allProducts.cast<BranchStockModel?>().firstWhere(
           (p) => p!.sku.toLowerCase() == query.toLowerCase(),
       orElse: () => null,
@@ -190,7 +187,6 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   }
 
   // ── Hold Invoice ──────────────────────────────────────────────
-  /// Current invoice ko hold mein dalo aur naya start karo
   Future<void> holdCurrentInvoice({String? label}) async {
     if (state.cartItems.isEmpty) return;
 
@@ -202,19 +198,15 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
       label:      label,
     );
 
-    // Naya clean invoice start karo
     await _clearAndReset();
     state = state.copyWith(successMessage: 'Invoice hold kar diya gaya');
   }
 
-  /// Held invoice resume karo
   Future<void> resumeHeldInvoice(HeldInvoice held) async {
-    // Agar current cart mein kuch hai to pehle usse bhi hold karo
     if (state.cartItems.isNotEmpty) {
       await holdCurrentInvoice(label: 'Auto-held');
     }
 
-    // Held invoice restore karo
     state = SaleInvoiceState(
       invoiceNo:        held.invoiceNo,
       date:             held.heldAt,
@@ -223,7 +215,6 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
       payments:         [],
     );
 
-    // Hold release karo (DB + memory)
     await _ref
         .read(heldInvoicesProvider.notifier)
         .releaseHold(held.id, discard: false);
@@ -250,8 +241,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
       return false;
     }
     if (_counterId == null || _counterId!.isEmpty) {
-      state =
-          state.copyWith(errorMessage: 'Counter assign nahi — login karein');
+      state = state.copyWith(errorMessage: 'Counter assign nahi — login karein');
       return false;
     }
 
@@ -303,8 +293,19 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     _initInvoiceNo();
   }
 
-  void setSaleType(SaleType type) =>
-      state = state.copyWith(saleType: type);
+  // ── CHANGE: Sale type change hone par cart + customer + payments clear ──
+  void setSaleType(SaleType type) {
+    if (type == state.saleType) return; // koi change nahi hua
+
+    // Invoice number same rakhو, baqi sab reset
+    state = SaleInvoiceState(
+      invoiceNo: state.invoiceNo,
+      date:      DateTime.now(),
+      cartItems: [],
+      payments:  [],
+      saleType:  type,
+    );
+  }
 
   void clearError() =>
       state = state.copyWith(errorMessage: null, clearSuccess: true);

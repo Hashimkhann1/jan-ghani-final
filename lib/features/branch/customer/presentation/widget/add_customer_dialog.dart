@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
@@ -181,16 +182,17 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _Field(
-                        label:        'Phone *',
-                        controller:   _phone,
-                        hint:         '03001234567',
+                        label: 'Phone *',
+                        controller: _phone,
+                        hint: '03001234567',
                         keyboardType: TextInputType.phone,
                         validator:    (v) {
-                          if (v == null || v.trim().isEmpty)
+                          if (v == null || v.trim().isEmpty) {
                             return 'Phone required hai';
-                          if (!RegExp(r'^\+?[0-9]{10,13}$')
-                              .hasMatch(v.trim()))
+                          }
+                          if (!RegExp(r'^\+?[0-9]{10,13}$').hasMatch(v.trim())) {
                             return 'Valid phone dalein';
+                          }
                           return null;
                         },
                       ),
@@ -208,18 +210,19 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                   children: [
                     Expanded(
                       child: _Field(
-                        label:      'Address',
+                        label: 'Address',
                         controller: _address,
-                        hint:       'Hayatabad, Peshawar',
+                        hint: 'Hayatabad, Peshawar',
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _Field(
-                        label:        'Credit Limit (Rs)',
-                        controller:   _creditLimit,
-                        hint:         '50000',
+                        label: 'Credit Limit (Rs)',
+                        controller: _creditLimit,
+                        hint: '50000',
                         keyboardType: TextInputType.number,
+                        isNumber: true,
                       ),
                     ),
                   ],
@@ -364,12 +367,13 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _Field extends StatelessWidget {
-  final String                  label;
+  final String label;
   final TextEditingController   controller;
-  final String                  hint;
-  final TextInputType           keyboardType;
+  final String hint;
+  final TextInputType keyboardType;
   final String? Function(String?)? validator;
-  final int                     maxLines;
+  final int maxLines;
+  final bool isNumber;
 
   const _Field({
     required this.label,
@@ -377,6 +381,7 @@ class _Field extends StatelessWidget {
     required this.hint,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.isNumber = false,
     this.maxLines = 1,
   });
 
@@ -386,47 +391,48 @@ class _Field extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
-                fontSize:   13,
-                fontWeight: FontWeight.w500,
-                color:      AppColor.textPrimary)),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColor.textPrimary,
+          ),
+        ),
         const SizedBox(height: 6),
         TextFormField(
-          controller:   controller,
+          controller: controller,
           keyboardType: keyboardType,
-          validator:    validator,
-          maxLines:     maxLines,
+          validator: validator,
+          maxLines: maxLines,
           cursorHeight: 14,
-          style: const TextStyle(
-              fontSize: 14, color: AppColor.textPrimary),
+          style: const TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          inputFormatters: isNumber ?
+          [FilteringTextInputFormatter.digitsOnly] : null,
           decoration: InputDecoration(
             hintText:  hint,
-            hintStyle: const TextStyle(
-                color: AppColor.textHint, fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 12),
-            filled:    true,
+            hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true,
             fillColor: AppColor.grey100,
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                const BorderSide(color: AppColor.grey200)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColor.grey200,),
+            ),
             enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                const BorderSide(color: AppColor.grey200)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColor.grey200),
+            ),
             focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                    color: AppColor.primary, width: 1.5)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
+            ),
             errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                const BorderSide(color: AppColor.error)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColor.error),
+            ),
             focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                    color: AppColor.error, width: 1.5)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColor.error, width: 1.5),
+            ),
           ),
         ),
       ],

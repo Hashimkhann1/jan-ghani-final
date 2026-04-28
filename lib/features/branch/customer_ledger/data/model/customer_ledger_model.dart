@@ -3,7 +3,7 @@ class CustomerLedgerModel {
   final String   storeId;
   final String   customerId;
   final String   customerName;
-  final String?  counterId;    // ← new
+  final String?  counterId;
   final double   previousAmount;
   final double   payAmount;
   final double   newAmount;
@@ -17,7 +17,7 @@ class CustomerLedgerModel {
     required this.storeId,
     required this.customerId,
     required this.customerName,
-    this.counterId,             // ← new
+    this.counterId,
     required this.previousAmount,
     required this.payAmount,
     required this.newAmount,
@@ -27,9 +27,28 @@ class CustomerLedgerModel {
     this.deletedAt,
   });
 
-  String get previousAmountLabel => 'Rs ${previousAmount.toStringAsFixed(0)}';
-  String get payAmountLabel      => 'Rs ${payAmount.toStringAsFixed(0)}';
-  String get newAmountLabel      => 'Rs ${newAmount.toStringAsFixed(0)}';
+  String get previousAmountLabel => 'Rs ${previousAmount.toString()}';
+  String get payAmountLabel      => 'Rs ${payAmount.toString()}';
+  String get newAmountLabel      => 'Rs ${newAmount.toString()}';
+
+  /// Flexible converter jo int aur double dono ko double ma convert kara
+  static double _toDouble(dynamic value) {
+    if (value == null) return 0.0;
+
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+
+    // String ko parse kara
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      return parsed ?? 0.0;
+    }
+
+    // Agar num type ho
+    if (value is num) return value.toDouble();
+
+    return 0.0;
+  }
 
   factory CustomerLedgerModel.fromMap(Map<String, dynamic> map) {
     return CustomerLedgerModel(
@@ -37,10 +56,10 @@ class CustomerLedgerModel {
       storeId:        _str(map['store_id'])        ?? '',
       customerId:     _str(map['customer_id'])     ?? '',
       customerName:   _str(map['customer_name'])   ?? '',
-      counterId:      _str(map['counter_id']),      // ← new
-      previousAmount: _dbl(map['previous_amount']) ?? 0.0,
-      payAmount:      _dbl(map['pay_amount'])      ?? 0.0,
-      newAmount:      _dbl(map['new_amount'])      ?? 0.0,
+      counterId:      _str(map['counter_id']),
+      previousAmount: _toDouble(map['previous_amount']),
+      payAmount:      _toDouble(map['pay_amount']),
+      newAmount:      _toDouble(map['new_amount']),
       notes:          _str(map['notes']),
       createdAt:      _date(map['created_at'])     ?? DateTime.now(),
       updatedAt:      _date(map['updated_at'])     ?? DateTime.now(),
@@ -52,7 +71,7 @@ class CustomerLedgerModel {
     'store_id':       storeId,
     'customer_id':    customerId,
     'customer_name':  customerName,
-    'counter_id':     counterId,   // ← new
+    'counter_id':     counterId,
     'previous_amount': previousAmount,
     'pay_amount':     payAmount,
     'new_amount':     newAmount,
@@ -60,11 +79,7 @@ class CustomerLedgerModel {
   };
 
   static String?   _str(dynamic v) => v?.toString();
-  static double?   _dbl(dynamic v) {
-    if (v == null) return null;
-    if (v is num)  return v.toDouble();
-    return double.tryParse(v.toString());
-  }
+
   static DateTime? _date(dynamic v) {
     if (v == null)     return null;
     if (v is DateTime) return v;
@@ -73,7 +88,8 @@ class CustomerLedgerModel {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is CustomerLedgerModel && id == other.id;
+      identical(this, other) ||
+          other is CustomerLedgerModel && id == other.id;
 
   @override
   int get hashCode => id.hashCode;

@@ -8,7 +8,6 @@ import '../../data/model/branch_stock_model.dart';
 
 // ─────────────────────────────────────────────────────────────────
 // POS Provider — saare products ek baar (barcode scan ke liye zarori)
-// Yeh purana provider hai — POS screen is pe depend hai
 // ─────────────────────────────────────────────────────────────────
 class BranchStockState {
   final List<BranchStockModel> allProducts;
@@ -84,7 +83,7 @@ class BranchStockNotifier extends StateNotifier<BranchStockState> {
 
   void onSearchChanged(String q)       => state = state.copyWith(searchQuery: q);
   void onFilterStatusChanged(String f) => state = state.copyWith(filterStatus: f);
-  void clearError() => state = state.copyWith(errorMessage: null);
+  void clearError()                    => state = state.copyWith(errorMessage: null);
 }
 
 final branchStockProvider =
@@ -93,39 +92,41 @@ StateNotifierProvider<BranchStockNotifier, BranchStockState>(
 );
 
 // ─────────────────────────────────────────────────────────────────
-// Inventory Screen Provider — DB-level pagination
-// POS se alag — sirf inventory table screen ke liye
+// Inventory Screen Provider — DB-level pagination + edit + delete
 // ─────────────────────────────────────────────────────────────────
-const int kInventoryPageSize = 100; // ek page mein kitni rows
+const int kInventoryPageSize = 100;
 
 class InventoryPageState {
   final List<BranchStockModel> rows;
-  final int    currentPage;   // 0-based
-  final int    totalCount;
-  final int    pageSize;
-  final bool   isLoading;
-  final String searchQuery;
-  final String filterStatus;
+  final int     currentPage;
+  final int     totalCount;
+  final int     pageSize;
+  final bool    isLoading;
+  final bool    isMutating;   // edit / delete ke time true
+  final String  searchQuery;
+  final String  filterStatus;
   final String? errorMessage;
+  final String? successMessage;
 
   const InventoryPageState({
-    this.rows         = const [],
-    this.currentPage  = 0,
-    this.totalCount   = 0,
-    this.pageSize     = kInventoryPageSize,
-    this.isLoading    = false,
-    this.searchQuery  = '',
-    this.filterStatus = 'all',
+    this.rows           = const [],
+    this.currentPage    = 0,
+    this.totalCount     = 0,
+    this.pageSize       = kInventoryPageSize,
+    this.isLoading      = false,
+    this.isMutating     = false,
+    this.searchQuery    = '',
+    this.filterStatus   = 'all',
     this.errorMessage,
+    this.successMessage,
   });
 
-  int get totalPages  => (totalCount / pageSize).ceil();
-  int get displayPage => currentPage + 1;           // 1-based (UI ke liye)
-  bool get hasPrev    => currentPage > 0;
-  bool get hasNext    => currentPage < totalPages - 1;
-
-  int get fromRow => totalCount == 0 ? 0 : currentPage * pageSize + 1;
-  int get toRow   => (fromRow + rows.length - 1).clamp(0, totalCount);
+  int  get totalPages  => (totalCount / pageSize).ceil();
+  int  get displayPage => currentPage + 1;
+  bool get hasPrev     => currentPage > 0;
+  bool get hasNext     => currentPage < totalPages - 1;
+  int  get fromRow     => totalCount == 0 ? 0 : currentPage * pageSize + 1;
+  int  get toRow       => (fromRow + rows.length - 1).clamp(0, totalCount);
 
   InventoryPageState copyWith({
     List<BranchStockModel>? rows,
@@ -133,18 +134,22 @@ class InventoryPageState {
     int?    totalCount,
     int?    pageSize,
     bool?   isLoading,
+    bool?   isMutating,
     String? searchQuery,
     String? filterStatus,
     String? errorMessage,
+    String? successMessage,
   }) => InventoryPageState(
-    rows:         rows         ?? this.rows,
-    currentPage:  currentPage  ?? this.currentPage,
-    totalCount:   totalCount   ?? this.totalCount,
-    pageSize:     pageSize     ?? this.pageSize,
-    isLoading:    isLoading    ?? this.isLoading,
-    searchQuery:  searchQuery  ?? this.searchQuery,
-    filterStatus: filterStatus ?? this.filterStatus,
-    errorMessage: errorMessage,
+    rows:           rows           ?? this.rows,
+    currentPage:    currentPage    ?? this.currentPage,
+    totalCount:     totalCount     ?? this.totalCount,
+    pageSize:       pageSize       ?? this.pageSize,
+    isLoading:      isLoading      ?? this.isLoading,
+    isMutating:     isMutating     ?? this.isMutating,
+    searchQuery:    searchQuery    ?? this.searchQuery,
+    filterStatus:   filterStatus   ?? this.filterStatus,
+    errorMessage:   errorMessage,
+    successMessage: successMessage,
   );
 }
 
@@ -161,6 +166,7 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
 
   String get _storeId => _ref.read(authProvider).storeId;
 
+  // ── Load / Refresh ───────────────────────────────────────
   Future<void> _load() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -172,9 +178,9 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
         filterStatus: state.filterStatus,
       );
       state = state.copyWith(
-        rows:        result.rows,
-        totalCount:  result.totalCount,
-        isLoading:   false,
+        rows:       result.rows,
+        totalCount: result.totalCount,
+        isLoading:  false,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: 'Load error: $e');
@@ -182,6 +188,85 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
   }
 
   void refresh() => _load();
+
+  // ── Edit Product ─────────────────────────────────────────
+  Future<bool> updateProduct(BranchStockInventory updated) async {
+    state = state.copyWith(isMutating: true, errorMessage: null);
+    try {
+      await _ds.updateProduct(updated);
+
+      // POS provider bhi refresh karo
+      _ref.read(branchStockProvider.notifier).load();
+
+      // Local list mein bhi update karo (instant UI response)
+      final updatedRows = state.rows.map((r) {
+        if (r.id != updated.id) return r;
+        return BranchStockModel.fromMap({
+          'inv_id':          r.id,
+          'store_id':        r.storeId,
+          'product_id':      r.productId,
+          'sku':             updated.sku,
+          'barcode':         updated.barcode.isNotEmpty
+              ? updated.barcode.first
+              : null,
+          'name':            updated.productName,
+          'description':     r.description,
+          'unit_of_measure': updated.unit,
+          'cost_price':      updated.purchasePrice,
+          'selling_price':   updated.salePrice,
+          'wholesale_price': updated.wholesalePrice,
+          'tax_rate':        r.taxRate,
+          'discount':        r.discount,
+          'min_stock_level': updated.minStock.toInt(),
+          'max_stock_level': updated.maxStock.toInt(),
+          'reorder_point':   r.reorderPoint,
+          'is_active':       r.isActive,
+          'is_track_stock':  r.isTrackStock,
+          'quantity':        updated.stock,
+          'reserved_quantity': r.reservedQuantity,
+          'last_counted_at': null,
+          'last_movement_at': null,
+          'updated_at':      DateTime.now().toIso8601String(),
+        });
+      }).toList();
+
+      state = state.copyWith(
+        rows:           updatedRows,
+        isMutating:     false,
+        successMessage: '${updated.productName} updated successfully',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+          isMutating: false, errorMessage: 'Update failed: $e');
+      return false;
+    }
+  }
+
+  // ── Delete Product ───────────────────────────────────────
+  Future<bool> deleteProduct(BranchStockModel product) async {
+    state = state.copyWith(isMutating: true, errorMessage: null);
+    try {
+      await _ds.deleteProduct(product.id);
+
+      // POS provider bhi refresh karo
+      _ref.read(branchStockProvider.notifier).load();
+
+      // Local list se bhi hata do
+      final updatedRows = state.rows.where((r) => r.id != product.id).toList();
+      state = state.copyWith(
+        rows:           updatedRows,
+        totalCount:     state.totalCount - 1,
+        isMutating:     false,
+        successMessage: '${product.name} deleted successfully',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+          isMutating: false, errorMessage: 'Delete failed: $e');
+      return false;
+    }
+  }
 
   // ── Navigation ───────────────────────────────────────────
   void nextPage() {
@@ -217,7 +302,8 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
     _load();
   }
 
-  void clearError() => state = state.copyWith(errorMessage: null);
+  void clearError()   => state = state.copyWith(errorMessage: null);
+  void clearSuccess() => state = state.copyWith(successMessage: null);
 
   @override
   void dispose() {

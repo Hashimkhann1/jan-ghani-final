@@ -29,9 +29,9 @@ class CashTransactionModel {
   bool get isCashOut => transactionType == 'cash_out';
 
   String get typeLabel            => isCashIn ? 'Cash In' : 'Cash Out';
-  String get previousAmountLabel  => 'Rs ${previousAmount.toStringAsFixed(0)}';
-  String get cashOutAmountLabel   => 'Rs ${cashOutAmount.toStringAsFixed(0)}';
-  String get remainingAmountLabel => 'Rs ${remainingAmount.toStringAsFixed(0)}';
+  String get previousAmountLabel  => 'Rs ${previousAmount.toString()}';
+  String get cashOutAmountLabel   => 'Rs ${cashOutAmount.toString()}';
+  String get remainingAmountLabel => 'Rs ${remainingAmount.toString()}';
 
   factory CashTransactionModel.fromMap(Map<String, dynamic> map) {
     return CashTransactionModel(

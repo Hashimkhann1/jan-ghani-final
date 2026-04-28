@@ -1,4 +1,3 @@
-// lib/features/branch/sale_invoice/presentation/widget/cart_row_widget.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,9 +7,7 @@ import '../../data/model/sale_invoice_model.dart';
 import '../provider/cart_nav_provider.dart';
 import '../provider/sale_invoice_provider.dart';
 
-// ── Smart format: whole number → integer, decimal → 2 places ──────
-String _fmtNum(double v) =>
-    v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
+String _fmtNum(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
 
 class CartItemRow extends ConsumerStatefulWidget {
   final CartItem cartItem;
@@ -57,8 +54,6 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     _disCtrl   = TextEditingController(text: _fmtNum(item.discountAmount));
     _subCtrl   = TextEditingController(text: _fmtNum(item.subTotal));
 
-    // ✅ FIX: Focus milne pe cartNavProvider bhi sync karo
-    // Taki mouse click ke baad arrow keys sahi position se start hon
     void onFocus(int col, bool hasFocus) {
       switch (col) {
         case 0: setState(() { _qtyFocused   = hasFocus; }); break;
@@ -68,13 +63,12 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
         case 4: setState(() { _subFocused   = hasFocus; }); break;
       }
       if (hasFocus) {
-        // Mouse click ya Tab se focus aaya — nav state sync karo
         ref.read(cartNavProvider.notifier).jumpTo(widget.rowIndex, col);
       }
     }
 
     for (int col = 0; col < _fn.length; col++) {
-      final c = col; // closure ke liye capture
+      final c = col;
       _fn[c].addListener(() => onFocus(c, _fn[c].hasFocus));
     }
   }
@@ -84,25 +78,24 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     super.didUpdateWidget(old);
     final item = widget.cartItem;
 
-    // Only update controllers when field is NOT focused (user not typing)
     if (!_qtyFocused) {
       final q = _fmtNum(item.quantity);
       if (_qtyCtrl.text != q) _qtyCtrl.text = q;
     }
     if (!_priceFocused) {
-      final p = _fmtNum(item.salePrice);       // ✅ FIX
+      final p = _fmtNum(item.salePrice);
       if (_priceCtrl.text != p) _priceCtrl.text = p;
     }
     if (!_taxFocused) {
-      final t = _fmtNum(item.taxAmount);        // ✅ FIX
+      final t = _fmtNum(item.taxAmount);
       if (_taxCtrl.text != t) _taxCtrl.text = t;
     }
     if (!_disFocused) {
-      final d = _fmtNum(item.discountAmount);   // ✅ FIX
+      final d = _fmtNum(item.discountAmount);
       if (_disCtrl.text != d) _disCtrl.text = d;
     }
     if (!_subFocused) {
-      final s = _fmtNum(item.subTotal);         // ✅ FIX
+      final s = _fmtNum(item.subTotal);
       if (_subCtrl.text != s) _subCtrl.text = s;
     }
   }
@@ -131,12 +124,17 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
   }
 
   // ── Commit ────────────────────────────────────────────────────
+
+  // ✅ FIX: qty 0 pe item remove, invalid pe reset
   void _commitQty() {
     final v = double.tryParse(_qtyCtrl.text.trim());
-    if (v != null && v > 0) {
-      ref.read(saleInvoiceProvider.notifier).updateQuantity(widget.cartItem.cartId, v);
+    if (v == null || v <= 0) {
+      // Qty 0 ya invalid → cart se hata do
+      ref.read(saleInvoiceProvider.notifier)
+          .removeFromCart(widget.cartItem.cartId);
     } else {
-      _qtyCtrl.text = _fmtNum(widget.cartItem.quantity);
+      ref.read(saleInvoiceProvider.notifier)
+          .updateQuantity(widget.cartItem.cartId, v);
     }
   }
 
@@ -145,7 +143,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     if (v != null && v >= 0) {
       ref.read(saleInvoiceProvider.notifier).updateSalePrice(widget.cartItem.cartId, v);
     } else {
-      _priceCtrl.text = _fmtNum(widget.cartItem.salePrice); // ✅ FIX
+      _priceCtrl.text = _fmtNum(widget.cartItem.salePrice);
     }
   }
 
@@ -154,7 +152,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     if (v != null && v >= 0) {
       ref.read(saleInvoiceProvider.notifier).updateTax(widget.cartItem.cartId, v);
     } else {
-      _taxCtrl.text = _fmtNum(widget.cartItem.taxAmount); // ✅ FIX
+      _taxCtrl.text = _fmtNum(widget.cartItem.taxAmount);
     }
   }
 
@@ -163,7 +161,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     if (v != null && v >= 0) {
       ref.read(saleInvoiceProvider.notifier).updateDiscount(widget.cartItem.cartId, v);
     } else {
-      _disCtrl.text = _fmtNum(widget.cartItem.discountAmount); // ✅ FIX
+      _disCtrl.text = _fmtNum(widget.cartItem.discountAmount);
     }
   }
 
@@ -172,7 +170,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     if (v != null && v >= 0) {
       ref.read(saleInvoiceProvider.notifier).updateSubTotal(widget.cartItem.cartId, v);
     } else {
-      _subCtrl.text = _fmtNum(widget.cartItem.subTotal); // ✅ FIX
+      _subCtrl.text = _fmtNum(widget.cartItem.subTotal);
     }
   }
 
@@ -184,7 +182,6 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
 
     final isNavRow = nav.isActive && nav.row == widget.rowIndex;
 
-    // Focus only when nav row+col actually changes — not on every build
     if (isNavRow &&
         (nav.row != _lastNavRow || nav.col != _lastNavCol)) {
       _lastNavRow = nav.row;
@@ -228,9 +225,10 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
             controller:  _qtyCtrl,
             focusNode:   _fn[0],
             isNavActive: isNavRow && nav.col == 0,
-            onChanged:   (v) {
+            // ✅ FIX: >= 0 — 0 bhi state mein update hoga
+            onChanged: (v) {
               final val = double.tryParse(v);
-              if (val != null && val > 0)
+              if (val != null && val >= 0)
                 notifier.updateQuantity(item.cartId, val);
             },
             onSubmitted: (_) => _commitQty(),

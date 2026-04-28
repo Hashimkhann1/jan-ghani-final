@@ -1,6 +1,3 @@
-// lib/features/branch/sale_invoice/presentation/screen/return_payment_dialog.dart
-// ── Smart cash auto-fill + Ctrl+S save ──
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +6,6 @@ import '../../../../../core/service/print/print_service.dart';
 import '../../data/model/sale_invoice_model.dart' show PaymentEntry;
 import '../provider/sale_return_provider.dart';
 
-// ── Smart format: whole number → integer, decimal → 2 places ──────
 String _fmtNum(double v) =>
     v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
 
@@ -36,8 +32,6 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
   bool _printReceipt = true;
   bool _saving       = false;
 
-  // ✅ FIX 2: Previous text track karo — selection change pe
-  // listener fire hota tha aur cash recalculate ho ke grandTotal ban jaata tha
   String _prevCardText   = '';
   String _prevCreditText = '';
 
@@ -49,8 +43,17 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
   double get _grandTotal  => ref.read(saleReturnProvider).grandTotal;
   double get _remaining   => _grandTotal - _paid;
   bool   get _isValid     => _remaining.abs() < 0.01;
-  bool   get _hasCustomer =>
-      ref.read(saleReturnProvider).selectedCustomer != null;
+  bool   get _hasCustomer => ref.read(saleReturnProvider).selectedCustomer != null;
+
+  // ── Customer ka existing credit/odhar balance ─────────────────
+  // NOTE: CustomerModel mein 'creditBalance' field hona chahiye.
+  // Adjust field name apne model ke mutabiq.
+  double get _existingCredit {
+    final customer = ref.read(saleReturnProvider).selectedCustomer;
+    if (customer == null) return 0.0;
+    try { return (customer as dynamic).creditBalance as double? ?? 0.0; }
+    catch (_) { return 0.0; }
+  }
 
   @override
   void initState() {
@@ -63,23 +66,27 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
       if (!mounted) return;
 
       final gt = _grandTotal;
-      _cashCtrl.text = _fmtNum(gt);
+
+      // ── CHANGE: Customer select hai to credit mein refund amount, cash = 0 ──
+      if (_hasCustomer) {
+        // Credit field mein refund amount — cash auto 0 ho jayega
+        _creditCtrl.text = _fmtNum(gt);
+        _cashCtrl.text   = '0';
+      } else {
+        // No customer — cash mein refund amount (original behavior)
+        _cashCtrl.text = _fmtNum(gt);
+      }
+
       _cashFocus.requestFocus();
       _cashCtrl.selection = TextSelection(
         baseOffset: 0, extentOffset: _cashCtrl.text.length,
       );
       setState(() {});
 
-      // ✅ FIX 1: HardwareKeyboard handler postFrameCallback ke BAAD add karo
-      // LIFO order mein fire hota hai — return true se parent screen tak event
-      // nahi jaata, isliye saveReturn() SIRF EK BAAR call hogi
-      // (KeyboardListener event consume nahi karta tha — woh double-save ka cause tha)
       HardwareKeyboard.instance.addHandler(_handleKey);
     });
   }
 
-  // ✅ FIX 1: Yeh handler event consume karta hai (return true)
-  // Parent screen ka Ctrl+S handler is ke baad fire nahi hoga
   bool _handleKey(KeyEvent event) {
     if (!mounted) return false;
     if (event is! KeyDownEvent) return false;
@@ -90,7 +97,7 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
 
     if (ctrl && event.logicalKey == LogicalKeyboardKey.keyS) {
       _confirm();
-      return true; // ← event consume — parent screen tak nahi jaayega
+      return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       Navigator.of(context).pop();
@@ -99,9 +106,6 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
     return false;
   }
 
-  // ✅ FIX 2: Sirf tab recalculate karo jab text WAQAI change hua ho
-  // TextEditingController listener selection change pe bhi fire hota tha
-  // (jab card field pe focus aata) — yeh isko rokta hai
   void _autoAdjustCash() {
     final newCardText   = _cardCtrl.text.trim();
     final newCreditText = _creditCtrl.text.trim();
@@ -122,7 +126,6 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
 
   @override
   void dispose() {
-    // ✅ FIX 1: Handler zaroor remove karo warna memory leak hoga
     HardwareKeyboard.instance.removeHandler(_handleKey);
     _cashCtrl.dispose();
     _cardCtrl.dispose();
@@ -155,22 +158,18 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
     notifier.updatePayment('card',   _card);
     if (_hasCustomer) notifier.updatePayment('credit', _credit);
 
-    // ✅ FIX 3: Navigator aur ScaffoldMessenger ko await se PEHLE capture karo
-    // Async gap ke baad context stale ho sakta hai — yeh Flutter ka standard pattern hai
     final navigator         = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     final ok = await notifier.saveReturn();
     if (!mounted) return;
 
-    // ✅ Captured navigator use karo — dialog reliably close hoga
     navigator.pop();
     setState(() => _saving = false);
 
     if (ok) {
       scaffoldMessenger.showSnackBar(SnackBar(
-        content:         const Text('Sale Return saved!',
-            style: TextStyle(fontSize: 14)),
+        content:         const Text('Sale Return saved!', style: TextStyle(fontSize: 14)),
         backgroundColor: AppColor.success,
         behavior:        SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -202,18 +201,22 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
     final isSaving   = state.isSaving || _saving;
     final rc         = _remaining > 0.01 ? AppColor.error : AppColor.success;
 
-    // ✅ FIX 1: KeyboardListener bilkul nahi — HardwareKeyboard handler use kar rahe hain
-    // KeyboardListener events consume nahi karta tha jis ki wajah se double-save hoti thi
+    // Customer credit values
+    final existingCredit   = _existingCredit;
+    // Return mein credit reduce hota hai — customer ka odhar kam hoga
+    final creditAfterReturn = existingCredit - _credit;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
-        width: 420,
+        width: 440,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
               // ── Header ──────────────────────────────────────
               Row(children: [
                 const Icon(Icons.assignment_return_outlined,
@@ -229,8 +232,7 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text('Ctrl+S to Save',
-                      style: TextStyle(
-                          fontSize: 10, color: AppColor.error,
+                      style: TextStyle(fontSize: 10, color: AppColor.error,
                           fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 8),
@@ -240,7 +242,83 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                       size: 20, color: AppColor.textSecondary),
                 ),
               ]),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+
+              // ── CHANGE: Customer ka existing odhar info ────────────
+              if (_hasCustomer) ...[
+                Container(
+                  width:   double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color:        AppColor.warning.withOpacity(0.07),
+                    borderRadius: BorderRadius.circular(10),
+                    border:       Border.all(color: AppColor.warning.withOpacity(0.25)),
+                  ),
+                  child: Column(
+                    children: [
+                      // Customer name + existing odhar
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(children: [
+                            const Icon(Icons.person_outline,
+                                size: 14, color: AppColor.warning),
+                            const SizedBox(width: 6),
+                            Text(
+                              state.selectedCustomer?.name ?? '',
+                              style: const TextStyle(fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColor.textPrimary),
+                            ),
+                          ]),
+                          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                            const Text('Existing Odhar',
+                                style: TextStyle(fontSize: 10, color: AppColor.textHint)),
+                            Text(
+                              'Rs ${_fmtNum(existingCredit)}',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+                                  color: AppColor.warning),
+                            ),
+                          ]),
+                        ],
+                      ),
+
+                      // Credit refund info (odhar reduce hoga)
+                      if (_credit > 0) ...[
+                        const Divider(color: AppColor.warning, height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Is Return Ka Credit Refund',
+                                style: TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                            Text('- Rs ${_fmtNum(_credit)}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                    color: AppColor.success)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Odhar After Return',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                                    color: AppColor.warning)),
+                            Text(
+                              'Rs ${_fmtNum(creditAfterReturn < 0 ? 0 : creditAfterReturn)}',
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w800,
+                                  color: creditAfterReturn <= 0
+                                      ? AppColor.success
+                                      : AppColor.warning),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
 
               // ── Refund Amount ────────────────────────────────
               Container(
@@ -255,17 +333,15 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Refund Amount',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
                             color: AppColor.textSecondary)),
                     Text('Rs ${_fmtNum(grandTotal)}',
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w900,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
                             color: AppColor.error)),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               _ReturnPayField(
                 label:      'Cash (Rs)',
@@ -293,7 +369,7 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                   onChanged:  (_) {},
                 ),
               ],
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               // ── Remaining / Change ───────────────────────────
               Row(
@@ -305,13 +381,11 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                         : _remaining < -0.01
                         ? 'Change (wapas karo):'
                         : '✓ Refund Complete',
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600, color: rc),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: rc),
                   ),
                   if (_remaining.abs() > 0.01)
                     Text('Rs ${_fmtNum(_remaining.abs())}',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800, color: rc)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: rc)),
                 ],
               ),
               const SizedBox(height: 10),
@@ -326,16 +400,13 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                   Checkbox(
                     value:       _printReceipt,
                     activeColor: AppColor.error,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                     onChanged: (v) => setState(() => _printReceipt = v ?? true),
                   ),
-                  const Icon(Icons.print_outlined,
-                      size: 16, color: AppColor.textSecondary),
+                  const Icon(Icons.print_outlined, size: 16, color: AppColor.textSecondary),
                   const SizedBox(width: 6),
                   const Text('Print Return Receipt (Thermal)',
-                      style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w500,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
                           color: AppColor.textSecondary)),
                 ]),
               ),
@@ -348,17 +419,21 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                     onPressed: () => setState(() {
                       _cardCtrl.clear();
                       _creditCtrl.clear();
-                      // ✅ FIX 2: Reset pe prev tracking bhi clear karo
                       _prevCardText   = '';
                       _prevCreditText = '';
-                      _cashCtrl.text = _fmtNum(_grandTotal);
+                      // ── CHANGE: Reset pe bhi customer check ──
+                      if (_hasCustomer) {
+                        _creditCtrl.text = _fmtNum(_grandTotal);
+                        _cashCtrl.text   = '0';
+                      } else {
+                        _cashCtrl.text = _fmtNum(_grandTotal);
+                      }
                     }),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColor.textSecondary,
                       side:    const BorderSide(color: AppColor.grey300),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape:   RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                      shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     child: const Text('Reset'),
                   ),
@@ -368,23 +443,19 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                   child: ElevatedButton.icon(
                     onPressed: (_isValid && !isSaving) ? _confirm : null,
                     icon: isSaving
-                        ? const SizedBox(
-                        width: 16, height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.assignment_return_outlined, size: 18),
                     label: Text(
                       isSaving ? 'Saving...' : 'Save Return  (Ctrl+S)',
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor:         AppColor.error,
                       foregroundColor:         Colors.white,
                       disabledBackgroundColor: AppColor.grey300,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape:   RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                      shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       elevation: 0,
                     ),
                   ),
@@ -421,9 +492,12 @@ class _ReturnPayField extends StatelessWidget {
       prefixIcon: Icon(icon, size: 20, color: color),
       filled: true, fillColor: color.withOpacity(0.05),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      border:         OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: color.withOpacity(0.3))),
-      enabledBorder:  OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: color.withOpacity(0.25))),
-      focusedBorder:  OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: color, width: 1.5)),
+      border:        OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: color.withOpacity(0.3))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: color.withOpacity(0.25))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: color, width: 1.5)),
     ),
   );
 }

@@ -1,4 +1,4 @@
-// lib/features/branch/sale_invoice/presentation/widget/payment_dialog.dart
+// lib/features/branch/sale_invoice/presentation/screen/payment_dialog.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,10 +34,13 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
   bool _printReceipt = false;
   bool _saving       = false;
 
-  // ✅ FIX 1: Previous text track karo taake selection change pe
-  // listener fire na kare (sirf actual text change pe recalculate ho)
+  // Prev text tracking
+  String _prevCashText   = '';
   String _prevCardText   = '';
   String _prevCreditText = '';
+
+  // Recursive listener call rokne ke liye
+  bool _adjusting = false;
 
   double get _cash   => double.tryParse(_cashCtrl.text.trim()) ?? 0;
   double get _card   => double.tryParse(_cardCtrl.text.trim()) ?? 0;
@@ -47,20 +50,39 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
   double get _grandTotal  => ref.read(saleInvoiceProvider).grandTotal;
   double get _remaining   => _grandTotal - _paid;
   bool   get _isValid     => _remaining.abs() < 0.01;
-  bool   get _hasCustomer => ref.read(saleInvoiceProvider).selectedCustomer != null;
+  bool   get _hasCustomer =>
+      ref.read(saleInvoiceProvider).selectedCustomer != null;
+
+  double get _existingCredit {
+    final customer = ref.read(saleInvoiceProvider).selectedCustomer;
+    if (customer == null) return 0.0;
+    try { return (customer as dynamic).creditBalance as double? ?? 0.0; }
+    catch (_) { return 0.0; }
+  }
 
   @override
   void initState() {
     super.initState();
 
-    _cardCtrl.addListener(_autoAdjustCash);
-    _creditCtrl.addListener(_autoAdjustCash);
+    _cashCtrl.addListener(_onAnyFieldChanged);
+    _cardCtrl.addListener(_onAnyFieldChanged);
+    _creditCtrl.addListener(_onAnyFieldChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      // Cash field initialize
-      _cashCtrl.text = _fmtNum(_grandTotal);
+      _adjusting = true;
+      if (_hasCustomer) {
+        _cashCtrl.text   = '0';
+        _creditCtrl.text = _fmtNum(_grandTotal);
+        _prevCashText    = '0';
+        _prevCreditText  = _fmtNum(_grandTotal);
+      } else {
+        _cashCtrl.text = _fmtNum(_grandTotal);
+        _prevCashText  = _fmtNum(_grandTotal);
+      }
+      _adjusting = false;
+
       _cashFocus.requestFocus();
       _cashCtrl.selection = TextSelection(
         baseOffset: 0, extentOffset: _cashCtrl.text.length,
@@ -69,6 +91,73 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
 
       HardwareKeyboard.instance.addHandler(_handleKey);
     });
+  }
+
+  void _onAnyFieldChanged() {
+    if (_adjusting) return;
+    _adjusting = true;
+
+    final cashText   = _cashCtrl.text.trim();
+    final cardText   = _cardCtrl.text.trim();
+    final creditText = _creditCtrl.text.trim();
+
+    if (cashText   == _prevCashText &&
+        cardText   == _prevCardText &&
+        creditText == _prevCreditText) {
+      _adjusting = false;
+      return;
+    }
+
+    final cash   = double.tryParse(cashText)   ?? 0;
+    final card   = double.tryParse(cardText)   ?? 0;
+    final credit = double.tryParse(creditText) ?? 0;
+
+    if (_hasCustomer) {
+      // ── Customer mode ─────────────────────────────────────
+      // Cash ya Card badla → Credit auto-adjust
+      if (cashText != _prevCashText || cardText != _prevCardText) {
+        final remaining = _grandTotal - cash - card;
+        final newCredit = remaining > 0 ? remaining : 0.0;
+        final newText   = _fmtNum(newCredit);
+        if (_creditCtrl.text.trim() != newText) {
+          _creditCtrl.text = newText;
+          _creditCtrl.selection =
+              TextSelection.collapsed(offset: newText.length);
+        }
+        _prevCreditText = newText;
+      }
+      // Credit manually badla → Cash adjust
+      else if (creditText != _prevCreditText) {
+        final remaining = _grandTotal - card - credit;
+        final newCash   = remaining > 0 ? remaining : 0.0;
+        final newText   = _fmtNum(newCash);
+        if (_cashCtrl.text.trim() != newText) {
+          _cashCtrl.text = newText;
+          _cashCtrl.selection =
+              TextSelection.collapsed(offset: newText.length);
+        }
+        _prevCashText = newText;
+      }
+    } else {
+      // ── No customer mode ──────────────────────────────────
+      // Card badla → Cash adjust
+      if (cardText != _prevCardText) {
+        final remaining = _grandTotal - card;
+        final newCash   = remaining > 0 ? remaining : 0.0;
+        final newText   = _fmtNum(newCash);
+        if (_cashCtrl.text.trim() != newText) {
+          _cashCtrl.text = newText;
+        }
+        _prevCashText = newText;
+      }
+    }
+
+    _prevCashText   = _cashCtrl.text.trim();
+    _prevCardText   = _cardCtrl.text.trim();
+    _prevCreditText = _creditCtrl.text.trim();
+
+    _adjusting = false;
+    setState(() {});
   }
 
   bool _handleKey(KeyEvent event) {
@@ -88,26 +177,6 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
       return true;
     }
     return false;
-  }
-
-  void _autoAdjustCash() {
-    // ✅ FIX 1: Sirf tab recalculate karo jab text WAQAI change hua ho
-    // Selection change (focus aana) pe listener fire hota tha — yeh isko rokta hai
-    final newCardText   = _cardCtrl.text.trim();
-    final newCreditText = _creditCtrl.text.trim();
-
-    if (newCardText == _prevCardText && newCreditText == _prevCreditText) return;
-
-    _prevCardText   = newCardText;
-    _prevCreditText = newCreditText;
-
-    final card      = double.tryParse(newCardText) ?? 0;
-    final credit    = double.tryParse(newCreditText) ?? 0;
-    final remaining = _grandTotal - card - credit;
-    final newCash   = remaining > 0 ? remaining : 0.0;
-    final newText   = newCash == 0 ? '0' : _fmtNum(newCash);
-    if (_cashCtrl.text != newText) _cashCtrl.text = newText;
-    setState(() {});
   }
 
   @override
@@ -144,24 +213,19 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     await notifier.updatePayment('card',   _card);
     if (_hasCustomer) await notifier.updatePayment('credit', _credit);
 
-    // ✅ FIX 2: Navigator aur ScaffoldMessenger ko await se PEHLE capture karo
-    // Async gap ke baad context stale ho sakta hai — yeh Flutter ka standard pattern hai
-    final navigator        = Navigator.of(context);
+    final navigator         = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     final ok = await notifier.saveInvoice();
 
-    if (!mounted) return;
-
-    // ✅ Ab captured navigator use karo — context ki zaroorat nahi
     navigator.pop();
-
     setState(() => _saving = false);
+
+    if (!mounted) return;
 
     if (ok) {
       scaffoldMessenger.showSnackBar(SnackBar(
-        content:         const Text('Invoice saved!',
-            style: TextStyle(fontSize: 14)),
+        content:         const Text('Invoice saved!', style: TextStyle(fontSize: 14)),
         backgroundColor: AppColor.success,
         behavior:        SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -189,16 +253,20 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     final isSaving   = state.isSaving || _saving;
     final rc         = _remaining > 0.01 ? AppColor.error : AppColor.success;
 
+    final existingCredit = _existingCredit;
+    final totalCredit    = existingCredit + _credit;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
-        width: 420,
+        width: 440,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize:       MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
               // ── Header ──────────────────────────────────────
               Row(children: [
                 const Icon(Icons.payments_outlined,
@@ -214,8 +282,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text('Ctrl+S to Save',
-                      style: TextStyle(
-                          fontSize: 10, color: AppColor.primary,
+                      style: TextStyle(fontSize: 10, color: AppColor.primary,
                           fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 8),
@@ -225,7 +292,63 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                       size: 20, color: AppColor.textSecondary),
                 ),
               ]),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+
+              // ── Customer odhar info ──────────────────────────
+              if (_hasCustomer) ...[
+                Container(
+                  width:   double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color:        AppColor.warning.withOpacity(0.07),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColor.warning.withOpacity(0.25)),
+                  ),
+                  child: Column(children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(children: [
+                          const Icon(Icons.person_outline,
+                              size: 14, color: AppColor.warning),
+                          const SizedBox(width: 6),
+                          Text(state.selectedCustomer?.name ?? '',
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w600,
+                                  color: AppColor.textPrimary)),
+                        ]),
+                        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                          const Text('Existing Odhar',
+                              style: TextStyle(fontSize: 10, color: AppColor.textHint)),
+                          Text('Rs ${_fmtNum(existingCredit)}',
+                              style: const TextStyle(fontSize: 13,
+                                  fontWeight: FontWeight.w700, color: AppColor.warning)),
+                        ]),
+                      ],
+                    ),
+                    if (_credit > 0) ...[
+                      const Divider(color: AppColor.warning, height: 12),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        const Text('Is Sale Ka Credit',
+                            style: TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                        Text('+ Rs ${_fmtNum(_credit)}',
+                            style: const TextStyle(fontSize: 12,
+                                fontWeight: FontWeight.w600, color: AppColor.warning)),
+                      ]),
+                      const SizedBox(height: 4),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        const Text('Total Odhar After Sale',
+                            style: TextStyle(fontSize: 12,
+                                fontWeight: FontWeight.w700, color: AppColor.warning)),
+                        Text('Rs ${_fmtNum(totalCredit)}',
+                            style: const TextStyle(fontSize: 14,
+                                fontWeight: FontWeight.w800, color: AppColor.warning)),
+                      ]),
+                    ],
+                  ]),
+                ),
+                const SizedBox(height: 12),
+              ],
 
               // ── Grand Total ──────────────────────────────────
               Container(
@@ -234,23 +357,21 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                 decoration: BoxDecoration(
                   color:        AppColor.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
-                  border:       Border.all(color: AppColor.primary.withOpacity(0.2)),
+                  border: Border.all(color: AppColor.primary.withOpacity(0.2)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Grand Total',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
                             color: AppColor.textSecondary)),
                     Text('Rs ${_fmtNum(grandTotal)}',
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w900,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
                             color: AppColor.primary)),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // ── Cash ─────────────────────────────────────────
               _SmartPayField(
@@ -258,8 +379,8 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                 icon:       Icons.money_rounded,
                 controller: _cashCtrl,
                 focusNode:  _cashFocus,
-                hint:       'Auto-calculated',
-                onChanged:  (_) => setState(() {}),
+                hint:       '0',
+                onChanged:  (_) {},
               ),
               const SizedBox(height: 10),
 
@@ -271,10 +392,10 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                 hint:       '0',
                 onChanged:  (_) {},
               ),
-              const SizedBox(height: 10),
 
               // ── Credit ───────────────────────────────────────
               if (_hasCustomer) ...[
+                const SizedBox(height: 10),
                 _SmartPayField(
                   label:      'Credit / Udhar (Rs)',
                   icon:       Icons.account_balance_wallet_outlined,
@@ -283,8 +404,8 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                   hint:       '0',
                   onChanged:  (_) {},
                 ),
-                const SizedBox(height: 10),
               ],
+              const SizedBox(height: 10),
 
               // ── Remaining / Change ───────────────────────────
               Row(
@@ -296,13 +417,11 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                         : _remaining < -0.01
                         ? 'Change (wapas karo):'
                         : '✓ Payment Complete',
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600, color: rc),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: rc),
                   ),
                   if (_remaining.abs() > 0.01)
                     Text('Rs ${_fmtNum(_remaining.abs())}',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800, color: rc)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: rc)),
                 ],
               ),
               const SizedBox(height: 10),
@@ -318,13 +437,10 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                   Checkbox(
                     value:       _printReceipt,
                     activeColor: AppColor.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4)),
-                    onChanged: (v) =>
-                        setState(() => _printReceipt = v ?? true),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    onChanged: (v) => setState(() => _printReceipt = v ?? true),
                   ),
-                  const Icon(Icons.print_outlined,
-                      size: 16, color: AppColor.textSecondary),
+                  const Icon(Icons.print_outlined, size: 16, color: AppColor.textSecondary),
                   const SizedBox(width: 6),
                   const Text('Print Receipt (Thermal)', style: TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w500,
@@ -338,19 +454,26 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                 SizedBox(
                   width: 80,
                   child: OutlinedButton(
-                    onPressed: () => setState(() {
+                    onPressed: () {
+                      _adjusting = true;
                       _cardCtrl.clear();
-                      _creditCtrl.clear();
+                      if (_hasCustomer) {
+                        _cashCtrl.text   = '0';
+                        _creditCtrl.text = _fmtNum(_grandTotal);
+                      } else {
+                        _cashCtrl.text = _fmtNum(_grandTotal);
+                      }
+                      _prevCashText   = _cashCtrl.text.trim();
                       _prevCardText   = '';
-                      _prevCreditText = '';
-                      _cashCtrl.text = _fmtNum(_grandTotal);
-                    }),
+                      _prevCreditText = _creditCtrl.text.trim();
+                      _adjusting = false;
+                      setState(() {});
+                    },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColor.textSecondary,
                       side:    const BorderSide(color: AppColor.grey300),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape:   RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                      shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     child: const Text('Reset'),
                   ),
@@ -359,19 +482,20 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: (_isValid && !isSaving) ? _confirm : null,
-                    icon: isSaving ?
-                    const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) :
-                    const Icon(Icons.check_rounded, size: 18),
+                    icon: isSaving
+                        ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.check_rounded, size: 18),
                     label: Text(
                       isSaving ? 'Saving...' : 'Save Invoice  (Ctrl+S)',
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: Colors.white,
+                      backgroundColor:         AppColor.primary,
+                      foregroundColor:         Colors.white,
                       disabledBackgroundColor: AppColor.grey300,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       elevation: 0,
                     ),
                   ),
@@ -386,8 +510,8 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
 }
 
 class _SmartPayField extends StatelessWidget {
-  final String label;
-  final IconData icon;
+  final String                label;
+  final IconData              icon;
   final Color                 color;
   final TextEditingController controller;
   final String?               hint;
@@ -406,9 +530,9 @@ class _SmartPayField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TextField(
-    controller: controller,
-    focusNode: focusNode,
-    onChanged: onChanged,
+    controller:   controller,
+    focusNode:    focusNode,
+    onChanged:    onChanged,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     inputFormatters: [
       FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
@@ -416,17 +540,20 @@ class _SmartPayField extends StatelessWidget {
     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color),
     cursorHeight: 14,
     decoration: InputDecoration(
-      labelText: label,
-      hintText: hint,
-      labelStyle: TextStyle(fontSize: 13, color: color),
-      hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
+      labelText:  label,
+      hintText:   hint,
+      labelStyle: TextStyle(fontSize: 12, color: color),
+      hintStyle:  const TextStyle(fontSize: 13, color: AppColor.textHint),
       prefixIcon: Icon(icon, size: 20, color: color),
-      filled: true,
-      fillColor: color.withOpacity(0.05),
+      filled:     true,
+      fillColor:  color.withOpacity(0.05),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide:   BorderSide(color: color.withOpacity(0.3))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide:   BorderSide(color: color.withOpacity(0.25))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide:   BorderSide(color: color, width: 1.5)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: color.withOpacity(0.3))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: color.withOpacity(0.25))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: color, width: 1.5)),
     ),
   );
 }

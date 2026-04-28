@@ -34,14 +34,14 @@ class CashCounterModel {
   });
 
   // ── Labels ────────────────────────────────────────────────
-  String get cashSaleLabel    => 'Rs ${cashSale.toStringAsFixed(0)}';
-  String get cardSaleLabel    => 'Rs ${cardSale.toStringAsFixed(0)}';
-  String get creditSaleLabel  => 'Rs ${creditSale.toStringAsFixed(0)}';
-  String get installmentLabel => 'Rs ${installment.toStringAsFixed(0)}';
-  String get cashInLabel      => 'Rs ${cashIn.toStringAsFixed(0)}';
-  String get cashOutLabel     => 'Rs ${cashOut.toStringAsFixed(0)}';
-  String get totalSaleLabel   => 'Rs ${totalSale.toStringAsFixed(0)}';
-  String get totalAmountLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
+  String get cashSaleLabel    => 'Rs ${cashSale.toString()}';
+  String get cardSaleLabel    => 'Rs ${cardSale.toString()}';
+  String get creditSaleLabel  => 'Rs ${creditSale.toString()}';
+  String get installmentLabel => 'Rs ${installment.toString()}';
+  String get cashInLabel      => 'Rs ${cashIn.toString()}';
+  String get cashOutLabel     => 'Rs ${cashOut.toString()}';
+  String get totalSaleLabel   => 'Rs ${totalSale.toString()}';
+  String get totalAmountLabel => 'Rs ${totalAmount.toString()}';
 
   factory CashCounterModel.fromMap(Map<String, dynamic> map) {
     return CashCounterModel(

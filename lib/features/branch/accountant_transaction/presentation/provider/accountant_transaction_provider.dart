@@ -90,8 +90,7 @@ class AccountantTransactionState {
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
-class AccountantTransactionNotifier
-    extends StateNotifier<AccountantTransactionState> {
+class AccountantTransactionNotifier extends StateNotifier<AccountantTransactionState> {
   final GetTransactionsUseCase _getTransactions;
   final CashOutUseCase _cashOut;
   final CashInUseCase _cashIn;

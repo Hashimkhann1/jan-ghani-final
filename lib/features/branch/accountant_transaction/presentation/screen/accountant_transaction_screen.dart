@@ -25,9 +25,10 @@ class AccountantTransactionScreen extends ConsumerWidget {
         title: const Text(
           'Accountant Transactions',
           style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-              color: AppColor.textPrimary),
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: AppColor.textPrimary,
+          ),
         ),
         actions: [
           Padding(

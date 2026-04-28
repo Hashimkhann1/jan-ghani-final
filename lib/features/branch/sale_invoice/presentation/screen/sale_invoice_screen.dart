@@ -1,5 +1,3 @@
-// lib/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart
-
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,8 +11,8 @@ import '../provider/cart_nav_provider.dart';
 import '../provider/sale_invoice_provider.dart';
 import '../widget/cart_panel.dart';
 import '../widget/held_invoices_sheet.dart';
-import '../widget/payment_dialog.dart';
 import '../widget/product_list_panel.dart';
+import 'return_payment_dialog.dart'; // ← Ctrl+A ke liye add kiya
 
 // ── FocusNode providers ────────────────────────────────────────────
 final posSearchFocusProvider = Provider<FocusNode>((ref) {
@@ -31,7 +29,6 @@ final posCustomerFocusProvider = Provider<FocusNode>((ref) {
 
 final searchFocusCallbackProvider = StateProvider<VoidCallback?>((ref) => null);
 
-// Sale Type FocusNode — Ctrl+T se focus karo
 final saleTypeFocusProvider = Provider<FocusNode>((ref) {
   final fn = FocusNode(debugLabel: 'SaleType');
   ref.onDispose(fn.dispose);
@@ -93,21 +90,29 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       return true;
     }
 
-    // ✅ FIX: Ctrl+S — Payment dialog
-    // Agar koi dialog/sheet already open hai toh parent ignore kare
-    // ModalRoute.isCurrent == false matlab koi aur route upar hai
-    if (ctrl && key == LogicalKeyboardKey.keyS) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true; // ✅ KEY FIX
+    // ── Ctrl+A — Payment dialog (Sale ya Return dono ke liye) ──────
+    if (ctrl && key == LogicalKeyboardKey.keyA) {
+      if (ModalRoute.of(context)?.isCurrent == false) return true;
       final st = ref.read(saleInvoiceProvider);
-      if (st.cartItems.isNotEmpty && st.saleType == SaleType.sale) {
-        _triggerPayNow();
+      if (st.cartItems.isNotEmpty) {
+        if (st.saleType == SaleType.sale) {
+          _triggerPayNow();
+        } else {
+          // Sale return mode — return payment dialog kholo
+          showReturnPaymentDialog(context, ref);
+        }
         return true;
       }
     }
 
+    // Ctrl+S — Screen level pe kuch nahi karta
+    // Sirf payment_dialog / return_payment_dialog ke ANDAR save karta hai
+    // Dialog Ctrl+A se khulta hai
+    if (ctrl && key == LogicalKeyboardKey.keyS) return false;
+
     // ── Ctrl+C — Cart edit mode toggle ──────────────────────
     if (ctrl && key == LogicalKeyboardKey.keyC) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true; // guard
+      if (ModalRoute.of(context)?.isCurrent == false) return true;
       final st  = ref.read(saleInvoiceProvider);
       final nav = ref.read(cartNavProvider);
       if (nav.isActive) {
@@ -139,7 +144,6 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
         ref.read(cartNavProvider.notifier).moveLeft();
         return true;
       }
-      // ESC exits cart mode (override clear cart)
       if (key == LogicalKeyboardKey.escape) {
         ref.read(cartNavProvider.notifier).deactivate();
         return true;
@@ -148,7 +152,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
     // ── Ctrl+T — Sale Type toggle ──────────────────────────────
     if (ctrl && key == LogicalKeyboardKey.keyT) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true; // guard
+      if (ModalRoute.of(context)?.isCurrent == false) return true;
       ref.read(saleTypeFocusProvider).requestFocus();
       final st   = ref.read(saleInvoiceProvider);
       final next = st.saleType == SaleType.sale
@@ -161,14 +165,14 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     // ── Ctrl+H / F3 — Hold invoice ────────────────────────────
     if ((ctrl && key == LogicalKeyboardKey.keyH) ||
         key == LogicalKeyboardKey.f3) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true; // guard
+      if (ModalRoute.of(context)?.isCurrent == false) return true;
       _holdCurrentInvoice();
       return true;
     }
 
     // F4 — Held invoices list
     if (key == LogicalKeyboardKey.f4) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true; // guard
+      if (ModalRoute.of(context)?.isCurrent == false) return true;
       showHeldInvoicesSheet(context, ref);
       return true;
     }
@@ -176,7 +180,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     // Ctrl+N / F5 — New invoice
     if (key == LogicalKeyboardKey.f5 ||
         (ctrl && key == LogicalKeyboardKey.keyN)) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true; // guard
+      if (ModalRoute.of(context)?.isCurrent == false) return true;
       _confirmNewInvoice();
       return true;
     }
@@ -189,8 +193,11 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     }
 
     // ESC — Clear cart
+    // ✅ FIX: Navigator.of(context).canPop() reliable hai
+    // Jab payment dialog ya koi bhi dialog khula hota hai, canPop() = true
+    // Isliye ESC dialog ko close karta hai, cart clear nahi karta
     if (key == LogicalKeyboardKey.escape) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true; // guard
+      if (Navigator.of(context).canPop()) return false; // dialog handle karega
       _confirmClearCart();
       return true;
     }
@@ -228,8 +235,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('New Invoice?',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        content:
-        const Text('Cart clear ho jayega. Pehle hold karna chahte ho?'),
+        content: const Text('Cart clear ho jayega. Pehle hold karna chahte ho?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(d),
@@ -248,8 +254,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
               backgroundColor: AppColor.error,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
               Navigator.pop(d);
@@ -268,9 +273,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(
-        ok
-            ? '💵 Cash drawer khul gaya'
-            : '⚠️ Drawer nahi khula — port check karein',
+        ok ? '💵 Cash drawer khul gaya' : '⚠️ Drawer nahi khula — port check karein',
         style: const TextStyle(fontSize: 13),
       ),
       backgroundColor: ok ? AppColor.success : AppColor.warning,
@@ -339,23 +342,18 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
             Text(
               isReturn ? 'Sale Return' : 'Sale Invoice',
               style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColor.textPrimary),
+                  fontSize: 16, fontWeight: FontWeight.w800, color: AppColor.textPrimary),
             ),
             Text(
               isReturn ? 'Return process karein' : 'New sale record karein',
-              style: const TextStyle(
-                  fontSize: 11, color: AppColor.textSecondary),
+              style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
             ),
           ]),
         ]),
         actions: [
-          // Shortcut hint button
           _ShortcutHintButton(),
           const SizedBox(width: 4),
 
-          // Held invoices badge
           if (holds.isNotEmpty) ...[
             SizedBox(
               width: 86,
@@ -368,33 +366,27 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
                     icon: const Icon(Icons.pause_circle_outline_rounded,
                         size: 14, color: AppColor.warning),
                     label: const Text('Hold',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: AppColor.warning,
+                        style: TextStyle(fontSize: 11, color: AppColor.warning,
                             fontWeight: FontWeight.w700)),
                     style: OutlinedButton.styleFrom(
                       side:    const BorderSide(color: AppColor.warning),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
-                      shape:   RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
+                      shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
                   ),
                 ),
                 Positioned(
                   top: 6, right: 0,
                   child: Container(
-                    width:  16,
-                    height: 16,
+                    width: 16, height: 16,
                     decoration: BoxDecoration(
                         color:  AppColor.warning,
                         shape:  BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 1.5)),
                     child: Center(
                       child: Text('${holds.length}',
-                          style: const TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white)),
+                          style: const TextStyle(fontSize: 8,
+                              fontWeight: FontWeight.w800, color: Colors.white)),
                     ),
                   ),
                 ),
@@ -403,27 +395,21 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
             const SizedBox(width: 4),
           ],
 
-          // Cash Drawer button
           if (CashDrawerService.isSupported) ...[
             SizedBox(
-              width:  90,
-              height: double.infinity,
+              width: 90, height: double.infinity,
               child: Tooltip(
                 message: 'Cash Drawer (F8)',
                 child: OutlinedButton.icon(
                   onPressed: _openCashDrawer,
-                  icon: const Icon(Icons.point_of_sale_outlined,
-                      size: 14, color: AppColor.primary),
+                  icon: const Icon(Icons.point_of_sale_outlined, size: 14, color: AppColor.primary),
                   label: const Text('Drawer',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: AppColor.primary,
+                      style: TextStyle(fontSize: 11, color: AppColor.primary,
                           fontWeight: FontWeight.w600)),
                   style: OutlinedButton.styleFrom(
                     side:    BorderSide(color: AppColor.primary.withOpacity(0.4)),
                     padding: const EdgeInsets.symmetric(horizontal: 6),
-                    shape:   RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
+                    shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
                 ),
               ),
@@ -431,7 +417,6 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
             const SizedBox(width: 4),
           ],
 
-          // Double tap hint
           if (!isReturn)
             Container(
               margin:  const EdgeInsets.symmetric(vertical: 12),
@@ -442,13 +427,10 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
                 border:       Border.all(color: AppColor.primary.withOpacity(0.2)),
               ),
               child: const Row(children: [
-                Icon(Icons.touch_app_outlined,
-                    size: 13, color: AppColor.primary),
+                Icon(Icons.touch_app_outlined, size: 13, color: AppColor.primary),
                 SizedBox(width: 4),
                 Text('Double tap to add',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: AppColor.primary,
+                    style: TextStyle(fontSize: 11, color: AppColor.primary,
                         fontWeight: FontWeight.w600)),
               ]),
             ),
@@ -458,9 +440,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
           preferredSize: const Size.fromHeight(1),
           child: Container(
             height: 1,
-            color: isReturn
-                ? AppColor.error.withOpacity(0.3)
-                : AppColor.grey200,
+            color: isReturn ? AppColor.error.withOpacity(0.3) : AppColor.grey200,
           ),
         ),
       ),
@@ -472,7 +452,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       ),
     );
   }
-} // ← _SaleInvoiceScreenState closes here
+}
 
 // ═════════════════════════════════════════════════════════════════
 // ── Hold Label Dialog ─────────────────────────────────────────────
@@ -488,17 +468,13 @@ class _HoldLabelDialogState extends State<_HoldLabelDialog> {
   final _ctrl = TextEditingController();
 
   @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _ctrl.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     title: const Row(children: [
-      Icon(Icons.pause_circle_outline_rounded,
-          color: AppColor.warning, size: 20),
+      Icon(Icons.pause_circle_outline_rounded, color: AppColor.warning, size: 20),
       SizedBox(width: 8),
       Text('Invoice Hold Karo',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -532,8 +508,7 @@ class _HoldLabelDialogState extends State<_HoldLabelDialog> {
           backgroundColor: AppColor.warning,
           foregroundColor: Colors.white,
           elevation:       0,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     ],
@@ -546,8 +521,7 @@ class _ShortcutHintButton extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
     message: 'Keyboard Shortcuts',
     child: IconButton(
-      icon: const Icon(Icons.keyboard_outlined,
-          size: 20, color: AppColor.textSecondary),
+      icon: const Icon(Icons.keyboard_outlined, size: 20, color: AppColor.textSecondary),
       onPressed: () => showDialog(
         context: context,
         builder: (_) => const _ShortcutsDialog(),
@@ -563,24 +537,26 @@ class _ShortcutsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const shortcuts = [
-      ('Ctrl+C',      'Cart edit mode on/off',          Icons.edit_outlined),
-      ('↑↓ ← →',     'Cart row / column navigate',      Icons.open_with_rounded),
-      ('Ctrl+T',      'Sale type toggle (Sale/Return)',  Icons.swap_horiz_rounded),
-      ('Ctrl+S',      'Payment dialog / Save',           Icons.payments_outlined),
-      ('Ctrl+H / F3', 'Hold invoice',                   Icons.pause_circle_outline_rounded),
-      ('Ctrl+K',      'Customer dropdown',               Icons.person_outline),
-      ('Ctrl+F / F1', 'Search focus',                   Icons.search_rounded),
-      ('F4',          'Held invoices',                   Icons.list_alt_rounded),
-      ('Ctrl+N / F5', 'New invoice',                    Icons.add_circle_outline_rounded),
-      ('F8 / Ctrl+D', 'Cash drawer',                    Icons.dashboard_customize_outlined),
-      ('ESC',         'Cart mode off / Clear cart',      Icons.clear_all_rounded),
-      ('↑↓ + Enter',  'Product select + qty',            Icons.keyboard_arrow_down_rounded),
+      // ── Ctrl+A opens dialog, Ctrl+S saves inside dialog ──
+      ('Ctrl+A',      'Payment dialog kholo (Sale + Return dono)',   Icons.payments_outlined),
+      ('Ctrl+S',      'Invoice save karo (Sirf dialog ke andar)',    Icons.save_outlined),
+      ('Ctrl+C',      'Cart edit mode on/off',                      Icons.edit_outlined),
+      ('↑↓ ← →',     'Cart row / column navigate',                 Icons.open_with_rounded),
+      ('Ctrl+T',      'Sale type toggle (Sale/Return)',             Icons.swap_horiz_rounded),
+      ('Ctrl+H / F3', 'Hold invoice',                              Icons.pause_circle_outline_rounded),
+      ('Ctrl+K',      'Customer dropdown',                          Icons.person_outline),
+      ('Ctrl+F / F1', 'Search focus',                              Icons.search_rounded),
+      ('F4',          'Held invoices',                              Icons.list_alt_rounded),
+      ('Ctrl+N / F5', 'New invoice',                               Icons.add_circle_outline_rounded),
+      ('F8 / Ctrl+D', 'Cash drawer',                               Icons.dashboard_customize_outlined),
+      ('ESC',         'Cart mode off / Clear cart',                 Icons.clear_all_rounded),
+      ('↑↓ + Enter',  'Product select + qty',                      Icons.keyboard_arrow_down_rounded),
     ];
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
-        width: 400,
+        width: 420,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -591,8 +567,7 @@ class _ShortcutsDialog extends StatelessWidget {
                 Icon(Icons.keyboard_outlined, color: AppColor.primary, size: 22),
                 SizedBox(width: 10),
                 Text('Keyboard Shortcuts',
-                    style:
-                    TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               ]),
               const SizedBox(height: 16),
               ...shortcuts.map((s) => Padding(
@@ -601,25 +576,19 @@ class _ShortcutsDialog extends StatelessWidget {
                   Icon(s.$3, size: 16, color: AppColor.primary),
                   const SizedBox(width: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color:        AppColor.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(s.$1,
-                        style: const TextStyle(
-                            fontSize:   11,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'monospace',
-                            color:      AppColor.primary)),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                            fontFamily: 'monospace', color: AppColor.primary)),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(s.$2,
-                        style: const TextStyle(
-                            fontSize: 13,
-                            color:    AppColor.textPrimary)),
+                        style: const TextStyle(fontSize: 13, color: AppColor.textPrimary)),
                   ),
                 ]),
               )),
@@ -632,8 +601,7 @@ class _ShortcutsDialog extends StatelessWidget {
                     backgroundColor: AppColor.primary,
                     foregroundColor: Colors.white,
                     elevation:       0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text('OK'),
                 ),

@@ -78,34 +78,36 @@ class AccountantDataSource {
 
   // ── Cash Out: branch → accountant ────────────────────────────────────────
 
-  Future<AccountantTransactionModel> cashOut({
-    required String accountantId,
-    required String accountantName,
-    required String branchId,
-    required double amount,
-    required double previousAmount,
-    required double remainingAmount,
-    String? description,
-  }) async {
+  Future<AccountantTransactionModel> cashOut({required String accountantId, required String accountantName, required String branchId, required double amount, required double previousAmount, required double remainingAmount, String? description,}) async {
     final conn = await DataBaseService.getConnection();
 
-    // 1. Local insert (works offline)
+    final branchRows = await conn.execute(
+      Sql.named('SELECT name FROM public.branch WHERE id = @id LIMIT 1'),
+      parameters: {'id': branchId},
+    );
+    final branchName = branchRows.isNotEmpty ? (branchRows.first.toColumnMap()['name'] as String? ?? '') : '';
     await conn.execute(
       Sql.named('''
-        INSERT INTO accountant_transactions
-          (accountant_id, accountant_name, branch_id,
-           transaction_type, amount, description, is_synced)
-        VALUES
-          (@accId, @accName, @branchId, 'cash_in', @amount, @desc, false)
-      '''),
+    INSERT INTO accountant_transactions
+      (accountant_id, accountant_name, branch_id, branch_name,
+       transaction_type, amount, previous_amount, remaining_amount,
+       description, is_synced)
+    VALUES
+      (@accId, @accName, @branchId, @branchName, 'cash_in', @amount,
+       @previousAmount, @remainingAmount, @desc, false)
+  '''),
       parameters: {
-        'accId':    accountantId,
-        'accName':  accountantName,
-        'branchId': branchId,
-        'amount':   amount,
-        'desc':     description,
+        'accId':           accountantId,
+        'accName':         accountantName,
+        'branchId':        branchId,
+        'branchName':      branchName,
+        'amount':          amount,
+        'previousAmount':  previousAmount,
+        'remainingAmount': remainingAmount,
+        'desc':            description,
       },
     );
+
 
     final localRows = await conn.execute(
       Sql.named('''
@@ -181,18 +183,22 @@ class AccountantDataSource {
 
     await conn.execute(
       Sql.named('''
-        INSERT INTO accountant_transactions
-          (accountant_id, accountant_name, branch_id,
-           transaction_type, amount, description)
-        VALUES
-          (@accId, @accName, @branchId, 'cash_out', @amount, @desc)
-      '''),
+    INSERT INTO accountant_transactions
+      (accountant_id, accountant_name, branch_id,
+       transaction_type, amount, previous_amount, remaining_amount,
+       description)
+    VALUES
+      (@accId, @accName, @branchId, 'cash_out', @amount,
+       @previousAmount, @remainingAmount, @desc)
+  '''),
       parameters: {
-        'accId':    accountantId,
-        'accName':  accountantName,
-        'branchId': branchId,
-        'amount':   amount,
-        'desc':     description,
+        'accId':           accountantId,
+        'accName':         accountantName,
+        'branchId':        branchId,
+        'amount':          amount,
+        'previousAmount':  previousAmount,
+        'remainingAmount': remainingAmount,
+        'desc':            description,
       },
     );
 

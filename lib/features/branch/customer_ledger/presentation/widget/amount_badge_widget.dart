@@ -16,7 +16,7 @@ class AmountBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        'Rs ${amount.toStringAsFixed(0)}',
+        'Rs $amount',
         style: TextStyle(
             fontSize:   12,
             fontWeight: FontWeight.w700,

@@ -22,15 +22,11 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
   final _formKey   = GlobalKey<FormState>();
   final _payCtrl   = TextEditingController();
   final _notesCtrl = TextEditingController();
-
   bool get _isEdit => widget.ledger != null;
   CustomerModel? _selectedCustomer;
   bool _isSaving   = false;
-  bool _printReceipt = true; // ✅ default ON
-
-  double get _previousAmount => _isEdit
-      ? widget.ledger!.previousAmount
-      : (_selectedCustomer?.balance ?? 0.0);
+  bool _printReceipt = true;
+  double get _previousAmount => _isEdit ? widget.ledger!.previousAmount : (_selectedCustomer?.balance ?? 0.0);
   double get _payAmount => double.tryParse(_payCtrl.text) ?? 0.0;
   double get _newAmount => _previousAmount - _payAmount;
 
@@ -79,9 +75,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
           previousAmount: _previousAmount,
           payAmount:      _payAmount,
           newAmount:      _newAmount,
-          notes:          _notesCtrl.text.trim().isEmpty
-              ? null
-              : _notesCtrl.text.trim(),
+          notes:          _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         );
       }
 
@@ -89,12 +83,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
       if (_printReceipt) {
         final auth     = ref.read(authProvider);
         final counters = ref.read(counterProvider).counters;
-        final counterName = auth.counterId != null
-            ? counters
-            .where((c) => c.id == auth.counterId)
-            .map((c) => c.counterName)
-            .firstOrNull ?? 'Counter'
-            : 'Counter';
+        final counterName = auth.counterId != null ? counters.where((c) => c.id == auth.counterId).map((c) => c.counterName).firstOrNull ?? 'Counter' : 'Counter';
 
         await CustomerLedgerPrintService.printReceipt(
           storeName: 'Jan Ghani Store',
@@ -170,24 +159,15 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Payment Record',
-                            style: TextStyle(
-                                fontSize:   16,
-                                fontWeight: FontWeight.w700)),
-                        Text('Customer ka payment record karein',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color:    AppColor.textSecondary)),
+                        Text('Payment Record', style: TextStyle(fontSize:   16, fontWeight: FontWeight.w700)),
+                        Text('Customer ka payment record karein', style: TextStyle(fontSize: 12, color:    AppColor.textSecondary)),
                       ],
                     ),
                     const Spacer(),
                     IconButton(
-                      onPressed: _isSaving
-                          ? null
-                          : () => Navigator.of(context).pop(),
+                      onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
                       icon:  const Icon(Icons.close_rounded),
-                      style: IconButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary),
+                      style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -200,9 +180,9 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                 const _Label('Customer *'),
                 const SizedBox(height: 6),
                 AppSearchableDropdown<CustomerModel>(
-                  items:     dropdownItems,
-                  value:     _selectedCustomer,
-                  hint:      'Customer select karein...',
+                  items: dropdownItems,
+                  value: _selectedCustomer,
+                  hint: 'Customer select karein...',
                   fullWidth: true,
                   onChanged: _onCustomerChanged,
                   validator: (v) =>
@@ -213,14 +193,10 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
 
                 // ── Previous Balance ─────────────────────
                 _AmountField(
-                  label:    'Current Balance',
-                  value:    _selectedCustomer == null
-                      ? '—'
-                      : 'Rs ${_previousAmount.toStringAsFixed(0)}',
-                  color:    _previousAmount > 0
-                      ? AppColor.error
-                      : AppColor.success,
-                  icon:     Icons.account_balance_outlined,
+                  label: 'Current Balance',
+                  value: _selectedCustomer == null ? '—' : 'Rs ${_previousAmount}',
+                  color: _previousAmount > 0 ? AppColor.error : AppColor.success,
+                  icon: Icons.account_balance_outlined,
                   readOnly: true,
                 ),
 

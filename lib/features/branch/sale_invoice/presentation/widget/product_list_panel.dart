@@ -17,18 +17,14 @@ class ProductListPanel extends ConsumerStatefulWidget {
 }
 
 class _ProductListPanelState extends ConsumerState<ProductListPanel> {
-  final _searchCtrl  = TextEditingController();
-  final _scrollCtrl  = ScrollController();
+  final _searchCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
   FocusNode? _searchFocusFromProvider;
 
-  int  _hoveredIndex   = -1;
-  bool _isScannerInput = false;
-  DateTime? _lastKeyTime;
+  int  _hoveredIndex = -1;
 
-  // ✅ GlobalKey map — har item ka exact position track karta hai
   final Map<int, GlobalKey> _itemKeys = {};
 
-  // ── Qty dialog ────────────────────────────────────────────
   final _qtyCtrl  = TextEditingController();
   final _qtyFocus = FocusNode();
   OverlayEntry? _feedbackOverlay;
@@ -50,7 +46,6 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
   }
 
   void _onSearchChanged() {
-    final now      = DateTime.now();
     final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
     final query    = _searchCtrl.text;
 
@@ -60,13 +55,28 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       ref.read(saleInvoiceProvider.notifier).updateSearch(query);
     }
 
-    if (_lastKeyTime != null) {
-      final gap = now.difference(_lastKeyTime!).inMilliseconds;
-      _isScannerInput = gap < 40;
-    }
-    _lastKeyTime = now;
-
     setState(() => _hoveredIndex = -1);
+  }
+
+  // ── ✅ FIX: Barcode direct add — pehle exact match try karo ─────
+  // Returns true if product found and added to cart
+  bool _tryDirectAdd(String query) {
+    final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
+
+    if (isReturn) {
+      return _addByBarcodeReturn(query);
+    } else {
+      final found = ref
+          .read(saleInvoiceProvider.notifier)
+          .addToCartByBarcode(query);
+      if (found) {
+        _searchCtrl.clear();
+        ref.read(saleInvoiceProvider.notifier).updateSearch('');
+        _showAddedFeedback(query, 1);
+        setState(() => _hoveredIndex = -1);
+      }
+      return found;
+    }
   }
 
   // ── Arrow key + Enter handler ─────────────────────────────
@@ -74,11 +84,26 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     if (event is! KeyDownEvent) return false;
 
     final products = _currentProducts();
-    if (products.isEmpty) return false;
+    final key      = event.logicalKey;
 
-    final key = event.logicalKey;
+    // ── ESC — search field clear karo ────────────────────────
+    if (key == LogicalKeyboardKey.escape) {
+      if (_searchCtrl.text.isNotEmpty) {
+        _searchCtrl.clear();
+        final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
+        if (isReturn) {
+          ref.read(saleReturnProvider.notifier).updateSearch('');
+        } else {
+          ref.read(saleInvoiceProvider.notifier).updateSearch('');
+        }
+        setState(() => _hoveredIndex = -1);
+        return true; // ESC consume karo — cart clear na ho
+      }
+      return false; // search already empty hai — screen ka ESC handle kare
+    }
 
     if (key == LogicalKeyboardKey.arrowDown) {
+      if (products.isEmpty) return false;
       setState(() {
         _hoveredIndex = (_hoveredIndex + 1).clamp(0, products.length - 1);
       });
@@ -87,6 +112,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     }
 
     if (key == LogicalKeyboardKey.arrowUp) {
+      if (products.isEmpty) return false;
       setState(() {
         _hoveredIndex = (_hoveredIndex - 1).clamp(0, products.length - 1);
       });
@@ -96,19 +122,27 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 
     if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
+      final query = _searchCtrl.text.trim();
+
+      // ── ✅ FIX: PEHLE exact barcode/SKU match try karo ─────────
+      // Scanner ka Enter yahan handle hoga — qty dialog nahi ayega
+      if (query.isNotEmpty) {
+        final added = _tryDirectAdd(query);
+        if (added) return true; // barcode match mila — done
+      }
+
+      // ── Barcode match nahi mila — agar hovered item hai to qty dialog ──
       if (_hoveredIndex >= 0 && _hoveredIndex < products.length) {
         _showQtyDialog(products[_hoveredIndex]);
         return true;
       }
-      _onSubmitted(_searchCtrl.text);
+
       return true;
     }
 
     return false;
   }
 
-  // ✅ FIX: Scrollable.ensureVisible — hardcoded height nahi
-  // Flutter khud item ka exact RenderBox find karta hai
   void _scrollToHovered() {
     if (_hoveredIndex < 0) return;
     final key = _itemKeys[_hoveredIndex];
@@ -118,7 +152,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       key!.currentContext!,
       duration:  const Duration(milliseconds: 150),
       curve:     Curves.easeOut,
-      alignment: 0.3, // item viewport ke 30% pe — na bilkul top, na center
+      alignment: 0.3,
     );
   }
 
@@ -188,16 +222,13 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
               ],
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w800,
-                  color: AppColor.primary),
+                  fontSize: 22, fontWeight: FontWeight.w800, color: AppColor.primary),
               decoration: InputDecoration(
                 labelText:  'Quantity',
-                labelStyle: const TextStyle(
-                    fontSize: 13, color: AppColor.textSecondary),
+                labelStyle: const TextStyle(fontSize: 13, color: AppColor.textSecondary),
                 filled:    true,
                 fillColor: AppColor.primary.withOpacity(0.06),
-                contentPadding:
-                const EdgeInsets.symmetric(vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide:   BorderSide.none),
@@ -232,8 +263,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                 backgroundColor: AppColor.primary,
                 foregroundColor: Colors.white,
                 elevation:       0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
           ),
         ],
       ),
@@ -280,28 +310,17 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     setState(() => _hoveredIndex = -1);
   }
 
-  // ── Barcode submit ────────────────────────────────────────
+  // ── ✅ FIX: onSubmitted — sirf tab karo jab _handleSearchKey ne handle na kiya ho ──
+  // (jab text already clear hua ho, trimmed empty hoga — kuch nahi hoga)
   void _onSubmitted(String value) {
-    final trimmed  = value.trim();
-    if (trimmed.isEmpty) return;
-
-    final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
-
-    if (isReturn) {
-      _addByBarcodeReturn(trimmed);
-    } else {
-      final found = ref
-          .read(saleInvoiceProvider.notifier)
-          .addToCartByBarcode(trimmed);
-      if (found) {
-        _searchCtrl.clear();
-        ref.read(saleInvoiceProvider.notifier).updateSearch('');
-        _showAddedFeedback(trimmed, 1);
-      }
-    }
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return; // _handleSearchKey already clear kar chuka hai
+    // Extra safety: dobara try karo (edge case jab handler na fire kare)
+    _tryDirectAdd(trimmed);
   }
 
-  void _addByBarcodeReturn(String query) {
+  // ── ✅ FIX: Return mode barcode add — bool return karta hai ─────
+  bool _addByBarcodeReturn(String query) {
     final allProducts = ref.read(branchStockProvider).allProducts;
     BranchStockModel? found;
     found = allProducts.cast<BranchStockModel?>().firstWhere(
@@ -319,7 +338,10 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       _searchCtrl.clear();
       ref.read(saleReturnProvider.notifier).updateSearch('');
       _showAddedFeedback(found.name, 1);
+      setState(() => _hoveredIndex = -1);
+      return true;
     }
+    return false;
   }
 
   void _showAddedFeedback(String name, double qty) {
@@ -335,22 +357,18 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
               color:        AppColor.success,
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.15), blurRadius: 8)
+                BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8)
               ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check_rounded,
-                    color: Colors.white, size: 16),
+                const Icon(Icons.check_rounded, color: Colors.white, size: 16),
                 const SizedBox(width: 6),
                 Text(
                   '${qty.toStringAsFixed(qty % 1 == 0 ? 0 : 1)} × $name',
                   style: const TextStyle(
-                      color:      Colors.white,
-                      fontSize:   13,
-                      fontWeight: FontWeight.w600),
+                      color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -363,13 +381,6 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       _feedbackOverlay?.remove();
       _feedbackOverlay = null;
     });
-  }
-
-  void focusSearch() {
-    _searchFocusFromProvider?.requestFocus();
-    _searchCtrl.selection = TextSelection(
-      baseOffset: 0, extentOffset: _searchCtrl.text.length,
-    );
   }
 
   @override
@@ -392,16 +403,12 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
         .where((p) =>
     p.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
         p.sku.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        (p.barcode
-            ?.toLowerCase()
-            .contains(searchQuery.toLowerCase()) ??
-            false))
+        (p.barcode?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false))
         .toList();
 
     if (_hoveredIndex >= products.length) {
       WidgetsBinding.instance.addPostFrameCallback((_) => setState(
-              () => _hoveredIndex =
-          products.isEmpty ? -1 : products.length - 1));
+              () => _hoveredIndex = products.isEmpty ? -1 : products.length - 1));
     }
 
     final accent = isReturn ? AppColor.error : AppColor.primary;
@@ -427,22 +434,17 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                 const SizedBox(width: 6),
                 Text('Products',
                     style: TextStyle(
-                        fontSize:   13,
-                        fontWeight: FontWeight.w700,
-                        color:      accent)),
+                        fontSize: 13, fontWeight: FontWeight.w700, color: accent)),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color:        accent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text('${products.length}',
                       style: TextStyle(
-                          fontSize:   11,
-                          fontWeight: FontWeight.w700,
-                          color:      accent)),
+                          fontSize: 11, fontWeight: FontWeight.w700, color: accent)),
                 ),
               ]),
               const SizedBox(height: 8),
@@ -456,17 +458,14 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                   focusNode:   _searchFocusFromProvider,
                   onSubmitted: _onSubmitted,
                   onChanged:   (_) {},
-                  style: const TextStyle(
-                      fontSize: 13, color: AppColor.textPrimary),
+                  style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
                   cursorHeight: 14,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                        RegExp(r'[a-zA-Z0-9\-_. ]')),
-                  ],
+                  // ── ✅ FIX: inputFormatters hataya — barcode ke sab characters allow ──
+                  // Pehle wala regex `[a-zA-Z0-9\-_. ]` barcode ke special chars
+                  // strip kar deta tha jis se exact match fail hoti thi
                   decoration: InputDecoration(
-                    hintText:  '↑↓ navigate, Enter = add qty',
-                    hintStyle: const TextStyle(
-                        fontSize: 11, color: AppColor.textHint),
+                    hintText:  'Barcode scan karo ya naam type karo',
+                    hintStyle: const TextStyle(fontSize: 11, color: AppColor.textHint),
                     prefixIcon: Icon(Icons.qr_code_scanner_rounded,
                         size: 16, color: AppColor.grey400),
                     suffixIcon: _searchCtrl.text.isNotEmpty
@@ -494,8 +493,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                      BorderSide(color: accent, width: 1.2),
+                      borderSide:   BorderSide(color: accent, width: 1.2),
                     ),
                   ),
                 ),
@@ -503,11 +501,10 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 
               const SizedBox(height: 4),
               Row(children: [
-                Icon(Icons.info_outline_rounded,
-                    size: 10, color: AppColor.textHint),
+                Icon(Icons.info_outline_rounded, size: 10, color: AppColor.textHint),
                 const SizedBox(width: 4),
                 const Text(
-                  '↑↓ select, Enter = qty dialog, barcode+Enter = direct add',
+                  'Barcode scan → auto add | ↑↓ select → Enter = qty dialog',
                   style: TextStyle(fontSize: 9, color: AppColor.textHint),
                 ),
               ]),
@@ -524,19 +521,16 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
             padding:    const EdgeInsets.all(8),
             itemCount:  products.length,
             itemBuilder: (context, index) {
-              final product   = products[index];
+              final product  = products[index];
               final isHovered = index == _hoveredIndex;
-
-              // ✅ Har item ka GlobalKey — ensureVisible ke liye
-              final itemKey =
-              _itemKeys.putIfAbsent(index, () => GlobalKey());
+              final itemKey  = _itemKeys.putIfAbsent(index, () => GlobalKey());
 
               return _ProductCard(
-                key:        itemKey,
-                index:      index + 1,
-                product:    product,
-                isReturn:   isReturn,
-                isHovered:  isHovered,
+                key:         itemKey,
+                index:       index + 1,
+                product:     product,
+                isReturn:    isReturn,
+                isHovered:   isHovered,
                 onDoubleTap: () => isReturn
                     ? retNotifier.addToCart(product)
                     : notifier.addToCart(product),
@@ -608,8 +602,7 @@ class _ProductCardState extends State<_ProductCard>
         : p.quantity <= 5
         ? AppColor.warning
         : AppColor.success;
-    final qty =
-    p.quantity.toStringAsFixed(p.quantity % 1 == 0 ? 0 : 1);
+    final qty = p.quantity.toStringAsFixed(p.quantity % 1 == 0 ? 0 : 1);
 
     return GestureDetector(
       onTap:       widget.onTap,
@@ -621,9 +614,7 @@ class _ProductCardState extends State<_ProductCard>
           margin:  const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: widget.isHovered
-                ? accent.withOpacity(0.07)
-                : Colors.white,
+            color: widget.isHovered ? accent.withOpacity(0.07) : Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: widget.isHovered

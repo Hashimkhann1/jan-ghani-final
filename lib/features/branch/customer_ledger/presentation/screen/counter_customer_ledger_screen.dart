@@ -16,8 +16,7 @@ class CounterCustomerLedgerScreen extends ConsumerStatefulWidget {
   const CounterCustomerLedgerScreen({super.key});
 
   @override
-  ConsumerState<CounterCustomerLedgerScreen> createState() =>
-      _CounterCustomerLedgerScreenState();
+  ConsumerState<CounterCustomerLedgerScreen> createState() => _CounterCustomerLedgerScreenState();
 }
 
 class _CounterCustomerLedgerScreenState
@@ -46,29 +45,22 @@ class _CounterCustomerLedgerScreenState
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
-        title: const Text('Record Delete Karein?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        content: Text(
-            '"${ledger.customerName}" ka record delete karna chahte hain?',
-            style: const TextStyle(fontSize: 13)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Record Delete Karein?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Text('"${ledger.customerName}" ka record delete karna chahte hain?', style: const TextStyle(fontSize: 13)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColor.textSecondary)),
+            child: const Text('Cancel', style: TextStyle(color: AppColor.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.error,
                 foregroundColor: Colors.white,
                 elevation:       0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             onPressed: () {
-              ref.read(customerLedgerProvider.notifier)
-                  .deleteLedger(ledger.id);
+              ref.read(customerLedgerProvider.notifier).deleteLedger(ledger.id);
               Navigator.pop(ctx);
             },
             child: const Text('Delete'),
@@ -97,11 +89,10 @@ class _CounterCustomerLedgerScreenState
           next.errorMessage != prev?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:         Text(next.errorMessage!),
+            content: Text(next.errorMessage!),
             backgroundColor: AppColor.error,
-            behavior:        SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             action: SnackBarAction(
               label:     'OK',
               textColor: Colors.white,
@@ -201,7 +192,7 @@ class _CounterCustomerLedgerScreenState
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Total Paid',
-                  value: 'Rs ${totalPaid.toStringAsFixed(0)}',
+                  value: 'Rs ${totalPaid.toString()}',
                   icon:  Icons.payments_outlined,
                   color: AppColor.success,
                 ),
@@ -255,10 +246,7 @@ class _CounterCustomerLedgerScreenState
                       child: SingleChildScrollView(
                         child: DataTable(
                           headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
-                                (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary.withValues(alpha: 0.05)
-                                : null,
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>((s) => s.contains(WidgetState.hovered) ? AppColor.primary.withValues(alpha: 0.05) : null,
                           ),
                           dataRowMinHeight: 52,
                           dataRowMaxHeight: 52,
@@ -277,27 +265,20 @@ class _CounterCustomerLedgerScreenState
                             cells: [
                               DataCell(CustomerCell(l: l)),
 
-                              DataCell(AmountBadge(
-                                  amount: l.previousAmount, color: AppColor.grey500)),
+                              DataCell(AmountBadge(amount: l.previousAmount, color: AppColor.grey500)),
 
-                              DataCell(AmountBadge(
-                                  amount: l.payAmount, color: AppColor.success)),
+                              DataCell(AmountBadge(amount: l.payAmount, color: AppColor.success)),
 
                               DataCell(AmountBadge(
                                 amount: l.newAmount,
-                                color: l.newAmount > 0
-                                    ? AppColor.error
-                                    : l.newAmount < 0
-                                    ? AppColor.info
-                                    : AppColor.success,
+                                color: l.newAmount > 0 ? AppColor.error : l.newAmount < 0 ? AppColor.info : AppColor.success,
                               )),
 
                               DataCell(SizedBox(
                                 width: 140,
                                 child: Text(
                                   l.notes ?? '—',
-                                  style: const TextStyle(
-                                      fontSize: 12, color: AppColor.textSecondary),
+                                  style: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
@@ -305,8 +286,7 @@ class _CounterCustomerLedgerScreenState
 
                               DataCell(Text(
                                 fmt.format(l.createdAt),
-                                style: const TextStyle(
-                                    fontSize: 11, color: AppColor.textSecondary),
+                                style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
                               )),
 
                               // Actions
