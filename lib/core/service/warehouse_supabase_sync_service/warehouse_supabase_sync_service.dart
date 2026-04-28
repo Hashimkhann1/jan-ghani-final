@@ -9,6 +9,8 @@
 // FIX 2: suppliers — outstanding_balance Supabase mein update hota hai
 // ================================================================
 
+// update code
+
 import 'dart:async';
 import 'package:postgres/postgres.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -38,7 +40,7 @@ class WarehouseSupabaseSyncService {
     'locations',
     'warehouse_users',
     'warehouse_categories',
-    'warehouse_finance',
+    // 'warehouse_finance',
     'linked_stores',
 
     // ── Level 3: upar wali tables pe dependent ──
@@ -189,7 +191,7 @@ class WarehouseSupabaseSyncService {
       final rows = result.map((r) => _serialize(r.toColumnMap())).toList();
       final ids  = rows.map((r) => r['id'].toString()).toList();
 
-      await _batchUpsert('warehouse_finance', rows);
+      await _batchUpsert('warehouse_finance', rows, onConflict: 'warehouse_id');
 
       if (ids.isNotEmpty) {
         final placeholders = List.generate(ids.length, (i) => '\$${i + 1}')
@@ -252,18 +254,18 @@ class WarehouseSupabaseSyncService {
   // ── Batch Upsert ─────────────────────────────────────────
   Future<void> _batchUpsert(
       String table,
-      List<Map<String, dynamic>> rows,
-      ) async {
+      List<Map<String, dynamic>> rows, {
+        String onConflict = 'id',  // ← yeh add karo
+      }) async {
     const batchSize = 50;
     for (var i = 0; i < rows.length; i += batchSize) {
       final end   = (i + batchSize) > rows.length ? rows.length : (i + batchSize);
       final batch = rows.sublist(i, end);
       await _supabase
           .from(table)
-          .upsert(batch, onConflict: 'id');
+          .upsert(batch, onConflict: onConflict);  // ← parameter use karo
     }
   }
-
   // ── Row Serializer ────────────────────────────────────────
   Map<String, dynamic> _serialize(Map<String, dynamic> row) {
     return row.map((key, value) {

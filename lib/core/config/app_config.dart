@@ -14,6 +14,7 @@ class AppConfig {
   static String get appMode      => _config['app_mode'];
   static String get warehouseId  => _config['warehouse_id'];
   static String get warehouseName=> _config['warehouse_name'];
+  static String get warehouseCode=> _config['warehouse_code'];
   static String get dbHost       => _config['db_host'];
   static int    get dbPort       => _config['db_port'];
   static String get dbName       => _config['db_name'];

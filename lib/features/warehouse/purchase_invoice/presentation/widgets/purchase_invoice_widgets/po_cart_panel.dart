@@ -1,4 +1,3 @@
-
 // =============================================================
 // po_cart_panel.dart
 // FIX: _invoiceStatus aur _poType ab provider state se sync hote hain
@@ -39,21 +38,21 @@ class PoCartPanel extends ConsumerWidget {
             child: state.cartItems.isEmpty
                 ? const _EmptyCart()
                 : Column(
-              children: [
-                const PoCartTableHeader(),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
-                    itemCount: state.cartItems.length,
-                    separatorBuilder: (_, __) =>
-                    const SizedBox(height: 4),
-                    itemBuilder: (context, index) => PoCartItemRow(
-                        cartItem: state.cartItems[index]),
+                    children: [
+                      const PoCartTableHeader(),
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          itemCount: state.cartItems.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 4),
+                          itemBuilder: (context, index) =>
+                              PoCartItemRow(cartItem: state.cartItems[index]),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
           const PoCartSummaryWidget(),
         ],
@@ -66,8 +65,6 @@ class PoCartPanel extends ConsumerWidget {
 // HEADER WIDGET
 // ─────────────────────────────────────────────────────────────
 
-
-
 class PoInvoiceHeaderWidget extends ConsumerStatefulWidget {
   const PoInvoiceHeaderWidget({super.key});
 
@@ -76,20 +73,18 @@ class PoInvoiceHeaderWidget extends ConsumerStatefulWidget {
       _PoInvoiceHeaderWidgetState();
 }
 
-class _PoInvoiceHeaderWidgetState
-    extends ConsumerState<PoInvoiceHeaderWidget> {
+class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
   // ── Controllers + FocusNode ───────────────────────────────
   // _paidFocus: sirf tab skip karo jab user paid field type kar raha ho
   // hasFocus broad check hataya — dedicated FocusNode use karo
-  final TextEditingController _paidCtrl =
-  TextEditingController(text: '0');
+  final TextEditingController _paidCtrl = TextEditingController(text: '0');
   final FocusNode _paidFocus = FocusNode();
 
   void showPOAddSupplierDialog(BuildContext context) {
     showDialog(
-      context:     context,
+      context: context,
       barrierColor: Colors.black.withOpacity(0.35),
-      builder:     (_) => const AddSupplierDialog(),
+      builder: (_) => const AddSupplierDialog(),
     );
   }
 
@@ -102,19 +97,18 @@ class _PoInvoiceHeaderWidgetState
 
   Future<void> _pickDate(BuildContext context,
       {required bool isDelivery}) async {
-    final state    = ref.read(purchaseInvoiceProvider);
+    final state = ref.read(purchaseInvoiceProvider);
     final notifier = ref.read(purchaseInvoiceProvider.notifier);
 
     final initial = isDelivery
-        ? (state.deliveryDate ??
-        state.orderDate.add(const Duration(days: 7)))
+        ? (state.deliveryDate ?? state.orderDate.add(const Duration(days: 7)))
         : state.orderDate;
 
     final picked = await showDatePicker(
-      context:     context,
+      context: context,
       initialDate: initial,
-      firstDate:   DateTime(2024),
-      lastDate:    DateTime(2030),
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2030),
     );
     if (picked == null) return;
 
@@ -127,12 +121,12 @@ class _PoInvoiceHeaderWidgetState
 
   @override
   Widget build(BuildContext context) {
-    final state    = ref.watch(purchaseInvoiceProvider);
+    final state = ref.watch(purchaseInvoiceProvider);
     final notifier = ref.read(purchaseInvoiceProvider.notifier);
 
     // ── FIX: provider state se lo — local variable nahi ──
     final invoiceStatus = state.invoiceStatus;
-    final poType        = state.poType;
+    final poType = state.poType;
 
     // ── FIX: dedicated _paidFocus use karo, FocusScope.broad nahi ──
     // FocusScope.of(context).hasFocus any focused widget pe block karta tha
@@ -145,7 +139,7 @@ class _PoInvoiceHeaderWidgetState
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: const BoxDecoration(
-        color:  AppColor.white,
+        color: AppColor.white,
         border: Border(bottom: BorderSide(color: AppColor.grey200)),
       ),
       child: Column(
@@ -159,7 +153,7 @@ class _PoInvoiceHeaderWidgetState
                 child: PoDisabledTextField(
                   label: 'PO Number',
                   value: state.poNumber,
-                  icon:  Icons.receipt_outlined,
+                  icon: Icons.receipt_outlined,
                 ),
               ),
               const SizedBox(width: 8),
@@ -175,9 +169,9 @@ class _PoInvoiceHeaderWidgetState
                       children: [
                         const Text('Supplier',
                             style: TextStyle(
-                                fontSize:   10,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color:      AppColor.textSecondary)),
+                                color: AppColor.textSecondary)),
                         GestureDetector(
                           onTap: () => showPOAddSupplierDialog(context),
                           child: Row(
@@ -188,52 +182,46 @@ class _PoInvoiceHeaderWidgetState
                               SizedBox(width: 3),
                               Text('New Supplier',
                                   style: TextStyle(
-                                      fontSize:   11,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color:      Color(0xFF6366F1))),
+                                      color: Color(0xFF6366F1))),
                             ],
                           ),
                         ),
-
                       ],
                     ),
                     const SizedBox(height: 4),
                     DropdownSearch<PoSupplier>(
-                      items:        (f, _) => state.suppliers,
-                      filterFn:     (s, f) => s.name
-                          .toLowerCase()
-                          .contains(f.toLowerCase()),
+                      items: (f, _) => state.suppliers,
+                      filterFn: (s, f) =>
+                          s.name.toLowerCase().contains(f.toLowerCase()),
                       selectedItem: state.selectedSupplier,
-                      compareFn:   (a, b) => a.id == b.id,
+                      compareFn: (a, b) => a.id == b.id,
                       itemAsString: (s) => s.name,
-                      onSelected:  (s) {
+                      onSelected: (s) {
                         if (s != null) notifier.selectSupplier(s);
                       },
                       decoratorProps: const DropDownDecoratorProps(
                         decoration: InputDecoration(
-                          hintText:   'Select Supplier',
+                          hintText: 'Select Supplier',
                           prefixIcon: Icon(Icons.person_outline,
                               size: 16, color: AppColor.grey500),
-                          filled:     true,
-                          fillColor:  AppColor.grey100,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 10),
+                          filled: true,
+                          fillColor: AppColor.grey100,
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           border: OutlineInputBorder(
-                            borderRadius:
-                            BorderRadius.all(Radius.circular(8)),
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
                             borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                            BorderRadius.all(Radius.circular(8)),
-                            borderSide:
-                            BorderSide(color: AppColor.grey200),
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderSide: BorderSide(color: AppColor.grey200),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius:
-                            BorderRadius.all(Radius.circular(8)),
-                            borderSide: BorderSide(
-                                color: AppColor.primary, width: 1.5),
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderSide:
+                                BorderSide(color: AppColor.primary, width: 1.5),
                           ),
                         ),
                       ),
@@ -242,56 +230,50 @@ class _PoInvoiceHeaderWidgetState
                         searchFieldProps: TextFieldProps(
                           cursorHeight: 14,
                           decoration: InputDecoration(
-                            hintText:   'Search supplier...',
-                            prefixIcon:
-                            const Icon(Icons.search, size: 18),
-                            filled:    true,
+                            hintText: 'Search supplier...',
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            filled: true,
                             fillColor: AppColor.grey100,
-                            contentPadding:
-                            const EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
-                            border:        InputBorder.none,
+                            border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
                           ),
                           style: const TextStyle(fontSize: 14),
                         ),
-                        itemBuilder:
-                            (ctx, s, isDisabled, isSelected) =>
+                        itemBuilder: (ctx, s, isDisabled, isSelected) =>
                             ListTile(
-                              leading: CircleAvatar(
-                                radius: 14,
-                                backgroundColor:
-                                AppColor.primary.withOpacity(0.1),
-                                child: Text(s.initials,
-                                    style: const TextStyle(
-                                        fontSize:   11,
-                                        fontWeight: FontWeight.w700,
-                                        color:      AppColor.primary)),
-                              ),
-                              title: Text(s.name,
-                                  style: TextStyle(
-                                      fontSize:   12,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.w400,
-                                      color: isSelected
-                                          ? AppColor.primary
-                                          : AppColor.textPrimary)),
-                              subtitle: Text(
-                                '${s.company}  •  '
-                                    '${s.paymentTerms} days',
+                          leading: CircleAvatar(
+                            radius: 14,
+                            backgroundColor: AppColor.primary.withOpacity(0.1),
+                            child: Text(s.initials,
                                 style: const TextStyle(
-                                    fontSize: 10,
-                                    color: AppColor.textSecondary),
-                              ),
-                              trailing: isSelected
-                                  ? const Icon(Icons.check_circle,
-                                  size:  16,
-                                  color: AppColor.primary)
-                                  : null,
-                            ),
-                        fit:         FlexFit.loose,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColor.primary)),
+                          ),
+                          title: Text(s.name,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: isSelected
+                                      ? AppColor.primary
+                                      : AppColor.textPrimary)),
+                          subtitle: Text(
+                            '${s.company}  •  '
+                            '${s.paymentTerms} days',
+                            style: const TextStyle(
+                                fontSize: 10, color: AppColor.textSecondary),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle,
+                                  size: 16, color: AppColor.primary)
+                              : null,
+                        ),
+                        fit: FlexFit.loose,
                         constraints: const BoxConstraints(maxHeight: 300),
                       ),
                     ),
@@ -320,20 +302,20 @@ class _PoInvoiceHeaderWidgetState
               Expanded(
                 child: _DatePickerField(
                   label: 'Order Date',
-                  date:  state.orderDate,
-                  icon:  Icons.calendar_today_outlined,
+                  date: state.orderDate,
+                  icon: Icons.calendar_today_outlined,
                   onTap: () => _pickDate(context, isDelivery: false),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _DatePickerField(
-                  label:       'Delivery Date',
-                  date:        state.deliveryDate,
-                  icon:        Icons.local_shipping_outlined,
+                  label: 'Delivery Date',
+                  date: state.deliveryDate,
+                  icon: Icons.local_shipping_outlined,
                   placeholder: 'Select delivery date',
                   onTap: () => _pickDate(context, isDelivery: true),
-                  isRequired:  true,
+                  isRequired: true,
                 ),
               ),
               const SizedBox(width: 10),
@@ -351,24 +333,32 @@ class _PoInvoiceHeaderWidgetState
                       }
                     }
                   },
+                  isLocked:  ref.read(purchaseInvoiceProvider.notifier).isReceivedLocked,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
 
+
+          // ees nnecha Pay Amount to Supplier ko esleya comment keya hai jab hum purchase invoice may
+          // supplier ko payment karate hai woo supplier kay total outstanding
+          // balance say cut jata hai.
+
+          // yee ek bug hai future may solve karke add kareng gee abhi kalee ye zaroree nahi hai.
+
           // ── Row 3: Paid Amount — sirf Completed pe ────────
           // FIX: invoiceStatus provider se check karo
-          if (invoiceStatus == InvoiceStatus.completed)
-            _PaidAmountField(
-              controller: _paidCtrl,
-              focusNode:  _paidFocus,
-              grandTotal: state.grandTotal,
-              onChanged: (v) {
-                final val = double.tryParse(v) ?? 0;
-                notifier.setPaidAmount(val);
-              },
-            ),
+          // if (invoiceStatus == InvoiceStatus.completed)
+          //   _PaidAmountField(
+          //     controller: _paidCtrl,
+          //     focusNode: _paidFocus,
+          //     grandTotal: state.grandTotal,
+          //     onChanged: (v) {
+          //       final val = double.tryParse(v) ?? 0;
+          //       notifier.setPaidAmount(val);
+          //     },
+          //   ),
         ],
       ),
     );
@@ -380,12 +370,14 @@ class _PoInvoiceHeaderWidgetState
 // ─────────────────────────────────────────────────────────────
 
 class _InvoiceStatusDropdown extends StatelessWidget {
-  final InvoiceStatus               value;
+  final InvoiceStatus value;
   final ValueChanged<InvoiceStatus?> onChanged;
+  final bool isLocked;
 
   const _InvoiceStatusDropdown({
     required this.value,
     required this.onChanged,
+    this.isLocked = false,
   });
 
   @override
@@ -396,42 +388,40 @@ class _InvoiceStatusDropdown extends StatelessWidget {
         const Text(
           'Invoice Status',
           style: TextStyle(
-              fontSize:   10,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
-              color:      AppColor.textSecondary),
+              color: AppColor.textSecondary),
         ),
         const SizedBox(height: 4),
         DropdownButtonFormField<InvoiceStatus>(
-          value:     value,
-          onChanged: onChanged,
+          value: value,
+          onChanged: isLocked ? null : onChanged,
           decoration: InputDecoration(
             prefixIcon: Icon(value.icon, size: 16, color: value.color),
-            filled:    true,
+            filled: true,
             fillColor: value.color.withOpacity(0.07),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 8, vertical: 8),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide:   BorderSide.none,
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide:
-              BorderSide(color: value.color.withOpacity(0.35)),
+              borderSide: BorderSide(color: value.color.withOpacity(0.35)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide:   BorderSide(color: value.color, width: 1.5),
+              borderSide: BorderSide(color: value.color, width: 1.5),
             ),
           ),
           style: TextStyle(
-              fontSize:   12,
-              fontWeight: FontWeight.w600,
-              color:      value.color),
+              fontSize: 12, fontWeight: FontWeight.w600, color: value.color),
           dropdownColor: AppColor.white,
-          icon: Icon(Icons.expand_more_rounded,
-              size: 18, color: value.color),
-          items: InvoiceStatus.values.map((status) {
+          icon: Icon(Icons.expand_more_rounded, size: 18, color: value.color),
+          items: InvoiceStatus.values
+              .where((s) => isLocked ? s == InvoiceStatus.completed : true)
+              .map((status) {
             return DropdownMenuItem<InvoiceStatus>(
               value: status,
               child: Row(
@@ -440,9 +430,9 @@ class _InvoiceStatusDropdown extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(status.label,
                       style: TextStyle(
-                          fontSize:   12,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color:      status.color)),
+                          color: status.color)),
                 ],
               ),
             );
@@ -458,12 +448,12 @@ class _InvoiceStatusDropdown extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _DatePickerField extends StatelessWidget {
-  final String       label;
-  final DateTime?    date;
-  final IconData     icon;
-  final String       placeholder;
+  final String label;
+  final DateTime? date;
+  final IconData icon;
+  final String placeholder;
   final VoidCallback onTap;
-  final bool         isRequired;
+  final bool isRequired;
 
   const _DatePickerField({
     required this.label,
@@ -471,17 +461,16 @@ class _DatePickerField extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.placeholder = 'Select date',
-    this.isRequired  = false,
+    this.isRequired = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final fmt       = DateFormat('dd-MM-yyyy');
-    final hasDate   = date != null;
-    final showWarn  = isRequired && !hasDate;
-    final borderColor = showWarn
-        ? AppColor.warning.withOpacity(0.5)
-        : AppColor.grey200;
+    final fmt = DateFormat('dd-MM-yyyy');
+    final hasDate = date != null;
+    final showWarn = isRequired && !hasDate;
+    final borderColor =
+        showWarn ? AppColor.warning.withOpacity(0.5) : AppColor.grey200;
     final iconColor = hasDate
         ? AppColor.primary
         : (showWarn ? AppColor.warning : AppColor.grey400);
@@ -493,32 +482,31 @@ class _DatePickerField extends StatelessWidget {
           children: [
             Text(label,
                 style: const TextStyle(
-                    fontSize:   10,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color:      AppColor.textSecondary)),
+                    color: AppColor.textSecondary)),
             if (isRequired && !hasDate) ...[
               const SizedBox(width: 4),
               Text('*required',
                   style: TextStyle(
-                      fontSize:   9,
-                      color:      AppColor.warning,
+                      fontSize: 9,
+                      color: AppColor.warning,
                       fontWeight: FontWeight.w500)),
             ],
           ],
         ),
         const SizedBox(height: 4),
         InkWell(
-          onTap:        onTap,
+          onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 8, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             decoration: BoxDecoration(
               color: showWarn
                   ? AppColor.warning.withOpacity(0.05)
                   : AppColor.grey100,
               borderRadius: BorderRadius.circular(8),
-              border:       Border.all(color: borderColor),
+              border: Border.all(color: borderColor),
             ),
             child: Row(
               children: [
@@ -529,9 +517,8 @@ class _DatePickerField extends StatelessWidget {
                     hasDate ? fmt.format(date!) : placeholder,
                     style: TextStyle(
                         fontSize: 12,
-                        color: hasDate
-                            ? AppColor.textPrimary
-                            : AppColor.textHint),
+                        color:
+                            hasDate ? AppColor.textPrimary : AppColor.textHint),
                   ),
                 ),
                 Icon(Icons.expand_more_rounded,
@@ -551,9 +538,9 @@ class _DatePickerField extends StatelessWidget {
 
 class _PaidAmountField extends StatelessWidget {
   final TextEditingController controller;
-  final FocusNode             focusNode;
-  final double                grandTotal;
-  final ValueChanged<String>  onChanged;
+  final FocusNode focusNode;
+  final double grandTotal;
+  final ValueChanged<String> onChanged;
 
   const _PaidAmountField({
     required this.controller,
@@ -564,7 +551,7 @@ class _PaidAmountField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paid      = double.tryParse(controller.text) ?? 0;
+    final paid = double.tryParse(controller.text) ?? 0;
     final remaining = (grandTotal - paid).clamp(0.0, double.infinity);
     final isFullPay = paid >= grandTotal && grandTotal > 0;
 
@@ -575,21 +562,17 @@ class _PaidAmountField extends StatelessWidget {
           children: [
             const Text('Paid Amount to Supplier',
                 style: TextStyle(
-                    fontSize:   10,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color:      AppColor.textSecondary)),
+                    color: AppColor.textSecondary)),
             const Spacer(),
             if (grandTotal > 0)
               Text(
-                isFullPay
-                    ? '✓ Fully Paid'
-                    : 'Remaining: Rs ${_fmt(remaining)}',
+                isFullPay ? '✓ Fully Paid' : 'Remaining: Rs ${_fmt(remaining)}',
                 style: TextStyle(
-                    fontSize:   10,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: isFullPay
-                        ? AppColor.success
-                        : AppColor.warning),
+                    color: isFullPay ? AppColor.success : AppColor.warning),
               ),
           ],
         ),
@@ -599,38 +582,36 @@ class _PaidAmountField extends StatelessWidget {
             Expanded(
               flex: 2,
               child: TextField(
-                controller:   controller,
-                focusNode:    focusNode,
-                onChanged:    onChanged,
-                keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true),
+                controller: controller,
+                focusNode: focusNode,
+                onChanged: onChanged,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d*\.?\d*'))
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
                 ],
-                style: const TextStyle(
-                    fontSize: 13, color: AppColor.textPrimary),
+                style:
+                    const TextStyle(fontSize: 13, color: AppColor.textPrimary),
                 cursorHeight: 14,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.payments_outlined,
                       size: 16, color: AppColor.grey500),
-                  hintText:  '0',
-                  filled:    true,
+                  hintText: '0',
+                  filled: true,
                   fillColor: AppColor.grey100,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide:   BorderSide.none,
+                    borderSide: BorderSide.none,
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide:   BorderSide(color: AppColor.grey200),
+                    borderSide: BorderSide(color: AppColor.grey200),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide:   BorderSide(
-                        color: AppColor.primary, width: 1.5),
+                    borderSide: BorderSide(color: AppColor.primary, width: 1.5),
                   ),
                 ),
               ),
@@ -646,16 +627,15 @@ class _PaidAmountField extends StatelessWidget {
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.success,
-                    side:    BorderSide(color: AppColor.success),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 10),
+                    side: BorderSide(color: AppColor.success),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text('Pay Full',
-                      style: TextStyle(
-                          fontSize:   11,
-                          fontWeight: FontWeight.w600)),
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -665,11 +645,8 @@ class _PaidAmountField extends StatelessWidget {
     );
   }
 
-  static String _fmt(double v) => v
-      .toStringAsFixed(0)
-      .replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (m) => '${m[1]},');
+  static String _fmt(double v) => v.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -697,13 +674,12 @@ class _EmptyCart extends StatelessWidget {
           const SizedBox(height: 12),
           const Text('No items added',
               style: TextStyle(
-                  fontSize:   14,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color:      AppColor.textSecondary)),
+                  color: AppColor.textSecondary)),
           const SizedBox(height: 4),
           const Text('Double tap a product to add it',
-              style: TextStyle(
-                  fontSize: 12, color: AppColor.textHint)),
+              style: TextStyle(fontSize: 12, color: AppColor.textHint)),
         ],
       ),
     );

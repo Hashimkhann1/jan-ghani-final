@@ -421,8 +421,8 @@ class _ScrollableTableState extends State<_ScrollableTable> {
                           ),
                           child: const Row(
                             children: [
-                              _TH(label: 'PO Number',    flex: 2),
-                              _TH(label: 'Supplier',     flex: 3),
+                              _TH(label: 'PO Number',    flex: 3),
+                              _TH(label: 'Supplier',     flex: 2),
                               _TH(label: 'Destination',  flex: 2),
                               _TH(label: 'Status',       flex: 2),
                               _TH(label: 'Total / Paid', flex: 2),

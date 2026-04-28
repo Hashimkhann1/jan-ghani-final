@@ -5,7 +5,10 @@
 // saveInvoice()           → create ya update decide karta hai
 // =============================================================
 
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/datasource/purchase_order_remote_datasource.dart';
@@ -60,6 +63,9 @@ class PurchaseInvoiceNotifier
 
   bool get isEditMode => _existingOrderId != null;
 
+  bool get isReceivedLocked =>
+      isEditMode && _existingStatus == 'received';
+
   PurchaseInvoiceNotifier()
       : super(PurchaseInvoiceState(
     poNumber:         _generatePoNo(),
@@ -79,12 +85,24 @@ class PurchaseInvoiceNotifier
   factory PurchaseInvoiceNotifier.forTesting() =>
       PurchaseInvoiceNotifier();
 
+  // static String _generatePoNo() {
+  //   final now = DateTime.now();
+  //   return 'PO-${now.year}'
+  //       '${now.month.toString().padLeft(2, '0')}'
+  //       '${now.day.toString().padLeft(2, '0')}'
+  //       '-${now.millisecondsSinceEpoch.toString().substring(7)}';
+  // }
+
+  // generate PO more better and no risk of the same po number in all warehouses
   static String _generatePoNo() {
     final now = DateTime.now();
-    return 'PO-${now.year}'
+    final random = Random().nextInt(9999).toString().padLeft(4, '0');
+    final epoch = now.millisecondsSinceEpoch.toString().substring(7);
+    return 'PO-${AppConfig.warehouseCode.substring(3)}-${now.year}'
         '${now.month.toString().padLeft(2, '0')}'
         '${now.day.toString().padLeft(2, '0')}'
-        '-${now.millisecondsSinceEpoch.toString().substring(7)}';
+        '-$epoch$random';
+    // PO-LHE-20260428-00382174
   }
 
   // ── Edit mode: existing PO ka data load karo ─────────────

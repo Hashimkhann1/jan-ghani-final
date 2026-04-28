@@ -228,7 +228,7 @@ class _PoTableRowState extends State<PoTableRow> {
                 // PO Number + date
                 // PO Number + date  (PoTableRow ke andar)
                 Expanded(
-                  flex: 2,
+                  flex: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -250,7 +250,7 @@ class _PoTableRowState extends State<PoTableRow> {
 
                 // Supplier
                 Expanded(
-                  flex: 3,
+                  flex: 2,
                   child: Row(
                     children: [
                       _SupplierAvatar(order: o),
@@ -399,20 +399,6 @@ class _PoTableRowState extends State<PoTableRow> {
                           icon:  Icons.edit_outlined,
                           color: AppColor.primary,
                           onTap: widget.onEdit!,
-                        ),
-                      ],
-                      if (o.status == 'received') ...[
-                        const SizedBox(width: 4),
-                        Container(
-                          width: 28, height: 28,
-                          decoration: BoxDecoration(
-                            color:        AppColor.successLight,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                              Icons.check_circle_outline_rounded,
-                              size: 14, color: AppColor.success),
                         ),
                       ],
                     ],
