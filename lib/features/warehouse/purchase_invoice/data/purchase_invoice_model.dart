@@ -195,6 +195,11 @@ class PurchaseInvoiceState {
         .toList();
   }
 
+
+  bool get hasPriceZeroError => cartItems.any(
+        (i) => i.purchasePrice <= 0 || i.salePrice <= 0,
+  );
+
   int    get totalItems     => cartItems.length;
   double get totalBeforeTax => cartItems.fold(
       0.0, (sum, i) => sum + (i.purchasePrice * i.quantity));
