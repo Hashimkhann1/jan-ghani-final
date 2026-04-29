@@ -75,6 +75,7 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
     required List<String> barcodes,
     required int copies,
   }) async {
+
     final fontRegular = await PdfGoogleFonts.nunitoRegular();
     final fontBold    = await PdfGoogleFonts.nunitoBold();
 
@@ -88,7 +89,6 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
 
     for (final barcode in barcodes) {
       for (int i = 0; i < copies; i++) {
-        final barcodeWidget = _buildPdfBarcode(barcode);
 
         doc.addPage(
           pw.Page(
@@ -98,55 +98,61 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
               marginAll: margin,
             ),
             build: (pw.Context ctx) {
-              return pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  pw.Text(
-                    'JAN GHANI',
-                    style: pw.TextStyle(
-                      font: fontBold,
-                      fontSize: 5,
-                      letterSpacing: 1.2,
+              final barcodeWidget = _buildPdfBarcode(barcode);
+
+              return pw.SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: pw.Column(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      'JAN GHANI',
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: 7,
+                        letterSpacing: 1.2,
+                      ),
+                      textAlign: pw.TextAlign.center,
                     ),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                  pw.SizedBox(height: 1),
-                  pw.Text(
-                    widget.product.name.length > 26
-                        ? '${widget.product.name.substring(0, 24)}...'
-                        : widget.product.name,
-                    style: pw.TextStyle(font: fontRegular, fontSize: 6.5),
-                    textAlign: pw.TextAlign.center,
-                    maxLines: 1,
-                  ),
-                  pw.SizedBox(height: 2),
-                  pw.SizedBox(
-                    width:  34 * PdfPageFormat.mm,
-                    height: 12 * PdfPageFormat.mm,
-                    child: barcodeWidget,
-                  ),
-                  pw.SizedBox(height: 1),
-                  pw.Text(
-                    barcode,
-                    style: pw.TextStyle(
-                      font: fontRegular,
-                      fontSize: 6,
-                      letterSpacing: 1.2,
+                    pw.SizedBox(height: 0.5 * PdfPageFormat.mm), // ✅ 1mm → 0.5mm
+                    pw.Text(
+                      widget.product.name.length > 26
+                          ? '${widget.product.name.substring(0, 24)}...'
+                          : widget.product.name,
+                      style: pw.TextStyle(font: fontRegular, fontSize: 6.5),
+                      textAlign: pw.TextAlign.center,
+                      maxLines: 1,
                     ),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                  pw.SizedBox(height: 2),
-                  pw.Text(
-                    'Rs. ${widget.product.sellingPrice.toStringAsFixed(0)}',
-                    style: pw.TextStyle(
-                      font: fontBold,
-                      fontSize: 8,
-                      fontWeight: pw.FontWeight.bold,
+                    pw.SizedBox(height: 0.5 * PdfPageFormat.mm), // ✅ 1mm → 0.5mm
+                    pw.SizedBox(
+                      width: 34 * PdfPageFormat.mm,
+                      height: 9 * PdfPageFormat.mm, // ✅ 10mm → 9mm
+                      child: barcodeWidget,
                     ),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ],
+                    pw.SizedBox(height: 0.5 * PdfPageFormat.mm),
+                    pw.Text(
+                      barcode,
+                      style: pw.TextStyle(
+                        font: fontRegular,
+                        fontSize: 6,
+                        letterSpacing: 1.2,
+                      ),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    pw.SizedBox(height: 0.5 * PdfPageFormat.mm), // ✅ 1mm → 0.5mm
+                    pw.Text(
+                      'Rs. ${widget.product.sellingPrice.toStringAsFixed(0)}',
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: 8,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ],
+                ),
               );
             },
           ),
