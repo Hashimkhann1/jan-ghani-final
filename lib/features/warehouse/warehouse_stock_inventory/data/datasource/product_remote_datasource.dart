@@ -155,11 +155,13 @@ class ProductRemoteDataSource {
 
     await conn.execute(
       Sql.named('''
-        UPDATE warehouse_inventory
-        SET quantity = @quantity
-        WHERE product_id   = @productId
-          AND warehouse_id = @warehouseId
-      '''),
+    UPDATE warehouse_inventory
+    SET quantity   = @quantity,
+        updated_at = NOW(),
+        is_synced  = false
+    WHERE product_id   = @productId
+      AND warehouse_id = @warehouseId
+  '''),
       parameters: {
         'quantity':    newQty,
         'productId':   newProduct.id,
@@ -184,7 +186,9 @@ class ProductRemoteDataSource {
           max_stock_level = @maxStockLevel,
           reorder_point   = @reorderPoint,
           is_active       = @isActive,
-          is_track_stock  = @isTrackStock
+          is_track_stock  = @isTrackStock,
+          updated_at      = NOW(),
+          is_synced       = false
         WHERE id = @id
       '''),
       parameters: {
@@ -226,7 +230,7 @@ class ProductRemoteDataSource {
   }) async {
     final conn = await _db;
     await conn.execute(
-      Sql.named('UPDATE warehouse_products SET deleted_at = NOW() WHERE id = @id'),
+      Sql.named('UPDATE warehouse_products SET deleted_at = NOW(), is_synced = false WHERE id = @id'),
       parameters: {'id': id},
     );
     await _insertAuditLog(
