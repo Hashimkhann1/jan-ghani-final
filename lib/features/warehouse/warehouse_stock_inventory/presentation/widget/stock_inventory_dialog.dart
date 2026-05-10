@@ -102,7 +102,7 @@ class _StockInventoryDialogState
     _reorderCtrl     = TextEditingController(
         text: p?.reorderPoint.toString() ?? '0');
     _initialQtyCtrl  = TextEditingController(
-        text: p != null ? p.quantity.toStringAsFixed(0) : '0');
+        text: p != null ? p.quantity.toStringAsFixed(3).replaceAll(RegExp(r'\.?0+$'), '') : '0');
 
     // ── Barcodes init ─────────────────────────────────────
     _barcodes           = List<String>.from(p?.barcodes ?? []);

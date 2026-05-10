@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/core/widget/textfield/app_text_field.dart';
+import 'package:jan_ghani_final/features/warehouse/category/data/model/category_model.dart';
+import 'package:jan_ghani_final/features/warehouse/category/presentation/provider/category_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/Print_barcode_widget.dart';
 import '../../data/model/product_model.dart';
 import '../../presentation/provider/product_provider.dart';
@@ -85,20 +88,50 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
             ),
             16.hBox,
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Row(
-                    children: [
-                      SizedBox(width: 500, child: AppTextField(hint: "Search by name, SKU, barcode...", onChanged: notifier.onSearchChanged)),
-                    ],
-                  ),
+                _SearchField(
+                  onChanged: notifier.onSearchChanged,
+                  onClear: () => notifier.onSearchChanged(''),
                 ),
                 const SizedBox(width: 12),
-                ...[('all','All'),('active','Active'),('inactive','Inactive')].map((f) => Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: _FilterChip(label: f.$2, value: f.$1, selectedValue: state.filterStatus, onTap: notifier.onFilterStatusChanged),
-                )),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Category Dropdown ────────────────────────
+                    _CategoryFilterDropdown(
+                      categories: ref
+                          .watch(categoryProvider)
+                          .allCategories
+                          .where((c) => c.isActive && c.deletedAt == null)
+                          .toList(),
+                      selectedCategoryId: state.filterCategory,
+                      onChanged: notifier.onFilterCategoryChanged,
+                    ),
+                    const SizedBox(width: 8),
+                    // ── Low Stock button ─────────────────────────
+                    _StockFilterBtn(
+                      label:    'Low Stock',
+                      icon:     Icons.warning_amber_rounded,
+                      value:    'low_stock',
+                      selected: state.filterStatus == 'low_stock',
+                      color:    const Color(0xFFF59E0B),
+                      onTap:    () => notifier.onFilterStatusChanged(
+                          state.filterStatus == 'low_stock' ? 'all' : 'low_stock'),
+                    ),
+                    const SizedBox(width: 8),
+                    // ── Out of Stock button ──────────────────────
+                    _StockFilterBtn(
+                      label:    'Out of Stock',
+                      icon:     Icons.remove_shopping_cart_rounded,
+                      value:    'out_stock',
+                      selected: state.filterStatus == 'out_stock',
+                      color:    const Color(0xFFEF4444),
+                      onTap:    () => notifier.onFilterStatusChanged(
+                          state.filterStatus == 'out_stock' ? 'all' : 'out_stock'),
+                    ),
+                  ],
+                ),
               ],
             ),
             16.hBox,
@@ -222,7 +255,6 @@ class _ProductTable extends StatelessWidget {
 }
 
 // ── Product Row — StatelessWidget + ValueNotifier ─────────────
-// ✅ StatefulWidget hataya — setState se rebuild nahi hoga
 class _ProductRow extends StatelessWidget {
   final ProductModel         product;
   final bool                 isEven;
@@ -234,6 +266,9 @@ class _ProductRow extends StatelessWidget {
 
   // ✅ ValueNotifier — sirf AnimatedContainer rebuild hoga, poora Row nahi
   final _hovered = ValueNotifier<bool>(false);
+
+  String _fmt(double v) =>
+      v.toStringAsFixed(3).replaceAll(RegExp(r'\.?0+$'), '');
 
   _ProductRow({
     required super.key,
@@ -309,14 +344,16 @@ class _ProductRow extends StatelessWidget {
             Expanded(
               flex: flex('Purchase Price'),
               child: Text(
-                'Rs. ${p.purchasePrice.toStringAsFixed(2)}',
+                'Rs. ${_fmt(p.purchasePrice)}',
+                // 'Rs. ${p.purchasePrice.toStringAsFixed(2)}',
                 style: const TextStyle(fontSize: 12, color: Color(0xFF6C7280)),
               ),
             ),
             Expanded(
               flex: flex('Sale Price'),
               child: Text(
-                'Rs. ${p.sellingPrice.toStringAsFixed(2)}',
+                'Rs. ${_fmt(p.sellingPrice)}',
+                // 'Rs. ${p.sellingPrice.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -327,7 +364,8 @@ class _ProductRow extends StatelessWidget {
             Expanded(
               flex: flex('Stock'),
               child: Text(
-                '${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}',
+                '${_fmt(p.availableQty)} ${p.unitOfMeasure}',
+                // '${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}',
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 13,
@@ -490,6 +528,258 @@ class _FilterChip extends StatelessWidget {
           border: Border.all(color: selected ? const Color(0xFF6366F1) : const Color(0xFFE5E7EB)),
         ),
         child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? Colors.white : const Color(0xFF6C7280))),
+      ),
+    );
+  }
+}
+
+// ── Category Filter Dropdown ──────────────────────────────────
+class _CategoryFilterDropdown extends StatelessWidget {
+  final List<CategoryModel>   categories;
+  final String                selectedCategoryId;
+  final ValueChanged<String>  onChanged;
+
+  const _CategoryFilterDropdown({
+    required this.categories,
+    required this.selectedCategoryId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final validIds = categories.map((c) => c.id).toSet();
+    final safeValue = (selectedCategoryId != 'all' &&
+        validIds.contains(selectedCategoryId))
+        ? selectedCategoryId
+        : 'all';
+
+    final isFiltered = safeValue != 'all'; // ✅ check
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Dropdown ──────────────────────────────────
+        Container(
+          height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isFiltered
+                  ? const Color(0xFF6366F1) // selected ho to purple border
+                  : const Color(0xFF5BDD5B),
+              width: 1.3
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: safeValue,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 18, color: Color(0xFF6C7280)),
+              style: const TextStyle(
+                  fontSize: 13, color: Color(0xFF1A1D23)),
+              items: [
+                const DropdownMenuItem(
+                  value: 'all',
+                  child: Text('All Categories',
+                      style: TextStyle(fontSize: 15,fontWeight: FontWeight.w500, color: Color(
+                          0xFF717275))),
+                ),
+                ...categories.map((c) => DropdownMenuItem(
+                  value: c.id,
+                  child: Text(c.name,style: TextStyle(fontSize: 15,fontWeight: FontWeight.w500),),
+                )),
+              ],
+              onChanged: (v) => onChanged(v ?? 'all'),
+            ),
+          ),
+        ),
+
+        // ── Clear button — sirf tab dikhega jab filtered ho ──
+        if (isFiltered) ...[
+          const SizedBox(width: 6),
+          Tooltip(
+            message: 'All products show karo',
+            child: InkWell(
+              onTap: () => onChanged('all'), // ✅ ek click mein reset
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                height: 42,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: const Color(0xFF6366F1).withOpacity(0.3)),
+                ),
+                child: const Icon(Icons.close_rounded,
+                    size: 16, color: Color(0xFF6366F1)),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Search Field ──────────────────────────────────────────────
+class _SearchField extends StatefulWidget {
+  final ValueChanged<String> onChanged;
+  final VoidCallback         onClear;
+
+  const _SearchField({
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  final _ctrl      = TextEditingController();
+  final _hasText   = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _hasText.dispose();
+    super.dispose();
+  }
+
+  void _clear() {
+    _ctrl.clear();
+    _hasText.value = false;
+    widget.onClear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 500,
+      height: 46,
+      child: TextFormField(
+        controller: _ctrl,
+        onChanged: (v) {
+          widget.onChanged(v);
+          _hasText.value = v.isNotEmpty;
+        },
+        style: const TextStyle(fontSize: 13, color: Color(0xFF1A1D23)),
+        decoration: InputDecoration(
+          hintText: "Search by name, SKU, barcode...",
+          hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFD1D5DB)),
+          prefixIcon: const Icon(Icons.search_rounded,
+              size: 18, color: Color(0xFF9CA3AF)),
+          // ── Sirf suffix icon rebuild hoga, poora widget nahi ──
+          suffixIcon: ValueListenableBuilder<bool>(
+            valueListenable: _hasText,
+            builder: (_, has, __) => has
+                ? GestureDetector(
+              onTap: _clear,
+              child: Padding(
+                padding: const EdgeInsets.all(6.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColor.primary,
+                    shape: BoxShape.circle
+                  ),
+                  child: const Icon(Icons.close_rounded,
+                      size: 20, color: AppColor.white),
+                ),
+              ),
+            )
+                : const SizedBox.shrink(),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                  color: Color(0xFF6366F1), width: 1.5)),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Stock Filter Button ───────────────────────────────────────
+class _StockFilterBtn extends StatelessWidget {
+  final String   label;
+  final IconData icon;
+  final String   value;
+  final bool     selected;
+  final Color    color;
+  final VoidCallback onTap;
+
+  const _StockFilterBtn({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: selected ? 'Clear filter' : label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: selected ? color.withOpacity(0.12) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? color : const Color(0xFFE5E7EB),
+              width: selected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size:  16,
+                  color: selected ? color : const Color(0xFF9CA3AF)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize:   13,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? color : const Color(0xFF6C7280),
+                ),
+              ),
+              // ── X badge jab selected ho ───────────────
+              if (selected) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close_rounded,
+                      size: 10, color: Colors.white),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
