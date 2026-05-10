@@ -88,11 +88,10 @@ class _StockInventoryDialogState
     _descriptionCtrl = TextEditingController(text: p?.description ?? '');
     _selectedUnit    = p?.unitOfMeasure ?? 'pcs';
     purchasePriceCtrl   = TextEditingController(
-        text: p != null ? p.purchasePrice.toStringAsFixed(0) : '');
+        text: p != null ? p.purchasePrice.toStringAsFixed(3).replaceAll(RegExp(r'\.?0+$'), '') : '');
     _sellPriceCtrl   = TextEditingController(
         text: p != null ? p.sellingPrice.toStringAsFixed(0) : '');
-    _wholePriceCtrl  = TextEditingController(
-        text: p?.wholesalePrice?.toStringAsFixed(0) ?? '');
+    _wholePriceCtrl  = TextEditingController(text: p != null ? p.sellingPrice.toStringAsFixed(3).replaceAll(RegExp(r'\.?0+$'), '') : '');
     _taxCtrl         = TextEditingController(
         text: p != null ? p.taxRate.toStringAsFixed(0) : '0');
     _minStockCtrl    = TextEditingController(
