@@ -189,7 +189,8 @@ class SupplierRepository {
           tax_id         = @taxId,
           payment_terms  = @paymentTerms,
           is_active      = @isActive,
-          notes          = @notes
+          notes          = @notes,
+          is_synced      = false 
         WHERE id           = @id
           AND warehouse_id = @wid
       '''),
@@ -206,7 +207,7 @@ class SupplierRepository {
         'paymentTerms':  supplier.paymentTerms,
         'isActive':      supplier.isActive,
         'notes':         supplier.notes,
-        'createdBy':     supplier.createdById,
+        // 'createdBy':     supplier.createdById,
       },
     );
 
@@ -228,6 +229,59 @@ class SupplierRepository {
       '''),
       parameters: {'id': supplierId, 'wid': _wid},
     );
+  }
+
+
+  // ==========================================================
+// 8. ADJUST BALANCE — ledger mein adjustment entry dalo
+// trigger automatically outstanding_balance update karega
+// ==========================================================
+  Future<SupplierModel> adjustBalance({
+    required String supplierId,
+    required double newBalance,
+    String?         userId,
+  }) async {
+    final conn = await _db;
+
+    // Step 1: Current balance lo
+    final supplier = await getById(supplierId);
+    if (supplier == null) throw Exception('Supplier nahi mila');
+
+    final currentBalance = supplier.outstandingBalance;
+
+    // Agar same hai toh kuch mat karo
+    if (currentBalance == newBalance) return supplier;
+
+    // Difference: positive = increase, negative = decrease
+    final difference = newBalance - currentBalance;
+
+    // Step 2: Ledger mein adjustment entry insert karo
+    await conn.execute(
+      Sql.named('''
+      INSERT INTO supplier_ledger (
+        id,            warehouse_id,  supplier_id,
+        entry_type,    amount,        balance_before,
+        balance_after, notes,         created_by
+      ) VALUES (
+        @id,           @wid,          @supplierId,
+        'adjustment',  @amount,       @balanceBefore,
+        @balanceAfter, @notes,        @userId
+      )
+    '''),
+      parameters: {
+        'id':            const Uuid().v4(),
+        'wid':           _wid,
+        'supplierId':    supplierId,
+        'amount':        difference,
+        'balanceBefore': currentBalance,
+        'balanceAfter':  newBalance,
+        'notes':         'Manual balance adjustment via edit',
+        'userId':        userId,
+      },
+    );
+
+    // Step 3: Fresh data wapas lo (trigger ne balance update kar diya hoga)
+    return (await getById(supplierId))!;
   }
 
 

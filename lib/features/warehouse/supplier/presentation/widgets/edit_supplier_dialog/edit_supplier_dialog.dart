@@ -39,6 +39,7 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
   late final TextEditingController _address;
   late final TextEditingController _taxId;
   late final TextEditingController _notes;
+  late final TextEditingController _balance;
   late int  _paymentTerms;
   late bool _isActive;
 
@@ -56,6 +57,9 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
     _address       = TextEditingController(text: s.address       ?? '');
     _taxId         = TextEditingController(text: s.taxId         ?? '');
     _notes         = TextEditingController(text: s.notes         ?? '');
+    _balance = TextEditingController(
+      text: widget.supplier.outstandingBalance.toStringAsFixed(2),
+    );
     _paymentTerms  = s.paymentTerms;
     _isActive      = s.isActive;
   }
@@ -70,6 +74,7 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
     _address.dispose();
     _taxId.dispose();
     _notes.dispose();
+    _balance.dispose();
     super.dispose();
   }
 
@@ -340,43 +345,53 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
 
                 // Outstanding balance — read only info box
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: widget.supplier.hasDue
-                        ? AppColor.error.withOpacity(0.06)
-                        : AppColor.success.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: widget.supplier.hasDue
-                            ? AppColor.error.withOpacity(0.2)
-                            : AppColor.success.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        widget.supplier.hasDue
-                            ? Icons.account_balance_wallet_outlined
-                            : Icons.check_circle_outline_rounded,
-                        size:  16,
-                        color: widget.supplier.hasDue
-                            ? AppColor.error
-                            : AppColor.success,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Outstanding Balance (Rs)',
+                      style: TextStyle(
+                        fontSize:   13,
+                        fontWeight: FontWeight.w500,
+                        color:      AppColor.textPrimary,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Current Outstanding: '
-                            '${widget.supplier.balanceLabel}',
-                        style: TextStyle(
-                          fontSize:   13,
-                          fontWeight: FontWeight.w500,
-                          color:      widget.supplier.hasDue
-                              ? AppColor.error
-                              : AppColor.success,
-                        ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller:   _balance,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Balance required hai';
+                        if (double.tryParse(v.trim()) == null) return 'Valid number dalein';
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        hintText:  '0.00',
+                        prefixText: 'Rs ',
+                        hintStyle: TextStyle(color: AppColor.textHint, fontSize: 13),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        filled:    true,
+                        fillColor: AppColor.grey100,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:   BorderSide(color: AppColor.grey200)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:   BorderSide(color: AppColor.grey200)),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:   BorderSide(color: AppColor.primary, width: 1.5)),
+                        errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:   BorderSide(color: AppColor.error)),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 24),
@@ -439,29 +454,64 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
-    final updated = widget.supplier.copyWith(
-      companyName:   _companyName.text.trim().isEmpty
-          ? null : _companyName.text.trim(),
-      name:          _name.text.trim(),
-      phone:         _phone.text.trim(),
-      contactPerson: _contactPerson.text.trim().isEmpty
-          ? null : _contactPerson.text.trim(),
-      email:         _email.text.trim().isEmpty
-          ? null : _email.text.trim(),
-      address:       _address.text.trim().isEmpty
-          ? null : _address.text.trim(),
-      taxId:         _taxId.text.trim().isEmpty
-          ? null : _taxId.text.trim(),
-      notes:         _notes.text.trim().isEmpty
-          ? null : _notes.text.trim(),
-      paymentTerms:  _paymentTerms,
-      isActive:      _isActive,
-    );
+    try {
+      final updated = widget.supplier.copyWith(
+        companyName:   _companyName.text.trim().isEmpty
+            ? null : _companyName.text.trim(),
+        name:          _name.text.trim(),
+        phone:         _phone.text.trim(),
+        contactPerson: _contactPerson.text.trim().isEmpty
+            ? null : _contactPerson.text.trim(),
+        email:         _email.text.trim().isEmpty
+            ? null : _email.text.trim(),
+        address:       _address.text.trim().isEmpty
+            ? null : _address.text.trim(),
+        taxId:         _taxId.text.trim().isEmpty
+            ? null : _taxId.text.trim(),
+        notes:         _notes.text.trim().isEmpty
+            ? null : _notes.text.trim(),
+        paymentTerms:  _paymentTerms,
+        isActive:      _isActive,
+      );
 
-    await ref.read(supplierProvider.notifier).updateSupplier(updated);
+      final newBalance = double.tryParse(_balance.text.trim()) ??
+          widget.supplier.outstandingBalance;
 
-    setState(() => _isSaving = false);
-    if (mounted) Navigator.of(context).pop();
+      await ref.read(supplierProvider.notifier).updateSupplier(
+        updated,
+        newBalance: newBalance,
+        userId:     widget.supplier.createdById,
+      );
+
+      // Error check karo provider se
+      final error = ref.read(supplierProvider).errorMessage;
+      if (error != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() => _isSaving = false);
+        return;
+      }
+
+      if (mounted) Navigator.of(context).pop();
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Update failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 }
 
