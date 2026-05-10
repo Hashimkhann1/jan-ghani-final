@@ -49,7 +49,7 @@ class _SideBarState extends ConsumerState<SideBar> {
   late final List<NavItem> _allOthers = [
     NavItem(
       icon: Icons.inventory_2_outlined,
-      label: 'Warehouse Stock',
+      label: 'Stock',
       screen: const WarehouseStockInventoryScreen(),
     ),
     NavItem(
@@ -69,7 +69,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     ),
     NavItem(
       icon: Icons.account_balance_wallet_outlined,
-      label: 'WA Finance',
+      label: 'Finance',
       screen: const WarehouseFinanceScreen(),
     ),
     NavItem(
@@ -82,7 +82,7 @@ class _SideBarState extends ConsumerState<SideBar> {
   late final List<NavItem> _dataEntry = [
     NavItem(
       icon: Icons.inventory_2_outlined,
-      label: 'Warehouse Stock',
+      label: 'Stock',
       screen: const WarehouseStockInventoryScreen(),
     ),
     NavItem(
@@ -97,7 +97,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     ),
     NavItem(
       icon: Icons.account_balance_wallet_outlined,
-      label: 'WA Finance',
+      label: 'Finance',
       screen: const WarehouseFinanceScreen(),
     ),
     NavItem(
@@ -115,7 +115,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     ),
     NavItem(
       icon: Icons.inventory_2_outlined,
-      label: 'Warehouse Stock',
+      label: 'Stock',
       screen: const WarehouseStockInventoryScreen(),
     ),
     NavItem(
@@ -141,7 +141,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     ),
     NavItem(
       icon: Icons.account_balance_wallet_outlined,
-      label: 'WA Finance',
+      label: 'Finance',
       screen: const WarehouseFinanceScreen(),
     ),
     NavItem(

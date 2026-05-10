@@ -36,6 +36,7 @@ class PoStatCard extends StatelessWidget {
           border:       Border.all(color: AppColor.grey200),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
               width: 34, height: 34,

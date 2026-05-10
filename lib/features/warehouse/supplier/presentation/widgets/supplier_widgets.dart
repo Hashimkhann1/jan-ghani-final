@@ -36,6 +36,7 @@ class SupplierStatCard extends StatelessWidget {
           border:       Border.all(color: color.withOpacity(0.18)),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Icon box
             Container(
