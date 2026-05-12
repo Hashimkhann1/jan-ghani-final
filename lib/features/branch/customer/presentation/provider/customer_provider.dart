@@ -115,11 +115,12 @@ class CustomerNotifier extends StateNotifier<CustomerState> {
   Future<void> addCustomer({
     required String name,
     required String phone,
-    String?         address,
+    String? address,
     required String customerType,
     required double creditLimit,
     required bool   isActive,
     String?         notes,
+    required double? balance,
   }) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -134,7 +135,7 @@ class CustomerNotifier extends StateNotifier<CustomerState> {
         address:      address,
         customerType: customerType,
         creditLimit:  creditLimit,
-        balance:      0,
+        balance: balance ?? 0.0,
         isActive:     isActive,
         notes:        notes,
         createdAt:    DateTime.now(),

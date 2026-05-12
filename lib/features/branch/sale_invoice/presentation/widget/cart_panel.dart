@@ -1,6 +1,3 @@
-// lib/features/branch/sale_invoice/presentation/widget/cart_panel.dart
-// ── MODIFIED: Hold button + F2 Pay Now trigger + shortcut hints ──
-
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,7 +17,6 @@ import 'cart_row_widget.dart';
 import 'cart_summary_widget.dart';
 import 'cart_table_header_widget.dart';
 import 'disable_text_field_widget.dart';
-import 'held_invoices_sheet.dart';
 import '../screen/payment_dialog.dart';
 
 String _fmtD(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
@@ -45,40 +41,32 @@ class CartPanel extends ConsumerWidget {
 
     // ── Error listener ────────────────────────────────────────
     ref.listen<SaleInvoiceState>(saleInvoiceProvider, (prev, next) {
-      if (next.errorMessage != null &&
-          next.errorMessage != prev?.errorMessage) {
+      if (next.errorMessage != null && next.errorMessage != prev?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(next.errorMessage!,
-              style: const TextStyle(fontSize: 14)),
+          content: Text(next.errorMessage!, style: const TextStyle(fontSize: 14)),
           backgroundColor: AppColor.error,
           behavior:        SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           action: SnackBarAction(
             label:     'OK',
             textColor: Colors.white,
-            onPressed: () =>
-                ref.read(saleInvoiceProvider.notifier).clearError(),
+            onPressed: () => ref.read(saleInvoiceProvider.notifier).clearError(),
           ),
         ));
       }
     });
 
     ref.listen<SaleReturnState>(saleReturnProvider, (prev, next) {
-      if (next.errorMessage != null &&
-          next.errorMessage != prev?.errorMessage) {
+      if (next.errorMessage != null && next.errorMessage != prev?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(next.errorMessage!,
-              style: const TextStyle(fontSize: 14)),
+          content: Text(next.errorMessage!, style: const TextStyle(fontSize: 14)),
           backgroundColor: AppColor.error,
           behavior:        SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           action: SnackBarAction(
-            label:     'OK',
+            label: 'OK',
             textColor: Colors.white,
-            onPressed: () =>
-                ref.read(saleReturnProvider.notifier).clearError(),
+            onPressed: () => ref.read(saleReturnProvider.notifier).clearError(),
           ),
         ));
       }
@@ -89,13 +77,14 @@ class CartPanel extends ConsumerWidget {
       child: Column(children: [
         const InvoiceHeaderWidget(),
         Expanded(
-          child: isReturn
-              ? const _ReturnBody()
-              : (state.cartItems.isEmpty
-              ? const _EmptyCart()
-              : Column(children: [
-            const CartTableHeader(),
-            Expanded(
+          child: isReturn ?
+          const _ReturnBody() :
+          (state.cartItems.isEmpty ?
+          const _EmptyCart() :
+          Column(
+            children: [
+              const CartTableHeader(),
+              Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 6),
@@ -106,11 +95,12 @@ class CartPanel extends ConsumerWidget {
                     CartItemRow(cartItem: state.cartItems[index], rowIndex: index),
               ),
             ),
-          ])),
+            ],
+          )),
         ),
-        isReturn
-            ? const _ReturnSummary()
-            : const CartSummaryWidget(),
+        isReturn ?
+        const _ReturnSummary() :
+        const CartSummaryWidget(),
       ]),
     );
   }
@@ -127,13 +117,8 @@ class InvoiceHeaderWidget extends ConsumerWidget {
     final returnState    = ref.watch(saleReturnProvider);
     final returnNotifier = ref.read(saleReturnProvider.notifier);
     final isReturn       = state.saleType == SaleType.saleReturn;
-
-    final customers = ref.watch(customerProvider).allCustomers
-        .where((c) => c.deletedAt == null && c.isActive)
-        .toList();
-
+    final customers = ref.watch(customerProvider).allCustomers.where((c) => c.deletedAt == null && c.isActive).toList();
     final dateFmt = DateFormat('dd-MM-yyyy');
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: const BoxDecoration(
@@ -148,9 +133,7 @@ class InvoiceHeaderWidget extends ConsumerWidget {
             child: DisabledTextField(
               label: isReturn ? 'Return No' : 'Invoice No',
               value: isReturn ? returnState.returnNo : state.invoiceNo,
-              icon:  isReturn
-                  ? Icons.assignment_return_outlined
-                  : Icons.receipt_outlined,
+              icon:  isReturn ? Icons.assignment_return_outlined : Icons.receipt_outlined,
             ),
           ),
           const SizedBox(width: 10),
@@ -181,7 +164,7 @@ class InvoiceHeaderWidget extends ConsumerWidget {
             flex: 2,
             child: SaleTypeDropdown(
               focusNode: ref.read(saleTypeFocusProvider),
-              value:     state.saleType,
+              value: state.saleType,
               onChanged: (v) { if (v != null) notifier.setSaleType(v); },
             ),
           ),
@@ -189,83 +172,207 @@ class InvoiceHeaderWidget extends ConsumerWidget {
           Expanded(
             flex: 5,
             child: _CustomerDropdown(
-              customers:        customers,
-              selectedCustomer: isReturn
-                  ? returnState.selectedCustomer
-                  : state.selectedCustomer,
-              isReturn:         isReturn,
-              onSelected:       isReturn
-                  ? (c) => returnNotifier.selectCustomer(c)
-                  : (c) => notifier.selectCustomer(c),
+              customers: customers,
+              selectedCustomer: isReturn ? returnState.selectedCustomer : state.selectedCustomer,
+              isReturn: isReturn,
+              onSelected: isReturn ? (c) => returnNotifier.selectCustomer(c) : (c) => notifier.selectCustomer(c),
             ),
           ),
         ]),
       ]),
     );
   }
-
   void _showHoldDialog(BuildContext context, WidgetRef ref) {
     final ctrl = TextEditingController();
     showDialog(
       context: context,
-      // !! dialogCtx use karo — outer context stale ho sakta hai !!
-      builder: (dialogCtx) => AlertDialog(
+      barrierColor: Colors.black54,
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
-        title: const Row(children: [
-          Icon(Icons.pause_circle_outline_rounded,
-              color: AppColor.warning, size: 20),
-          SizedBox(width: 8),
-          Text('Invoice Hold Karo',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        ]),
-        content: TextField(
-          controller:  ctrl,
-          autofocus:   true,
-          decoration: const InputDecoration(
-            hintText:    'Label (optional, e.g. Table 3)',
-            hintStyle:   TextStyle(fontSize: 13),
-            border:      OutlineInputBorder(),
-          ),
-          onSubmitted: (_) {
-            Navigator.pop(dialogCtx);
-            ref.read(saleInvoiceProvider.notifier)
-                .holdCurrentInvoice(label: ctrl.text.trim().isEmpty
-                ? null : ctrl.text.trim());
-          },
+          borderRadius: BorderRadius.circular(16),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 28, 28, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header ──────────────────────────────────
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFF3CD),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.pause_rounded,
+                        color: Color(0xFFF5A623),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hold Invoice',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'You can resume this invoice later',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF888888),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+          
+                const SizedBox(height: 20),
+          
+                // ── Label field ─────────────────────────────
+                const Text(
+                  'Label (optional)',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF888888),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  style: const TextStyle(fontSize: 13.5),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Table 3, Counter 1...',
+                    hintStyle: const TextStyle(
+                      fontSize: 13.5,
+                      color: Color(0xFFBBBBBB),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.label_outline_rounded,
+                      color: Color(0xFFF5A623),
+                      size: 16,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFFFFDF7),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE0E0E0),
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFF5A623),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  onSubmitted: (_) => _holdAndClose(dialogCtx, ctrl, ref),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'If no label is provided, the invoice number will be used.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFAAAAAA),
+                  ),
+                ),
+          
+                const SizedBox(height: 22),
+          
+                // ── Buttons ─────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          foregroundColor: const Color(0xFF555555),
+                          side: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                            width: 1,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton.icon(
+                        onPressed: () => _holdAndClose(dialogCtx, ctrl, ref),
+                        icon: const Icon(Icons.pause_rounded, size: 16),
+                        label: const Text(
+                          'Hold Invoice',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFF5A623),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogCtx);
-              ref.read(saleInvoiceProvider.notifier)
-                  .holdCurrentInvoice(label: ctrl.text.trim().isEmpty
-                  ? null : ctrl.text.trim());
-            },
-            icon:  const Icon(Icons.pause_rounded, size: 16),
-            label: const Text('Hold Karo'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.warning,
-                foregroundColor: Colors.white,
-                elevation:       0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
-          ),
-        ],
+        ),
       ),
     );
   }
+
+  void _holdAndClose(BuildContext dialogCtx, TextEditingController ctrl, WidgetRef ref,) {
+    Navigator.pop(dialogCtx);
+    final label = ctrl.text.trim().isEmpty ? null : ctrl.text.trim();
+    ref.read(saleInvoiceProvider.notifier).holdCurrentInvoice(label: label);
+  }
 }
 
-// ── Hold Button ────────────────────────────────────────────────────
-// SizedBox(width) required — ElevatedButton.icon Row ke andar infinite
-// width constraint se crash karta hai bina fixed width ke.
 class _HoldButton extends StatelessWidget {
-  final bool         enabled;
+  final bool enabled;
   final VoidCallback onHold;
 
   const _HoldButton({required this.enabled, required this.onHold});
@@ -274,19 +381,15 @@ class _HoldButton extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text(' ',   // spacer — customer dropdown label ke saath align
-          style: TextStyle(fontSize: 10)),
+      const Text(' ', style: TextStyle(fontSize: 10)),
       const SizedBox(height: 4),
       SizedBox(
         width:  76,     // ← fixed width zaroor chahiye
         height: 42,
         child: ElevatedButton.icon(
           onPressed: enabled ? onHold : null,
-          icon:  const Icon(Icons.pause_circle_outline_rounded,
-              size: 15),
-          label: const Text('Hold',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700)),
+          icon:  const Icon(Icons.pause_circle_outline_rounded, size: 15),
+          label: const Text('Hold', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
           style: ElevatedButton.styleFrom(
             backgroundColor:         AppColor.warning,
             foregroundColor:         Colors.white,
@@ -302,7 +405,6 @@ class _HoldButton extends StatelessWidget {
   );
 }
 
-// ── Customer Dropdown ──────────────────────────────────────────────
 class _CustomerDropdown extends ConsumerWidget {
   final List<CustomerModel>      customers;
   final CustomerModel?           selectedCustomer;
@@ -466,10 +568,6 @@ class _CustomerDropdown extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Return Body + Summary (unchanged from original) — kept as-is
-// ─────────────────────────────────────────────────────────────────
-
 class _ReturnBody extends ConsumerWidget {
   const _ReturnBody();
 
@@ -598,7 +696,6 @@ class _ReturnSummary extends ConsumerWidget {
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 }
 
-// ── Return Item Row (unchanged) ────────────────────────────────────
 class _ReturnItemRow extends ConsumerStatefulWidget {
   final ReturnCartItem item;
   const _ReturnItemRow({required this.item});
@@ -712,12 +809,15 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
         )),
         Expanded(
           flex: 2,
-          child: Text('Rs ${_fmtD(item.subTotal)}}',
+          child: Text(
+              'Rs ${_fmtD(item.subTotal)}',
               textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize:   13,
                   fontWeight: FontWeight.w700,
-                  color:      AppColor.error)),
+                  color:      AppColor.error,
+              ),
+          ),
         ),
         GestureDetector(
           onTap: () => notifier.removeFromCart(item.cartId),
@@ -734,8 +834,6 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
     );
   }
 }
-
-// ── RTF, RH, RSR, EmptyCart, EmptyReturn (same as original) ──────
 
 class _RTF extends StatefulWidget {
   final TextEditingController controller;
@@ -911,3 +1009,4 @@ class _EmptyReturn extends StatelessWidget {
     ),
   );
 }
+

@@ -298,13 +298,11 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     final accent   = isReturn ? AppColor.error : AppColor.primary;
 
     ref.listen<SaleInvoiceState>(saleInvoiceProvider, (prev, next) {
-      if (next.successMessage != null &&
-          next.successMessage != prev?.successMessage) {
+      if (next.successMessage != null && next.successMessage != prev?.successMessage) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(next.successMessage!,
-              style: const TextStyle(fontSize: 14)),
+          content: Text(next.successMessage!, style: const TextStyle(fontSize: 14)),
           backgroundColor: AppColor.success,
-          behavior:        SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
         ref.read(saleInvoiceProvider.notifier).clearSuccess();
@@ -314,35 +312,30 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor:  Colors.white,
-        elevation:        0,
+        backgroundColor: Colors.white,
+        elevation: 0,
         surfaceTintColor: Colors.transparent,
-        titleSpacing:     16,
+        titleSpacing: 16,
         title: Row(children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [accent, accent.withOpacity(0.7)],
-                begin:  Alignment.topLeft,
-                end:    Alignment.bottomRight,
-              ),
+              color: accent,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              isReturn
-                  ? Icons.assignment_return_outlined
-                  : Icons.point_of_sale_outlined,
+              isReturn ? Icons.assignment_return_outlined : Icons.point_of_sale_outlined,
               color: Colors.white,
-              size:  18,
+              size: 16,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
               isReturn ? 'Sale Return' : 'Sale Invoice',
               style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w800, color: AppColor.textPrimary),
+                  fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textPrimary),
             ),
             Text(
               isReturn ? 'Return process karein' : 'New sale record karein',
@@ -352,94 +345,97 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
         ]),
         actions: [
           _ShortcutHintButton(),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
 
           if (holds.isNotEmpty) ...[
-            SizedBox(
-              width: 86,
-              child: Stack(clipBehavior: Clip.none, children: [
-                SizedBox(
-                  width:  80,
-                  height: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => showHeldInvoicesSheet(context, ref),
-                    icon: const Icon(Icons.pause_circle_outline_rounded,
-                        size: 14, color: AppColor.warning),
-                    label: const Text('Hold',
-                        style: TextStyle(fontSize: 11, color: AppColor.warning,
-                            fontWeight: FontWeight.w700)),
-                    style: OutlinedButton.styleFrom(
-                      side:    const BorderSide(color: AppColor.warning),
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
+            Stack(clipBehavior: Clip.none, children: [
+              SizedBox(
+                height: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () => showHeldInvoicesSheet(context, ref),
+                  icon: const Icon(Icons.pause_circle_outline_rounded,
+                      size: 14, color: AppColor.warning),
+                  label: const Text('Hold',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: AppColor.warning,
+                          fontWeight: FontWeight.w600)),
+                  style: TextButton.styleFrom(
+                    backgroundColor: AppColor.warning.withOpacity(0.1),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: AppColor.warning, width: 1.5)),
                   ),
                 ),
-                Positioned(
-                  top: 6, right: 0,
-                  child: Container(
-                    width: 16, height: 16,
-                    decoration: BoxDecoration(
-                        color:  AppColor.warning,
-                        shape:  BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5)),
-                    child: Center(
-                      child: Text('${holds.length}',
-                          style: const TextStyle(fontSize: 8,
-                              fontWeight: FontWeight.w800, color: Colors.white)),
-                    ),
+              ),
+              Positioned(
+                top: 8, right: -5,
+                child: Container(
+                  width: 16, height: 16,
+                  decoration: BoxDecoration(
+                      color: AppColor.warning,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5)),
+                  child: Center(
+                    child: Text('${holds.length}',
+                        style: const TextStyle(
+                            fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
                   ),
                 ),
-              ]),
-            ),
-            const SizedBox(width: 4),
+              ),
+            ]),
+            const SizedBox(width: 6),
           ],
 
           if (CashDrawerService.isSupported) ...[
             SizedBox(
-              width: 90, height: double.infinity,
-              child: Tooltip(
-                message: 'Cash Drawer (F8)',
-                child: OutlinedButton.icon(
-                  onPressed: _openCashDrawer,
-                  icon: const Icon(Icons.point_of_sale_outlined, size: 14, color: AppColor.primary),
-                  label: const Text('Drawer',
-                      style: TextStyle(fontSize: 11, color: AppColor.primary,
-                          fontWeight: FontWeight.w600)),
-                  style: OutlinedButton.styleFrom(
-                    side:    BorderSide(color: AppColor.primary.withOpacity(0.4)),
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
+              height: double.infinity,
+              child: TextButton.icon(
+                onPressed: _openCashDrawer,
+                icon: Icon(Icons.point_of_sale_outlined,
+                    size: 14, color: AppColor.textSecondary),
+                label: Text('Drawer',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColor.textSecondary,
+                        fontWeight: FontWeight.w500)),
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColor.grey100,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: AppColor.grey300, width: 0.5)),
                 ),
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
           ],
 
           if (!isReturn)
             Container(
-              margin:  const EdgeInsets.symmetric(vertical: 12),
+              margin: const EdgeInsets.symmetric(vertical: 13),
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color:        AppColor.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(20),
-                border:       Border.all(color: AppColor.primary.withOpacity(0.2)),
+                color: accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: accent.withOpacity(0.25), width: 0.5),
               ),
-              child: const Row(children: [
-                Icon(Icons.touch_app_outlined, size: 13, color: AppColor.primary),
-                SizedBox(width: 4),
+              child: Row(children: [
+                Icon(Icons.touch_app_outlined, size: 12, color: accent),
+                const SizedBox(width: 5),
                 Text('Double tap to add',
-                    style: TextStyle(fontSize: 11, color: AppColor.primary,
-                        fontWeight: FontWeight.w600)),
+                    style: TextStyle(
+                        fontSize: 11, color: accent, fontWeight: FontWeight.w500)),
               ]),
             ),
+
           const SizedBox(width: 16),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
+          preferredSize: const Size.fromHeight(0.5),
           child: Container(
-            height: 1,
+            height: 0.5,
             color: isReturn ? AppColor.error.withOpacity(0.3) : AppColor.grey200,
           ),
         ),

@@ -487,7 +487,7 @@ class _InventoryTable extends ConsumerWidget {
                   DataColumn(label: Text('Min Stock')),
                   DataColumn(label: Text('Max Stock')),
                   DataColumn(label: Text('Quantity')),
-                  DataColumn(label: Text('Actions')),   // ← NEW
+                  // DataColumn(label: Text('Actions')),   // ← NEW
                 ],
                 rows: rows
                     .map((p) => DataRow(cells: [
@@ -609,39 +609,38 @@ class _InventoryTable extends ConsumerWidget {
                   )),
 
                   // ── Actions ────────────────────────────
-                  DataCell(Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CustomerActionButton(
-                        icon:    Icons.edit_outlined,
-                        color:   AppColor.primary,
-                        tooltip: 'Edit',
-                        onTap: () {
-                          if (auth.isManager) {
-                            _openEditDialog(context, p);
-                          } else {
-                            _showDenied(context, ref, 'edit');
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 6),
-                      CustomerActionButton(
-                        icon:    Icons.delete_outline_rounded,
-                        color:   AppColor.error,
-                        tooltip: 'Delete',
-                        onTap: () {
-                          if (auth.isManager) {
-                            _openDeleteDialog(context, p);
-                          } else {
-                            _showDenied(
-                                context, ref, 'delete');
-                          }
-                        },
-                      ),
-                    ],
-                  )),
-                ]))
-                    .toList(),
+                  // DataCell(Row(
+                  //   mainAxisSize: MainAxisSize.min,
+                  //   children: [
+                  //     CustomerActionButton(
+                  //       icon:    Icons.edit_outlined,
+                  //       color:   AppColor.primary,
+                  //       tooltip: 'Edit',
+                  //       onTap: () {
+                  //         if (auth.isManager) {
+                  //           _openEditDialog(context, p);
+                  //         } else {
+                  //           _showDenied(context, ref, 'edit');
+                  //         }
+                  //       },
+                  //     ),
+                  //     const SizedBox(width: 6),
+                  //     CustomerActionButton(
+                  //       icon:    Icons.delete_outline_rounded,
+                  //       color:   AppColor.error,
+                  //       tooltip: 'Delete',
+                  //       onTap: () {
+                  //         if (auth.isManager) {
+                  //           _openDeleteDialog(context, p);
+                  //         } else {
+                  //           _showDenied(
+                  //               context, ref, 'delete');
+                  //         }
+                  //       },
+                  //     ),
+                  //   ],
+                  // )),
+                ])).toList(),
               ),
             ),
           ),

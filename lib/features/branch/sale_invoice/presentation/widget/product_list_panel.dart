@@ -25,9 +25,12 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 
   final Map<int, GlobalKey> _itemKeys = {};
 
-  final _qtyCtrl  = TextEditingController();
+  final _qtyCtrl  = TextEditingController(text: '1');
   final _qtyFocus = FocusNode();
   OverlayEntry? _feedbackOverlay;
+  BranchStockModel? _selectedProductForQty;
+
+  bool _isQtyDialogOpen = false;
 
   @override
   void initState() {
@@ -97,9 +100,9 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
           ref.read(saleInvoiceProvider.notifier).updateSearch('');
         }
         setState(() => _hoveredIndex = -1);
-        return true; // ESC consume karo — cart clear na ho
+        return true;
       }
-      return false; // search already empty hai — screen ka ESC handle kare
+      return false;
     }
 
     if (key == LogicalKeyboardKey.arrowDown) {
@@ -125,15 +128,14 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       final query = _searchCtrl.text.trim();
 
       // ── ✅ FIX: PEHLE exact barcode/SKU match try karo ─────────
-      // Scanner ka Enter yahan handle hoga — qty dialog nahi ayega
       if (query.isNotEmpty) {
         final added = _tryDirectAdd(query);
-        if (added) return true; // barcode match mila — done
+        if (added) return true;
       }
 
-      // ── Barcode match nahi mila — agar hovered item hai to qty dialog ──
+      // ── Barcode match nahi mila — agar hovered item hai to qty dialog dikhao ──
       if (_hoveredIndex >= 0 && _hoveredIndex < products.length) {
-        _showQtyDialog(products[_hoveredIndex]);
+        _showInlineQtyDialog(products[_hoveredIndex]);
         return true;
       }
 
@@ -172,13 +174,17 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
         .toList();
   }
 
-  // ── Quantity Dialog ──────────────────────────────────────
-  void _showQtyDialog(BranchStockModel product) {
-    final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
+  // ── ✅ NEW: Show inline quantity edit dialog ──────────────
+  void _showInlineQtyDialog(BranchStockModel product) {
+    if (_isQtyDialogOpen) return;
+
+    _isQtyDialogOpen = true;
+    _selectedProductForQty = product;
     _qtyCtrl.text = '1';
 
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (d) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -239,23 +245,30 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
               ),
               onSubmitted: (_) {
                 Navigator.pop(d);
-                _addWithQty(product, isReturn);
+                _addWithQty(product);
               },
             ),
             const SizedBox(height: 4),
-            const Text('Enter dabao ya "Add" press karo',
+            const Text('Qty enter karo aur Add dabao',
                 style: TextStyle(fontSize: 10, color: AppColor.textHint)),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(d),
+            onPressed: () {
+              Navigator.pop(d);
+              _isQtyDialogOpen = false;
+              _selectedProductForQty = null;
+              _searchFocusFromProvider?.requestFocus();
+            },
             child: const Text('Cancel'),
           ),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(d);
-              _addWithQty(product, isReturn);
+              _isQtyDialogOpen = false;
+              _addWithQty(product);
+              _selectedProductForQty = null;
             },
             icon:  const Icon(Icons.add_rounded, size: 16),
             label: const Text('Add to Cart'),
@@ -268,13 +281,23 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
         ],
       ),
     ).then((_) {
+      _isQtyDialogOpen = false;
+      _selectedProductForQty = null;
       _searchFocusFromProvider?.requestFocus();
     });
   }
 
-  void _addWithQty(BranchStockModel product, bool isReturn) {
+  // ── Add with custom quantity ──────────────────────────────
+  void _addWithQty(BranchStockModel product) {
+    final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
     final qty = double.tryParse(_qtyCtrl.text.trim()) ?? 1;
-    if (qty <= 0) return;
+
+    if (qty <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Qty 0 se zyada honi chahiye')),
+      );
+      return;
+    }
 
     if (isReturn) {
       final notifier = ref.read(saleReturnProvider.notifier);
@@ -302,6 +325,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 
     _showAddedFeedback(product.name, qty);
     _searchCtrl.clear();
+    _qtyCtrl.text = '1';
     if (isReturn) {
       ref.read(saleReturnProvider.notifier).updateSearch('');
     } else {
@@ -311,11 +335,9 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
   }
 
   // ── ✅ FIX: onSubmitted — sirf tab karo jab _handleSearchKey ne handle na kiya ho ──
-  // (jab text already clear hua ho, trimmed empty hoga — kuch nahi hoga)
   void _onSubmitted(String value) {
     final trimmed = value.trim();
-    if (trimmed.isEmpty) return; // _handleSearchKey already clear kar chuka hai
-    // Extra safety: dobara try karo (edge case jab handler na fire kare)
+    if (trimmed.isEmpty) return;
     _tryDirectAdd(trimmed);
   }
 
@@ -460,9 +482,6 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                   onChanged:   (_) {},
                   style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
                   cursorHeight: 14,
-                  // ── ✅ FIX: inputFormatters hataya — barcode ke sab characters allow ──
-                  // Pehle wala regex `[a-zA-Z0-9\-_. ]` barcode ke special chars
-                  // strip kar deta tha jis se exact match fail hoti thi
                   decoration: InputDecoration(
                     hintText:  'Barcode scan karo ya naam type karo',
                     hintStyle: const TextStyle(fontSize: 11, color: AppColor.textHint),
@@ -504,7 +523,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                 Icon(Icons.info_outline_rounded, size: 10, color: AppColor.textHint),
                 const SizedBox(width: 4),
                 const Text(
-                  'Barcode scan → auto add | ↑↓ select → Enter = qty dialog',
+                  'Barcode scan → auto add | Click/↑↓+Enter → qty dialog',
                   style: TextStyle(fontSize: 9, color: AppColor.textHint),
                 ),
               ]),
@@ -531,10 +550,21 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                 product:     product,
                 isReturn:    isReturn,
                 isHovered:   isHovered,
-                onDoubleTap: () => isReturn
-                    ? retNotifier.addToCart(product)
-                    : notifier.addToCart(product),
-                onTap: () => _showQtyDialog(product),
+                onDoubleTap: () {
+                  if (isReturn) {
+                    retNotifier.addToCart(product);
+                  } else {
+                    notifier.addToCart(product);
+                  }
+                  _showAddedFeedback(product.name, 1);
+                  _searchCtrl.clear();
+                  if (isReturn) {
+                    retNotifier.updateSearch('');
+                  } else {
+                    notifier.updateSearch('');
+                  }
+                },
+                onTap: () => _showInlineQtyDialog(product),
               );
             },
           ),
@@ -597,11 +627,6 @@ class _ProductCardState extends State<_ProductCard>
     final p          = widget.product;
     final inStock    = p.quantity > 0;
     final accent     = widget.isReturn ? AppColor.error : AppColor.primary;
-    final stockColor = p.quantity <= 0
-        ? AppColor.error
-        : p.quantity <= 5
-        ? AppColor.warning
-        : AppColor.success;
     final qty = p.quantity.toStringAsFixed(p.quantity % 1 == 0 ? 0 : 1);
 
     return GestureDetector(
@@ -614,15 +639,16 @@ class _ProductCardState extends State<_ProductCard>
           margin:  const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: widget.isHovered ? accent.withOpacity(0.07) : Colors.white,
+            // ── ✅ UPDATED: Purple background on hover, no border ──
+            color: widget.isHovered
+                ? accent.withOpacity(0.12)
+                : Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: widget.isHovered
-                  ? accent
-                  : inStock
+              color: inStock
                   ? AppColor.grey200
                   : AppColor.error.withOpacity(0.25),
-              width: widget.isHovered ? 1.5 : 1.0,
+              width: 1.0,
             ),
           ),
           child: Row(children: [
@@ -642,22 +668,12 @@ class _ProductCardState extends State<_ProductCard>
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color:        stockColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(qty,
-                  style: TextStyle(
-                      fontSize:   11,
-                      fontWeight: FontWeight.w700,
-                      color:      stockColor)),
-            ),
-            if (widget.isHovered) ...[
-              const SizedBox(width: 6),
-              Icon(Icons.keyboard_return_rounded, size: 13, color: accent),
-            ],
+            // ── ✅ UPDATED: Quantity in bold black, no background, no icon ──
+            Text(qty,
+                style: const TextStyle(
+                    fontSize:   12,
+                    fontWeight: FontWeight.w900,
+                    color:      Colors.black87)),
           ]),
         ),
       ),

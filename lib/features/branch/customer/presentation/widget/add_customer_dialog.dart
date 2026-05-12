@@ -21,6 +21,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
   final _address     = TextEditingController();
   final _creditLimit = TextEditingController();
   final _notes       = TextEditingController();
+  final _balance     = TextEditingController();
   String _type       = 'walkin';
   bool   _isActive   = true;
   bool   _isSaving   = false;
@@ -37,6 +38,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
       _address.text     = c.address ?? '';
       _creditLimit.text = c.creditLimit.toStringAsFixed(0);
       _notes.text       = c.notes ?? '';
+      _balance.text     = c.balance.toStringAsFixed(2);
       _type             = c.customerType;
       _isActive         = c.isActive;
     } else {
@@ -51,6 +53,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
     _address.dispose();
     _creditLimit.dispose();
     _notes.dispose();
+    _balance.dispose();
     super.dispose();
   }
 
@@ -65,11 +68,10 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
         await notifier.updateCustomer(widget.customer!.copyWith(
           name:         _name.text.trim(),
           phone:        _phone.text.trim(),
-          address:      _address.text.trim().isEmpty
-              ? null
-              : _address.text.trim(),
+          address:      _address.text.trim().isEmpty ? null : _address.text.trim(),
           customerType: _type,
           creditLimit:  double.tryParse(_creditLimit.text) ?? 0,
+          balance:      double.tryParse(_balance.text) ?? 0,
           isActive:     _isActive,
           notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
         ));
@@ -77,11 +79,10 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
         await notifier.addCustomer(
           name:         _name.text.trim(),
           phone:        _phone.text.trim(),
-          address:      _address.text.trim().isEmpty
-              ? null
-              : _address.text.trim(),
+          address:      _address.text.trim().isEmpty ? null : _address.text.trim(),
           customerType: _type,
           creditLimit:  double.tryParse(_creditLimit.text) ?? 0,
+          balance:      double.tryParse(_balance.text) ?? 0,
           isActive:     _isActive,
           notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
         );
@@ -89,7 +90,6 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
 
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
-      // Error already customerProvider mein handle ho raha hai
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -170,13 +170,10 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                   children: [
                     Expanded(
                       child: _Field(
-                        label:      'Customer Name *',
+                        label: 'Customer Name *',
                         controller: _name,
-                        hint:       'Ahmad Khan',
-                        validator:  (v) =>
-                        (v == null || v.trim().isEmpty)
-                            ? 'Name required hai'
-                            : null,
+                        hint: 'Ahmad Khan',
+                        validator:  (v) => (v == null || v.trim().isEmpty) ? 'Name required hai' : null,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -227,9 +224,21 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 12),
-
+                Row(
+                  children: [
+                    Expanded(
+                      child: _Field(
+                        label: 'Balance (Rs)',
+                        controller: _balance,
+                        hint: '0',
+                        keyboardType: TextInputType.number,
+                        isNumber: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 // ── Customer Type ─────────────────────────
                 const _SectionLabel('Customer Type'),
                 const SizedBox(height: 6),

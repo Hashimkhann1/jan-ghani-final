@@ -6,8 +6,7 @@ import '../../../../../core/service/print/print_service.dart';
 import '../../data/model/sale_invoice_model.dart' show PaymentEntry;
 import '../provider/sale_return_provider.dart';
 
-String _fmtNum(double v) =>
-    v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
+String _fmtNum(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
 
 Future<void> showReturnPaymentDialog(BuildContext context, WidgetRef ref) {
   return showDialog(

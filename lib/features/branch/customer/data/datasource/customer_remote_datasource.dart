@@ -55,16 +55,16 @@ class CustomerRemoteDataSource {
 
     final result = await conn.execute(
       Sql.named('''
-        INSERT INTO public.customer (
-          store_id, code, name, phone, address,
-          customer_type, credit_limit, is_active, notes
-        )
-        VALUES (
-          @storeId, @code, @name, @phone, @address,
-          @customerType, @creditLimit, @isActive, @notes
-        )
-        RETURNING *
-      '''),
+      INSERT INTO public.customer (
+        store_id, code, name, phone, address,
+        customer_type, credit_limit, is_active, notes, balance
+      )
+      VALUES (
+        @storeId, @code, @name, @phone, @address,
+        @customerType, @creditLimit, @isActive, @notes, @balance
+      )
+      RETURNING *
+    '''),
       parameters: {
         'storeId':      customer.storeId,
         'code':         customer.code,
@@ -75,6 +75,7 @@ class CustomerRemoteDataSource {
         'creditLimit':  customer.creditLimit,
         'isActive':     customer.isActive,
         'notes':        customer.notes,
+        'balance':      customer.balance,
       },
     );
 
@@ -82,22 +83,24 @@ class CustomerRemoteDataSource {
   }
 
   // ── UPDATE ────────────────────────────────────────────────
+// ── UPDATE ────────────────────────────────────────────────
   Future<CustomerModel> update(CustomerModel customer) async {
     final conn = await DataBaseService.getConnection();
 
     await conn.execute(
       Sql.named('''
-        UPDATE public.customer SET
-          name          = @name,
-          phone         = @phone,
-          address       = @address,
-          customer_type = @customerType,
-          credit_limit  = @creditLimit,
-          is_active     = @isActive,
-          notes         = @notes,
-          updated_at    = NOW()
-        WHERE id = @id
-      '''),
+      UPDATE public.customer SET
+        name          = @name,
+        phone         = @phone,
+        address       = @address,
+        customer_type = @customerType,
+        credit_limit  = @creditLimit,
+        is_active     = @isActive,
+        notes         = @notes,
+        balance       = @balance,     
+        updated_at    = NOW()
+      WHERE id = @id
+    '''),
       parameters: {
         'id':           customer.id,
         'name':         customer.name,
@@ -107,6 +110,7 @@ class CustomerRemoteDataSource {
         'creditLimit':  customer.creditLimit,
         'isActive':     customer.isActive,
         'notes':        customer.notes,
+        'balance':      customer.balance,   // ← ADD
       },
     );
 
@@ -145,7 +149,7 @@ class CustomerRemoteDataSource {
     );
 
     final nextNum = result.first[0] as int? ?? 1;
-    return 'CUST-${nextNum.toString().padLeft(4, '0')}';
+    return 'CUS-${nextNum.toString().padLeft(5, '0')}';
   }
 
   // ── ROW → MAP ─────────────────────────────────────────────

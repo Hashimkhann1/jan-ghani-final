@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/service/db/db_service.dart';
@@ -10,8 +9,6 @@ import '../core/config/store_config.dart';
 import '../core/service/session/accountant_session.dart';
 import '../core/service/sync/sync_service.dart';
 import '../core/widget/sidebar/branch_sidebar_widget.dart';
-import '../features/accountant/authentication/presentation/screen/login_screen.dart';
-import '../features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 import '../features/branch/authentication/presentation/provider/auth_provider.dart';
 import '../features/branch/authentication/presentation/screen/login_screen.dart';
 
@@ -30,7 +27,7 @@ void main() async{
   await SharedPreferences.getInstance();
   await StoreConfig.load();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await SyncService().start();
+    SyncService().start();
     DataBaseService.getConnection();
   }
   final prefs = await SharedPreferences.getInstance();
@@ -53,16 +50,11 @@ class MyApp extends ConsumerWidget {
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
-        // home: isLoggedIn
-        //     ? const AccountantDashboardScreen()
-        //     : const AccountantLoginScreen(),
         home: auth.isLoading ?
         Scaffold(
           body: const CircularProgressIndicator(),
         ) :
-        auth.isLoggedIn ?
-        const BranchSideBar() :
-        const LoginScreen(),
+        auth.isLoggedIn ? const BranchSideBar() : const LoginScreen(),
       ),
     );
   }

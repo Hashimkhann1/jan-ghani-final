@@ -10,21 +10,21 @@ class DataBaseService {
     try {
       _connection = await Connection.open(
         Endpoint(
-          host:     StoreConfig.dbHost,
-          port:     StoreConfig.dbPort,
+          host: StoreConfig.dbHost,
+          port: StoreConfig.dbPort,
           database: StoreConfig.dbName,
           username: StoreConfig.dbUser,
           password: StoreConfig.dbPassword,
         ),
         settings: const ConnectionSettings(
           sslMode: SslMode.disable,
-          timeZone: 'Asia/Karachi', // ← UTC se change karo
+          timeZone: 'Asia/Karachi',
         ),
       );
-      print('✅ PostgreSQL connected!');
+      print('PostgreSQL connected!');
       return _connection!;
     } catch (e) {
-      print('❌ Connection Error: $e');
+      print('Connection Error: $e');
       rethrow;
     }
   }
