@@ -88,11 +88,10 @@ class _StockInventoryDialogState
     _descriptionCtrl = TextEditingController(text: p?.description ?? '');
     _selectedUnit    = p?.unitOfMeasure ?? 'pcs';
     purchasePriceCtrl   = TextEditingController(
-        text: p != null ? p.purchasePrice.toStringAsFixed(0) : '');
+        text: p != null ? p.purchasePrice.toStringAsFixed(3).replaceAll(RegExp(r'\.?0+$'), '') : '');
     _sellPriceCtrl   = TextEditingController(
         text: p != null ? p.sellingPrice.toStringAsFixed(0) : '');
-    _wholePriceCtrl  = TextEditingController(
-        text: p?.wholesalePrice?.toStringAsFixed(0) ?? '');
+    _wholePriceCtrl  = TextEditingController(text: p != null ? p.sellingPrice.toStringAsFixed(3).replaceAll(RegExp(r'\.?0+$'), '') : '');
     _taxCtrl         = TextEditingController(
         text: p != null ? p.taxRate.toStringAsFixed(0) : '0');
     _minStockCtrl    = TextEditingController(
@@ -102,7 +101,7 @@ class _StockInventoryDialogState
     _reorderCtrl     = TextEditingController(
         text: p?.reorderPoint.toString() ?? '0');
     _initialQtyCtrl  = TextEditingController(
-        text: p != null ? p.quantity.toStringAsFixed(0) : '0');
+        text: p != null ? p.quantity.toStringAsFixed(3).replaceAll(RegExp(r'\.?0+$'), '') : '0');
 
     // ── Barcodes init ─────────────────────────────────────
     _barcodes           = List<String>.from(p?.barcodes ?? []);
@@ -423,7 +422,7 @@ class _StockInventoryDialogState
                           keyboardType: const TextInputType
                               .numberWithOptions(decimal: true),
                           inputFormatters: [FilteringTextInputFormatter
-                              .allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                              .allow(RegExp(r'^\d+\.?\d{0,3}'))],
                           validator: _required,
                         ),
                       ]),

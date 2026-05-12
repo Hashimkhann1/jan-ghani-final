@@ -89,16 +89,46 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
     }
   }
 
-  Future<void> updateSupplier(SupplierModel updated) async {
+  Future<void> updateSupplier(
+      SupplierModel updated, {
+        double? newBalance,   // ← yeh add karo
+        String? userId,       // ← yeh add karo
+      }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final saved = await _repo.update(updated);
-      final list = state.allSuppliers.map((s) => s.id == saved.id ? saved : s).toList();
+      // Step 1: Basic info update karo
+      var saved = await _repo.update(updated);
+
+      // Step 2: Agar balance change hua hai toh adjust karo
+      if (newBalance != null && newBalance != saved.outstandingBalance) {
+        saved = await _repo.adjustBalance(
+          supplierId:  saved.id,
+          newBalance:  newBalance,
+          userId:      userId,
+        );
+      }
+
+      final list = state.allSuppliers
+          .map((s) => s.id == saved.id ? saved : s)
+          .toList();
       state = state.copyWith(allSuppliers: list, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: 'Supplier update karne mein masla: $e');
+      state = state.copyWith(
+          isLoading:    false,
+          errorMessage: 'Supplier update karne mein masla: $e');
     }
   }
+
+  // Future<void> updateSupplier(SupplierModel updated) async {
+  //   state = state.copyWith(isLoading: true, errorMessage: null);
+  //   try {
+  //     final saved = await _repo.update(updated);
+  //     final list = state.allSuppliers.map((s) => s.id == saved.id ? saved : s).toList();
+  //     state = state.copyWith(allSuppliers: list, isLoading: false);
+  //   } catch (e) {
+  //     state = state.copyWith(isLoading: false, errorMessage: 'Supplier update karne mein masla: $e');
+  //   }
+  // }
 
   Future<void> deleteSupplier(String id) async {
     state = state.copyWith(isLoading: true, errorMessage: null);

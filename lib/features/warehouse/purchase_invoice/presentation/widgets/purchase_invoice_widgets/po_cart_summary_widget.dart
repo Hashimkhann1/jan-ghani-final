@@ -26,8 +26,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
 
     // ── Validation conditions ──────────────────────────────
     final bool hasItems        = state.cartItems.isNotEmpty;
-    final bool allHavePrice    = state.cartItems.isNotEmpty &&
-        state.cartItems.every((i) => i.salePrice > 0);
+    final bool allHavePrice = state.cartItems.isNotEmpty &&
+        state.cartItems.every((i) => i.salePrice > 0 && i.purchasePrice > 0);
     final bool hasSupplier     = state.selectedSupplier != null;
     final bool hasDeliveryDate = state.deliveryDate != null;
 
@@ -37,7 +37,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
 
     // Missing info counts for warnings
     final int missingPriceCount = state.cartItems
-        .where((i) => i.salePrice <= 0)
+        .where((i) => i.salePrice <= 0 || i.purchasePrice <= 0)
         .length;
 
     // ── Which warnings to show ─────────────────────────────
@@ -210,7 +210,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                  icon:    Icons.warning_amber_rounded,
                  message: '$missingPriceCount item'
                      '${missingPriceCount > 1 ? 's' : ''} '
-                     'ki sale price missing hai',
+                     'ki purchase ya sale price missing hai',
                ),
 
              if (hasPriceError)

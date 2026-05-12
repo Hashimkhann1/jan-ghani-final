@@ -633,7 +633,7 @@ class _SupplierRowState extends State<_SupplierRow> {
                                 size: 12, color: AppColor.grey400),
                             const SizedBox(width: 2),
                             Flexible(
-                              child: Text(s.address!,
+                              child: Text(s.address!.toString(),
                                   style: TextStyle(
                                       fontSize: 11,
                                       color:    AppColor.grey400),

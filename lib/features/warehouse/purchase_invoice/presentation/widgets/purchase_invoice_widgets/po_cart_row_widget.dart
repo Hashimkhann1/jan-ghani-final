@@ -39,12 +39,12 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
     _qtyCtrl           = TextEditingController(
         text: _fmtQty(item.quantity));
     _purchasePriceCtrl = TextEditingController(
-        text: item.purchasePrice.toStringAsFixed(0));
+        text: item.purchasePrice.toStringAsFixed(2));
     _salePriceCtrl     = TextEditingController(
         text: item.salePrice > 0
-            ? item.salePrice.toStringAsFixed(0) : '');
+            ? item.salePrice.toStringAsFixed(2) : '');
     _taxCtrl = TextEditingController(
-        text: item.taxAmount.toStringAsFixed(0));
+        text: item.taxAmount.toStringAsFixed(2));
     _disCtrl = TextEditingController(
         text: item.discountAmount.toStringAsFixed(0));
     _subCtrl = TextEditingController(
@@ -65,7 +65,7 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
       if (_subCtrl.text != v) _subCtrl.text = v;
     }
 
-    final newPrice = item.purchasePrice.toStringAsFixed(0);
+    final newPrice = item.purchasePrice.toStringAsFixed(2);
     if (_purchasePriceCtrl.text != newPrice)
       _purchasePriceCtrl.text = newPrice;
 

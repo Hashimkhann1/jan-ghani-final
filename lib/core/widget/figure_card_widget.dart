@@ -29,35 +29,38 @@ class SummaryCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF1A1D23),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF9CA3AF),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+           Column(
+             children: [
+               Text(
+                 value,
+                 style: TextStyle(
+                   fontSize: 22,
+                   fontWeight: FontWeight.w800,
+                   color: const Color(0xFF1A1D23),
+                 ),
+               ),
+               // const SizedBox(height: 2),
+               Text(
+                 title,
+                 style: const TextStyle(
+                   fontSize: 11,
+                   color: Color(0xFF9CA3AF),
+                   fontWeight: FontWeight.w500,
+                 ),
+               ),
+             ],
+           )
           ],
         ),
       ),
