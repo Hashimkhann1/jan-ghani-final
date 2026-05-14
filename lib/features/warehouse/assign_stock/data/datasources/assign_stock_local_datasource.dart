@@ -128,10 +128,10 @@ class AssignStockLocalDatasource {
       String productId, String warehouseId, double qty) async {
     final result = await db.execute(
       Sql.named('''
-      SELECT quantity FROM public.warehouse_inventory
-      WHERE product_id = @productId
-      AND warehouse_id = @warehouseId
-    '''),
+    SELECT quantity FROM public.warehouse_inventory
+    WHERE product_id = @productId
+    AND warehouse_id = @warehouseId
+  '''),
       parameters: {
         'productId': productId,
         'warehouseId': warehouseId,
@@ -139,7 +139,6 @@ class AssignStockLocalDatasource {
     );
     if (result.isEmpty) return false;
 
-    // Fix: Handle both String and num types
     final quantityValue = result.first.toColumnMap()['quantity'];
     double available;
 
@@ -151,7 +150,7 @@ class AssignStockLocalDatasource {
       available = 0.0;
     }
 
-    return available >= qty;
+    return available > 0; // ✅ YAHI BADLA — was: available >= qty
   }
 
 

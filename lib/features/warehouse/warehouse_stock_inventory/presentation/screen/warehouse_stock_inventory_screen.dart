@@ -364,7 +364,7 @@ class _ProductRow extends StatelessWidget {
             Expanded(
               flex: flex('Stock'),
               child: Text(
-                '${_fmt(p.availableQty)} ${p.unitOfMeasure}',
+                '${p.availableQty} ${p.unitOfMeasure}',
                 // '${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}',
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -449,6 +449,7 @@ class _ProductRow extends StatelessWidget {
 
 // ── Helper Functions ──────────────────────────────────────────
 void _showDialog(BuildContext context, WidgetRef ref, [ProductModel? product]) {
+  print(product!.quantity);
   showDialog(context: context, barrierDismissible: false, builder: (_) => StockInventoryDialog(product: product));
 }
 
