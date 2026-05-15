@@ -30,27 +30,27 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
   late TextEditingController _disCtrl;
   late TextEditingController _subCtrl;
 
-  bool _qtyFocused          = false;
-  bool _subFocused          = false;
-  bool _purchasePriceFocused = false; // ← naya flag
+  // FIX: bool flags hata ke FocusNodes directly rakh rahe hain
+  // didUpdateWidget mein focusNode.hasFocus check karo — yeh always accurate hai
+  // bool flags async lag ke out-of-sync ho jaate the
+  final FocusNode _qtyFocus          = FocusNode();
+  final FocusNode _purchasePriceFocus = FocusNode();
+  final FocusNode _salePriceFocus     = FocusNode();
+  final FocusNode _taxFocus           = FocusNode();
+  final FocusNode _disFocus           = FocusNode();
+  final FocusNode _subFocus           = FocusNode();
 
   @override
   void initState() {
     super.initState();
     final item = widget.cartItem;
-    _qtyCtrl           = TextEditingController(
-        text: _fmtQty(item.quantity));
-    _purchasePriceCtrl = TextEditingController(
-        text: _fmtPrice(item.purchasePrice));
+    _qtyCtrl           = TextEditingController(text: _fmtQty(item.quantity));
+    _purchasePriceCtrl = TextEditingController(text: _fmtPrice(item.purchasePrice));
     _salePriceCtrl     = TextEditingController(
-        text: item.salePrice > 0
-            ? item.salePrice.toStringAsFixed(2) : '');
-    _taxCtrl = TextEditingController(
-        text: item.taxAmount.toStringAsFixed(2));
-    _disCtrl = TextEditingController(
-        text: item.discountAmount.toStringAsFixed(0));
-    _subCtrl = TextEditingController(
-        text: item.subTotal.toStringAsFixed(0));
+        text: item.salePrice > 0 ? item.salePrice.toStringAsFixed(2) : '');
+    _taxCtrl = TextEditingController(text: item.taxAmount.toStringAsFixed(2));
+    _disCtrl = TextEditingController(text: item.discountAmount.toStringAsFixed(0));
+    _subCtrl = TextEditingController(text: item.subTotal.toStringAsFixed(0));
   }
 
   @override
@@ -58,26 +58,29 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
     super.didUpdateWidget(oldWidget);
     final item = widget.cartItem;
 
-    if (!_qtyFocused) {
+    // FIX: focusNode.hasFocus directly check karo — bool flags se zyada reliable
+    // Focused field ka controller kabhi update mat karo
+    if (!_qtyFocus.hasFocus) {
       final v = _fmtQty(item.quantity);
       if (_qtyCtrl.text != v) _qtyCtrl.text = v;
     }
-    if (!_subFocused) {
+    if (!_subFocus.hasFocus) {
       final v = item.subTotal.toStringAsFixed(0);
       if (_subCtrl.text != v) _subCtrl.text = v;
     }
-    // FIX: purchasePrice sirf tab update karo jab focus nahi hai
-    if (!_purchasePriceFocused) {
+    if (!_purchasePriceFocus.hasFocus) {
       final newPrice = _fmtPrice(item.purchasePrice);
       if (_purchasePriceCtrl.text != newPrice)
         _purchasePriceCtrl.text = newPrice;
     }
-
-    final newTax = item.taxAmount.toStringAsFixed(0);
-    if (_taxCtrl.text != newTax) _taxCtrl.text = newTax;
-
-    final newDis = item.discountAmount.toStringAsFixed(0);
-    if (_disCtrl.text != newDis) _disCtrl.text = newDis;
+    if (!_taxFocus.hasFocus) {
+      final newTax = item.taxAmount.toStringAsFixed(0);
+      if (_taxCtrl.text != newTax) _taxCtrl.text = newTax;
+    }
+    if (!_disFocus.hasFocus) {
+      final newDis = item.discountAmount.toStringAsFixed(0);
+      if (_disCtrl.text != newDis) _disCtrl.text = newDis;
+    }
   }
 
   @override
@@ -88,6 +91,12 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
     _taxCtrl.dispose();
     _disCtrl.dispose();
     _subCtrl.dispose();
+    _qtyFocus.dispose();
+    _purchasePriceFocus.dispose();
+    _salePriceFocus.dispose();
+    _taxFocus.dispose();
+    _disFocus.dispose();
+    _subFocus.dispose();
     super.dispose();
   }
 
@@ -202,13 +211,9 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
             flex: 2,
             child: _TF(
               controller:    _qtyCtrl,
-              onFocusChange: (f) {
-                _qtyFocused = f;
-                if (!f) _commitQty();
-              },
-              onSubmitted: (_) => _commitQty(),
-              // onChanged: qty real-time update theek hai —
-              // subtotal automatically recompute hoga
+              focusNode:     _qtyFocus,
+              onFocusChange: (f) { if (!f) _commitQty(); },
+              onSubmitted:   (_) => _commitQty(),
               onChanged:   (v) {
                 final val = double.tryParse(v);
                 if (val != null && val > 0) {
@@ -226,13 +231,11 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
             flex: 2,
             child: _TF(
               controller:    _purchasePriceCtrl,
+              focusNode:     _purchasePriceFocus,
               prefix:        'Rs',
-              onFocusChange: (f) {
-                _purchasePriceFocused = f; // ← flag track karo
-                if (!f) _commitPrice();
-              },
+              onFocusChange: (f) { if (!f) _commitPrice(); },
               onSubmitted:   (_) => _commitPrice(),
-              onChanged:     null, // ← intentionally null
+              onChanged:     null,
             ),
           ),
 
@@ -241,6 +244,7 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
             flex: 2,
             child: _TF(
               controller:    _salePriceCtrl,
+              focusNode:     _salePriceFocus,
               prefix:        'Rs',
               isPurple:      true,
               onFocusChange: (f) { if (!f) _commitSalePrice(); },
@@ -287,6 +291,7 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
             flex: 2,
             child: _TF(
               controller:    _taxCtrl,
+              focusNode:     _taxFocus,
               prefix:        'Rs',
               onFocusChange: (f) { if (!f) _commitTax(); },
               onSubmitted:   (_) => _commitTax(),
@@ -305,6 +310,7 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
             flex: 2,
             child: _TF(
               controller:    _disCtrl,
+              focusNode:     _disFocus,
               prefix:        'Rs',
               onFocusChange: (f) { if (!f) _commitDis(); },
               onSubmitted:   (_) => _commitDis(),
@@ -325,13 +331,11 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
             flex: 2,
             child: _TF(
               controller:    _subCtrl,
+              focusNode:     _subFocus,
               highlighted:   true,
-              onFocusChange: (f) {
-                _subFocused = f;
-                if (!f) _commitSub();
-              },
-              onSubmitted: (_) => _commitSub(),
-              onChanged:   null, // ← intentionally null
+              onFocusChange: (f) { if (!f) _commitSub(); },
+              onSubmitted:   (_) => _commitSub(),
+              onChanged:     null,
             ),
           ),
 
@@ -359,21 +363,23 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
 
 class _TF extends StatefulWidget {
   final TextEditingController  controller;
+  final FocusNode              focusNode;
   final ValueChanged<bool>     onFocusChange;
   final ValueChanged<String>   onSubmitted;
   final String?                prefix;
   final bool                   highlighted;
   final bool                   isPurple;
-  final ValueChanged<String>?  onChanged; // nullable — kuch fields mein null
+  final ValueChanged<String>?  onChanged;
 
   const _TF({
     required this.controller,
+    required this.focusNode,
     required this.onFocusChange,
     required this.onSubmitted,
     this.prefix,
     this.highlighted = false,
     this.isPurple    = false,
-    this.onChanged,  // optional
+    this.onChanged,
   });
 
   @override
@@ -381,19 +387,19 @@ class _TF extends StatefulWidget {
 }
 
 class _TFState extends State<_TF> {
-  late FocusNode _focus;
+  // FocusNode parent (_PoCartItemRowState) se aata hai
+  // Yahan sirf listener attach karte hain — create/dispose nahi
 
   @override
   void initState() {
     super.initState();
-    _focus = FocusNode();
-    _focus.addListener(
-            () => widget.onFocusChange(_focus.hasFocus));
+    widget.focusNode.addListener(
+            () => widget.onFocusChange(widget.focusNode.hasFocus));
   }
 
   @override
   void dispose() {
-    _focus.dispose();
+    // focusNode parent ka hai — yahan dispose nahi karte
     super.dispose();
   }
 
@@ -421,7 +427,7 @@ class _TFState extends State<_TF> {
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: TextField(
         controller:   widget.controller,
-        focusNode:    _focus,
+        focusNode:    widget.focusNode,
         onSubmitted:  widget.onSubmitted,
         keyboardType: const TextInputType.numberWithOptions(
             decimal: true),

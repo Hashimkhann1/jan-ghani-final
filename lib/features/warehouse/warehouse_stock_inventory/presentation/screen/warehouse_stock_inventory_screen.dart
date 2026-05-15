@@ -449,7 +449,6 @@ class _ProductRow extends StatelessWidget {
 
 // ── Helper Functions ──────────────────────────────────────────
 void _showDialog(BuildContext context, WidgetRef ref, [ProductModel? product]) {
-  print(product!.quantity);
   showDialog(context: context, barrierDismissible: false, builder: (_) => StockInventoryDialog(product: product));
 }
 
