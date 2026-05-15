@@ -101,7 +101,7 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
     final notifier = ref.read(purchaseInvoiceProvider.notifier);
 
     final initial = isDelivery
-        ? (state.deliveryDate ?? state.orderDate.add(const Duration(days: 7)))
+        ? (state.deliveryDate ?? state.orderDate)
         : state.orderDate;
 
     final picked = await showDatePicker(

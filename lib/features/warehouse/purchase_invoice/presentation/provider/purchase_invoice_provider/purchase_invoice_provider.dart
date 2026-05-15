@@ -270,14 +270,21 @@ class PurchaseInvoiceNotifier
 
   void updateSubTotal(String cartId, double newSubTotal) {
     if (newSubTotal < 0) return;
-    final item =
-    state.cartItems.firstWhere((i) => i.cartId == cartId);
-    if (item.purchasePrice <= 0) return;
-    final newQty =
-        (newSubTotal - item.taxAmount + item.discountAmount) /
-            item.purchasePrice;
-    if (newQty <= 0) return;
-    _update(cartId, (i) => i.copyWith(quantity: newQty));
+    final item = state.cartItems.firstWhere((i) => i.cartId == cartId);
+
+    // Qty aur purchasePrice same rakhte hain —
+    // discount adjust karo taake desired subTotal match ho
+    // Formula: discount = (price × qty) + tax - newSubTotal
+    final baseAmount = item.purchasePrice * item.quantity;
+    final maxSubTotal = baseAmount + item.taxAmount;
+
+    // Agar entered subTotal max se zyada hai — ignore karo
+    if (newSubTotal > maxSubTotal) return;
+
+    final newDiscount = (maxSubTotal - newSubTotal)
+        .clamp(0.0, baseAmount);
+
+    _update(cartId, (i) => i.copyWith(discountAmount: newDiscount));
   }
 
   void _update(String cartId, PoCartItem Function(PoCartItem) fn) {
