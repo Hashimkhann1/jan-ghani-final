@@ -87,14 +87,14 @@ class _BranchStockInventoryScreenState
               return Row(children: [
                 SummaryCard(
                   title: 'Total Products',
-                  value: '${posState.totalProducts}',
+                  value: '${posState.totalProducts.toStringAsFixed(2)}',
                   icon:  Icons.inventory_2_outlined,
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Total Quantity',
-                  value: totalQty.toString(),
+                  value: totalQty.toStringAsFixed(2),
                   icon:  Icons.layers_outlined,
                   color: AppColor.info,
                 ),
@@ -441,237 +441,125 @@ class _PageJumperState extends State<_PageJumper> {
 // ── Inventory Table ───────────────────────────────────────────────
 class _InventoryTable extends ConsumerWidget {
   final List<BranchStockModel> rows;
-
   const _InventoryTable({required this.rows});
+
+  // Column widths
+  static const _widths = [
+    80.0,  // SKU
+    120.0, // Barcode
+    170.0, // Name
+    70.0,  // Unit
+    110.0, // Cost Price
+    110.0, // Sale Price
+    110.0, // Wholesale
+    60.0,  // Tax
+    90.0,  // Discount
+    100.0, // Min Stock
+    100.0, // Max Stock
+    90.0,  // Quantity
+    90.0,  // Actions
+  ];
+
+  static const _headers = [
+    'SKU', 'Barcode', 'Name', 'Unit',
+    'Cost Price', 'Sale Price', 'Wholesale',
+    'Tax', 'Discount', 'Min Stock', 'Max Stock',
+    'Quantity', 'Actions',
+  ];
+
+  static double get _totalWidth => _widths.fold(0.0, (s, w) => s + w) + 32;
+
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const double minTableWidth = 1350;
-        final tableWidth = constraints.maxWidth > minTableWidth
-            ? constraints.maxWidth
-            : minTableWidth;
+    return LayoutBuilder(builder: (context, constraints) {
+      final tableWidth = _totalWidth.clamp(
+          constraints.maxWidth, double.infinity);
+      const headerH = 44.0;
+      final rowsH   = constraints.maxHeight - headerH - 1;
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: tableWidth),
-            child: SingleChildScrollView(
-              child: DataTable(
-                headingRowColor:
-                WidgetStateProperty.all(AppColor.grey100),
-                dataRowColor:
-                WidgetStateProperty.resolveWith<Color?>(
-                      (s) => s.contains(WidgetState.hovered)
-                      ? AppColor.primary.withValues(alpha: 0.05)
-                      : null,
-                ),
-                dataRowMinHeight:   52,
-                dataRowMaxHeight:   52,
-                columnSpacing:
-                (tableWidth * 0.02).clamp(12.0, 40.0),
-                showCheckboxColumn: false,
-                columns: const [
-                  DataColumn(label: Text('SKU')),
-                  DataColumn(label: Text('Barcode')),
-                  DataColumn(label: Text('Name')),
-                  DataColumn(label: Text('Unit')),
-                  DataColumn(label: Text('Cost Price')),
-                  DataColumn(label: Text('Sale Price')),
-                  DataColumn(label: Text('Wholesale')),
-                  DataColumn(label: Text('Tax')),
-                  DataColumn(label: Text('Discount')),
-                  DataColumn(label: Text('Min Stock')),
-                  DataColumn(label: Text('Max Stock')),
-                  DataColumn(label: Text('Quantity')),
-                  // DataColumn(label: Text('Actions')),   // ← NEW
-                ],
-                rows: rows
-                    .map((p) => DataRow(cells: [
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: tableWidth,
+          child: Column(
+            children: [
 
-                  DataCell(Text(p.sku,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColor.textSecondary))),
-
-                  DataCell(SizedBox(
-                    width: 140,
-                    child: Text(
-                      BranchStockDataSource()
-                          .parseBarcode(p.barcode) ??
-                          '—',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColor.textSecondary),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )),
-
-                  DataCell(SizedBox(
-                    width: 140,
-                    child: Column(
-                      mainAxisAlignment:
-                      MainAxisAlignment.center,
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                      children: [
-                        Text(p.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1),
-                        if (p.description != null)
-                          Text(p.description!,
-                              style: const TextStyle(
-                                  fontSize: 10,
-                                  color:
-                                  AppColor.textSecondary),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1),
-                      ],
-                    ),
-                  )),
-
-                  DataCell(Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color:        AppColor.grey100,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(p.unitOfMeasure,
+              // ── Sticky header ──────────────────────────────────
+              Container(
+                height: headerH,
+                color:  AppColor.grey100,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: List.generate(_headers.length, (i) {
+                    final isLast = i == _headers.length - 1;
+                    return SizedBox(
+                      width: _widths[i],
+                      child: Text(
+                        _headers[i],
+                        textAlign: isLast
+                            ? TextAlign.center
+                            : TextAlign.left,
                         style: const TextStyle(
-                            fontSize:   11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.textSecondary)),
-                  )),
-
-                  DataCell(Text(p.costPriceLabel,
-                      style:
-                      const TextStyle(fontSize: 13))),
-
-                  DataCell(Text(p.sellingPriceLabel,
-                      style: const TextStyle(
-                          fontSize:   13,
+                          fontSize:   12,
                           fontWeight: FontWeight.w700,
-                          color:      AppColor.primary))),
-
-                  DataCell(Text(p.wholesalePriceLabel,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColor.textSecondary))),
-
-                  DataCell(p.taxRate > 0
-                      ? _PercentBadge(
-                      value: p.taxRateLabel,
-                      color: AppColor.info)
-                      : const Text('—',
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: AppColor.textSecondary))),
-
-                  DataCell(p.discount > 0
-                      ? _PercentBadge(
-                      value: p.discountLabel,
-                      color: AppColor.warning)
-                      : const Text('—',
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: AppColor.textSecondary))),
-
-                  DataCell(Text(
-                      '${p.minStockLevel} ${p.unitOfMeasure}',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColor.textSecondary))),
-
-                  DataCell(Text(
-                      '${p.maxStockLevel} ${p.unitOfMeasure}',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColor.textSecondary))),
-
-                  DataCell(Text(
-                    p.quantityLabel,
-                    style: TextStyle(
-                      fontSize:   13,
-                      fontWeight: FontWeight.w700,
-                      color: p.isOutOfStock
-                          ? AppColor.error
-                          : p.isLowStock
-                          ? AppColor.warning
-                          : AppColor.success,
-                    ),
-                  )),
-
-                  // ── Actions ────────────────────────────
-                  // DataCell(Row(
-                  //   mainAxisSize: MainAxisSize.min,
-                  //   children: [
-                  //     CustomerActionButton(
-                  //       icon:    Icons.edit_outlined,
-                  //       color:   AppColor.primary,
-                  //       tooltip: 'Edit',
-                  //       onTap: () {
-                  //         if (auth.isManager) {
-                  //           _openEditDialog(context, p);
-                  //         } else {
-                  //           _showDenied(context, ref, 'edit');
-                  //         }
-                  //       },
-                  //     ),
-                  //     const SizedBox(width: 6),
-                  //     CustomerActionButton(
-                  //       icon:    Icons.delete_outline_rounded,
-                  //       color:   AppColor.error,
-                  //       tooltip: 'Delete',
-                  //       onTap: () {
-                  //         if (auth.isManager) {
-                  //           _openDeleteDialog(context, p);
-                  //         } else {
-                  //           _showDenied(
-                  //               context, ref, 'delete');
-                  //         }
-                  //       },
-                  //     ),
-                  //   ],
-                  // )),
-                ])).toList(),
+                          color:      AppColor.textSecondary,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
               ),
-            ),
+
+              const Divider(height: 1, color: Color(0xFFE5E7EB)),
+
+              // ── Scrollable data rows ───────────────────────────
+              SizedBox(
+                height: rowsH,
+                child: ListView.separated(
+                  itemCount: rows.length,
+                  separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                  itemBuilder: (context, i) =>
+                      _DataRow(
+                        row:    rows[i],
+                        index:  i,
+                        widths: _widths,
+                        auth:   auth,
+                        onEdit: () =>
+                            _openEditDialog(context, rows[i]),
+                        onDelete: () =>
+                            _openDeleteDialog(context, rows[i]),
+                        onDenied: (action) =>
+                            _showDenied(context, ref, action),
+                      ),
+                ),
+              ),
+            ],
           ),
-        );
-      },
-    );
+        ),
+      );
+    });
   }
 
-  // ── Edit Dialog open karo ───────────────────────────────────────
-  void _openEditDialog(BuildContext context, BranchStockModel product) {
-    showDialog(
-      context:           context,
-      barrierDismissible: false,
-      builder: (_) => EditStockDialog(product: product),
-    );
-  }
+  void _openEditDialog(BuildContext ctx, BranchStockModel p) =>
+      showDialog(
+        context:            ctx,
+        barrierDismissible: false,
+        builder: (_) => EditStockDialog(product: p),
+      );
 
-  // ── Delete Dialog open karo ─────────────────────────────────────
-  void _openDeleteDialog(
-      BuildContext context, BranchStockModel product) {
-    showDialog(
-      context: context,
-      builder: (_) => DeleteStockDialog(product: product),
-    );
-  }
+  void _openDeleteDialog(BuildContext ctx, BranchStockModel p) =>
+      showDialog(
+        context: ctx,
+        builder: (_) => DeleteStockDialog(product: p),
+      );
 
-  // ── Access Denied SnackBar ──────────────────────────────────────
-  void _showDenied(BuildContext context, WidgetRef ref, String action) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Only manager can $action products'),
+  void _showDenied(BuildContext ctx, WidgetRef ref, String action) =>
+      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+        content:         Text('Only manager can $action products'),
         backgroundColor: AppColor.error,
         behavior:        SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -679,24 +567,205 @@ class _InventoryTable extends ConsumerWidget {
         action: SnackBarAction(
           label:     'OK',
           textColor: Colors.white,
-          onPressed: () => ref.read(inventoryPageProvider.notifier).clearError(),
+          onPressed: () =>
+              ref.read(inventoryPageProvider.notifier).clearError(),
         ),
+      ));
+}
+
+// ── Single data row ───────────────────────────────────────────────
+class _DataRow extends StatelessWidget {
+  final BranchStockModel row;
+  final int              index;
+  final List<double>     widths;
+  final dynamic          auth; // your auth type
+  final VoidCallback     onEdit;
+  final VoidCallback     onDelete;
+  final void Function(String) onDenied;
+
+  const _DataRow({
+    required this.row,
+    required this.index,
+    required this.widths,
+    required this.auth,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onDenied,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isEven = index.isEven;
+    final qtyColor = row.isOutOfStock
+        ? AppColor.error
+        : row.isLowStock
+        ? AppColor.warning
+        : AppColor.success;
+
+    return Container(
+      height: 52,
+      color: isEven ? Colors.white : const Color(0xFFFAFAFF),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          // SKU
+          SizedBox(
+            width: widths[0],
+            child: Text(row.sku,
+                style: const TextStyle(
+                    fontSize: 12, color: AppColor.textSecondary)),
+          ),
+          // Barcode
+          SizedBox(
+            width: widths[1],
+            child: Text(
+              BranchStockDataSource().parseBarcode(row.barcode) ?? '—',
+              style: const TextStyle(
+                  fontSize: 12, color: AppColor.textSecondary),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // Name
+          SizedBox(
+            width: widths[2],
+            child: Column(
+              mainAxisAlignment:  MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(row.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1),
+                if (row.description != null)
+                  Text(row.description!,
+                      style: const TextStyle(
+                          fontSize: 10, color: AppColor.textSecondary),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1),
+              ],
+            ),
+          ),
+          // Unit
+          SizedBox(
+            width: widths[3],
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color:        AppColor.grey100,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(row.unitOfMeasure,
+                  style: const TextStyle(
+                      fontSize:   11,
+                      fontWeight: FontWeight.w600,
+                      color:      AppColor.textSecondary)),
+            ),
+          ),
+          // Cost Price
+          SizedBox(
+            width: widths[4],
+            child: Text(row.costPriceLabel,
+                style: const TextStyle(fontSize: 13)),
+          ),
+          // Sale Price
+          SizedBox(
+            width: widths[5],
+            child: Text(row.sellingPriceLabel,
+                style: const TextStyle(
+                    fontSize:   13,
+                    fontWeight: FontWeight.w700,
+                    color:      AppColor.primary)),
+          ),
+          // Wholesale
+          SizedBox(
+            width: widths[6],
+            child: Text(row.wholesalePriceLabel,
+                style: const TextStyle(
+                    fontSize: 13, color: AppColor.textSecondary)),
+          ),
+          // Tax
+          SizedBox(
+            width: widths[7],
+            child: row.taxRate > 0
+                ? _Badge(value: row.taxRateLabel, color: AppColor.info)
+                : const Text('—',
+                style: TextStyle(
+                    fontSize: 13, color: AppColor.textSecondary)),
+          ),
+          // Discount
+          SizedBox(
+            width: widths[8],
+            child: row.discount > 0
+                ? _Badge(value: row.discountLabel, color: AppColor.warning)
+                : const Text('—',
+                style: TextStyle(
+                    fontSize: 13, color: AppColor.textSecondary)),
+          ),
+          // Min Stock
+          SizedBox(
+            width: widths[9],
+            child: Text('${row.minStockLevel} ${row.unitOfMeasure}',
+                style: const TextStyle(
+                    fontSize: 12, color: AppColor.textSecondary)),
+          ),
+          // Max Stock
+          SizedBox(
+            width: widths[10],
+            child: Text('${row.maxStockLevel} ${row.unitOfMeasure}',
+                style: const TextStyle(
+                    fontSize: 12, color: AppColor.textSecondary)),
+          ),
+          // Quantity
+          SizedBox(
+            width: widths[11],
+            child: Text(
+              row.quantity.toStringAsFixed(2),
+              style: TextStyle(
+                  fontSize:   13,
+                  fontWeight: FontWeight.w700,
+                  color:      qtyColor),
+            ),
+          ),
+          // Actions
+          SizedBox(
+            width: widths[12],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomerActionButton(
+                  icon:    Icons.edit_outlined,
+                  color:   AppColor.primary,
+                  tooltip: 'Edit',
+                  onTap: onEdit
+                ),
+                const SizedBox(width: 6),
+                CustomerActionButton(
+                  icon:    Icons.delete_outline_rounded,
+                  color:   AppColor.error,
+                  tooltip: 'Delete',
+                  onTap:  onDelete
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ── Percent Badge ─────────────────────────────────────────────────
-class _PercentBadge extends StatelessWidget {
+class _Badge extends StatelessWidget {
   final String value;
   final Color  color;
-  const _PercentBadge({required this.value, required this.color});
+  const _Badge({required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color:        color.withValues(alpha: 0.1),
+      color:        color.withOpacity(0.1),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(value,

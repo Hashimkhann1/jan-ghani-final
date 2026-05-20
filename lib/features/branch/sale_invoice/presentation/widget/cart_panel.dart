@@ -22,7 +22,8 @@ import '../screen/payment_dialog.dart';
 String _fmtD(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
 
 class CartPanel extends ConsumerWidget {
-  const CartPanel({super.key});
+  CartPanel({super.key});
+
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,6 +31,15 @@ class CartPanel extends ConsumerWidget {
     final isReturn = state.saleType == SaleType.saleReturn;
 
     // ── F2 shortcut — Pay Now trigger ─────────────────────────
+    ref.listen<bool>(payNowTriggerProvider, (_, trigger) {
+      if (trigger) {
+        ref.read(payNowTriggerProvider.notifier).state = false;
+        if (state.cartItems.isNotEmpty && !isReturn) {
+          showPaymentDialog(context, ref);
+        }
+      }
+    });
+
     ref.listen<bool>(payNowTriggerProvider, (_, trigger) {
       if (trigger) {
         ref.read(payNowTriggerProvider.notifier).state = false;
@@ -86,13 +96,11 @@ class CartPanel extends ConsumerWidget {
               const CartTableHeader(),
               Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 itemCount: state.cartItems.length,
                 separatorBuilder: (_, __) =>
                 const SizedBox(height: 5),
-                itemBuilder: (context, index) =>
-                    CartItemRow(cartItem: state.cartItems[index], rowIndex: index),
+                itemBuilder: (context, index) => CartItemRow(cartItem: state.cartItems[index], rowIndex: index),
               ),
             ),
             ],
@@ -147,14 +155,14 @@ class InvoiceHeaderWidget extends ConsumerWidget {
           ),
           const SizedBox(width: 10),
           // ── Hold button (F3) ──────────────────────────────────
-          if (!isReturn)
-            Tooltip(
-              message: 'Hold Invoice (F3)',
-              child: _HoldButton(
-                enabled: state.cartItems.isNotEmpty,
-                onHold:  () => _showHoldDialog(context, ref),
-              ),
-            ),
+          // if (!isReturn)
+          //   Tooltip(
+          //     message: 'Hold Invoice (F3)',
+          //     child: _HoldButton(
+          //       enabled: state.cartItems.isNotEmpty,
+          //       onHold:  () => _showHoldDialog(context, ref),
+          //     ),
+          //   ),
         ]),
         const SizedBox(height: 10),
 
@@ -507,6 +515,7 @@ class _CustomerDropdown extends ConsumerWidget {
                 showSearchBox: true,
                 searchFieldProps: TextFieldProps(
                   cursorHeight: 16,
+                  autofocus: true,
                   decoration: InputDecoration(
                     hintText:  'Search customer...',
                     hintStyle: const TextStyle(fontSize: 14),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
@@ -12,66 +14,91 @@ class HeldInvoicesNotifier extends StateNotifier<List<HeldInvoice>> {
 
   HeldInvoicesNotifier(this._ref)
       : _ds = HeldInvoiceDatasource(),
-        super([]) {
-    _loadFromDb();
-  }
+        super([]);
 
-  String get _storeId   => _ref.read(authProvider).storeId;
-  String get _counterId => _ref.read(authProvider).counterId ?? '';
-  String get _userId    => _ref.read(authProvider).userId;
+  Future<void> reload() => _loadFromDb();
 
-  /// ── App start pe DB se active holds load karo ─────────────────
   Future<void> _loadFromDb() async {
+    final storeId = _ref.read(authProvider).storeId;
+
+    debugPrint('🔍 HeldInvoices → storeId="$storeId"');
+    if (storeId.isEmpty) {
+      debugPrint('⚠️  storeId empty — skipping');
+      return;
+    }
+
     try {
-      final rows = await _ds.getActiveHolds(_storeId);
-      final holds = rows.map((row) {
-        // items_json parse karo
-        List<CartItem> items = [];
+      final rows = await _ds.getActiveHolds(storeId);
+      debugPrint('📦 DB returned ${rows.length} active holds');
+
+      final holds = <HeldInvoice>[];
+
+      for (final row in rows) {
         try {
-          final rawItems = row['items_json'] as List<dynamic>? ?? [];
-          items = rawItems
-              .map((e) => CartItem.fromJson(
-            Map<String, dynamic>.from(e as Map),
-          ))
-              .toList();
-        } catch (_) {}
+          // ── items_json ─────────────────────────────────────────
+          // postgres jsonb → already List/Map, fallback String
+          List<CartItem> items = [];
+          final rawItems = row['items_json'];
+          if (rawItems is List) {
+            items = rawItems
+                .map((e) => CartItem.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList();
+          } else if (rawItems is String) {
+            final decoded = jsonDecode(rawItems) as List;
+            items = decoded
+                .map((e) => CartItem.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList();
+          }
 
-        // Customer reconstruct karo — saare required fields do
-        CustomerModel? customer;
-        if (row['customer_name'] != null) {
-          customer = CustomerModel(
-            id:           row['customer_id']?.toString() ?? '',
-            storeId:      _storeId,
-            code:         row['customer_code']?.toString() ?? '',
-            name:         row['customer_name'].toString(),
-            phone:        '',
-            customerType: 'credit',
-            creditLimit:  0.0,
-            balance:      0.0,
-            isActive:     true,
-            createdAt:    DateTime.now(),
-            updatedAt:    DateTime.now(),
-          );
+          // ── held_at ────────────────────────────────────────────
+          DateTime heldAt;
+          final rawDate = row['held_at'];
+          if (rawDate is DateTime) {
+            heldAt = rawDate;
+          } else {
+            heldAt = DateTime.tryParse(rawDate.toString()) ?? DateTime.now();
+          }
+
+          // ── customer ───────────────────────────────────────────
+          CustomerModel? customer;
+          if (row['customer_name'] != null) {
+            customer = CustomerModel(
+              id:           row['customer_id']?.toString() ?? '',
+              storeId:      storeId,
+              code:         row['customer_code']?.toString() ?? '',
+              name:         row['customer_name'].toString(),
+              phone:        '',
+              customerType: 'credit',
+              creditLimit:  0.0,
+              balance:      0.0,
+              isActive:     true,
+              createdAt:    DateTime.now(),
+              updatedAt:    DateTime.now(),
+            );
+          }
+
+          holds.add(HeldInvoice(
+            id:         row['id'].toString(),
+            invoiceNo:  row['invoice_no']?.toString() ?? '',
+            holdLabel:  row['hold_label']?.toString(),
+            customer:   customer,
+            cartItems:  items,
+            heldAt:     heldAt,
+            grandTotal: double.tryParse(row['grand_total'].toString()) ?? 0,
+          ));
+        } catch (rowErr) {
+          debugPrint('❌ Row parse error: $rowErr  |  row: $row');
         }
+      }
 
-        return HeldInvoice(
-          id:         row['id'].toString(),
-          invoiceNo:  row['invoice_no']?.toString() ?? '',
-          holdLabel:  row['hold_label']?.toString(),
-          customer:   customer,
-          cartItems:  items,
-          heldAt:     row['held_at'] as DateTime? ?? DateTime.now(),
-          grandTotal: (row['grand_total'] as num?)?.toDouble() ?? 0,
-        );
-      }).toList();
-
+      debugPrint('✅ Holds loaded: ${holds.length}');
       state = holds;
-    } catch (_) {
-      // DB error — in-memory se kaam chalao
+
+    } catch (e, st) {
+      debugPrint('❌ getActiveHolds error: $e\n$st');
     }
   }
 
-  /// ── New hold add karo ─────────────────────────────────────────
   Future<String> holdInvoice({
     required String         invoiceNo,
     required CustomerModel? customer,
@@ -79,7 +106,10 @@ class HeldInvoicesNotifier extends StateNotifier<List<HeldInvoice>> {
     required double         grandTotal,
     String?                 label,
   }) async {
-    final localId = const Uuid().v4();
+    final localId   = const Uuid().v4();
+    final storeId   = _ref.read(authProvider).storeId;
+    final counterId = _ref.read(authProvider).counterId ?? '';
+    final userId    = _ref.read(authProvider).userId;
 
     final held = HeldInvoice(
       id:         localId,
@@ -93,11 +123,10 @@ class HeldInvoicesNotifier extends StateNotifier<List<HeldInvoice>> {
 
     state = [...state, held];
 
-    // DB mein bhi save karo (async, fire & forget)
     _ds.holdInvoice(
-      storeId:      _storeId,
-      counterId:    _counterId,
-      userId:       _userId,
+      storeId:      storeId,
+      counterId:    counterId,
+      userId:       userId,
       customerId:   customer?.id.isEmpty == true ? null : customer?.id,
       customerName: customer?.name,
       customerCode: customer?.code,
@@ -106,7 +135,6 @@ class HeldInvoicesNotifier extends StateNotifier<List<HeldInvoice>> {
       items:        items,
       grandTotal:   grandTotal,
     ).then((dbId) {
-      // DB id se local id replace karo
       state = state.map((h) => h.id == localId
           ? HeldInvoice(
         id:         dbId,
@@ -118,14 +146,11 @@ class HeldInvoicesNotifier extends StateNotifier<List<HeldInvoice>> {
         grandTotal: h.grandTotal,
       )
           : h).toList();
-    }).catchError((_) {
-      // DB fail — in-memory hold keep karo, koi bat nahi
-    });
+    }).catchError((_) {});
 
     return localId;
   }
 
-  /// ── Hold remove karo (resume ya discard) ──────────────────────
   Future<void> releaseHold(String id, {bool discard = false}) async {
     state = state.where((h) => h.id != id).toList();
     try {

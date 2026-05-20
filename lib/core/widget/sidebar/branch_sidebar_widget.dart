@@ -82,6 +82,15 @@ final _cashierItems = <NavItem>[
     screen: const BranchStockInventoryScreen(),
     shortcutKey: LogicalKeyboardKey.keyI,
   ),
+  NavItem(
+    icon: Icons.bar_chart_rounded, label: 'Invoice Report',
+    screen: const SaleInvoiceListScreen(),
+    shortcutKey: LogicalKeyboardKey.keyR,
+  ),
+  NavItem(
+    icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
+    screen: const BranchTransferListScreen(),
+  ),
 ];
 
 // ── Manager Items ──────────────────────────────────────────────
@@ -480,7 +489,7 @@ class _NavTile extends StatelessWidget {
                 Icon(
                   icon,
                   size:  22,
-                  color: isSelected ? _kPrimary : const Color(0xFF9CA3AF),
+                  color: isSelected ? _kPrimary : Colors.grey,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -489,9 +498,9 @@ class _NavTile extends StatelessWidget {
                   maxLines:  2,
                   overflow:  TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize:   8,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? _kPrimary : const Color(0xFF9CA3AF),
+                    fontSize:   10,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? _kPrimary : Colors.grey,
                   ),
                 ),
                 // Shortcut hint chip — sirf selected ya hover pe nahi,

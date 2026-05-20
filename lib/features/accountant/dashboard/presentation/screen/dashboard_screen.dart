@@ -5,6 +5,10 @@ import 'package:jan_ghani_final/core/service/session/accountant_session.dart';
 import 'package:jan_ghani_final/features/accountant/branch_transaction/presentation/screen/branch_transaction_screen.dart';
 import 'package:jan_ghani_final/features/accountant/investment/presentation/screen/investment_screen.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
+import 'package:jan_ghani_final/features/accountant/reports/accountant_sale_report/presentation/screen/accountant_sale_report_screen.dart';
+import 'package:jan_ghani_final/features/accountant/reports/accountant_sale_return_report/presentation/screen/sale_return_report_screen.dart';
+import '../../../reports/accountant_profit_loss_report/presentation/screen/accountant_profit_loss_report_screen.dart';
+import '../../../reports/branch_cash_counter_report/presentation/screen/branch_cash_counter_screen.dart';
 import '../../../warehouse_transaction/presentationpresentation/screen/warehouse_transaction_screen.dart';
 import '../../data/model/dashboard_model.dart';
 import '../provider/dashboard_provider.dart';
@@ -34,8 +38,40 @@ class _AccountantDashboardScreenState
     ];
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      appBar: AppBar(
+
+      ),
       body: screens[_selectedIndex],
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            ListTile(
+              title: Text("Sale Report"),
+              onTap: (){
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AccountantSaleReportScreen()));
+              },
+            ),
+            ListTile(
+              title: Text("Sale Return Report"),
+              onTap: (){
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AccountantSaleReturnReportScreen()));
+              },
+            ),
+            ListTile(
+              title: Text("Profit & Loss Report"),
+              onTap: (){
+                Navigator.push(context, MaterialPageRoute(builder: (context) => PnlReportScreen()));
+              },
+            ),
+            ListTile(
+              title: Text("Branch Cash Counter Report"),
+              onTap: (){
+                Navigator.push(context, MaterialPageRoute(builder: (context) => BranchCashCounterReportScreen()));
+              },
+            ),
+          ],
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/color/app_color.dart';
 import '../../../../../core/service/hardware/cash_drawer_service.dart';
+import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../provider/held_invoice_provider.dart';
@@ -35,10 +36,7 @@ final saleTypeFocusProvider = Provider<FocusNode>((ref) {
   return fn;
 });
 
-final customerDropdownKeyProvider =
-Provider<GlobalKey<DropdownSearchState<CustomerModel?>>>(
-      (ref) => GlobalKey<DropdownSearchState<CustomerModel?>>(),
-);
+final customerDropdownKeyProvider = Provider<GlobalKey<DropdownSearchState<CustomerModel?>>>((ref) => GlobalKey<DropdownSearchState<CustomerModel?>>(),);
 
 // ── Pay Now trigger ────────────────────────────────────────────────
 final _payNowTriggerProvider = StateProvider<bool>((ref) => false);
@@ -56,10 +54,71 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
   FocusNode get _searchFocusNode => ref.read(posSearchFocusProvider);
 
+  void _confirmClearCart() {
+    final state = ref.read(saleInvoiceProvider);
+    if (state.cartItems.isEmpty) return;
+    showDialog(
+      context: context,
+      builder: (d) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Row(children: [
+          Icon(Icons.warning_amber_rounded, color: AppColor.warning, size: 22),
+          SizedBox(width: 10),
+          Text('Clear Invoice?',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        ]),
+        content: const Text(
+          'Are you sure you want to clear this invoice?\nAll items will be removed.',
+          style: TextStyle(fontSize: 14, color: AppColor.textSecondary),
+        ),
+        actions: [
+          Row(children: [
+            // ✅ FIX: Cancel button sirf close karta hai — clear nahi
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(d),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColor.textSecondary,
+                  side: const BorderSide(color: AppColor.grey300),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Cancel'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(d);
+                  ref.read(saleInvoiceProvider.notifier).clearCart();
+                },
+                icon:  const Icon(Icons.delete_outline, size: 16),
+                label: const Text('Yes, Clear'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.error,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+
+
   @override
   void initState() {
     super.initState();
     HardwareKeyboard.instance.addHandler(_onKey);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(heldInvoicesProvider.notifier).reload();
+    });
   }
 
   @override
@@ -72,9 +131,9 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
   bool _onKey(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
 
-    final key     = event.logicalKey;
+    final key  = event.logicalKey;
     final pressed = HardwareKeyboard.instance.logicalKeysPressed;
-    final ctrl    = pressed.contains(LogicalKeyboardKey.controlLeft) ||
+    final ctrl = pressed.contains(LogicalKeyboardKey.controlLeft) ||
         pressed.contains(LogicalKeyboardKey.controlRight);
 
     // Ctrl+F / F1 — Search focus
@@ -86,33 +145,31 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
     // Ctrl+K — Customer dropdown
     if (ctrl && key == LogicalKeyboardKey.keyK) {
+      if (Navigator.of(context).canPop()) return true;
       ref.read(customerDropdownKeyProvider).currentState?.openDropDownSearch();
       return true;
     }
 
-    // ── Ctrl+A — Payment dialog (Sale ya Return dono ke liye) ──────
+    // Ctrl+A — Payment dialog
     if (ctrl && key == LogicalKeyboardKey.keyA) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true;
+      if (Navigator.of(context).canPop()) return true;
       final st = ref.read(saleInvoiceProvider);
       if (st.cartItems.isNotEmpty) {
         if (st.saleType == SaleType.sale) {
           _triggerPayNow();
         } else {
-          // Sale return mode — return payment dialog kholo
           showReturnPaymentDialog(context, ref);
         }
-        return true;
       }
+      return true;
     }
 
-    // Ctrl+S — Screen level pe kuch nahi karta
-    // Sirf payment_dialog / return_payment_dialog ke ANDAR save karta hai
-    // Dialog Ctrl+A se khulta hai
+    // Ctrl+S — Dialog ke andar handle hoga
     if (ctrl && key == LogicalKeyboardKey.keyS) return false;
 
-    // ── Ctrl+C — Cart edit mode toggle ──────────────────────
+    // Ctrl+C — Cart nav toggle
     if (ctrl && key == LogicalKeyboardKey.keyC) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true;
+      if (Navigator.of(context).canPop()) return true;
       final st  = ref.read(saleInvoiceProvider);
       final nav = ref.read(cartNavProvider);
       if (nav.isActive) {
@@ -124,7 +181,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       return true;
     }
 
-    // ── Arrow keys — cart row/col navigation ─────────────────
+    // Arrow keys — Cart nav
     final nav = ref.read(cartNavProvider);
     if (nav.isActive) {
       final st = ref.read(saleInvoiceProvider);
@@ -150,9 +207,9 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       }
     }
 
-    // ── Ctrl+T — Sale Type toggle ──────────────────────────────
+    // Ctrl+T — Sale type toggle
     if (ctrl && key == LogicalKeyboardKey.keyT) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true;
+      if (Navigator.of(context).canPop()) return true;
       ref.read(saleTypeFocusProvider).requestFocus();
       final st   = ref.read(saleInvoiceProvider);
       final next = st.saleType == SaleType.sale
@@ -162,17 +219,17 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       return true;
     }
 
-    // ── Ctrl+H / F3 — Hold invoice ────────────────────────────
+    // Ctrl+H / F3 — Hold invoice
     if ((ctrl && key == LogicalKeyboardKey.keyH) ||
         key == LogicalKeyboardKey.f3) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true;
+      if (Navigator.of(context).canPop()) return true;
       _holdCurrentInvoice();
       return true;
     }
 
-    // F4 — Held invoices list
+    // F4 — Held invoices sheet
     if (key == LogicalKeyboardKey.f4) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true;
+      if (Navigator.of(context).canPop()) return true;
       showHeldInvoicesSheet(context, ref);
       return true;
     }
@@ -180,7 +237,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     // Ctrl+N / F5 — New invoice
     if (key == LogicalKeyboardKey.f5 ||
         (ctrl && key == LogicalKeyboardKey.keyN)) {
-      if (ModalRoute.of(context)?.isCurrent == false) return true;
+      if (Navigator.of(context).canPop()) return true;
       _confirmNewInvoice();
       return true;
     }
@@ -192,12 +249,9 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       return true;
     }
 
-    // ESC — Clear cart
-    // ✅ FIX: Navigator.of(context).canPop() reliable hai
-    // Jab payment dialog ya koi bhi dialog khula hota hai, canPop() = true
-    // Isliye ESC dialog ko close karta hai, cart clear nahi karta
+    // ESC — Dialog band karo ya cart clear karo
     if (key == LogicalKeyboardKey.escape) {
-      if (Navigator.of(context).canPop()) return false; // dialog handle karega
+      if (Navigator.of(context).canPop()) return false; // dialog khud handle kare
       _confirmClearCart();
       return true;
     }
@@ -205,7 +259,6 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     return false;
   }
 
-  // ── Actions ────────────────────────────────────────────────────
   void _triggerPayNow() {
     ref.read(_payNowTriggerProvider.notifier).state = true;
   }
@@ -283,12 +336,6 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     ));
   }
 
-  void _confirmClearCart() {
-    final state = ref.read(saleInvoiceProvider);
-    if (state.cartItems.isEmpty) return;
-    ref.read(saleInvoiceProvider.notifier).clearCart();
-  }
-
   // ── Build ──────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -296,6 +343,13 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     final holds    = ref.watch(heldInvoicesProvider);
     final isReturn = state.saleType == SaleType.saleReturn;
     final accent   = isReturn ? AppColor.error : AppColor.primary;
+    ref.listen(authProvider, (prev, next) {
+      final wasEmpty = (prev?.storeId ?? '').isEmpty;
+      final isNowReady = next.storeId.isNotEmpty;
+      if (wasEmpty && isNowReady) {
+        ref.read(heldInvoicesProvider.notifier).reload();
+      }
+    });
 
     ref.listen<SaleInvoiceState>(saleInvoiceProvider, (prev, next) {
       if (next.successMessage != null && next.successMessage != prev?.successMessage) {
@@ -308,6 +362,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
         ref.read(saleInvoiceProvider.notifier).clearSuccess();
       }
     });
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
@@ -348,43 +403,47 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
           const SizedBox(width: 6),
 
           if (holds.isNotEmpty) ...[
-            Stack(clipBehavior: Clip.none, children: [
-              SizedBox(
-                height: double.infinity,
-                child: TextButton.icon(
-                  onPressed: () => showHeldInvoicesSheet(context, ref),
-                  icon: const Icon(Icons.pause_circle_outline_rounded,
-                      size: 14, color: AppColor.warning),
-                  label: const Text('Hold',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: AppColor.warning,
-                          fontWeight: FontWeight.w600)),
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppColor.warning.withOpacity(0.1),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(color: AppColor.warning, width: 1.5)),
-                  ),
+            // ✅ Updated Hold Button — primary color + badge inside
+            GestureDetector(
+              onTap: () => showHeldInvoicesSheet(context, ref),
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color:        AppColor.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border:       Border.all(color: AppColor.primary, width: 1.5),
                 ),
-              ),
-              Positioned(
-                top: 8, right: -5,
-                child: Container(
-                  width: 16, height: 16,
-                  decoration: BoxDecoration(
-                      color: AppColor.warning,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5)),
-                  child: Center(
-                    child: Text('${holds.length}',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.pause_circle_outline_rounded,
+                        size: 15, color: AppColor.primary),
+                    const SizedBox(width: 6),
+                    const Text('Held',
+                        style: TextStyle(
+                            fontSize:   12,
+                            fontWeight: FontWeight.w600,
+                            color:      AppColor.primary)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                      decoration: BoxDecoration(
+                        color:        AppColor.primary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${holds.length}',
                         style: const TextStyle(
-                            fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
-                  ),
+                            fontSize:   10,
+                            fontWeight: FontWeight.w600,
+                            color:      Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ]),
+            ),
             const SizedBox(width: 6),
           ],
 
@@ -440,17 +499,18 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
           ),
         ),
       ),
-      body: const Row(
+      body: Row(
         children: [
-          Expanded(flex: 28, child: ProductListPanel()),
-          Expanded(flex: 72, child: CartPanel()),
+          const Expanded(flex: 35, child: ProductListPanel()),
+          Expanded(flex: 65, child: CartPanel()),
         ],
       ),
     );
   }
 }
 
-// ═════════════════════════════════════════════════════════════════
+
+
 // ── Hold Label Dialog ─────────────────────────────────────────────
 class _HoldLabelDialog extends StatefulWidget {
   final ValueChanged<String> onConfirm;

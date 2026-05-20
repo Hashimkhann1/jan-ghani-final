@@ -1,15 +1,16 @@
 // lib/features/branch/sale_invoice/presentation/provider/cart_nav_provider.dart
-// Cart keyboard navigation state
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// Columns: 0=Qty, 1=Price, 2=Tax, 3=Discount, 4=SubTotal
+// Columns: 0=Qty, 1=Price, 2=Discount, 3=SubTotal(read-only)
 class CartNavState {
   final bool isActive;
   final int  row;
   final int  col;
 
-  static const int colCount = 5;
+  static const int colCount        = 4; // ✅ 5 tha, Tax hata ke 4 kiya
+  static const int colSubTotal     = 3;
+  static const int lastEditableCol = 2; // ✅ NEW — Discount = last editable
 
   const CartNavState({
     this.isActive = false,
@@ -23,7 +24,8 @@ class CartNavState {
     col:      col      ?? this.col,
   );
 
-  static const colLabels = ['Qty', 'Price', 'Tax', 'Discount', 'SubTotal'];
+  // ✅ Tax hata diya — cart mein sirf yeh 4 columns hain
+  static const colLabels = ['Qty', 'Price', 'Discount', 'SubTotal'];
 }
 
 class CartNavNotifier extends StateNotifier<CartNavState> {
@@ -36,8 +38,6 @@ class CartNavNotifier extends StateNotifier<CartNavState> {
 
   void deactivate() => state = const CartNavState();
 
-  // ✅ NEW: Mouse click pe yeh call karo — nav state sync ho jaata hai
-  // Taki arrow keys sahi position se start hon
   void jumpTo(int row, int col) {
     state = CartNavState(isActive: true, row: row, col: col);
   }
@@ -64,6 +64,19 @@ class CartNavNotifier extends StateNotifier<CartNavState> {
     if (!state.isActive) return;
     final prev = (state.col - 1).clamp(0, CartNavState.colCount - 1);
     state = state.copyWith(col: prev);
+  }
+
+  // ✅ NEW — Discount submit hone pe nav end karo taake total update ho
+  bool confirmAndMoveOn(int totalRows) {
+    if (!state.isActive) return false;
+
+    if (state.col >= CartNavState.lastEditableCol) {
+      deactivate();
+      return true;
+    }
+
+    moveRight();
+    return false;
   }
 }
 

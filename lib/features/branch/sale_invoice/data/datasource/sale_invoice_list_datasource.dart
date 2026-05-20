@@ -2,18 +2,52 @@ import 'package:postgres/postgres.dart';
 import '../../../../../core/service/db/db_service.dart';
 import '../model/sale_invoice_list_model.dart';
 
+class CashierModel {
+  final String id;
+  final String fullName;
+  const CashierModel({required this.id, required this.fullName});
+}
+
 class SaleInvoiceListDatasource {
+
+  // ── Cashiers list (manager ke liye) ──────────────────────
+  Future<List<CashierModel>> getCashiers({required String storeId}) async {
+    final conn   = await DataBaseService.getConnection();
+    final result = await conn.execute(
+      Sql.named('''
+        SELECT id, full_name
+        FROM public.branch_users
+        WHERE store_id  = @storeId::uuid
+          AND role      = 'cashier'
+          AND is_active = true
+        ORDER BY full_name ASC
+      '''),
+      parameters: {'storeId': storeId},
+    );
+    return result.map((r) {
+      final m = r.toColumnMap();
+      return CashierModel(
+        id:       m['id'].toString(),
+        fullName: m['full_name']?.toString() ?? 'Unknown',
+      );
+    }).toList();
+  }
 
   Future<List<SaleInvoiceListModel>> getAll({
     required String   storeId,
     required DateTime fromDate,
     required DateTime toDate,
     String?           counterId,
+    String?           userId,      // cashier filter
   }) async {
     final conn = await DataBaseService.getConnection();
 
     final counterFilter = counterId != null
         ? 'AND si.counter_id = @counterId::uuid'
+        : '';
+
+    final userFilter = userId != null
+        ? 'AND si.user_id = @userId::uuid'
         : '';
 
     final invoiceResult = await conn.execute(
@@ -29,21 +63,24 @@ class SaleInvoiceListDatasource {
           si.customer_id,
           c.name          AS customer_name,
           co.counter_name AS counter_name,
+          u.full_name     AS cashier_name,
           STRING_AGG(sip.payment_method, ',') AS payment_type
         FROM public.sale_invoices si
-        LEFT JOIN public.customer       c  ON c.id  = si.customer_id
-        LEFT JOIN public.branch_counter co ON co.id = si.counter_id
+        LEFT JOIN public.customer       c   ON c.id   = si.customer_id
+        LEFT JOIN public.branch_counter co  ON co.id  = si.counter_id
+        LEFT JOIN public.branch_users   u   ON u.id   = si.user_id
         LEFT JOIN public.sale_invoice_payments sip ON sip.invoice_id = si.id
         WHERE si.store_id          = @storeId::uuid
           AND si.deleted_at        IS NULL
           AND si.invoice_date::date >= @fromDate
           AND si.invoice_date::date <= @toDate
           $counterFilter
+          $userFilter
         GROUP BY
           si.id, si.invoice_no, si.invoice_date,
           si.status, si.total_amount, si.total_discount,
           si.grand_total, si.customer_id,
-          c.name, co.counter_name
+          c.name, co.counter_name, u.full_name
         ORDER BY si.invoice_date DESC
       '''),
       parameters: {
@@ -51,6 +88,7 @@ class SaleInvoiceListDatasource {
         'fromDate': fromDate.toIso8601String().substring(0, 10),
         'toDate':   toDate.toIso8601String().substring(0, 10),
         if (counterId != null) 'counterId': counterId,
+        if (userId    != null) 'userId':    userId,
       },
     );
 
@@ -104,6 +142,7 @@ class SaleInvoiceListDatasource {
         customerId:    m['customer_id']?.toString(),
         customerName:  m['customer_name']?.toString(),
         counterName:   m['counter_name']?.toString(),
+        cashierName:   m['cashier_name']?.toString(),
         items:         itemsMap[id] ?? [],
       );
     }).toList();

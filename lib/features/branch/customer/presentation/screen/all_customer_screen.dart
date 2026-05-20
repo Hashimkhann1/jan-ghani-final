@@ -102,8 +102,9 @@ class AllCustomerScreen extends ConsumerWidget {
                 foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
-          // New Customer button
-          auth.role == "store_manager" ? IntrinsicWidth(
+          // // New Customer button
+          // auth.role == "store_manager" ?
+          IntrinsicWidth(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: ElevatedButton.icon(
@@ -118,7 +119,8 @@ class AllCustomerScreen extends ConsumerWidget {
                 label: const Text('New Customer', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
-          ) : SizedBox(),
+          ),
+              // : SizedBox(),
           const SizedBox(width: 16),
         ],
       ),
@@ -148,9 +150,8 @@ class AllCustomerScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
-                  title: 'Outstanding',
-                  value:
-                  'Rs ${state.totalOutstanding.toStringAsFixed(0)}',
+                  title: state.outstandingLabel,                              // ← dynamic
+                  value: 'Rs ${state.selectedOutstanding.toStringAsFixed(0)}', // ← dynamic
                   icon:  Icons.account_balance_wallet_outlined,
                   color: AppColor.error,
                 ),
@@ -224,6 +225,7 @@ class AllCustomerScreen extends ConsumerWidget {
                   const SizedBox(width: 16),
 
                   // Type filters
+                  // Type filters
                   CustomerFilterChip(
                     label: 'All Types',
                     value: 'all',
@@ -248,6 +250,13 @@ class AllCustomerScreen extends ConsumerWidget {
                   CustomerFilterChip(
                     label: 'Wholesale',
                     value: 'wholesale',
+                    selectedValue: state.filterType,
+                    onTap: ref.read(customerProvider.notifier).onFilterTypeChanged,
+                  ),
+                  const SizedBox(width: 6),
+                  CustomerFilterChip(                               // ← ADD
+                    label: 'Petrol',
+                    value: 'petrol',
                     selectedValue: state.filterType,
                     onTap: ref.read(customerProvider.notifier).onFilterTypeChanged,
                   ),
@@ -344,25 +353,26 @@ class AllCustomerScreen extends ConsumerWidget {
                                       color: AppColor.primary,
                                       tooltip: 'Edit',
                                       onTap: () {
-                                        if (auth.isManager) {
-                                          _openDialog(context, customer: c);
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: const Text(
-                                                  "Only manager can edit customers"),
-                                              backgroundColor: AppColor.error,
-                                              behavior: SnackBarBehavior.floating,
-                                              action: SnackBarAction(
-                                                label: 'OK',
-                                                textColor: Colors.white,
-                                                onPressed: () => ref
-                                                    .read(customerProvider.notifier)
-                                                    .clearError(),
-                                              ),
-                                            ),
-                                          );
-                                        }
+                                        _openDialog(context, customer: c);
+
+                                        // if (auth.isManager) {
+                                        // } else {
+                                        //   ScaffoldMessenger.of(context).showSnackBar(
+                                        //     SnackBar(
+                                        //       content: const Text(
+                                        //           "Only manager can edit customers"),
+                                        //       backgroundColor: AppColor.error,
+                                        //       behavior: SnackBarBehavior.floating,
+                                        //       action: SnackBarAction(
+                                        //         label: 'OK',
+                                        //         textColor: Colors.white,
+                                        //         onPressed: () => ref
+                                        //             .read(customerProvider.notifier)
+                                        //             .clearError(),
+                                        //       ),
+                                        //     ),
+                                        //   );
+                                        // }
                                       },
                                     ),
                                     const SizedBox(width: 6),
@@ -371,25 +381,25 @@ class AllCustomerScreen extends ConsumerWidget {
                                       color: AppColor.error,
                                       tooltip: 'Delete',
                                       onTap: () {
-                                        if (auth.isManager) {
-                                          _confirmDelete(context, ref, c);
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: const Text(
-                                                  "Only manager can delete customers"),
-                                              backgroundColor: AppColor.error,
-                                              behavior: SnackBarBehavior.floating,
-                                              action: SnackBarAction(
-                                                label: 'OK',
-                                                textColor: Colors.white,
-                                                onPressed: () => ref
-                                                    .read(customerProvider.notifier)
-                                                    .clearError(),
-                                              ),
-                                            ),
-                                          );
-                                        }
+                                        _confirmDelete(context, ref, c);
+                                        // if (auth.isManager) {
+                                        // } else {
+                                        //   ScaffoldMessenger.of(context).showSnackBar(
+                                        //     SnackBar(
+                                        //       content: const Text(
+                                        //           "Only manager can delete customers"),
+                                        //       backgroundColor: AppColor.error,
+                                        //       behavior: SnackBarBehavior.floating,
+                                        //       action: SnackBarAction(
+                                        //         label: 'OK',
+                                        //         textColor: Colors.white,
+                                        //         onPressed: () => ref
+                                        //             .read(customerProvider.notifier)
+                                        //             .clearError(),
+                                        //       ),
+                                        //     ),
+                                        //   );
+                                        // }
                                       },
                                     ),
                                   ],

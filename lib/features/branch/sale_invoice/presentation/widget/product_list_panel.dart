@@ -21,16 +21,17 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
   final _scrollCtrl = ScrollController();
   FocusNode? _searchFocusFromProvider;
 
-  int  _hoveredIndex = -1;
-
+  int _hoveredIndex = -1;
   final Map<int, GlobalKey> _itemKeys = {};
 
   final _qtyCtrl  = TextEditingController(text: '1');
   final _qtyFocus = FocusNode();
-  OverlayEntry? _feedbackOverlay;
-  BranchStockModel? _selectedProductForQty;
 
-  bool _isQtyDialogOpen = false;
+  // ✅ KeyboardListener ke liye — fields mein store karo, har build pe naya mat banao
+  final _searchKbFocus = FocusNode(skipTraversal: true);
+  final _qtyKbFocus    = FocusNode(skipTraversal: true);
+
+  OverlayEntry? _feedbackOverlay;
 
   @override
   void initState() {
@@ -44,112 +45,133 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     _scrollCtrl.dispose();
     _qtyCtrl.dispose();
     _qtyFocus.dispose();
+    _searchKbFocus.dispose();
+    _qtyKbFocus.dispose();
     _feedbackOverlay?.remove();
     super.dispose();
   }
 
   void _onSearchChanged() {
     final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
-    final query    = _searchCtrl.text;
-
     if (isReturn) {
-      ref.read(saleReturnProvider.notifier).updateSearch(query);
+      ref.read(saleReturnProvider.notifier).updateSearch(_searchCtrl.text);
     } else {
-      ref.read(saleInvoiceProvider.notifier).updateSearch(query);
+      ref.read(saleInvoiceProvider.notifier).updateSearch(_searchCtrl.text);
     }
-
     setState(() => _hoveredIndex = -1);
   }
 
-  // ── ✅ FIX: Barcode direct add — pehle exact match try karo ─────
-  // Returns true if product found and added to cart
-  bool _tryDirectAdd(String query) {
-    final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
+  // ─────────────────────────────────────────────────────────────
+  // ✅ FIX: Search KeyboardListener — SIRF arrows + ESC
+  // Enter yahan NAHI handle hoga — TextField.onSubmitted handle karega
+  // ─────────────────────────────────────────────────────────────
+  void _handleSearchKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    final key = event.logicalKey;
 
-    if (isReturn) {
-      return _addByBarcodeReturn(query);
-    } else {
-      final found = ref
-          .read(saleInvoiceProvider.notifier)
-          .addToCartByBarcode(query);
-      if (found) {
-        _searchCtrl.clear();
-        ref.read(saleInvoiceProvider.notifier).updateSearch('');
-        _showAddedFeedback(query, 1);
-        setState(() => _hoveredIndex = -1);
-      }
-      return found;
-    }
-  }
-
-  // ── Arrow key + Enter handler ─────────────────────────────
-  bool _handleSearchKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return false;
-
-    final products = _currentProducts();
-    final key      = event.logicalKey;
-
-    // ── ESC — search field clear karo ────────────────────────
+    // ESC — search clear karo
     if (key == LogicalKeyboardKey.escape) {
       if (_searchCtrl.text.isNotEmpty) {
         _searchCtrl.clear();
-        final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
-        if (isReturn) {
-          ref.read(saleReturnProvider.notifier).updateSearch('');
-        } else {
-          ref.read(saleInvoiceProvider.notifier).updateSearch('');
-        }
+        final isReturn =
+            ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
+        if (isReturn) ref.read(saleReturnProvider.notifier).updateSearch('');
+        else ref.read(saleInvoiceProvider.notifier).updateSearch('');
         setState(() => _hoveredIndex = -1);
-        return true;
       }
-      return false;
+      return;
     }
 
+    // Arrow Down
     if (key == LogicalKeyboardKey.arrowDown) {
-      if (products.isEmpty) return false;
-      setState(() {
-        _hoveredIndex = (_hoveredIndex + 1).clamp(0, products.length - 1);
-      });
+      final products = _currentProducts();
+      if (products.isEmpty) return;
+      setState(() =>
+      _hoveredIndex = (_hoveredIndex + 1).clamp(0, products.length - 1));
       _scrollToHovered();
-      return true;
+      return;
     }
 
+    // Arrow Up
     if (key == LogicalKeyboardKey.arrowUp) {
-      if (products.isEmpty) return false;
-      setState(() {
-        _hoveredIndex = (_hoveredIndex - 1).clamp(0, products.length - 1);
-      });
+      final products = _currentProducts();
+      if (products.isEmpty) return;
+      setState(() =>
+      _hoveredIndex = (_hoveredIndex - 1).clamp(0, products.length - 1));
       _scrollToHovered();
-      return true;
+      return;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ✅ Search TextField.onSubmitted — Enter key (most reliable)
+  // ─────────────────────────────────────────────────────────────
+  void _onSearchSubmitted(String value) {
+    final query    = value.trim();
+    final products = _currentProducts();
+
+    // Step 1: Exact barcode/SKU match → direct add
+    if (query.isNotEmpty) {
+      final added = _tryBarcodeAdd(query);
+      if (added) return;
     }
 
-    if (key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.numpadEnter) {
-      final query = _searchCtrl.text.trim();
-
-      // ── ✅ FIX: PEHLE exact barcode/SKU match try karo ─────────
-      if (query.isNotEmpty) {
-        final added = _tryDirectAdd(query);
-        if (added) return true;
-      }
-
-      // ── Barcode match nahi mila — agar hovered item hai to qty dialog dikhao ──
-      if (_hoveredIndex >= 0 && _hoveredIndex < products.length) {
-        _showInlineQtyDialog(products[_hoveredIndex]);
-        return true;
-      }
-
-      return true;
+    // ✅ Step 2: Sirf 1 product filtered list mein → seedha add karo
+    if (products.length == 1) {
+      setState(() => _hoveredIndex = 0);
+      _addWithQty(products.first);
+      return;
     }
 
-    return false;
+    // Step 3: Product hovered hai → qty field focus karo
+    if (_hoveredIndex >= 0 && _hoveredIndex < products.length) {
+      _focusQty();
+      return;
+    }
+
+    // Step 4: Koi hover nahi → pehla product hover karo
+    if (products.isNotEmpty) {
+      setState(() => _hoveredIndex = 0);
+      _scrollToHovered();
+      _focusQty(); // ✅ qty field bhi focus karo
+    }
+  }
+
+  // ──────────_onSearchSubmitted───────────────────────────────────────────────────
+  // ✅ FIX: Qty KeyboardListener — SIRF ESC
+  // Enter yahan NAHI — TextField.onSubmitted handle karega
+  // ─────────────────────────────────────────────────────────────
+  void _handleQtyKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    // ESC → search pe wapas jao
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      _searchFocusFromProvider?.requestFocus();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ✅ Qty TextField.onSubmitted — Enter key (most reliable)
+  // ─────────────────────────────────────────────────────────────
+  void _onQtySubmitted(String _) {
+    final products = _currentProducts();
+    if (_hoveredIndex >= 0 && _hoveredIndex < products.length) {
+      _addWithQty(products[_hoveredIndex]);
+    }
+  }
+
+  void _focusQty() {
+    _qtyFocus.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _qtyCtrl.selection =
+          TextSelection(baseOffset: 0, extentOffset: _qtyCtrl.text.length);
+    });
   }
 
   void _scrollToHovered() {
     if (_hoveredIndex < 0) return;
     final key = _itemKeys[_hoveredIndex];
     if (key?.currentContext == null) return;
-
     Scrollable.ensureVisible(
       key!.currentContext!,
       duration:  const Duration(milliseconds: 150),
@@ -162,189 +184,64 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     final allProducts  = ref.read(branchStockProvider).allProducts;
     final invoiceState = ref.read(saleInvoiceProvider);
     final isReturn     = invoiceState.saleType == SaleType.saleReturn;
-    final searchQuery  = isReturn
+    final q = isReturn
         ? ref.read(saleReturnProvider).searchQuery
         : invoiceState.searchQuery;
-
-    if (searchQuery.isEmpty) return allProducts;
+    if (q.isEmpty) return allProducts;
     return allProducts.where((p) =>
-    p.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        p.sku.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        (p.barcode?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false))
+    p.name.toLowerCase().contains(q.toLowerCase()) ||
+        p.sku.toLowerCase().contains(q.toLowerCase()) ||
+        (p.barcode?.toLowerCase().contains(q.toLowerCase()) ?? false))
         .toList();
   }
 
-  // ── ✅ NEW: Show inline quantity edit dialog ──────────────
-  void _showInlineQtyDialog(BranchStockModel product) {
-    if (_isQtyDialogOpen) return;
+  // ─────────────────────────────────────────────────────────────
+  // Barcode add — exact match + fallback
+  // ─────────────────────────────────────────────────────────────
+  bool _tryBarcodeAdd(String query) {
+    if (query.isEmpty) return false;
+    final isReturn    = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
+    final allProducts = ref.read(branchStockProvider).allProducts;
 
-    _isQtyDialogOpen = true;
-    _selectedProductForQty = product;
-    _qtyCtrl.text = '1';
+    // ✅ Direct allProducts mein exact match dhundo — barcode OR sku
+    BranchStockModel? match = allProducts.cast<BranchStockModel?>().firstWhere(
+          (p) =>
+      (p!.barcode != null &&
+          p.barcode!.toLowerCase().trim() == query.toLowerCase().trim()) ||
+          p.sku.toLowerCase().trim() == query.toLowerCase().trim(),
+      orElse: () => null,
+    );
 
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (d) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-        title: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color:        AppColor.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.add_shopping_cart_outlined,
-                size: 18, color: AppColor.primary),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(product.name,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(
-                'Rs ${product.sellingPrice.toStringAsFixed(0)} | Stock: ${product.quantity.toStringAsFixed(0)}',
-                style: const TextStyle(
-                    fontSize: 11, color: AppColor.textSecondary,
-                    fontWeight: FontWeight.w400),
-              ),
-            ]),
-          ),
-        ]),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            TextField(
-              controller:   _qtyCtrl,
-              focusNode:    _qtyFocus,
-              autofocus:    true,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w800, color: AppColor.primary),
-              decoration: InputDecoration(
-                labelText:  'Quantity',
-                labelStyle: const TextStyle(fontSize: 13, color: AppColor.textSecondary),
-                filled:    true,
-                fillColor: AppColor.primary.withOpacity(0.06),
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide:   BorderSide.none),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                        color: AppColor.primary, width: 1.5)),
-              ),
-              onSubmitted: (_) {
-                Navigator.pop(d);
-                _addWithQty(product);
-              },
-            ),
-            const SizedBox(height: 4),
-            const Text('Qty enter karo aur Add dabao',
-                style: TextStyle(fontSize: 10, color: AppColor.textHint)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(d);
-              _isQtyDialogOpen = false;
-              _selectedProductForQty = null;
-              _searchFocusFromProvider?.requestFocus();
-            },
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(d);
-              _isQtyDialogOpen = false;
-              _addWithQty(product);
-              _selectedProductForQty = null;
-            },
-            icon:  const Icon(Icons.add_rounded, size: 16),
-            label: const Text('Add to Cart'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.primary,
-                foregroundColor: Colors.white,
-                elevation:       0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          ),
-        ],
-      ),
-    ).then((_) {
-      _isQtyDialogOpen = false;
-      _selectedProductForQty = null;
-      _searchFocusFromProvider?.requestFocus();
-    });
-  }
+    // ✅ Agar exact match nahi mila — filtered list mein sirf 1 result hai to use add karo
+    if (match == null) {
+      final filtered = allProducts.where((p) =>
+      p.name.toLowerCase().contains(query.toLowerCase()) ||
+          p.sku.toLowerCase().contains(query.toLowerCase()) ||
+          (p.barcode?.toLowerCase().contains(query.toLowerCase()) ?? false))
+          .toList();
+      if (filtered.length == 1) match = filtered.first;
+    }
 
-  // ── Add with custom quantity ──────────────────────────────
-  void _addWithQty(BranchStockModel product) {
-    final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
+    if (match == null) return false;
+
+    // ✅ Found — cart mein add karo
     final qty = double.tryParse(_qtyCtrl.text.trim()) ?? 1;
 
-    if (qty <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Qty 0 se zyada honi chahiye')),
-      );
-      return;
+    if (isReturn) {
+      ref.read(saleReturnProvider.notifier).addToCart(match);
+      _onProductAdded(match.name, qty, isReturn: true);
+    } else {
+      _doAddToCart(match, qty);
+      _onProductAdded(match.name, qty);
     }
 
-    if (isReturn) {
-      final notifier = ref.read(saleReturnProvider.notifier);
-      notifier.addToCart(product);
-      if (qty > 1) notifier.updateQuantity(product.productId, qty);
-    } else {
-      final notifier = ref.read(saleInvoiceProvider.notifier);
-      final state    = ref.read(saleInvoiceProvider);
-      final existing = state.cartItems
-          .where((i) => i.product.productId == product.productId)
-          .firstOrNull;
-      if (existing != null) {
-        notifier.updateQuantity(existing.cartId, existing.quantity + qty);
-      } else {
-        notifier.addToCart(product);
-        if (qty > 1) {
-          final newState = ref.read(saleInvoiceProvider);
-          final newItem  = newState.cartItems
-              .where((i) => i.product.productId == product.productId)
-              .firstOrNull;
-          if (newItem != null) notifier.updateQuantity(newItem.cartId, qty);
-        }
-      }
-    }
-
-    _showAddedFeedback(product.name, qty);
-    _searchCtrl.clear();
-    _qtyCtrl.text = '1';
-    if (isReturn) {
-      ref.read(saleReturnProvider.notifier).updateSearch('');
-    } else {
-      ref.read(saleInvoiceProvider.notifier).updateSearch('');
-    }
-    setState(() => _hoveredIndex = -1);
+    return true;
   }
 
-  // ── ✅ FIX: onSubmitted — sirf tab karo jab _handleSearchKey ne handle na kiya ho ──
-  void _onSubmitted(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return;
-    _tryDirectAdd(trimmed);
-  }
-
-  // ── ✅ FIX: Return mode barcode add — bool return karta hai ─────
   bool _addByBarcodeReturn(String query) {
     final allProducts = ref.read(branchStockProvider).allProducts;
     BranchStockModel? found;
+
     found = allProducts.cast<BranchStockModel?>().firstWhere(
           (p) =>
       p!.barcode != null &&
@@ -355,15 +252,65 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
           (p) => p!.sku.toLowerCase() == query.toLowerCase(),
       orElse: () => null,
     );
+
     if (found != null) {
       ref.read(saleReturnProvider.notifier).addToCart(found);
-      _searchCtrl.clear();
-      ref.read(saleReturnProvider.notifier).updateSearch('');
-      _showAddedFeedback(found.name, 1);
-      setState(() => _hoveredIndex = -1);
+      _onProductAdded(found.name, 1, isReturn: true);
       return true;
     }
     return false;
+  }
+
+  void _doAddToCart(BranchStockModel product, double qty) {
+    final notifier = ref.read(saleInvoiceProvider.notifier);
+    final state    = ref.read(saleInvoiceProvider);
+    final existing = state.cartItems
+        .where((i) => i.product.productId == product.productId)
+        .firstOrNull;
+
+    if (existing != null) {
+      notifier.updateQuantity(existing.cartId, existing.quantity + qty);
+    } else {
+      notifier.addToCart(product);
+      if (qty > 1) {
+        final newState = ref.read(saleInvoiceProvider);
+        final newItem  = newState.cartItems
+            .where((i) => i.product.productId == product.productId)
+            .firstOrNull;
+        if (newItem != null) notifier.updateQuantity(newItem.cartId, qty);
+      }
+    }
+  }
+
+  void _onProductAdded(String name, double qty, {bool isReturn = false}) {
+    _searchCtrl.clear();
+    _qtyCtrl.text = '1';
+    if (isReturn) {
+      ref.read(saleReturnProvider.notifier).updateSearch('');
+    } else {
+      ref.read(saleInvoiceProvider.notifier).updateSearch('');
+    }
+    setState(() => _hoveredIndex = -1);
+    _showAddedFeedback(name, qty);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocusFromProvider?.requestFocus();
+    });
+  }
+
+  void _addWithQty(BranchStockModel product) {
+    final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
+    final qty      = double.tryParse(_qtyCtrl.text.trim()) ?? 1;
+    if (qty <= 0) return;
+
+    if (isReturn) {
+      final n = ref.read(saleReturnProvider.notifier);
+      n.addToCart(product);
+      if (qty > 1) n.updateQuantity(product.productId, qty);
+      _onProductAdded(product.name, qty, isReturn: true);
+    } else {
+      _doAddToCart(product, qty);
+      _onProductAdded(product.name, qty);
+    }
   }
 
   void _showAddedFeedback(String name, double qty) {
@@ -379,21 +326,21 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
               color:        AppColor.success,
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8)
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.15), blurRadius: 8)
               ],
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.check_rounded, color: Colors.white, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  '${qty.toStringAsFixed(qty % 1 == 0 ? 0 : 1)} × $name',
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.check_rounded, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                '${qty.toStringAsFixed(qty % 1 == 0 ? 0 : 1)} × $name',
+                style: const TextStyle(
+                    color:      Colors.white,
+                    fontSize:   13,
+                    fontWeight: FontWeight.w600),
+              ),
+            ]),
           ),
         ),
       ),
@@ -405,6 +352,9 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Build
+  // ─────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     _searchFocusFromProvider ??= ref.read(posSearchFocusProvider);
@@ -421,16 +371,18 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     final allProducts = ref.watch(branchStockProvider).allProducts;
     final products    = searchQuery.isEmpty
         ? allProducts
-        : allProducts
-        .where((p) =>
+        : allProducts.where((p) =>
     p.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
         p.sku.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        (p.barcode?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false))
+        (p.barcode
+            ?.toLowerCase()
+            .contains(searchQuery.toLowerCase()) ??
+            false))
         .toList();
 
-    if (_hoveredIndex >= products.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => setState(
-              () => _hoveredIndex = products.isEmpty ? -1 : products.length - 1));
+    if (_hoveredIndex >= products.length && products.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback(
+              (_) => setState(() => _hoveredIndex = products.length - 1));
     }
 
     final accent = isReturn ? AppColor.error : AppColor.primary;
@@ -441,7 +393,8 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
         border: Border(right: BorderSide(color: AppColor.grey200)),
       ),
       child: Column(children: [
-        // ── Header + Search ──────────────────────────────────
+
+        // ── Header ──────────────────────────────────────────
         Container(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
           decoration: const BoxDecoration(
@@ -451,82 +404,192 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
+              // Label + count
               Row(children: [
                 Icon(Icons.inventory_2_outlined, size: 14, color: accent),
                 const SizedBox(width: 6),
                 Text('Products',
                     style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700, color: accent)),
+                        fontSize:   13,
+                        fontWeight: FontWeight.w700,
+                        color:      accent)),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color:        accent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text('${products.length}',
                       style: TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w700, color: accent)),
+                          fontSize:   11,
+                          fontWeight: FontWeight.w700,
+                          color:      accent)),
                 ),
               ]),
+
               const SizedBox(height: 8),
 
-              // ── Search TextField ────────────────────────────
-              KeyboardListener(
-                focusNode:  FocusNode(skipTraversal: true),
-                onKeyEvent: _handleSearchKey,
-                child: TextField(
-                  controller:  _searchCtrl,
-                  focusNode:   _searchFocusFromProvider,
-                  onSubmitted: _onSubmitted,
-                  onChanged:   (_) {},
-                  style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
-                  cursorHeight: 14,
-                  decoration: InputDecoration(
-                    hintText:  'Barcode scan karo ya naam type karo',
-                    hintStyle: const TextStyle(fontSize: 11, color: AppColor.textHint),
-                    prefixIcon: Icon(Icons.qr_code_scanner_rounded,
-                        size: 16, color: AppColor.grey400),
-                    suffixIcon: _searchCtrl.text.isNotEmpty
-                        ? GestureDetector(
-                      onTap: () {
-                        _searchCtrl.clear();
-                        if (isReturn) {
-                          retNotifier.updateSearch('');
-                        } else {
-                          notifier.updateSearch('');
-                        }
-                        setState(() => _hoveredIndex = -1);
-                      },
-                      child: const Icon(Icons.close_rounded,
-                          size: 16, color: AppColor.grey400),
-                    )
-                        : null,
-                    filled:    true,
-                    fillColor: AppColor.grey100,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide:   BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide:   BorderSide(color: accent, width: 1.2),
+              // ── Search + Qty Row ─────────────────────────
+              Row(children: [
+
+                // ── Search field ──────────────────────────
+                Expanded(
+                  child: KeyboardListener(
+                    focusNode:  _searchKbFocus,
+                    // ✅ Sirf arrows + ESC — Enter TextField.onSubmitted se handle hoga
+                    onKeyEvent: _handleSearchKey,
+                    child: TextField(
+                      controller:  _searchCtrl,
+                      focusNode:   _searchFocusFromProvider,
+                      // ✅ onSubmitted — Enter key ka reliable handler
+                      onSubmitted: _onSearchSubmitted,
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColor.textPrimary),
+                      cursorHeight: 14,
+                      decoration: InputDecoration(
+                        hintText:  'Search ya barcode scan karo...',
+                        hintStyle: const TextStyle(
+                            fontSize: 11, color: AppColor.textHint),
+                        prefixIcon: Icon(Icons.qr_code_scanner_rounded,
+                            size: 16, color: AppColor.grey400),
+                        suffixIcon: _searchCtrl.text.isNotEmpty
+                            ? GestureDetector(
+                          onTap: () {
+                            _searchCtrl.clear();
+                            if (isReturn) retNotifier.updateSearch('');
+                            else notifier.updateSearch('');
+                            setState(() => _hoveredIndex = -1);
+                            _searchFocusFromProvider?.requestFocus();
+                          },
+                          child: const Icon(Icons.close_rounded,
+                              size: 16, color: AppColor.grey400),
+                        )
+                            : null,
+                        filled:    true,
+                        fillColor: AppColor.grey100,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:   BorderSide.none),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                            BorderSide(color: accent, width: 1.2)),
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 4),
-              Row(children: [
-                Icon(Icons.info_outline_rounded, size: 10, color: AppColor.textHint),
-                const SizedBox(width: 4),
-                const Text(
-                  'Barcode scan → auto add | Click/↑↓+Enter → qty dialog',
-                  style: TextStyle(fontSize: 9, color: AppColor.textHint),
+                const SizedBox(width: 8),
+
+                // ── Qty field ─────────────────────────────
+                SizedBox(
+                  width: 68,
+                  child: KeyboardListener(
+                    focusNode:  _qtyKbFocus,
+                    // ✅ Sirf ESC — Enter TextField.onSubmitted se handle hoga
+                    onKeyEvent: _handleQtyKey,
+                    child: TextField(
+                      controller:   _qtyCtrl,
+                      focusNode:    _qtyFocus,
+                      // ✅ onSubmitted — Enter ka reliable handler
+                      onSubmitted:  _onQtySubmitted,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d*'))
+                      ],
+                      textAlign:    TextAlign.center,
+                      cursorHeight: 14,
+                      style: TextStyle(
+                          fontSize:   14,
+                          fontWeight: FontWeight.w800,
+                          color:      accent),
+                      decoration: InputDecoration(
+                        labelText:  'Qty',
+                        labelStyle: TextStyle(
+                            fontSize:   10,
+                            color:      accent,
+                            fontWeight: FontWeight.w600),
+                        filled:    true,
+                        fillColor: accent.withOpacity(0.05),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 10),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                                color: accent.withOpacity(0.3))),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                                color: accent.withOpacity(0.25))),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                            BorderSide(color: accent, width: 1.5)),
+                      ),
+                    ),
+                  ),
                 ),
               ]),
+
+              const SizedBox(height: 5),
+
+              Row(children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 10, color: AppColor.textHint),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Barcode → auto add  |  ↑↓ select → Enter → Qty type → Enter add',
+                    style: const TextStyle(
+                        fontSize: 9, color: AppColor.textHint),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ]),
+
+              const SizedBox(height: 6),
+
+              // Table header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Row(children: [
+                  const SizedBox(width: 24),
+                  const Expanded(
+                    flex: 5,
+                    child: Text('Product Name',
+                        style: TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w700,
+                            color:      AppColor.textSecondary)),
+                  ),
+                  const SizedBox(
+                    width: 50,
+                    child: Text('Stock',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w700,
+                            color:      AppColor.textSecondary)),
+                  ),
+                  const SizedBox(width: 4),
+                  const SizedBox(
+                    width: 58,
+                    child: Text('Price',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w700,
+                            color:      AppColor.textSecondary)),
+                  ),
+                ]),
+              ),
             ],
           ),
         ),
@@ -540,31 +603,29 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
             padding:    const EdgeInsets.all(8),
             itemCount:  products.length,
             itemBuilder: (context, index) {
-              final product  = products[index];
+              final product   = products[index];
               final isHovered = index == _hoveredIndex;
-              final itemKey  = _itemKeys.putIfAbsent(index, () => GlobalKey());
+              final itemKey   =
+              _itemKeys.putIfAbsent(index, () => GlobalKey());
 
               return _ProductCard(
-                key:         itemKey,
-                index:       index + 1,
-                product:     product,
-                isReturn:    isReturn,
-                isHovered:   isHovered,
-                onDoubleTap: () {
-                  if (isReturn) {
-                    retNotifier.addToCart(product);
-                  } else {
-                    notifier.addToCart(product);
-                  }
-                  _showAddedFeedback(product.name, 1);
-                  _searchCtrl.clear();
-                  if (isReturn) {
-                    retNotifier.updateSearch('');
-                  } else {
-                    notifier.updateSearch('');
-                  }
+                key:       itemKey,
+                index:     index + 1,
+                product:   product,
+                isReturn:  isReturn,
+                isHovered: isHovered,
+
+                // Single tap = hover + qty focus
+                onTap: () {
+                  setState(() => _hoveredIndex = index);
+                  _focusQty();
                 },
-                onTap: () => _showInlineQtyDialog(product),
+
+                // Double tap = add with current qty
+                onDoubleTap: () {
+                  setState(() => _hoveredIndex = index);
+                  _addWithQty(product);
+                },
               );
             },
           ),
@@ -574,7 +635,9 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
   }
 }
 
-// ── Product Card ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// Product Card
+// ══════════════════════════════════════════════════════════════════
 class _ProductCard extends StatefulWidget {
   final BranchStockModel product;
   final VoidCallback     onDoubleTap;
@@ -617,63 +680,91 @@ class _ProductCardState extends State<_ProductCard>
     super.dispose();
   }
 
-  void _onDoubleTap() {
-    _ctrl.forward().then((_) => _ctrl.reverse());
-    widget.onDoubleTap();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final p          = widget.product;
-    final inStock    = p.quantity > 0;
-    final accent     = widget.isReturn ? AppColor.error : AppColor.primary;
-    final qty = p.quantity.toStringAsFixed(p.quantity % 1 == 0 ? 0 : 1);
+    final p       = widget.product;
+    final inStock = p.quantity > 0;
+    final accent  = widget.isReturn ? AppColor.error : AppColor.primary;
+
+    final stockStr =
+    p.quantity.toStringAsFixed(p.quantity % 1 == 0 ? 0 : 1);
+    final priceStr =
+    p.sellingPrice.toStringAsFixed(p.sellingPrice % 1 == 0 ? 0 : 1);
 
     return GestureDetector(
       onTap:       widget.onTap,
-      onDoubleTap: _onDoubleTap,
+      onDoubleTap: () {
+        _ctrl.forward().then((_) => _ctrl.reverse());
+        widget.onDoubleTap();
+      },
       child: ScaleTransition(
         scale: _scale,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          margin:  const EdgeInsets.only(bottom: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          margin:   const EdgeInsets.only(bottom: 4),
+          padding:  const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            // ── ✅ UPDATED: Purple background on hover, no border ──
             color: widget.isHovered
-                ? accent.withOpacity(0.12)
+                ? accent.withOpacity(0.10)
                 : Colors.white,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: inStock
-                  ? AppColor.grey200
-                  : AppColor.error.withOpacity(0.25),
-              width: 1.0,
-            ),
           ),
           child: Row(children: [
+
+            SizedBox(
+              width: 22,
+              child: Text('${widget.index}',
+                  style: TextStyle(
+                      fontSize:   11,
+                      fontWeight: FontWeight.w600,
+                      color: widget.isHovered ? accent : AppColor.textHint)),
+            ),
+
             Expanded(
-              child: Text(
-                p.name,
-                style: TextStyle(
-                    fontSize:   12,
-                    fontWeight: FontWeight.w600,
-                    color: widget.isHovered
-                        ? accent
-                        : inStock
-                        ? AppColor.textPrimary
-                        : AppColor.textSecondary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              flex: 5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(p.name,
+                      style: TextStyle(
+                          fontSize:   13,
+                          fontWeight: FontWeight.w600,
+                          color: widget.isHovered
+                              ? accent
+                              : inStock
+                              ? AppColor.textPrimary
+                              : AppColor.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            // ── ✅ UPDATED: Quantity in bold black, no background, no icon ──
-            Text(qty,
-                style: const TextStyle(
-                    fontSize:   12,
-                    fontWeight: FontWeight.w900,
-                    color:      Colors.black87)),
+
+            SizedBox(
+              width: 50,
+              child: Text(stockStr,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize:   12,
+                      fontWeight: FontWeight.w600,
+                      color: widget.isHovered
+                          ? accent
+                          : inStock
+                          ? Colors.black87
+                          : AppColor.error)),
+            ),
+
+            const SizedBox(width: 4),
+
+            SizedBox(
+              width: 58,
+              child: Text(priceStr,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                      fontSize:   12,
+                      fontWeight: FontWeight.w700,
+                      color: widget.isHovered ? accent : Colors.black87)),
+            ),
           ]),
         ),
       ),
@@ -681,6 +772,7 @@ class _ProductCardState extends State<_ProductCard>
   }
 }
 
+// ── Empty state ───────────────────────────────────────────────────
 class _EmptyProducts extends StatelessWidget {
   const _EmptyProducts();
 

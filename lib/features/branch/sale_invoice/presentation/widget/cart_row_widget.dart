@@ -30,17 +30,14 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
   late TextEditingController _disCtrl;
   late TextEditingController _subCtrl;
 
-  // One FocusNode per column: 0=qty, 1=price, 2=tax, 3=discount, 4=subtotal
   final _fn = List.generate(5, (_) => FocusNode());
 
-  // Track which fields are focused — guards didUpdateWidget from overwriting
   bool _qtyFocused   = false;
   bool _priceFocused = false;
   bool _taxFocused   = false;
   bool _disFocused   = false;
   bool _subFocused   = false;
 
-  // Last nav state row+col so we don't re-focus on every build
   int _lastNavRow = -1;
   int _lastNavCol = -1;
 
@@ -62,7 +59,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
         case 3: setState(() { _disFocused   = hasFocus; }); break;
         case 4: setState(() { _subFocused   = hasFocus; }); break;
       }
-      if (hasFocus) {
+      if (hasFocus && ref.read(cartNavProvider).isActive) {
         ref.read(cartNavProvider.notifier).jumpTo(widget.rowIndex, col);
       }
     }
@@ -72,7 +69,6 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
       _fn[c].addListener(() => onFocus(c, _fn[c].hasFocus));
     }
   }
-
   @override
   void didUpdateWidget(CartItemRow old) {
     super.didUpdateWidget(old);

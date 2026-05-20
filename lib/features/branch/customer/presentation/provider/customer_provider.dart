@@ -14,7 +14,7 @@ class CustomerState {
   final List<CustomerModel> allCustomers;
   final String  searchQuery;
   final String  filterStatus; // all | active | inactive
-  final String  filterType;   // all | walkin | credit | wholesale
+  final String  filterType;   // all | walkin | credit | wholesale | petrol
   final bool    isLoading;
   final String? errorMessage;
 
@@ -30,16 +30,16 @@ class CustomerState {
   // ── Filtered List ─────────────────────────────────────────
   List<CustomerModel> get filteredCustomers {
     return allCustomers.where((c) {
-      if (c.deletedAt != null)                              return false;
-      if (filterStatus == 'active'   && !c.isActive)       return false;
-      if (filterStatus == 'inactive' &&  c.isActive)       return false;
+      if (c.deletedAt != null)                                   return false;
+      if (filterStatus == 'active'   && !c.isActive)            return false;
+      if (filterStatus == 'inactive' &&  c.isActive)            return false;
       if (filterType   != 'all' && c.customerType != filterType) return false;
 
       if (searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
         return c.name.toLowerCase().contains(q)  ||
-            c.phone.contains(q)               ||
-            c.code.toLowerCase().contains(q)  ||
+            c.phone.contains(q)                  ||
+            c.code.toLowerCase().contains(q)     ||
             (c.address?.toLowerCase().contains(q) ?? false);
       }
 
@@ -48,16 +48,51 @@ class CustomerState {
   }
 
   // ── Stats ─────────────────────────────────────────────────
-  int    get totalCount =>
-      allCustomers.where((c) => c.deletedAt == null).length;
+  int get totalCount => allCustomers.where((c) => c.deletedAt == null).length;
 
-  int    get activeCount =>
-      allCustomers.where((c) => c.isActive && c.deletedAt == null).length;
+  int get activeCount => allCustomers.where((c) => c.isActive && c.deletedAt == null).length;
 
-  double get totalOutstanding =>
-      allCustomers.fold(0, (sum, c) =>
-      sum + c.balance.clamp(0, double.infinity));
+  int get walkinCount => allCustomers.where((c) => c.isWalkin && c.deletedAt == null).length;
 
+  int get creditCount => allCustomers.where((c) => c.isCredit && c.deletedAt == null).length;
+
+  int get wholesaleCount => allCustomers.where((c) => c.isWholesale && c.deletedAt == null).length;
+
+  int get petrolCount => allCustomers.where((c) => c.isPetrol && c.deletedAt == null).length;
+
+  double get totalOutstanding => allCustomers.fold(0, (sum, c) => sum + c.balance.clamp(0, double.infinity));
+
+  double get petrolOutstanding => allCustomers.where((c) => c.isPetrol && c.deletedAt == null).fold(0, (sum, c) => sum + c.balance.clamp(0, double.infinity));
+
+  double get creditOutstanding => allCustomers.where((c) => c.isCredit && c.deletedAt == null).fold(0, (sum, c) => sum + c.balance.clamp(0, double.infinity));
+
+  double get wholesaleOutstanding => allCustomers.where((c) => c.isWholesale && c.deletedAt == null).fold(0, (sum, c) => sum + c.balance.clamp(0, double.infinity));
+
+  double get walkinOutstanding => allCustomers.where((c) => c.isWalkin && c.deletedAt == null).fold(0, (sum, c) => sum + c.balance.clamp(0, double.infinity));
+
+// ← Active filter ke hisaab se outstanding
+  double get selectedOutstanding {
+    switch (filterType) {
+      case 'petrol':    return petrolOutstanding;
+      case 'credit':    return creditOutstanding;
+      case 'wholesale': return wholesaleOutstanding;
+      case 'walkin':    return walkinOutstanding;
+      default:          return totalOutstanding;
+    }
+  }
+
+// ← Active filter ka label
+  String get outstandingLabel {
+    switch (filterType) {
+      case 'petrol':    return 'Petrol Outstanding';
+      case 'credit':    return 'Credit Outstanding';
+      case 'wholesale': return 'Wholesale Outstanding';
+      case 'walkin':    return 'Walk-in Outstanding';
+      default:          return 'Outstanding';
+    }
+  }
+
+  // ── CopyWith ──────────────────────────────────────────────
   CustomerState copyWith({
     List<CustomerModel>? allCustomers,
     String?              searchQuery,
@@ -87,6 +122,7 @@ class CustomerNotifier extends StateNotifier<CustomerState> {
   final UpdateCustomerUseCase  _update;
   final DeleteCustomerUseCase  _delete;
   final Ref _ref;
+
   String get _storeId => _ref.read(authProvider).storeId;
 
   CustomerNotifier(this._ref)
@@ -107,19 +143,21 @@ class CustomerNotifier extends StateNotifier<CustomerState> {
       state = state.copyWith(allCustomers: customers, isLoading: false);
     } catch (e) {
       state = state.copyWith(
-          isLoading: false, errorMessage: 'Load error: $e');
+        isLoading: false,
+        errorMessage: 'Load error: $e',
+      );
     }
   }
 
   // ── ADD ───────────────────────────────────────────────────
   Future<void> addCustomer({
-    required String name,
-    required String phone,
-    String? address,
-    required String customerType,
-    required double creditLimit,
-    required bool   isActive,
-    String?         notes,
+    required String  name,
+    required String  phone,
+    String?          address,
+    required String  customerType,
+    required double  creditLimit,
+    required bool    isActive,
+    String?          notes,
     required double? balance,
   }) async {
     state = state.copyWith(isLoading: true);
@@ -135,7 +173,7 @@ class CustomerNotifier extends StateNotifier<CustomerState> {
         address:      address,
         customerType: customerType,
         creditLimit:  creditLimit,
-        balance: balance ?? 0.0,
+        balance:      balance ?? 0.0,
         isActive:     isActive,
         notes:        notes,
         createdAt:    DateTime.now(),
@@ -148,7 +186,9 @@ class CustomerNotifier extends StateNotifier<CustomerState> {
       );
     } catch (e) {
       state = state.copyWith(
-          isLoading: false, errorMessage: 'Add error: $e');
+        isLoading: false,
+        errorMessage: 'Add error: $e',
+      );
     }
   }
 
@@ -163,7 +203,9 @@ class CustomerNotifier extends StateNotifier<CustomerState> {
       state = state.copyWith(allCustomers: list, isLoading: false);
     } catch (e) {
       state = state.copyWith(
-          isLoading: false, errorMessage: 'Update error: $e');
+        isLoading: false,
+        errorMessage: 'Update error: $e',
+      );
     }
   }
 
@@ -176,14 +218,16 @@ class CustomerNotifier extends StateNotifier<CustomerState> {
       state = state.copyWith(allCustomers: list, isLoading: false);
     } catch (e) {
       state = state.copyWith(
-          isLoading: false, errorMessage: 'Delete error: $e');
+        isLoading: false,
+        errorMessage: 'Delete error: $e',
+      );
     }
   }
 
   // ── FILTERS ───────────────────────────────────────────────
-  void onSearchChanged(String q)       => state = state.copyWith(searchQuery: q);
+  void onSearchChanged(String q)       => state = state.copyWith(searchQuery:  q);
   void onFilterStatusChanged(String f) => state = state.copyWith(filterStatus: f);
-  void onFilterTypeChanged(String t)   => state = state.copyWith(filterType: t);
+  void onFilterTypeChanged(String t)   => state = state.copyWith(filterType:   t);
   void clearError()                    => state = state.copyWith(errorMessage: null);
 }
 

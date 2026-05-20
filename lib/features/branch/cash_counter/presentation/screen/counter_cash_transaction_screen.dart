@@ -101,8 +101,7 @@ class _CounterCashTransactionScreenState
                   backgroundColor: AppColor.primary,
                   foregroundColor: Colors.white,
                   elevation:       0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 icon:  const Icon(Icons.swap_horiz_rounded, size: 18),
                 label: const Text('New Transaction',

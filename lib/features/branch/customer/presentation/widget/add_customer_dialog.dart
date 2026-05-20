@@ -270,9 +270,10 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                         value: 'credit',    child: Text('Credit')),
                     DropdownMenuItem(
                         value: 'wholesale', child: Text('Wholesale')),
+                    DropdownMenuItem(
+                        value: 'petrol',    child: Text('Petrol')),   // ← ADD
                   ],
-                  onChanged: (v) =>
-                      setState(() => _type = v ?? 'walkin'),
+                  onChanged: (v) => setState(() => _type = v ?? 'walkin'),
                 ),
 
                 const SizedBox(height: 12),

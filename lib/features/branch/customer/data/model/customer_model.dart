@@ -40,6 +40,7 @@ class CustomerModel {
   bool get isWalkin    => customerType == 'walkin';
   bool get isCredit    => customerType == 'credit';
   bool get isWholesale => customerType == 'wholesale';
+  bool get isPetrol    => customerType == 'petrol';
 
   double get availableCredit => creditLimit - balance;
 
@@ -62,6 +63,7 @@ class CustomerModel {
     switch (customerType) {
       case 'credit':    return 'Credit';
       case 'wholesale': return 'Wholesale';
+      case 'petrol':    return 'Petrol';
       default:          return 'Walk-in';
     }
   }

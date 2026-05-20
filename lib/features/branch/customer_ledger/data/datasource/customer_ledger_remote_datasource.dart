@@ -47,65 +47,96 @@ class CustomerLedgerRemoteDataSource {
   }
 
   // ── ADD ───────────────────────────────────────────────────
+  // Future<CustomerLedgerModel> add(CustomerLedgerModel ledger) async {
+  //   final conn = await DataBaseService.getConnection();
+  //
+  //   await conn.runTx((tx) async {
+  //     // 1. Ledger insert
+  //     await tx.execute(
+  //       Sql.named('''
+  //         INSERT INTO public.customer_ledger (
+  //           store_id, customer_id, customer_name,
+  //           counter_id, previous_amount, pay_amount,
+  //           new_amount, notes
+  //         )
+  //         VALUES (
+  //           @storeId, @customerId, @customerName,
+  //           @counterId, @previousAmount, @payAmount,
+  //           @newAmount, @notes
+  //         )
+  //       '''),
+  //       parameters: {
+  //         'storeId':        ledger.storeId,
+  //         'customerId':     ledger.customerId,
+  //         'customerName':   ledger.customerName,
+  //         'counterId':      ledger.counterId,    // ← new
+  //         'previousAmount': ledger.previousAmount,
+  //         'payAmount':      ledger.payAmount,
+  //         'newAmount':      ledger.newAmount,
+  //         'notes':          ledger.notes,
+  //       },
+  //     );
+  //
+  //     // 2. Customer balance update
+  //     await tx.execute(
+  //       Sql.named('''
+  //         UPDATE public.customer
+  //         SET balance    = @newAmount,
+  //             updated_at = NOW()
+  //         WHERE id = @customerId
+  //       '''),
+  //       parameters: {
+  //         'customerId': ledger.customerId,
+  //         'newAmount':  ledger.newAmount,
+  //       },
+  //     );
+  //   });
+  //
+  //   // Fresh record fetch
+  //   final result = await conn.execute(
+  //     Sql.named('''
+  //       SELECT
+  //         id, store_id, customer_id, customer_name,
+  //         counter_id, previous_amount, pay_amount,
+  //         new_amount, notes, created_at, updated_at, deleted_at
+  //       FROM public.customer_ledger
+  //       WHERE customer_id = @customerId
+  //         AND deleted_at  IS NULL
+  //       ORDER BY created_at DESC
+  //       LIMIT 1
+  //     '''),
+  //     parameters: {'customerId': ledger.customerId},
+  //   );
+  //
+  //   return CustomerLedgerModel.fromMap(_toMap(result.first));
+  // }
+
   Future<CustomerLedgerModel> add(CustomerLedgerModel ledger) async {
     final conn = await DataBaseService.getConnection();
 
-    await conn.runTx((tx) async {
-      // 1. Ledger insert
-      await tx.execute(
-        Sql.named('''
-          INSERT INTO public.customer_ledger (
-            store_id, customer_id, customer_name,
-            counter_id, previous_amount, pay_amount,
-            new_amount, notes
-          )
-          VALUES (
-            @storeId, @customerId, @customerName,
-            @counterId, @previousAmount, @payAmount,
-            @newAmount, @notes
-          )
-        '''),
-        parameters: {
-          'storeId':        ledger.storeId,
-          'customerId':     ledger.customerId,
-          'customerName':   ledger.customerName,
-          'counterId':      ledger.counterId,    // ← new
-          'previousAmount': ledger.previousAmount,
-          'payAmount':      ledger.payAmount,
-          'newAmount':      ledger.newAmount,
-          'notes':          ledger.notes,
-        },
-      );
-
-      // 2. Customer balance update
-      await tx.execute(
-        Sql.named('''
-          UPDATE public.customer
-          SET balance    = @newAmount,
-              updated_at = NOW()
-          WHERE id = @customerId
-        '''),
-        parameters: {
-          'customerId': ledger.customerId,
-          'newAmount':  ledger.newAmount,
-        },
-      );
-    });
-
-    // Fresh record fetch
     final result = await conn.execute(
       Sql.named('''
-        SELECT
-          id, store_id, customer_id, customer_name,
-          counter_id, previous_amount, pay_amount,
-          new_amount, notes, created_at, updated_at, deleted_at
-        FROM public.customer_ledger
-        WHERE customer_id = @customerId
-          AND deleted_at  IS NULL
-        ORDER BY created_at DESC
-        LIMIT 1
-      '''),
-      parameters: {'customerId': ledger.customerId},
+      INSERT INTO public.customer_ledger (
+        store_id, customer_id, customer_name,
+        counter_id, pay_amount, notes
+      )
+      VALUES (
+        @storeId, @customerId, @customerName,
+        @counterId, @payAmount, @notes
+      )
+      RETURNING
+        id, store_id, customer_id, customer_name,
+        counter_id, previous_amount, pay_amount,
+        new_amount, notes, created_at, updated_at, deleted_at
+    '''),
+      parameters: {
+        'storeId':      ledger.storeId,
+        'customerId':   ledger.customerId,
+        'customerName': ledger.customerName,
+        'counterId':    ledger.counterId,
+        'payAmount':    ledger.payAmount,
+        'notes':        ledger.notes,
+      },
     );
 
     return CustomerLedgerModel.fromMap(_toMap(result.first));

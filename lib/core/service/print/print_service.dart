@@ -1,8 +1,4 @@
-// lib/features/branch/sale_invoice/presentation/service/thermal_print_service.dart
-//
-// REQUIRED PACKAGES (pubspec.yaml):
-//   pdf: ^3.10.8
-//   printing: ^5.12.0
+// lib/core/service/print/print_service.dart
 
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
@@ -16,116 +12,183 @@ import '../../../features/branch/sale_invoice/data/model/sale_return_model.dart'
 class ThermalPrintService {
   static const double _paperWidth = 72 * PdfPageFormat.mm;
 
-  // ── Thermal Printer dhundo ─────────────────────────────────────────────────
   static Future<Printer> _getThermalPrinter() async {
     final printers = await Printing.listPrinters();
-
     for (final p in printers) {
-      debugPrint('🖨️ Printer found: ${p.name} | Default: ${p.isDefault}');
+      debugPrint('🖨️ Printer: ${p.name} | Default: ${p.isDefault}');
     }
-
-    // ✅ FORCE BlackCopper select
     return printers.firstWhere(
           (p) => p.name.toLowerCase().contains('blackcopper'),
       orElse: () => printers.first,
     );
   }
-  // ── Sale Invoice ───────────────────────────────────────────────────────────
-  static Future<void> printSaleInvoice({
-    required String storeName,
-    required String invoiceNo,
-    required DateTime date,
-    required String? customerName,
-    required List<CartItem> items,
-    required double totalAmount,
-    required double totalDiscount,
-    required double grandTotal,
-    required List<PaymentEntry> payments,
-  }) async {
-    final doc = pw.Document();
-    final dateFmt = DateFormat('dd-MM-yyyy  hh:mm a');
 
-    doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat(
-          _paperWidth,
-          double.infinity,
-          marginAll: 3 * PdfPageFormat.mm,
-        ),
-        build: (_) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-          children: [
-            pw.Center(
-              child: pw.Text(
-                storeName,
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-              ),
-            ),
-            pw.Center(
-              child: pw.Text(
-                'MalangAbad Road Jaga Stop',
-                style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.normal),
-              ),
-            ),
-            pw.Center(
-              child: pw.Text(
-                '03489729366',
-                style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.normal),
-              ),
-            ),
-            _divider(),
-            _kv('Invoice No', invoiceNo),
-            _kv('Date', dateFmt.format(date)),
-            _kv('Customer', (customerName != null && customerName.isNotEmpty) ? customerName : 'Walk In'),
-            _divider(),
-            _itemsHeader(),
-            _thinDivider(),
-            ...items.map(_invoiceRow),
-            _divider(),
-            _kv('Sub Total', 'Rs ${totalAmount.toStringAsFixed(0)}'),
-            if (totalDiscount > 0)
-              _kv('Discount', '-Rs ${totalDiscount.toStringAsFixed(0)}'),
-            pw.SizedBox(height: 4),
-            _kvBold('Grand Total', 'Rs ${grandTotal.toStringAsFixed(0)}'),
-            _divider(),
-            ...payments
-                .where((p) => p.amount > 0)
-                .map((p) => _kv(_label(p.method), 'Rs ${p.amount.toStringAsFixed(0)}')),
-            pw.SizedBox(height: 6),
-            pw.Center(
-              child: pw.Text(
-                '*** Thank you for your purchase! ***',
-                style: const pw.TextStyle(fontSize: 7),
-              ),
-            ),
-            pw.SizedBox(height: 10),
-            // ✅ QR Code section
-            // pw.Center(
-            //   child: pw.BarcodeWidget(
-            //     barcode: pw.Barcode.qrCode(),
-            //     data: 'https://asnesa.com/invoice/$invoiceNo', // apna search URL ya ID
-            //     width: 80,
-            //     height: 80,
-            //   ),
-            // ),
-          ],
-        ),
+  // ═══════════════════════════════════════════════════════════
+  // SALE INVOICE
+  // ═══════════════════════════════════════════════════════════
+  static Future<void> printSaleInvoice({
+    required String             storeName,
+    required String             invoiceNo,
+    required DateTime           date,
+    required String?            customerName,
+    required List<CartItem>     items,
+    required double             totalAmount,
+    required double             totalDiscount,
+    required double             grandTotal,
+    required List<PaymentEntry> payments,
+    required String             cashierName,
+    double?                     returnAmount,
+    double?                     previousBalance,
+    double?                     paidAmount,
+    double?                     currentBalance,
+  }) async {
+    final doc     = pw.Document();
+    final dateFmt = DateFormat('dd/MM/yyyy');
+    final timeFmt = DateFormat('hh:mm a');
+
+    final isCreditSale = payments.any(
+            (p) => p.method.toLowerCase() == 'credit' && p.amount > 0.01);
+
+    doc.addPage(pw.Page(
+      pageFormat: PdfPageFormat(
+        _paperWidth,
+        double.infinity,
+        marginTop:    3 * PdfPageFormat.mm,
+        marginBottom: 3 * PdfPageFormat.mm,
+        marginLeft:   3 * PdfPageFormat.mm,
+        marginRight:  3 * PdfPageFormat.mm,
       ),
-    );
+      build: (_) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+
+          // ── Store Header ─────────────────────────────────
+          pw.Center(child: pw.Text(storeName.toUpperCase(),
+              style: pw.TextStyle(
+                  fontSize: 13,
+                  fontWeight: pw.FontWeight.bold,
+                  letterSpacing: 2))),
+          pw.SizedBox(height: 2),
+          pw.Center(child: pw.Text('MalangAbad Road Jaga Stop',
+              style: const pw.TextStyle(fontSize: 7.5))),
+          pw.Center(child: pw.Text('03489729366',
+              style: const pw.TextStyle(fontSize: 7.5))),
+          pw.SizedBox(height: 3),
+          _dashedLine(),
+
+          // ── Invoice Info ─────────────────────────────────
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('CUSTOMER:',
+                  style: const pw.TextStyle(fontSize: 8)),
+              pw.SizedBox(width: 4),
+              pw.Expanded(
+                child: pw.Text(
+                  (customerName?.isNotEmpty == true)
+                      ? customerName!.toUpperCase()
+                      : 'WALK IN CUSTOMER',
+                  style: pw.TextStyle(
+                      fontSize: 8, fontWeight: pw.FontWeight.bold),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 1.5),
+          _infoRow('CASHIER:', cashierName.toUpperCase()),
+          _infoRow('DATE:',    dateFmt.format(date)),
+          _infoRow('TIME:',    timeFmt.format(date)),
+          _infoRow('INVOICE:', invoiceNo),
+          pw.SizedBox(height: 3),
+          _dashedLine(),
+
+          // ── Items Header ─────────────────────────────────
+          _itemsHeader(),
+          _thinDashedLine(),
+
+          // ── Items ────────────────────────────────────────
+          ...items.map(_itemRow),
+          pw.SizedBox(height: 2),
+          _dashedLine(),
+
+          // ── Totals ───────────────────────────────────────
+          _infoRow('SUB TOTAL:', _fmt(totalAmount)),
+          if (totalDiscount > 0)
+            _infoRow('DISCOUNT:', '-${_fmt(totalDiscount)}'),
+          pw.SizedBox(height: 1),
+          _infoRowBold('NET TOTAL:', _fmt(grandTotal)),
+          pw.SizedBox(height: 3),
+          _dashedLine(),
+
+          // ── Payment Split ────────────────────────────────
+          ...payments
+              .where((p) => p.amount > 0)
+              .map((p) => _infoRow(_payLabel(p.method), _fmt(p.amount))),
+
+          if (returnAmount != null && returnAmount > 0.01)
+            _infoRow('RETURN:', _fmt(returnAmount)),
+
+          // ── Balance Section ──────────────────────────────
+          if (customerName != null && customerName.isNotEmpty) ...[
+            pw.SizedBox(height: 3),
+            _dashedLine(),
+            if (previousBalance != null)
+              _infoRowColored(
+                  'PREV BAL:', _fmt(previousBalance), PdfColors.red800),
+            if (paidAmount != null && paidAmount > 0)
+              _infoRowColored(
+                  'PAID AMT:', _fmt(paidAmount), PdfColors.green800),
+            if (currentBalance != null)
+              _infoRowColoredBold(
+                  'DUE BAL:', _fmt(currentBalance), PdfColors.red800),
+          ],
+
+          pw.SizedBox(height: 3),
+          _dashedLine(),
+
+          // ── Credit Note ──────────────────────────────────
+          if (isCreditSale) ...[
+            pw.SizedBox(height: 3),
+            pw.Center(child: pw.Text('*** CREDIT / UDHAR SALE ***',
+                style: pw.TextStyle(
+                    fontSize: 8, fontWeight: pw.FontWeight.bold))),
+            pw.SizedBox(height: 2),
+          ],
+
+          // ── Footer ──────────────────────────────────────
+          pw.SizedBox(height: 2),
+          pw.Text('1) NO WARRANTY WITHOUT ORIGINAL INVOICE.',
+              style: const pw.TextStyle(fontSize: 6.5)),
+          pw.Text('2) DAMAGED OR BURNT ITEMS HAVE NO WARRANTY.',
+              style: const pw.TextStyle(fontSize: 6.5)),
+          pw.SizedBox(height: 5),
+          pw.Center(child: pw.Text('SOFTWARE BY',
+              style: pw.TextStyle(
+                  fontSize: 7, fontWeight: pw.FontWeight.bold))),
+          pw.Center(child: pw.Text('www.janghani.com',
+              style: const pw.TextStyle(fontSize: 7))),
+          pw.SizedBox(height: 8),
+        ],
+      ),
+    ));
 
     final printer = await _getThermalPrinter();
     try {
       await Printing.directPrintPdf(
-        printer: printer,
+        printer:  printer,
         onLayout: (_) async => doc.save(),
-        name: 'Invoice_$invoiceNo',
+        name:     'Invoice_$invoiceNo',
       );
-      debugPrint('✅ Print sent successfully');
+      debugPrint('✅ Print OK');
     } catch (e) {
       debugPrint('❌ Print failed: $e');
     }
   }
-  // ── Sale Return ────────────────────────────────────────────────────────────
+
+  // ═══════════════════════════════════════════════════════════
+  // SALE RETURN
+  // ═══════════════════════════════════════════════════════════
   static Future<void> printSaleReturn({
     required String               storeName,
     required String               returnNo,
@@ -137,213 +200,318 @@ class ThermalPrintService {
     required double               grandTotal,
     required List<PaymentEntry>   payments,
     required String               refundType,
+    double?                       previousBalance,
+    double?                       paidAmount,
+    double?                       currentBalance,
   }) async {
-    final doc = pw.Document();
-    final dateFmt = DateFormat('dd-MM-yyyy  hh:mm a');
+    final doc     = pw.Document();
+    final dateFmt = DateFormat('dd/MM/yyyy');
+    final timeFmt = DateFormat('hh:mm a');
 
     doc.addPage(pw.Page(
       pageFormat: PdfPageFormat(
-          _paperWidth, double.infinity, marginAll: 5 * PdfPageFormat.mm),
+        _paperWidth,
+        double.infinity,
+        marginTop:    3 * PdfPageFormat.mm,
+        marginBottom: 3 * PdfPageFormat.mm,
+        marginLeft:   3 * PdfPageFormat.mm,
+        marginRight:  3 * PdfPageFormat.mm,
+      ),
       build: (_) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Center(child: pw.Text(storeName,
-              style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold))),
+          pw.Center(child: pw.Text(storeName.toUpperCase(),
+              style: pw.TextStyle(
+                  fontSize: 13,
+                  fontWeight: pw.FontWeight.bold,
+                  letterSpacing: 2))),
           pw.SizedBox(height: 2),
-          pw.Center(
-            child: pw.Text(
-              'MalangAbad Road Jaga Stop',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.normal),
-            ),
+          pw.Center(child: pw.Text('MalangAbad Road Jaga Stop',
+              style: const pw.TextStyle(fontSize: 7.5))),
+          pw.Center(child: pw.Text('03489729366',
+              style: const pw.TextStyle(fontSize: 7.5))),
+          pw.SizedBox(height: 3),
+          _dashedLine(),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('CUSTOMER:', style: const pw.TextStyle(fontSize: 8)),
+              pw.SizedBox(width: 4),
+              pw.Expanded(
+                child: pw.Text(
+                  (customerName?.isNotEmpty == true)
+                      ? customerName!.toUpperCase()
+                      : 'WALK IN',
+                  style: pw.TextStyle(
+                      fontSize: 8, fontWeight: pw.FontWeight.bold),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+            ],
           ),
-          pw.Center(
-            child: pw.Text(
-              '03489729366',
-              style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.normal),
-            ),
-          ),
-          pw.SizedBox(height: 4),
-          _divider(),
-          _kv('Return No', returnNo),
-          _kv('Date', dateFmt.format(date)),
-          _kv('Customer',
-              (customerName != null && customerName.isNotEmpty)
-                  ? customerName
-                  : 'Walk In'),
-          _divider(),
+          pw.SizedBox(height: 1.5),
+          _infoRow('DATE:',      dateFmt.format(date)),
+          _infoRow('TIME:',      timeFmt.format(date)),
+          _infoRow('RETURN NO:', returnNo),
+          pw.SizedBox(height: 3),
+          _dashedLine(),
           _itemsHeader(),
-          _thinDivider(),
-          ...items.map(_returnRow),
-          _divider(),
-          _kv('Sub Total', 'Rs ${totalAmount.toStringAsFixed(0)}'),
+          _thinDashedLine(),
+          ...items.map(_returnItemRow),
+          pw.SizedBox(height: 2),
+          _dashedLine(),
+          _infoRow('SUB TOTAL:', _fmt(totalAmount)),
           if (totalDiscount > 0)
-            _kv('Discount', '-Rs ${totalDiscount.toStringAsFixed(0)}'),
-          pw.SizedBox(height: 4),
-          _kvBold('Refund Amount', 'Rs ${grandTotal.toStringAsFixed(0)}'),
-          pw.SizedBox(height: 4),
-          _divider(),
+            _infoRow('DISCOUNT:', '-${_fmt(totalDiscount)}'),
+          pw.SizedBox(height: 1),
+          _infoRowBold('REFUND AMT:', _fmt(grandTotal)),
+          pw.SizedBox(height: 3),
+          _dashedLine(),
           ...payments
               .where((p) => p.amount > 0)
-              .map((p) => _kv(_label(p.method),
-              'Rs ${p.amount.toStringAsFixed(0)}')),
-          pw.SizedBox(height: 8),
-          pw.Center(child: pw.Text('*** Return processed successfully ***',
+              .map((p) => _infoRow(_payLabel(p.method), _fmt(p.amount))),
+          if (customerName != null && customerName.isNotEmpty) ...[
+            pw.SizedBox(height: 3),
+            _dashedLine(),
+            if (previousBalance != null)
+              _infoRowColored(
+                  'PREV BAL:', _fmt(previousBalance), PdfColors.red800),
+            if (paidAmount != null && paidAmount > 0)
+              _infoRowColored(
+                  'PAID AMT:', _fmt(paidAmount), PdfColors.green800),
+            if (currentBalance != null)
+              _infoRowColoredBold(
+                  'DUE BAL:', _fmt(currentBalance), PdfColors.red800),
+          ],
+          pw.SizedBox(height: 3),
+          _dashedLine(),
+          pw.SizedBox(height: 2),
+          pw.Text('1) NO WARRANTY WITHOUT ORIGINAL INVOICE.',
+              style: const pw.TextStyle(fontSize: 6.5)),
+          pw.Text('2) DAMAGED OR BURNT ITEMS HAVE NO WARRANTY.',
+              style: const pw.TextStyle(fontSize: 6.5)),
+          pw.SizedBox(height: 5),
+          pw.Center(child: pw.Text('SOFTWARE BY',
+              style: pw.TextStyle(
+                  fontSize: 7, fontWeight: pw.FontWeight.bold))),
+          pw.Center(child: pw.Text('www.eposlive.com',
               style: const pw.TextStyle(fontSize: 7))),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 8),
         ],
       ),
     ));
 
-// ✅ Dialog nahi — seedha thermal printer pe print
     final printer = await _getThermalPrinter();
     await Printing.directPrintPdf(
-      printer: printer,
+      printer:  printer,
       onLayout: (_) async => doc.save(),
-      name: 'Return_$returnNo',
+      name:     'Return_$returnNo',
     );
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  static pw.Widget _divider() => pw.Padding(
+  // ═══════════════════════════════════════════════════════════
+  // WIDGETS
+  // ═══════════════════════════════════════════════════════════
+
+  // ✅ FIX: softWrap false + clip — dashes end tak aayenge
+  static pw.Widget _dashedLine() => pw.Padding(
     padding: const pw.EdgeInsets.symmetric(vertical: 3),
-    child: pw.Divider(thickness: 0.6, color: PdfColors.black),
+    child: pw.SizedBox(
+      width: double.infinity,
+      child: pw.Text(
+        '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -',
+        style: const pw.TextStyle(fontSize: 7),
+        softWrap: false,
+        overflow: pw.TextOverflow.clip,
+      ),
+    ),
   );
 
-  static pw.Widget _thinDivider() => pw.Padding(
+  static pw.Widget _thinDashedLine() => pw.Padding(
     padding: const pw.EdgeInsets.symmetric(vertical: 2),
-    child: pw.Divider(thickness: 0.3, color: PdfColors.grey600),
+    child: pw.SizedBox(
+      width: double.infinity,
+      child: pw.Text(
+        '  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -',
+        style: const pw.TextStyle(fontSize: 6),
+        softWrap: false,
+        overflow: pw.TextOverflow.clip,
+      ),
+    ),
   );
 
-  static pw.Widget _kv(String k, String v) => pw.Padding(
-    padding: const pw.EdgeInsets.only(bottom: 2),
+  static pw.Widget _infoRow(String label, String value,
+      {bool bold = false}) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 1.5),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label,
+                style: bold
+                    ? pw.TextStyle(
+                    fontSize: 8, fontWeight: pw.FontWeight.bold)
+                    : const pw.TextStyle(fontSize: 8)),
+            pw.Text(value,
+                style: bold
+                    ? pw.TextStyle(
+                    fontSize: 8, fontWeight: pw.FontWeight.bold)
+                    : const pw.TextStyle(fontSize: 8)),
+          ],
+        ),
+      );
+
+  static pw.Widget _infoRowBold(String label, String value) => pw.Padding(
+    padding: const pw.EdgeInsets.only(bottom: 1.5),
     child: pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
-        pw.Text(k, style: const pw.TextStyle(fontSize: 8)),
-        pw.Text(v, style: const pw.TextStyle(fontSize: 8)),
+        pw.Text(label,
+            style:
+            pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+        pw.Text(value,
+            style:
+            pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
       ],
     ),
   );
 
-  static pw.Widget _kvBold(String k, String v) => pw.Row(
-    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-    children: [
-      pw.Text(k,
-          style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-      pw.Text(v,
-          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-    ],
-  );
+  static pw.Widget _infoRowColored(
+      String label, String value, PdfColor color) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 1.5),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label, style: const pw.TextStyle(fontSize: 8)),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontSize: 8,
+                    color: color,
+                    fontWeight: pw.FontWeight.normal)),
+          ],
+        ),
+      );
 
+  static pw.Widget _infoRowColoredBold(
+      String label, String value, PdfColor color) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 1.5),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label,
+                style: pw.TextStyle(
+                    fontSize: 9, fontWeight: pw.FontWeight.bold)),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: color)),
+          ],
+        ),
+      );
+
+  // Items header — fixed SizedBox widths
   static pw.Widget _itemsHeader() => pw.Row(children: [
-    pw.Expanded(flex: 4,
-        child: pw.Text('Item',
-            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-    pw.Expanded(flex: 2,
-        child: pw.Text('Qty',
-            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+    pw.Expanded(flex: 5,
+        child: pw.Text('ITEM',
+            style: pw.TextStyle(
+                fontSize: 7.5, fontWeight: pw.FontWeight.bold))),
+    pw.SizedBox(width: 2),
+    pw.SizedBox(width: 22,
+        child: pw.Text('QTY',
+            style: pw.TextStyle(
+                fontSize: 7.5, fontWeight: pw.FontWeight.bold),
             textAlign: pw.TextAlign.center)),
-    pw.Expanded(flex: 2,
-        child: pw.Text('Price',
-            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+    pw.SizedBox(width: 28,
+        child: pw.Text('RATE',
+            style: pw.TextStyle(
+                fontSize: 7.5, fontWeight: pw.FontWeight.bold),
             textAlign: pw.TextAlign.center)),
-    pw.Expanded(flex: 2,
-        child: pw.Text('Dic',
-            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+    pw.SizedBox(width: 20,
+        child: pw.Text('DIS',
+            style: pw.TextStyle(
+                fontSize: 7.5, fontWeight: pw.FontWeight.bold),
             textAlign: pw.TextAlign.center)),
-    pw.Expanded(flex: 2,
-        child: pw.Text('Total',
-            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+    pw.SizedBox(width: 32,
+        child: pw.Text('AMT',
+            style: pw.TextStyle(
+                fontSize: 7.5, fontWeight: pw.FontWeight.bold),
             textAlign: pw.TextAlign.right)),
   ]);
 
-  static pw.Widget _invoiceRow(CartItem item) => pw.Padding(
+  static pw.Widget _itemRow(CartItem item) => pw.Padding(
     padding: const pw.EdgeInsets.only(bottom: 2),
     child: pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Expanded(
-          flex: 4,
-          child: pw.Text(
-            item.product.name,
-            style: const pw.TextStyle(fontSize: 8),
-            maxLines: 2,
-          ),
-        ),
-        pw.Expanded(
-          flex: 2,
-          child: pw.Text(
-            _qty(item.quantity),
-            style: const pw.TextStyle(fontSize: 8),
-            textAlign: pw.TextAlign.center,
-          ),
-        ),
-        pw.Expanded(
-          flex: 2,
-          child: pw.Text(
-            item.salePrice.toStringAsFixed(0),
-            style: const pw.TextStyle(fontSize: 8),
-            textAlign: pw.TextAlign.center,
-          ),
-        ),
-        pw.Expanded(
-          flex: 2,
-          child: pw.Text(
-            '${item.discountAmount.toStringAsFixed(0)}', // ✅ discount column
-            style: const pw.TextStyle(fontSize: 8),
-            textAlign: pw.TextAlign.center,
-          ),
-        ),
-        pw.Expanded(
-          flex: 2,
-          child: pw.Text(
-            (item.subTotal - item.discountAmount).toStringAsFixed(1), // ✅ net total after discount
-            style: const pw.TextStyle(fontSize: 8),
-            textAlign: pw.TextAlign.right,
-          ),
-        ),
+        pw.Expanded(flex: 5,
+            child: pw.Text(item.product.name,
+                style: const pw.TextStyle(fontSize: 7.5), maxLines: 2)),
+        pw.SizedBox(width: 2),
+        pw.SizedBox(width: 22,
+            child: pw.Text(_qty(item.quantity),
+                style: const pw.TextStyle(fontSize: 7.5),
+                textAlign: pw.TextAlign.center)),
+        pw.SizedBox(width: 28,
+            child: pw.Text(item.salePrice.toStringAsFixed(0),
+                style: const pw.TextStyle(fontSize: 7.5),
+                textAlign: pw.TextAlign.center)),
+        pw.SizedBox(width: 20,
+            child: pw.Text(item.discountAmount.toStringAsFixed(0),
+                style: const pw.TextStyle(fontSize: 7.5),
+                textAlign: pw.TextAlign.center)),
+        pw.SizedBox(width: 32,
+            child: pw.Text(
+                (item.subTotal - item.discountAmount).toStringAsFixed(0),
+                style: const pw.TextStyle(fontSize: 7.5),
+                textAlign: pw.TextAlign.right)),
       ],
     ),
   );
 
-  static pw.Widget _returnRow(ReturnCartItem item) => pw.Padding(
-    padding: const pw.EdgeInsets.only(bottom: 3),
-    child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.stretch, children: [
-      pw.Row(children: [
-        pw.Expanded(flex: 4,
+  static pw.Widget _returnItemRow(ReturnCartItem item) => pw.Padding(
+    padding: const pw.EdgeInsets.only(bottom: 2),
+    child: pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Expanded(flex: 5,
             child: pw.Text(item.product.name,
-                style: const pw.TextStyle(fontSize: 8), maxLines: 2)),
-        pw.Expanded(flex: 2,
+                style: const pw.TextStyle(fontSize: 7.5), maxLines: 2)),
+        pw.SizedBox(width: 2),
+        pw.SizedBox(width: 22,
             child: pw.Text(_qty(item.quantity),
-                style: const pw.TextStyle(fontSize: 8),
+                style: const pw.TextStyle(fontSize: 7.5),
                 textAlign: pw.TextAlign.center)),
-        pw.Expanded(flex: 2,
+        pw.SizedBox(width: 28,
             child: pw.Text(item.returnPrice.toStringAsFixed(0),
-                style: const pw.TextStyle(fontSize: 8),
+                style: const pw.TextStyle(fontSize: 7.5),
                 textAlign: pw.TextAlign.center)),
-        pw.Expanded(flex: 2,
+        pw.SizedBox(width: 20,
             child: pw.Text(item.discountAmount.toStringAsFixed(0),
-                style: const pw.TextStyle(fontSize: 8),
-                textAlign: pw.TextAlign.right)),
-        pw.Expanded(flex: 2,
+                style: const pw.TextStyle(fontSize: 7.5),
+                textAlign: pw.TextAlign.center)),
+        pw.SizedBox(width: 32,
             child: pw.Text(item.subTotal.toStringAsFixed(0),
-                style: const pw.TextStyle(fontSize: 8),
+                style: const pw.TextStyle(fontSize: 7.5),
                 textAlign: pw.TextAlign.right)),
-      ]),
-      if (item.discountAmount > 0)
-        pw.Text('  Dis: -Rs ${item.discountAmount.toStringAsFixed(0)}',
-            style: const pw.TextStyle(fontSize: 7)),
-    ]),
+      ],
+    ),
   );
 
   static String _qty(double q) =>
       q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
 
-  static String _label(String m) {
-    switch (m) {
-      case 'cash':   return 'Cash';
-      case 'card':   return 'Card';
-      case 'credit': return 'Credit / Udhar';
-      default:       return m;
+  static String _fmt(double v) =>
+      v % 1 == 0 ? '${v.toInt()}.00' : v.toStringAsFixed(2);
+
+  static String _payLabel(String m) {
+    switch (m.toLowerCase()) {
+      case 'cash':   return 'CASH:';
+      case 'card':   return 'CARD:';
+      case 'credit': return 'CREDIT:';
+      default:       return '${m.toUpperCase()}:';
     }
   }
 }

@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
+import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/provider/sale_invoice_list_provider.dart';
+import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
+import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 
 class SaleInvoiceListScreen extends ConsumerStatefulWidget {
   const SaleInvoiceListScreen({super.key});
@@ -45,7 +48,6 @@ class _SaleInvoiceListScreenState
     super.dispose();
   }
 
-  // ── Pick single date ──────────────────────────────────────
   Future<DateTime?> _pickDate(BuildContext context, DateTime initial) async {
     return showDatePicker(
       context:     context,
@@ -69,8 +71,7 @@ class _SaleInvoiceListScreenState
     final picked = await _pickDate(context, state.fromDate);
     if (picked != null) {
       _startDateCtrl.text = _inputFmt.format(picked);
-      ref
-          .read(saleInvoiceListProvider.notifier)
+      ref.read(saleInvoiceListProvider.notifier)
           .setDateRange(picked, state.toDate);
     }
   }
@@ -80,13 +81,11 @@ class _SaleInvoiceListScreenState
     final picked = await _pickDate(context, state.toDate);
     if (picked != null) {
       _endDateCtrl.text = _inputFmt.format(picked);
-      ref
-          .read(saleInvoiceListProvider.notifier)
+      ref.read(saleInvoiceListProvider.notifier)
           .setDateRange(state.fromDate, picked);
     }
   }
 
-  // ── Date TextField ────────────────────────────────────────
   Widget _dateField({
     required String                label,
     required TextEditingController ctrl,
@@ -129,8 +128,44 @@ class _SaleInvoiceListScreenState
 
   @override
   Widget build(BuildContext context) {
-    final state    = ref.watch(saleInvoiceListProvider);
-    final invoices = state.filteredInvoices;
+    final state     = ref.watch(saleInvoiceListProvider);
+    final auth      = ref.watch(authProvider);
+    final invoices  = state.filteredInvoices;
+    final customers = ref.watch(customerProvider).allCustomers
+        .where((c) => c.deletedAt == null && c.isActive)
+        .toList();
+
+    // ── Customer dropdown items ────────────────────────────
+    final customerItems = <DropdownItem<String?>>[
+      const DropdownItem<String?>(
+        value: null,
+        label: 'All Customers',
+        icon:  Icons.people_outline_rounded,
+      ),
+      ...customers.map(
+            (c) => DropdownItem<String?>(
+          value: c.id,
+          label: c.name,
+          icon:  Icons.person_outline_rounded,
+        ),
+      ),
+    ];
+
+    // ── Cashier dropdown items ─────────────────────────────
+    final cashierItems = <DropdownItem<String?>>[
+      const DropdownItem<String?>(
+        value: null,
+        label: 'All Cashiers',
+        icon:  Icons.people_outline_rounded,
+      ),
+      ...state.cashiers.map(
+            (c) => DropdownItem<String?>(
+          value: c.id,
+          label: c.fullName,
+          icon:  Icons.person_outline_rounded,
+        ),
+      ),
+    ];
 
     ref.listen<SaleInvoiceListState>(saleInvoiceListProvider, (_, next) {
       if (next.errorMessage != null) {
@@ -148,7 +183,6 @@ class _SaleInvoiceListScreenState
           ),
         ));
       }
-      // Today button ke baad date fields sync
       _startDateCtrl.text = _inputFmt.format(next.fromDate);
       _endDateCtrl.text   = _inputFmt.format(next.toDate);
     });
@@ -181,47 +215,47 @@ class _SaleInvoiceListScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Stat Cards ─────────────────────────────
-            // NOTE: SummaryCard ke andar pehle se Expanded
-            // hai — bahar koi Expanded/Flexible wrap NAHI
-            Row(
-              children: [
-                SummaryCard(
-                  title: 'Total Invoices',
-                  value: '${state.totalCount}',
-                  icon:  Icons.receipt_long_outlined,
-                  color: AppColor.primary,
-                ),
-                const SizedBox(width: 12),
-                SummaryCard(
-                  title: 'Grand Total',
-                  value:
-                  'Rs ${state.totalGrand.toStringAsFixed(0)}',
-                  icon:  Icons.payments_outlined,
-                  color: AppColor.success,
-                ),
-                const SizedBox(width: 12),
-                SummaryCard(
-                  title: 'Total Discount',
-                  value:
-                  'Rs ${state.totalDiscount.toStringAsFixed(0)}',
-                  icon:  Icons.discount_outlined,
-                  color: AppColor.warning,
-                ),
-              ],
-            ),
+            // ── Stat Cards ─────────────────────────────────
+            if (state.isCustomerSelected) ...[
+              _CustomerStatsBanner(state: state),
+            ] else ...[
+              Row(
+                children: [
+                  SummaryCard(
+                    title: 'Total Invoices',
+                    value: '${state.totalCount}',
+                    icon:  Icons.receipt_long_outlined,
+                    color: AppColor.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  SummaryCard(
+                    title: 'Grand Total',
+                    value: 'Rs ${state.totalGrand.toStringAsFixed(0)}',
+                    icon:  Icons.payments_outlined,
+                    color: AppColor.success,
+                  ),
+                  const SizedBox(width: 12),
+                  SummaryCard(
+                    title: 'Total Discount',
+                    value: 'Rs ${state.totalDiscount.toStringAsFixed(0)}',
+                    icon:  Icons.discount_outlined,
+                    color: AppColor.warning,
+                  ),
+                ],
+              ),
+            ],
 
             const SizedBox(height: 16),
 
-            // ── Filters ────────────────────────────────
+            // ── Filters ────────────────────────────────────
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
 
-                  // Search
+                  // ── Search ────────────────────────────────
                   SizedBox(
-                    width: 250,
+                    width: 220,
                     child: TextField(
                       controller: _searchCtrl,
                       onChanged:  ref
@@ -232,8 +266,7 @@ class _SaleInvoiceListScreenState
                       decoration: InputDecoration(
                         hintText: 'Search invoice, customer...',
                         hintStyle: const TextStyle(
-                            color:    AppColor.textHint,
-                            fontSize: 12),
+                            color: AppColor.textHint, fontSize: 12),
                         prefixIcon: const Icon(Icons.search,
                             size: 18, color: AppColor.grey400),
                         suffixIcon: _searchCtrl.text.isNotEmpty
@@ -244,8 +277,7 @@ class _SaleInvoiceListScreenState
                           onPressed: () {
                             _searchCtrl.clear();
                             ref
-                                .read(saleInvoiceListProvider
-                                .notifier)
+                                .read(saleInvoiceListProvider.notifier)
                                 .onSearchChanged('');
                           },
                         )
@@ -263,14 +295,63 @@ class _SaleInvoiceListScreenState
                   ),
                   const SizedBox(width: 12),
 
-                  // Today
+                  // ── Customer Searchable Dropdown ───────────
+                  AppSearchableDropdown<String?>(
+                    hint:         'All Customers',
+                    prefixIcon:   Icons.person_search_outlined,
+                    desktopWidth: 200,
+                    value:        state.selectedCustomerId,
+                    items:        customerItems,
+                    onChanged: (id) {
+                      final customer = id != null
+                          ? customers
+                          .where((c) => c.id == id)
+                          .firstOrNull
+                          : null;
+                      ref
+                          .read(saleInvoiceListProvider.notifier)
+                          .selectCustomer(id, customer?.name);
+                    },
+                  ),
+                  const SizedBox(width: 12),
+
+                  // ── Manager: Cashier Searchable Dropdown ───
+                  if (auth.isManager) ...[
+                    state.isCashiersLoading
+                        ? const SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2),
+                        ),
+                      ),
+                    )
+                        : AppSearchableDropdown<String?>(
+                      hint:         'All Cashiers',
+                      prefixIcon:   Icons.badge_outlined,
+                      desktopWidth: 200,
+                      value:        state.selectedCashierId,
+                      items:        cashierItems,
+                      onChanged: (id) => ref
+                          .read(saleInvoiceListProvider.notifier)
+                          .selectCashier(id),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+
+                  // ── Today Button ───────────────────────────
                   IntrinsicWidth(
                     child: OutlinedButton.icon(
                       onPressed: () => ref
                           .read(saleInvoiceListProvider.notifier)
                           .setToday(),
                       icon:  const Icon(Icons.today_rounded, size: 16),
-                      label: const Text('Today', style: TextStyle(fontSize: 12)),
+                      label: const Text('Today',
+                          style: TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColor.primary,
                         side: const BorderSide(color: AppColor.primary),
@@ -283,7 +364,7 @@ class _SaleInvoiceListScreenState
                   ),
                   const SizedBox(width: 12),
 
-                  // Start Date
+                  // ── Start Date ─────────────────────────────
                   _dateField(
                     label: 'Start Date',
                     ctrl:  _startDateCtrl,
@@ -296,7 +377,7 @@ class _SaleInvoiceListScreenState
                           fontWeight: FontWeight.w600)),
                   const SizedBox(width: 8),
 
-                  // End Date
+                  // ── End Date ───────────────────────────────
                   _dateField(
                     label: 'End Date',
                     ctrl:  _endDateCtrl,
@@ -308,26 +389,104 @@ class _SaleInvoiceListScreenState
 
             const SizedBox(height: 16),
 
-            // ── Invoice List ───────────────────────────
+            // ── Invoice List ───────────────────────────────
             Expanded(
               child: invoices.isEmpty
                   ? _EmptyState(
-                  isSearching: state.searchQuery.isNotEmpty)
+                  isSearching: state.searchQuery.isNotEmpty ||
+                      state.isCustomerSelected)
                   : ListView.separated(
-                itemCount: invoices.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 12),
-                itemBuilder: (context, index) =>
-                    _InvoiceCard(
-                      inv:     invoices[index],
-                      dateFmt: _dateFmt,
-                      timeFmt: _timeFmt,
-                    ),
+                itemCount:        invoices.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) => _InvoiceCard(
+                  inv:       invoices[index],
+                  dateFmt:   _dateFmt,
+                  timeFmt:   _timeFmt,
+                  isManager: auth.isManager,
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Customer Stats Banner
+// ══════════════════════════════════════════════════════════════
+class _CustomerStatsBanner extends StatelessWidget {
+  final SaleInvoiceListState state;
+  const _CustomerStatsBanner({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color:        AppColor.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border:       Border.all(
+                color: AppColor.primary.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.person_pin_outlined,
+                  size: 16, color: AppColor.primary),
+              const SizedBox(width: 8),
+              Text(
+                state.selectedCustomerName ?? 'Selected Customer',
+                style: const TextStyle(
+                    fontSize:   13,
+                    fontWeight: FontWeight.w700,
+                    color:      AppColor.primary),
+              ),
+              const Spacer(),
+              Text(
+                '${state.customerInvoiceCount} invoices',
+                style: const TextStyle(
+                    fontSize: 12, color: AppColor.textSecondary),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            SummaryCard(
+              title: 'Total Sale',
+              value: 'Rs ${state.customerTotalSale.toStringAsFixed(0)}',
+              icon:  Icons.payments_outlined,
+              color: AppColor.primary,
+            ),
+            const SizedBox(width: 12),
+            SummaryCard(
+              title: 'Cash Sale',
+              value: 'Rs ${state.customerCashSale.toStringAsFixed(0)}',
+              icon:  Icons.money_outlined,
+              color: AppColor.success,
+            ),
+            const SizedBox(width: 12),
+            SummaryCard(
+              title: 'Credit Sale',
+              value: 'Rs ${state.customerCreditSale.toStringAsFixed(0)}',
+              icon:  Icons.credit_card_outlined,
+              color: AppColor.warning,
+            ),
+            const SizedBox(width: 12),
+            SummaryCard(
+              title: 'Discount',
+              value: 'Rs ${state.customerTotalDiscount.toStringAsFixed(0)}',
+              icon:  Icons.discount_outlined,
+              color: AppColor.error,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -339,17 +498,19 @@ class _InvoiceCard extends StatelessWidget {
   final dynamic    inv;
   final DateFormat dateFmt;
   final DateFormat timeFmt;
+  final bool       isManager;
 
   const _InvoiceCard({
     required this.inv,
     required this.dateFmt,
     required this.timeFmt,
+    required this.isManager,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double subtotal =
-    inv.items.fold(0.0, (s, i) => s + (i.totalAmount as double? ?? 0.0));
+    final double subtotal = inv.items
+        .fold(0.0, (s, i) => s + (i.totalAmount as double? ?? 0.0));
 
     return Container(
       decoration: BoxDecoration(
@@ -365,11 +526,9 @@ class _InvoiceCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-
           // ── Header ────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppColor.primary.withValues(alpha: 0.04),
               borderRadius: const BorderRadius.vertical(
@@ -384,31 +543,21 @@ class _InvoiceCard extends StatelessWidget {
                 const Icon(Icons.receipt_long_outlined,
                     size: 15, color: AppColor.primary),
                 const SizedBox(width: 6),
-                Text(
-                  inv.invoiceNo as String,
-                  style: const TextStyle(
-                      fontSize:      13,
-                      fontWeight:    FontWeight.w800,
-                      color:         AppColor.primary,
-                      letterSpacing: 0.3),
-                ),
+                Text(inv.invoiceNo as String,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w800,
+                        color: AppColor.primary, letterSpacing: 0.3)),
                 const Spacer(),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      dateFmt.format(inv.invoiceDate as DateTime),
-                      style: const TextStyle(
-                          fontSize:   12,
-                          fontWeight: FontWeight.w700,
-                          color:      AppColor.textPrimary),
-                    ),
-                    Text(
-                      timeFmt.format(inv.invoiceDate as DateTime),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color:    AppColor.textSecondary),
-                    ),
+                    Text(dateFmt.format(inv.invoiceDate as DateTime),
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w700,
+                            color: AppColor.textPrimary)),
+                    Text(timeFmt.format(inv.invoiceDate as DateTime),
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColor.textSecondary)),
                   ],
                 ),
               ],
@@ -427,8 +576,7 @@ class _InvoiceCard extends StatelessWidget {
                 Text(
                   (inv.customerName as String?) ?? 'Walk In',
                   style: TextStyle(
-                      fontSize:   12,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12, fontWeight: FontWeight.w600,
                       color: inv.customerName != null
                           ? AppColor.textPrimary
                           : AppColor.textSecondary),
@@ -439,11 +587,10 @@ class _InvoiceCard extends StatelessWidget {
             ),
           ),
 
-          // ── Counter ───────────────────────────────────────
           if (inv.counterName != null)
             Padding(
               padding: const EdgeInsets.only(
-                  left: 16, right: 16, bottom: 10),
+                  left: 16, right: 16, bottom: 8),
               child: Row(
                 children: [
                   const Icon(Icons.point_of_sale_outlined,
@@ -451,9 +598,25 @@ class _InvoiceCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   const Text('Counter: ',
                       style: TextStyle(
-                          fontSize: 12,
-                          color:    AppColor.textSecondary)),
+                          fontSize: 12, color: AppColor.textSecondary)),
                   _CounterChip(name: inv.counterName as String),
+                ],
+              ),
+            ),
+
+          if (isManager && inv.cashierName != null)
+            Padding(
+              padding: const EdgeInsets.only(
+                  left: 16, right: 16, bottom: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.badge_outlined,
+                      size: 13, color: AppColor.textSecondary),
+                  const SizedBox(width: 6),
+                  const Text('Cashier: ',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColor.textSecondary)),
+                  _CashierChip(name: inv.cashierName as String),
                 ],
               ),
             ),
@@ -465,62 +628,58 @@ class _InvoiceCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-
-                // Header Row
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
-                    color:        AppColor.grey100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      color: AppColor.grey100,
+                      borderRadius: BorderRadius.circular(8)),
                   child: const Row(
                     children: [
                       Expanded(
                           flex: 4,
                           child: Text('Product',
                               style: TextStyle(
-                                  fontSize:   11,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color: AppColor.textSecondary))),
                       Expanded(
                           flex: 2,
                           child: Text('Price',
                               textAlign: TextAlign.right,
                               style: TextStyle(
-                                  fontSize:   11,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color: AppColor.textSecondary))),
                       Expanded(
                           flex: 1,
                           child: Text('Qty',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize:   11,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color: AppColor.textSecondary))),
                       Expanded(
                           flex: 2,
                           child: Text('Discount',
                               textAlign: TextAlign.right,
                               style: TextStyle(
-                                  fontSize:   11,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color: AppColor.textSecondary))),
                       Expanded(
                           flex: 2,
                           child: Text('Sub Total',
                               textAlign: TextAlign.right,
                               style: TextStyle(
-                                  fontSize:   11,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color: AppColor.textSecondary))),
                     ],
                   ),
                 ),
                 const SizedBox(height: 4),
 
-                // Item Rows
                 ...inv.items.asMap().entries.map<Widget>((entry) {
                   final idx  = entry.key as int;
                   final item = entry.value;
@@ -535,14 +694,12 @@ class _InvoiceCard extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        // Product name
                         Expanded(
                           flex: 4,
                           child: Row(
                             children: [
                               Container(
-                                width:  5,
-                                height: 5,
+                                width: 5, height: 5,
                                 decoration: BoxDecoration(
                                   color: AppColor.primary
                                       .withValues(alpha: 0.5),
@@ -552,81 +709,62 @@ class _InvoiceCard extends StatelessWidget {
                               const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
-                                  item.productName as String,
-                                  style: const TextStyle(
-                                      fontSize:   12,
-                                      fontWeight: FontWeight.w500,
-                                      color:      AppColor.textPrimary),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                    item.productName as String,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColor.textPrimary),
+                                    overflow: TextOverflow.ellipsis),
                               ),
                             ],
                           ),
                         ),
-                        // Price
                         Expanded(
-                          flex: 2,
-                          child: Text(
-                            item.priceLabel as String,
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color:    AppColor.textPrimary),
-                          ),
-                        ),
-                        // Qty
+                            flex: 2,
+                            child: Text(item.priceLabel as String,
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColor.textPrimary))),
                         Expanded(
-                          flex: 1,
-                          child: Text(
-                            item.qtyLabel as String,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                fontSize:   11,
-                                fontWeight: FontWeight.w600,
-                                color:      AppColor.textPrimary),
-                          ),
-                        ),
-                        // Discount
+                            flex: 1,
+                            child: Text(item.qtyLabel as String,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColor.textPrimary))),
                         Expanded(
-                          flex: 2,
-                          child: Text(
-                            'Rs ${(item.discount as double).toStringAsFixed(0)}',
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color:    AppColor.warning),
-                          ),
-                        ),
-                        // Sub Total
+                            flex: 2,
+                            child: Text(
+                                'Rs ${(item.discount as double).toStringAsFixed(0)}',
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColor.warning))),
                         Expanded(
-                          flex: 2,
-                          child: Text(
-                            item.totalLabel as String,
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(
-                                fontSize:   11,
-                                fontWeight: FontWeight.w700,
-                                color:      AppColor.primary),
-                          ),
-                        ),
+                            flex: 2,
+                            child: Text(item.totalLabel as String,
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColor.primary))),
                       ],
                     ),
                   );
                 }),
 
-                // ── Totals ────────────────────────────────────
                 const SizedBox(height: 10),
                 const Divider(height: 1, color: Color(0xFFEEEEEE)),
                 const SizedBox(height: 10),
 
-                // Sub Total row
                 _TotalRow(
-                  label: 'Sub Total',
-                  value: 'Rs ${subtotal.toStringAsFixed(0)}',
+                  label:      'Sub Total',
+                  value:      'Rs ${subtotal.toStringAsFixed(0)}',
                   valueColor: AppColor.textPrimary,
                 ),
 
-                // Discount row (0 ho to hide)
                 if ((inv.totalDiscount as double) > 0) ...[
                   const SizedBox(height: 4),
                   _TotalRow(
@@ -638,7 +776,6 @@ class _InvoiceCard extends StatelessWidget {
 
                 const SizedBox(height: 10),
 
-                // Grand Total + Status
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
@@ -656,17 +793,15 @@ class _InvoiceCard extends StatelessWidget {
                         children: [
                           const Text('Total Amount:',
                               style: TextStyle(
-                                  fontSize:   12,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color:      AppColor.textSecondary)),
+                                  color: AppColor.textSecondary)),
                           const SizedBox(width: 10),
-                          Text(
-                            inv.grandTotalLabel as String,
-                            style: const TextStyle(
-                                fontSize:   15,
-                                fontWeight: FontWeight.w800,
-                                color:      AppColor.success),
-                          ),
+                          Text(inv.grandTotalLabel as String,
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColor.success)),
                         ],
                       ),
                     ],
@@ -681,16 +816,18 @@ class _InvoiceCard extends StatelessWidget {
   }
 }
 
-// ── Total Row helper ──────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// Helper Widgets
+// ══════════════════════════════════════════════════════════════
+
 class _TotalRow extends StatelessWidget {
   final String label;
   final String value;
   final Color  valueColor;
-  const _TotalRow({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-  });
+  const _TotalRow(
+      {required this.label,
+        required this.value,
+        required this.valueColor});
 
   @override
   Widget build(BuildContext context) => Row(
@@ -702,20 +839,17 @@ class _TotalRow extends StatelessWidget {
       const SizedBox(width: 12),
       SizedBox(
         width: 110,
-        child: Text(
-          value,
-          textAlign: TextAlign.right,
-          style: TextStyle(
-              fontSize:   12,
-              fontWeight: FontWeight.w600,
-              color:      valueColor),
-        ),
+        child: Text(value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+                fontSize:   12,
+                fontWeight: FontWeight.w600,
+                color:      valueColor)),
       ),
     ],
   );
 }
 
-// ── Counter Chip ──────────────────────────────────────────────
 class _CounterChip extends StatelessWidget {
   final String name;
   const _CounterChip({required this.name});
@@ -743,14 +877,59 @@ class _CounterChip extends StatelessWidget {
   );
 }
 
-// ── Payment Badge ─────────────────────────────────────────────
+class _CashierChip extends StatelessWidget {
+  final String name;
+  const _CashierChip({required this.name});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: AppColor.info.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.badge_outlined, size: 11, color: AppColor.info),
+        const SizedBox(width: 4),
+        Text(name,
+            style: const TextStyle(
+                fontSize:   11,
+                fontWeight: FontWeight.w600,
+                color:      AppColor.info)),
+      ],
+    ),
+  );
+}
+
 class _PaymentBadge extends StatelessWidget {
   final String type;
   const _PaymentBadge({required this.type});
 
-  Color    get _color  => const {'cash': AppColor.success, 'card': AppColor.info, 'credit': AppColor.warning}[type] ?? AppColor.grey400;
-  IconData get _icon   => const {'cash': Icons.payments_outlined, 'card': Icons.credit_card_outlined, 'credit': Icons.person_outline_rounded}[type] ?? Icons.help_outline;
-  String   get _label  => const {'cash': 'Cash', 'card': 'Card', 'credit': 'Credit'}[type] ?? type;
+  Color get _color =>
+      const {
+        'cash':   AppColor.success,
+        'card':   AppColor.info,
+        'credit': AppColor.warning,
+      }[type] ??
+          AppColor.grey400;
+
+  IconData get _icon =>
+      const {
+        'cash':   Icons.payments_outlined,
+        'card':   Icons.credit_card_outlined,
+        'credit': Icons.person_outline_rounded,
+      }[type] ??
+          Icons.help_outline;
+
+  String get _label =>
+      const {
+        'cash':   'Cash',
+        'card':   'Card',
+        'credit': 'Credit',
+      }[type] ??
+          type;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -775,14 +954,33 @@ class _PaymentBadge extends StatelessWidget {
   );
 }
 
-// ── Status Badge ──────────────────────────────────────────────
 class _StatusBadge extends StatelessWidget {
   final String status;
   const _StatusBadge({required this.status});
 
-  Color    get _color => const {'completed': AppColor.success, 'cancelled': AppColor.error, 'returned': AppColor.warning}[status] ?? AppColor.grey400;
-  IconData get _icon  => const {'completed': Icons.check_circle_outline_rounded, 'cancelled': Icons.cancel_outlined, 'returned': Icons.assignment_return_outlined}[status] ?? Icons.help_outline;
-  String   get _label => const {'completed': 'Completed', 'cancelled': 'Cancelled', 'returned': 'Returned'}[status] ?? status;
+  Color get _color =>
+      const {
+        'completed': AppColor.success,
+        'cancelled': AppColor.error,
+        'returned':  AppColor.warning,
+      }[status] ??
+          AppColor.grey400;
+
+  IconData get _icon =>
+      const {
+        'completed': Icons.check_circle_outline_rounded,
+        'cancelled': Icons.cancel_outlined,
+        'returned':  Icons.assignment_return_outlined,
+      }[status] ??
+          Icons.help_outline;
+
+  String get _label =>
+      const {
+        'completed': 'Completed',
+        'cancelled': 'Cancelled',
+        'returned':  'Returned',
+      }[status] ??
+          status;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -806,7 +1004,6 @@ class _StatusBadge extends StatelessWidget {
   );
 }
 
-// ── Empty State ───────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   final bool isSearching;
   const _EmptyState({this.isSearching = false});
@@ -825,9 +1022,7 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          isSearching
-              ? 'Koi invoice nahi mila'
-              : 'Koi invoice nahi',
+          isSearching ? 'Koi invoice nahi mila' : 'Koi invoice nahi',
           style: const TextStyle(
               fontSize:   16,
               fontWeight: FontWeight.w600,
@@ -836,10 +1031,9 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           isSearching
-              ? 'Search query change karein'
+              ? 'Filter change karein'
               : 'Sales karne ke baad yahan dikhega',
-          style: const TextStyle(
-              fontSize: 13, color: AppColor.textHint),
+          style: const TextStyle(fontSize: 13, color: AppColor.textHint),
         ),
       ],
     ),

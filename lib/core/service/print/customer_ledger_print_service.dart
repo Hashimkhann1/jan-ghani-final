@@ -193,19 +193,15 @@ class CustomerLedgerPrintService {
     required DateTime date,
     String? notes,
   }) async {
-    final doc     = pw.Document();
-    final dateFmt = DateFormat('dd-MM-yyyy  hh:mm a');
-
-    // ✅ Courier Prime fonts load karo
-    final regular = await PdfGoogleFonts.courierPrimeRegular();
-    final bold    = await PdfGoogleFonts.courierPrimeBold();
+    final doc = pw.Document();
+    final dateFmt = DateFormat('dd-MM-yyyy hh:mm a');
 
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat(
           _paperWidth,
           double.infinity,
-          marginAll: 4 * PdfPageFormat.mm,
+          marginAll: 2 * PdfPageFormat.mm,
         ),
         build: (_) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
@@ -214,62 +210,57 @@ class CustomerLedgerPrintService {
             pw.Center(
               child: pw.Text(
                 storeName,
-                style: pw.TextStyle(
-                  font:       bold,
-                  fontSize:   11,
+                style:  pw.TextStyle(
+                  fontSize: 11,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
             ),
-            pw.SizedBox(height: 2),
+            pw.SizedBox(height: 1),
 
             // ── Receipt Title ───────────────────────────
             pw.Center(
               child: pw.Text(
                 'Payment Receipt',
                 style: pw.TextStyle(
-                  font:       bold,
-                  fontSize:   9,
+                  fontSize: 9,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
             ),
-            _divider(),
+            _thinDivider(),
 
             // ── Counter & Date ──────────────────────────
-            _kv('Counter', counterName,          regular),
-            _kv('Date',    dateFmt.format(date), regular),
-            _divider(),
+            _kv('Counter', counterName),
+            _kv('Date', dateFmt.format(date)),
+            _thinDivider(),
 
             // ── Customer ────────────────────────────────
-            _kv('Customer', customerName, regular),
-            _divider(),
+            _kv('Customer', customerName),
+            _thinDivider(),
 
             // ── Amounts ─────────────────────────────────
-            _kv('Previous Balance',
-                'Rs ${previousAmount.toStringAsFixed(0)}', regular),
-            _kv('Amount Paid',
-                'Rs ${payAmount.toStringAsFixed(0)}',      regular),
+            _kv('Previous Balance', 'Rs ${previousAmount.toStringAsFixed(2)}'),
+            _kv('Amount Paid', 'Rs ${payAmount.toStringAsFixed(2)}'),
             _thinDivider(),
             _kvBold(
               'Due Amount',
-              'Rs ${dueAmount.toStringAsFixed(0)}',
-              bold,
+              'Rs ${dueAmount.toStringAsFixed(2)}',
               valueColor: dueAmount > 0
                   ? PdfColors.red
                   : dueAmount < 0
                   ? PdfColors.blue
                   : PdfColors.green,
             ),
-            _divider(),
+            _thinDivider(),
 
             // ── Notes ───────────────────────────────────
             if (notes != null && notes.isNotEmpty) ...[
-              _kv('Notes', notes, regular),
-              _divider(),
+              _kv('Notes', notes),
+              _thinDivider(),
             ],
 
-            pw.SizedBox(height: 6),
+            pw.SizedBox(height: 4),
 
             // ── Footer Message ──────────────────────────
             pw.Center(
@@ -278,11 +269,11 @@ class CustomerLedgerPrintService {
                     ? '*** Account Clear ***'
                     : dueAmount < 0
                     ? '*** Advance Paid ***'
-                    : '*** Shukriya ***',
-                style: pw.TextStyle(font: regular, fontSize: 8),
+                    : '*** Thank You ***',
+                style: const pw.TextStyle(fontSize: 8),
               ),
             ),
-            pw.SizedBox(height: 12),
+            pw.SizedBox(height: 8),
           ],
         ),
       ),
@@ -292,9 +283,9 @@ class CustomerLedgerPrintService {
     try {
       final printer = await _getThermalPrinter();
       await Printing.directPrintPdf(
-        printer:  printer,
+        printer: printer,
         onLayout: (_) async => doc.save(),
-        name:     'Ledger_$customerName',
+        name: 'Ledger_$customerName',
       );
       debugPrint('✅ Ledger receipt printed');
     } catch (e) {
@@ -305,55 +296,47 @@ class CustomerLedgerPrintService {
 
   // ── Helpers ──────────────────────────────────────────────
 
-  static pw.Widget _divider() => pw.Padding(
-    padding: const pw.EdgeInsets.symmetric(vertical: 3),
-    child: pw.Divider(thickness: 0.6, color: PdfColors.black),
-  );
+  static pw.Widget _thinDivider() => pw.Divider(thickness: 0.3, color: PdfColors.black);
 
-  static pw.Widget _thinDivider() => pw.Padding(
-    padding: const pw.EdgeInsets.symmetric(vertical: 2),
-    child: pw.Divider(thickness: 0.3, color: PdfColors.grey600),
-  );
-
-  // Key-Value row — regular font
-  static pw.Widget _kv(String k, String v, pw.Font font) => pw.Padding(
-    padding: const pw.EdgeInsets.only(bottom: 3),
+  // Key-Value row
+  static pw.Widget _kv(String k, String v) => pw.Padding(
+    padding: const pw.EdgeInsets.symmetric(vertical: 1),
     child: pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
-        pw.Text(k, style: pw.TextStyle(font: font, fontSize: 8)),
-        pw.Text(v, style: pw.TextStyle(font: font, fontSize: 8)),
+        pw.Text(k, style: const pw.TextStyle(fontSize: 8)),
+        pw.Text(v, style: const pw.TextStyle(fontSize: 8)),
       ],
     ),
   );
 
-  // Key-Value row — bold font with optional color on value
+  // Key-Value row bold with optional color on value
   static pw.Widget _kvBold(
       String k,
-      String v,
-      pw.Font font, {
+      String v, {
         PdfColor valueColor = PdfColors.black,
       }) =>
-      pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(
-            k,
-            style: pw.TextStyle(
-              font:       font,
-              fontSize:   9,
-              fontWeight: pw.FontWeight.bold,
+      pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 1),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(
+              k,
+              style: pw.TextStyle(
+                fontSize: 9,
+                fontWeight: pw.FontWeight.bold,
+              ),
             ),
-          ),
-          pw.Text(
-            v,
-            style: pw.TextStyle(
-              font:       font,
-              fontSize:   10,
-              fontWeight: pw.FontWeight.bold,
-              color:      valueColor,
+            pw.Text(
+              v,
+              style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: pw.FontWeight.bold,
+                color: valueColor,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
 }

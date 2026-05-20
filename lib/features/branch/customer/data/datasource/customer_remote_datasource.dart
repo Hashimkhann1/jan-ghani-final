@@ -138,13 +138,13 @@ class CustomerRemoteDataSource {
 
     final result = await conn.execute(
       Sql.named('''
-        SELECT COALESCE(
-          MAX(CAST(SUBSTRING(code FROM 6) AS INTEGER)), 0
-        ) + 1 AS next_num
-        FROM public.customer
-        WHERE store_id = @storeId
-          AND code LIKE 'CUST-%'
-      '''),
+      SELECT COALESCE(
+        MAX(CAST(SUBSTRING(code FROM 5) AS INTEGER)), 0
+      ) + 1 AS next_num
+      FROM public.customer
+      WHERE store_id = @storeId
+        AND code LIKE 'CUS-%'
+    '''),
       parameters: {'storeId': storeId},
     );
 

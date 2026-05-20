@@ -10,6 +10,7 @@ class SaleInvoiceListModel {
   final String?  customerId;
   final String?  customerName;
   final String?  counterName;
+  final String?  cashierName;
   final List<SaleInvoiceItemDetail> items;
 
   const SaleInvoiceListModel({
@@ -24,6 +25,7 @@ class SaleInvoiceListModel {
     this.customerId,
     this.customerName,
     this.counterName,
+    this.cashierName,
     required this.items,
   });
 

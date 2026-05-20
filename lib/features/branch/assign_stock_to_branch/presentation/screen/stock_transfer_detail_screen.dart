@@ -419,7 +419,7 @@ class _InvoiceTable extends StatelessWidget {
                         color: const Color(0xFFEEF2FF),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text("${item.quantitySent.toInt()}",
+                      child: Text(_fmtQty(item.quantitySent),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               fontSize: 12,
@@ -897,6 +897,9 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
+
+String _fmtQty(double v) =>
+    v == v.truncateToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
 
 // ── Helpers ──
 BoxDecoration _cardDecoration() => BoxDecoration(
