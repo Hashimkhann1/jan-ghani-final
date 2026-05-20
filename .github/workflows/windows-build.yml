@@ -16,13 +16,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'   # version mat likhو — latest stable automatically lega
+          channel: 'stable'
           cache: true
-
-      - name: Install libserialport (vcpkg)
-        run: |
-          vcpkg install libserialport:x64-windows
-          echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
 
       - name: Enable Windows desktop
         run: flutter config --enable-windows-desktop
