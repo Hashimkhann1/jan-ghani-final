@@ -29,7 +29,7 @@ void main() async{
   await SharedPreferences.getInstance();
   await StoreConfig.load();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    SyncService().start();
+    // SyncService().start();
     DataBaseService.getConnection();
   }
   final prefs = await SharedPreferences.getInstance();

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/color/app_color.dart';
 import '../../../../../core/service/print/print_service.dart';
-import '../../../../warehouse/auth/presentation/provider/auth_provider.dart';
+import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../provider/sale_invoice_provider.dart';
 
@@ -144,6 +144,14 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
   Future<void> _confirm() async {
     if (!_isValid || _saving) return;
     setState(() => _saving = true);
+
+    // ✅ saveInvoice() se PEHLE — in getters ko baad mein call mat karo
+    final capturedHasCustomer     = _hasCustomer;
+    final capturedReturnAmount    = _isReturnMode ? _returnAmount    : null;
+    final capturedExistingBalance = _hasCustomer  ? _existingBalance : null;
+    final capturedTotalPaid       = _hasCustomer  ? _totalPaid       : null;
+    final capturedNewBalance      = _hasCustomer  ? _newBalance      : null;
+
     try {
       final state    = ref.read(saleInvoiceProvider);
       final notifier = ref.read(saleInvoiceProvider.notifier);
@@ -192,7 +200,17 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
           );
         }
         _showSnack('Invoice saved successfully!', AppColor.success);
-        if (_printReceipt) await _print(state, payments);
+        if (_printReceipt) {
+          await _print(
+            state,
+            payments,
+            returnAmount:    capturedReturnAmount,
+            previousBalance: capturedExistingBalance,
+            paidAmount:      capturedTotalPaid,
+            currentBalance:  capturedNewBalance,
+            hasCustomer:     capturedHasCustomer,   // ✅ captured
+          );
+        }
         Navigator.of(context).pop(true);
       } else {
         _showSnack('Failed to save invoice', AppColor.error);
@@ -218,9 +236,35 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     ));
   }
 
-  Future<void> _print(dynamic state, List<PaymentEntry> payments) async {
+  Future<void> _print(
+      dynamic state,
+      List<PaymentEntry> payments, {
+        double? returnAmount,
+        double? previousBalance,
+        double? paidAmount,
+        double? currentBalance,
+        bool    hasCustomer = false,   // ✅ new param
+      }) async {
     try {
       final auth = ref.read(authProvider);
+
+      debugPrint('═══════════════ PRINT DEBUG ═══════════════');
+      debugPrint('🧾 Invoice   : ${state.invoiceNo}');
+      debugPrint('👤 Customer  : ${state.selectedCustomer?.name ?? 'WALK IN'}');
+      debugPrint('💵 GrandTotal: ${state.grandTotal}');
+      debugPrint('👨‍💼 Cashier   : ${auth.user?.fullName ?? 'Unknown'}');
+      debugPrint('─── Payments ───────────────────────────────');
+      for (final p in payments) {
+        debugPrint('   💳 ${p.method.toUpperCase()}: ${p.amount}');
+      }
+      debugPrint('─── Captured Values ────────────────────────');
+      debugPrint('   📊 hasCustomer   : $hasCustomer');
+      debugPrint('   💱 returnAmount  : $returnAmount');
+      debugPrint('   📉 prevBalance   : $previousBalance');
+      debugPrint('   💸 paidAmount    : $paidAmount');
+      debugPrint('   📈 currentBalance: $currentBalance');
+      debugPrint('═══════════════════════════════════════════');
+
       await ThermalPrintService.printSaleInvoice(
         storeName:       'JAN GHANI',
         invoiceNo:       state.invoiceNo,
@@ -232,13 +276,15 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
         grandTotal:      state.grandTotal,
         payments:        payments,
         cashierName:     auth.user?.fullName ?? 'Unknown',
-        returnAmount:    _isReturnMode ? _returnAmount : null,
-        previousBalance: _hasCustomer ? _existingBalance : null,
-        paidAmount:      _hasCustomer ? _totalPaid : null,
-        currentBalance:  _hasCustomer ? _newBalance : null,
+        returnAmount:    returnAmount,
+        previousBalance: hasCustomer ? previousBalance : null,  // ✅
+        paidAmount:      hasCustomer ? paidAmount      : null,  // ✅
+        currentBalance:  hasCustomer ? currentBalance  : null,  // ✅
       );
+
+      debugPrint('✅ Print successful');
     } catch (e) {
-      debugPrint('Print error: $e');
+      debugPrint('❌ Print error: $e');
       if (mounted) _showSnack('Print failed but invoice saved', AppColor.warning);
     }
   }
@@ -348,15 +394,21 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
               ],
 
               // ── Due Amount (sirf jab credit > 0) ─────────────
-              if (_hasCustomer && _creditForInvoice > 0.01) ...[
+              if (_hasCustomer && (_creditForInvoice > 0.01 || _totalPaid > 0)) ...[
                 _InfoField(
                   label:      'Due Amount (Rs)',
                   value:      _fmtNum(_newBalance),
-                  icon:       Icons.warning_amber_rounded,
-                  valueColor: Colors.orange.shade800,
+                  icon:       Icons.account_balance_wallet_outlined,
+                  valueColor: _newBalance > 0.01
+                      ? Colors.orange.shade800
+                      : Colors.green.shade700,      // ✅ balance zero ho to green
                   bold:       true,
-                  fillColor:  Colors.orange.withOpacity(0.06),
-                  borderColor: Colors.orange,
+                  fillColor:  _newBalance > 0.01
+                      ? Colors.orange.withOpacity(0.06)
+                      : Colors.green.withOpacity(0.06),
+                  borderColor: _newBalance > 0.01
+                      ? Colors.orange
+                      : Colors.green,
                 ),
                 const SizedBox(height: 10),
               ],
