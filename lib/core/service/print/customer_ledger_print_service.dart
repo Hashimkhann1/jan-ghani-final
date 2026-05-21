@@ -247,7 +247,7 @@ class CustomerLedgerPrintService {
               'Due Amount',
               'Rs ${dueAmount.toStringAsFixed(2)}',
               valueColor: dueAmount > 0
-                  ? PdfColors.red
+                  ? PdfColors.black
                   : dueAmount < 0
                   ? PdfColors.blue
                   : PdfColors.green,

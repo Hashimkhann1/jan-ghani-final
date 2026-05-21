@@ -170,7 +170,7 @@ class ThermalPrintService {
               _infoRow('TOTAL DISCOUNT:', '-${_fmt(totalDiscount)}'),
             if (previousBalance != null && previousBalance > 0.01)
               _infoRowColored(
-                  'PREVIOUS BAL:', _fmt(previousBalance), PdfColors.red800),
+                  'PREVIOUS BAL:', _fmt(previousBalance), PdfColors.black),
             pw.SizedBox(height: 1),
             _infoRowBold('NET AMOUNT:', _fmt(grandTotal)),
             pw.SizedBox(height: 3),
@@ -182,7 +182,7 @@ class ThermalPrintService {
             _dashedLine(),
             if (currentBalance != null)
               _infoRowColoredBold(
-                  'CURRENT BAL:', _fmt(currentBalance), PdfColors.red800),
+                  'CURRENT BAL:', _fmt(currentBalance), PdfColors.black),
           ],
 
           // ══════════════════════════════════════════════════
@@ -196,7 +196,7 @@ class ThermalPrintService {
               _infoRow('TOTAL DISCOUNT:', '-${_fmt(totalDiscount)}'),
             if (previousBalance != null && previousBalance > 0.01)
               _infoRowColored(
-                  'PREVIOUS BAL:', _fmt(previousBalance), PdfColors.red800),
+                  'PREVIOUS BAL:', _fmt(previousBalance), PdfColors.black),
             pw.SizedBox(height: 1),
             _infoRowBold('NET AMOUNT:', _fmt(grandTotal)),
             pw.SizedBox(height: 3),
@@ -211,7 +211,7 @@ class ThermalPrintService {
                   'PAY AMOUNT:', _fmt(paidAmount), PdfColors.green800),
             if (currentBalance != null)
               _infoRowColoredBold(
-                  'CURRENT BAL:', _fmt(currentBalance), PdfColors.red800),
+                  'CURRENT BAL:', _fmt(currentBalance), PdfColors.black),
           ],
 
           // ══════════════════════════════════════════════════
@@ -226,7 +226,7 @@ class ThermalPrintService {
               _infoRow('TOTAL DISCOUNT:', '-${_fmt(totalDiscount)}'),
             if (previousBalance != null && previousBalance > 0.01)
               _infoRowColored(
-                  'PREVIOUS BAL:', _fmt(previousBalance), PdfColors.red800),
+                  'PREVIOUS BAL:', _fmt(previousBalance), PdfColors.black),
             pw.SizedBox(height: 1),
             _infoRowBold('NET AMOUNT:', _fmt(grandTotal)),
             pw.SizedBox(height: 3),
@@ -243,7 +243,7 @@ class ThermalPrintService {
                   'PAY AMOUNT:', _fmt(paidAmount), PdfColors.green800),
             if (currentBalance != null && currentBalance > 0.01)
               _infoRowColoredBold(
-                  'CURRENT BAL:', _fmt(currentBalance), PdfColors.red800),
+                  'CURRENT BAL:', _fmt(currentBalance), PdfColors.black),
           ],
 
           pw.SizedBox(height: 3),
@@ -399,7 +399,7 @@ class ThermalPrintService {
             _infoRow('TOTAL DISCOUNT:', '-${_fmt(totalDiscount)}'),
           if (hasCustomer && previousBalance != null && previousBalance > 0.01)
             _infoRowColored(
-                'PREVIOUS BAL:', _fmt(previousBalance), PdfColors.red800),
+                'PREVIOUS BAL:', _fmt(previousBalance), PdfColors.black),
           pw.SizedBox(height: 1),
           _infoRowBold('REFUND AMT:', _fmt(grandTotal)),
           pw.SizedBox(height: 3),
@@ -415,7 +415,7 @@ class ThermalPrintService {
                   'PAY AMOUNT:', _fmt(paidAmount), PdfColors.green800),
             if (currentBalance != null)
               _infoRowColoredBold(
-                  'CURRENT BAL:', _fmt(currentBalance), PdfColors.red800),
+                  'CURRENT BAL:', _fmt(currentBalance), PdfColors.black),
           ],
           pw.SizedBox(height: 3),
           _dashedLine(),
