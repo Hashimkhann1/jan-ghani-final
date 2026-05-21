@@ -1,8 +1,8 @@
 {
   "app_mode": "warehouse",
-  "warehouse_id": "c519975f-bf0e-4747-b152-ea38fcbf7cc5",
-  "warehouse_code": "JG-WH-001",
-  "warehouse_name": "Jan Ghani Warehouse 001",
+  "warehouse_id": "3a906393-510a-48b9-b694-02d2b94bb799",
+  "warehouse_code": "WH-JG-001",
+  "warehouse_name": "Jan Ghani Warehouse-001",
   "db_host": "localhost",
   "db_port": 5432,
   "db_name": "warehouse_db",

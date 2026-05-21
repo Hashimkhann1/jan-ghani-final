@@ -408,11 +408,26 @@ class _SupplierTable extends StatefulWidget {
 }
 
 class _SupplierTableState extends State<_SupplierTable> {
-  final ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController       = ScrollController();
+  final ScrollController _headerScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_syncHeader);
+  }
+
+  void _syncHeader() {
+    if (_headerScrollController.hasClients) {
+      _headerScrollController.jumpTo(_scrollController.offset);
+    }
+  }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_syncHeader);
     _scrollController.dispose();
+    _headerScrollController.dispose();
     super.dispose();
   }
 
@@ -435,7 +450,7 @@ class _SupplierTableState extends State<_SupplierTable> {
                   ? constraints.maxWidth
                   : _SupplierTable.minWidth;
               return SingleChildScrollView(
-                controller:      _scrollController,
+                controller:      _headerScrollController,
                 scrollDirection: Axis.horizontal,
                 physics: const NeverScrollableScrollPhysics(),
                 child: SizedBox(
@@ -452,7 +467,7 @@ class _SupplierTableState extends State<_SupplierTable> {
                       children: [
                         _HeaderCell(label: 'Supplier',       flex: 3),
                         _HeaderCell(label: 'Phone',          flex: 2),
-                        _HeaderCell(label: 'Payment Terms',  flex: 1),
+                        // _HeaderCell(label: 'Payment Terms',  flex: 1),
                         _HeaderCell(label: 'Total Purchase', flex: 2),
                         _HeaderCell(label: 'Balance',        flex: 1),
                         _HeaderCell(label: 'Orders',         flex: 1),
@@ -472,36 +487,39 @@ class _SupplierTableState extends State<_SupplierTable> {
                 final w = constraints.maxWidth > _SupplierTable.minWidth
                     ? constraints.maxWidth
                     : _SupplierTable.minWidth;
-                return SingleChildScrollView(
+                return Scrollbar(
                   controller:      _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: w,
-                    child: ListView.separated(
-                      itemCount: widget.suppliers.length,
-                      separatorBuilder: (_, __) =>
-                          Divider(height: 1, color: AppColor.grey100),
-                      itemBuilder: (context, i) {
-                        final s = widget.suppliers[i];
-                        return GestureDetector(
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  SpecificSupplierDetailScreen(
-                                      supplier: s),
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    controller:      _scrollController,
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: w,
+                      child: ListView.separated(
+                        itemCount: widget.suppliers.length,
+                        separatorBuilder: (_, __) =>
+                            Divider(height: 1, color: AppColor.grey100),
+                        itemBuilder: (context, i) {
+                          final s = widget.suppliers[i];
+                          return GestureDetector(
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    SpecificSupplierDetailScreen(
+                                        supplier: s),
+                              ),
+                            ).then((_) {
+                              widget.ref.read(supplierProvider.notifier).loadSuppliers();
+                            }),
+                            child: _SupplierRow(
+                              key:      ValueKey(s.id),
+                              supplier: s,
+                              onDelete: () => widget.onDelete(s),
+                              onEdit:   () => widget.onEdit(s),
                             ),
-                          ).then((_) {
-                            // Detail screen se wapas aane pe reload karo
-                            widget.ref.read(supplierProvider.notifier).loadSuppliers();
-                          }),
-                          child: _SupplierRow(
-                            key:      ValueKey(s.id),
-                            supplier: s,
-                            onDelete: () => widget.onDelete(s),
-                            onEdit:   () => widget.onEdit(s),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 );
@@ -656,25 +674,22 @@ class _SupplierRowState extends State<_SupplierRow> {
                       color:    AppColor.textSecondary)),
             ),
 
-            // Payment Terms
-            Expanded(
-                flex: 1,
-                child: PaymentTermsBadge(days: s.paymentTerms)),
-            const SizedBox(width: 20),
-
             // Total Purchase
             Expanded(
               flex: 2,
               child: Text(s.totalPurchaseAmount.toStringAsFixed(2),
                   style: TextStyle(
-                      fontSize:   13,
-                      fontWeight: FontWeight.w500,
+                      fontSize:   14,
+                      fontWeight: FontWeight.w600,
                       color:      AppColor.textPrimary)),
             ),
 
             // Balance
-            SizedBox(child: SupplierBalanceBadge(supplier: s)),
-            const SizedBox(width: 20),
+            Expanded(
+              flex: 1,
+              child: SupplierBalanceBadge(supplier: s),
+            ),
+            SizedBox(width: 26,),
 
             // Orders
             Expanded(

@@ -228,21 +228,30 @@ class PurchaseInvoiceNotifier
     cartItems: state.cartItems.where((i) => i.cartId != cartId).toList(),
   );
 
-  // FIX: qty/price/tax/discount change → customSubTotal clear karo
-  // Taake formula wapas active ho — user ka manual subTotal reset ho
   void updateQuantity(String cartId, double qty) {
     if (qty <= 0) return;
-    _update(cartId, (i) => i.copyWith(
-      quantity: qty,
-      clearCustomSubTotal: true,
-    ));
+    _update(cartId, (i) {
+      if (i.customSubTotal != null) {
+        // subTotal anchor hai — price recalculate karo, subTotal constant rahe
+        return i.copyWith(
+          quantity:      qty,
+          purchasePrice: i.customSubTotal! / qty,
+        );
+      } else {
+        // price anchor hai — formula se subTotal recalculate hoga
+        return i.copyWith(
+          quantity:            qty,
+          clearCustomSubTotal: true,
+        );
+      }
+    });
   }
 
   void updatePurchasePrice(String cartId, double price) {
     if (price < 0) return;
     _update(cartId, (i) => i.copyWith(
-      purchasePrice: price,
-      clearCustomSubTotal: true,
+      purchasePrice:      price,
+      clearCustomSubTotal: true, // price anchor ban gaya, formula active
     ));
   }
 
@@ -268,11 +277,16 @@ class PurchaseInvoiceNotifier
     ));
   }
 
-  // FIX: customSubTotal directly save karo — qty/price/discount kuch nahi badlega
-  // didUpdateWidget mein item.subTotal → 300 return karega → controller reset nahi hoga
   void updateSubTotal(String cartId, double newSubTotal) {
     if (newSubTotal < 0) return;
-    _update(cartId, (i) => i.copyWith(customSubTotal: newSubTotal));
+    _update(cartId, (i) {
+      // subTotal se purchasePrice derive karo: price = subTotal / qty
+      final newPrice = i.quantity > 0 ? newSubTotal / i.quantity : i.purchasePrice;
+      return i.copyWith(
+        purchasePrice:  newPrice,
+        customSubTotal: newSubTotal, // anchor set — qty change pe subTotal constant rahe
+      );
+    });
   }
 
   void _update(String cartId, PoCartItem Function(PoCartItem) fn) {
