@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_provider/supplier_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens/specific_supplier_detail_screen/specific_supplier_detail_screen.dart';
@@ -264,7 +265,7 @@ class _StatsRow extends StatelessWidget {
           const SizedBox(width: 12),
           SupplierStatCard(
               label: 'Total Due',
-              value: _fmt(state.totalOutstanding),
+              value: state.totalOutstanding.pkrFormat.toString(),
               icon:  Icons.account_balance_wallet_outlined,
               color: AppColor.warning),
         ],
@@ -677,7 +678,7 @@ class _SupplierRowState extends State<_SupplierRow> {
             // Total Purchase
             Expanded(
               flex: 2,
-              child: Text(s.totalPurchaseAmount.toStringAsFixed(2),
+              child: Text(s.totalPurchaseAmount.pkrFormat,
                   style: TextStyle(
                       fontSize:   14,
                       fontWeight: FontWeight.w600,

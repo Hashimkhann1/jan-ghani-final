@@ -32,7 +32,7 @@ class PoCartTableHeader extends StatelessWidget {
               child: _H(text: 'Sale Price', isPurple: true)),
           SizedBox(width: 40,
               child: _H(text: 'Margin')),
-          Expanded(flex: 2, child: _H(text: 'Tax (Rs)')),
+          // Expanded(flex: 2, child: _H(text: 'Tax (Rs)')),
           Expanded(flex: 2, child: _H(text: 'Dis (Rs)')),
           Expanded(flex: 2, child: _H(text: 'Sub Total')),
           SizedBox(width: 28),

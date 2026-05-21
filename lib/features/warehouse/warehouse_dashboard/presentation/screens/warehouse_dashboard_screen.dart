@@ -21,6 +21,7 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentat
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
 import '../provider/warehouse_dashboard_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 class WarehouseDashboardScreen extends ConsumerStatefulWidget {
   const WarehouseDashboardScreen({super.key});
@@ -254,7 +255,7 @@ class _StatCardsRow extends StatelessWidget {
       children: [
         DashStatCard(
           label:      'Total products',
-          value:      _fmt(stats!.totalProducts.toDouble()),
+          value:      '${stats!.totalProducts}',
           badge:      '${stats!.activeSuppliers} suppliers',
           icon:       Icons.inventory_2_outlined,
           color:      AppColor.primary,
@@ -273,7 +274,7 @@ class _StatCardsRow extends StatelessWidget {
         const SizedBox(width: 12),
         DashStatCard(
           label:      'Supplier outstanding',
-          value:      stats!.totalOutstanding.toStringAsFixed(2),
+          value:      stats!.totalOutstanding.pkrFormat,
           badge:      '${stats!.activeSuppliers} active',
           icon:       Icons.account_balance_wallet_outlined,
           color:      AppColor.info,

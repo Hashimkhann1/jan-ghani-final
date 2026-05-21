@@ -15,6 +15,7 @@ import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/po_details_dialog_widget/po_details_dialog_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_detail_widgets/supplier_detail_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_info_dialog/supplier_info_dialog.dart';
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 
 class SpecificSupplierDetailScreen extends ConsumerStatefulWidget {
@@ -270,7 +271,7 @@ class _FinancialSummaryRow extends StatelessWidget {
         children: [
           DetailStatCard(
             label:    'Outstanding Balance',
-            value:    'Rs ${summary.outstandingBalance}',
+            value:    'Rs ${summary.outstandingBalance.pkrFormat}',
             subtitle: summary.outstandingBalance > 0
                 ? 'Dena baaki hai' : 'Clear',
             icon:     Icons.account_balance_wallet_outlined,
@@ -280,7 +281,7 @@ class _FinancialSummaryRow extends StatelessWidget {
           const SizedBox(width: 12),
           DetailStatCard(
             label:    'Total Purchased',
-            value:    'Rs ${summary.totalPurchased}',
+            value:    'Rs ${summary.totalPurchased.pkrFormat}',
             subtitle: '${summary.totalOrders} orders total',
             icon:     Icons.shopping_cart_outlined,
             color:    AppColor.info,
@@ -288,7 +289,7 @@ class _FinancialSummaryRow extends StatelessWidget {
           const SizedBox(width: 12),
           DetailStatCard(
             label:    'Total Paid',
-            value:    'Rs ${summary.totalPaid}',
+            value:    'Rs ${summary.totalPaid.pkrFormat}',
             subtitle: '${summary.pendingOrders} orders pending',
             icon:     Icons.payments_outlined,
             color:    AppColor.success,

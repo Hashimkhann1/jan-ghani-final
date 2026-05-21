@@ -11,9 +11,9 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/domain/warehouse_finance_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentation/provider/warehouse_finance_provider/warehouse_finance_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentation/widgets/cash_in_dialog.dart';
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
-final _rupeeFormat = NumberFormat('#,##0', 'en_PK');
-String _fmt(double v) => 'Rs. ${_rupeeFormat.format(v)}';
+String _fmt(double v) => 'Rs. ${v.pkrFormat}';
 
 // ─────────────────────────────────────────────────────────────
 // SCREEN
@@ -270,7 +270,7 @@ class _TopStatsRow extends StatelessWidget {
             icon:       CupertinoIcons.creditcard,
             iconColor:  AppColor.error,
             label:      'Suppliers Outstanding',
-            value:      suppliersOutstanding.toString(),
+            value:      'Rs. ${suppliersOutstanding.pkrFormat}',
             valueColor: AppColor.error,
           ),
         ),

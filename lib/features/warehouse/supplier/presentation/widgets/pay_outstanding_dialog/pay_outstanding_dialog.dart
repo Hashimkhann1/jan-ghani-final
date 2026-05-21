@@ -11,6 +11,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_detail_provider/supplier_detail_provider.dart';
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 
 class PayOutstandingDialog extends ConsumerStatefulWidget {
@@ -38,8 +39,9 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
 
   // ── Live calculations ─────────────────────────────────────
   double get _outstanding    => widget.supplier.outstandingBalance;
-  double get _enteredAmount  {
-    final text = _amountController.text.trim();
+  double get _enteredAmount {
+    // Commas hata ke parse karo (live formatting ki wajah se commas ho sakti hain)
+    final text = _amountController.text.trim().replaceAll(',', '');
     return double.tryParse(text) ?? 0.0;
   }
   double get _balanceAfterPay => (_outstanding - _enteredAmount).clamp(0, double.infinity);
@@ -81,7 +83,7 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                     children: [
                       _SummaryCard(
                         label: 'Outstanding Balance',
-                        value: _outstanding.toString(),
+                        value: 'Rs ${_outstanding.pkrFormat}',
                         color: _outstanding > 0 ? AppColor.error : AppColor.success,
                         icon:  Icons.account_balance_wallet_outlined,
                       ),
@@ -108,14 +110,13 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                     controller:   _amountController,
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
-                    // Sirf numbers — koi decimal, space, alphabet nahi
+                    // Sirf numbers — commas + dot allow, baaki sab block
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),  // digits + dot allow
+                      FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
                       TextInputFormatter.withFunction((oldValue, newValue) {
-                        final text = newValue.text;
-                        // Ek se zyada dots block karo
+                        // Commas hata ke validate karo
+                        final text = newValue.text.replaceAll(',', '');
                         if (text.split('.').length > 2) return oldValue;
-                        // Decimal ke baad 2 se zyada digits block karo
                         if (text.contains('.')) {
                           final parts = text.split('.');
                           if (parts[1].length > 2) return oldValue;
@@ -123,7 +124,24 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                         return newValue;
                       }),
                     ],
-                    onChanged: (_) => setState(() {}), // live update
+                    onChanged: (val) {
+                      // Commas hata ke integer + decimal parts alag karo
+                      final plain = val.replaceAll(',', '');
+                      final parts = plain.split('.');
+                      if (parts[0].isNotEmpty) {
+                        final decPart = parts.length > 1 ? '.${parts[1]}' : '';
+                        final fmtInt  = _pkrInputFmt(parts[0]);
+                        final newText = '$fmtInt$decPart';
+                        if (newText != val) {
+                          _amountController.value = TextEditingValue(
+                            text:      newText,
+                            selection: TextSelection.collapsed(
+                                offset: newText.length),
+                          );
+                        }
+                      }
+                      setState(() {});
+                    },
                     style: TextStyle(fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: AppColor.textPrimary),
@@ -209,13 +227,13 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                         children: [
                           _PreviewRow(
                             label: 'Outstanding Balance',
-                            value: _outstanding.toString(),
+                            value: 'Rs ${_outstanding.pkrFormat}',
                             color: AppColor.error,
                           ),
                           const SizedBox(height: 8),
                           _PreviewRow(
                             label: 'Pay Amount',
-                            value: '- ${_enteredAmount}',
+                            value: '- Rs ${_enteredAmount.pkrFormat}',
                             color: AppColor.success,
                           ),
                           Padding(
@@ -224,7 +242,7 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                           ),
                           _PreviewRow(
                             label:   'Balance After Payment',
-                            value:   _balanceAfterPay.toString(),
+                            value:   'Rs ${_balanceAfterPay.pkrFormat}',
                             color:   _balanceAfterPay == 0
                                 ? AppColor.success : AppColor.warning,
                             isBold:  true,
@@ -374,10 +392,24 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
     }
   }
 
-  String _fmtRs(double v) {
-    if (v >= 1000000) return 'Rs ${(v / 1000000).toStringAsFixed(1)}M';
-    if (v >= 1000)    return 'Rs ${(v / 1000).toStringAsFixed(0)}K';
-    return 'Rs ${v.toStringAsFixed(0)}';
+  String _fmtRs(double v) => 'Rs ${v.pkrFormat}';
+
+  // Text field ke liye live lakh-comma formatter
+  // (extension ko directly use nahi kar sakte kyunki ye string pe kaam karta hai)
+  String _pkrInputFmt(String s) {
+    if (s.length <= 3) return s;
+    final last3 = s.substring(s.length - 3);
+    final rem   = s.substring(0, s.length - 3);
+    final buf   = StringBuffer();
+    final start = rem.length % 2;
+    if (start > 0) buf.write(rem.substring(0, start));
+    for (int i = start; i < rem.length; i += 2) {
+      if (buf.isNotEmpty) buf.write(',');
+      buf.write(rem.substring(i, i + 2));
+    }
+    buf.write(',');
+    buf.write(last3);
+    return buf.toString();
   }
 }
 
