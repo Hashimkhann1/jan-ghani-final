@@ -115,6 +115,47 @@ extension DoubleExtension on double {
   EdgeInsets get hPadding => EdgeInsets.symmetric(horizontal: this);
   EdgeInsets get vPadding => EdgeInsets.symmetric(vertical: this);
   BorderRadius get roundedAll => BorderRadius.circular(this);
+
+  /// Pakistani comma format: 2013343.5 → "20,13,343.5"
+  /// Whole numbers: 2013343.0 → "20,13,343"
+  String get pkrFormat {
+    final isNeg  = this < 0;
+    final abs    = this.abs();
+    final intPart = abs.toInt();
+    final decPart = abs - intPart;
+
+    // Format integer part with Pakistani comma system
+    final s      = intPart.toString();
+    final fmtInt = _pkrIntFormat(s);
+
+    // Decimal: show only if non-zero, max 2 places, trim trailing zeros
+    String dec = '';
+    if (decPart > 0.00001) {
+      dec = decPart.toStringAsFixed(2).substring(1); // ".XX"
+      dec = dec.replaceAll(RegExp(r'0+$'), '');       // ".50" → ".5"
+      if (dec == '.') dec = '';
+    }
+
+    return '${isNeg ? '-' : ''}$fmtInt$dec';
+  }
+}
+
+/// Helper — integer string ko Pakistani commas mein format karo
+/// 2013343 → "20,13,343"  |  585000 → "5,85,000"  |  1000 → "1,000"
+String _pkrIntFormat(String s) {
+  if (s.length <= 3) return s;
+  final last3 = s.substring(s.length - 3);
+  final rem   = s.substring(0, s.length - 3);
+  final buf   = StringBuffer();
+  final start = rem.length % 2; // odd leftover digit(s) at start
+  if (start > 0) buf.write(rem.substring(0, start));
+  for (int i = start; i < rem.length; i += 2) {
+    if (buf.isNotEmpty) buf.write(',');
+    buf.write(rem.substring(i, i + 2));
+  }
+  buf.write(',');
+  buf.write(last3);
+  return buf.toString();
 }
 
 /// WIDGET EXTENSIONS

@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import '../../domain/purchase_order_model.dart';
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 // ─────────────────────────────────────────────────────────────
 // PO STAT CARD
@@ -318,12 +319,12 @@ class _PoTableRowState extends State<PoTableRow> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(o.totalAmount.toString(),
-                          style: TextStyle(fontSize: 13,
+                      Text('Rs ${o.totalAmount.pkrFormat}',
+                          style: TextStyle(fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: AppColor.textPrimary)),
                       if (!isCancelled)
-                        Text('Paid ${_fmt(o.paidAmount)}',
+                        Text('Paid Rs ${o.paidAmount.pkrFormat}',
                             style: TextStyle(fontSize: 11,
                                 color: o.paidAmount > 0
                                     ? AppColor.success
@@ -333,55 +334,55 @@ class _PoTableRowState extends State<PoTableRow> {
                 ),
 
                 // Remaining + progress
-                Expanded(
-                  flex: 2,
-                  child: isCancelled
-                      ? Text('—', style: TextStyle(
-                      color: AppColor.textSecondary, fontSize: 13))
-                      : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        o.isFullyPaid
-                            ? 'Clear'
-                            : o.remainingAmount.toStringAsFixed(2),
-                        style: TextStyle(fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: o.isFullyPaid
-                                ? AppColor.success
-                                : AppColor.error),
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius:
-                              BorderRadius.circular(2),
-                              child: LinearProgressIndicator(
-                                value:           o.paidPercent,
-                                minHeight:       4,
-                                backgroundColor: AppColor.grey200,
-                                valueColor:
-                                AlwaysStoppedAnimation<Color>(
-                                  o.isFullyPaid
-                                      ? AppColor.success
-                                      : AppColor.warning,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            '${(o.paidPercent * 100).toInt()}%',
-                            style: TextStyle(fontSize: 10,
-                                color: AppColor.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                // Expanded(
+                //   flex: 2,
+                //   child: isCancelled
+                //       ? Text('—', style: TextStyle(
+                //       color: AppColor.textSecondary, fontSize: 13))
+                //       : Column(
+                //     crossAxisAlignment: CrossAxisAlignment.start,
+                //     children: [
+                //       Text(
+                //         o.isFullyPaid
+                //             ? 'Clear'
+                //             : o.remainingAmount.toStringAsFixed(2),
+                //         style: TextStyle(fontSize: 13,
+                //             fontWeight: FontWeight.w600,
+                //             color: o.isFullyPaid
+                //                 ? AppColor.success
+                //                 : AppColor.error),
+                //       ),
+                //       const SizedBox(height: 5),
+                //       Row(
+                //         children: [
+                //           Expanded(
+                //             child: ClipRRect(
+                //               borderRadius:
+                //               BorderRadius.circular(2),
+                //               child: LinearProgressIndicator(
+                //                 value:           o.paidPercent,
+                //                 minHeight:       4,
+                //                 backgroundColor: AppColor.grey200,
+                //                 valueColor:
+                //                 AlwaysStoppedAnimation<Color>(
+                //                   o.isFullyPaid
+                //                       ? AppColor.success
+                //                       : AppColor.warning,
+                //                 ),
+                //               ),
+                //             ),
+                //           ),
+                //           const SizedBox(width: 5),
+                //           Text(
+                //             '${(o.paidPercent * 100).toInt()}%',
+                //             style: TextStyle(fontSize: 10,
+                //                 color: AppColor.textSecondary),
+                //           ),
+                //         ],
+                //       ),
+                //     ],
+                //   ),
+                // ),
 
                 // Actions
                 Expanded(

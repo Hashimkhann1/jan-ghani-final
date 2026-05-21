@@ -13,6 +13,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_detail_models.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens/po_invoice_screen/po_invoice_screen.dart';
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 // ─────────────────────────────────────────────────────────────
 // DETAIL STAT CARD — top pe 3 financial summary cards
@@ -194,8 +195,8 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
 
     final bool   isCredit   = e.amount < 0;
     final String amountStr  = isCredit
-        ? '- Rs ${e.amount.abs().toStringAsFixed(0)}'
-        : '+ Rs ${e.amount.toStringAsFixed(0)}';
+        ? '- Rs ${e.amount.abs().pkrFormat}'
+        : '+ Rs ${e.amount.pkrFormat}';
     final Color  amountColor = isCredit ? AppColor.success : AppColor.error;
 
     return MouseRegion(
@@ -267,7 +268,7 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
             Expanded(
               flex: 2,
               child: Text(
-                'Rs ${e.balanceAfter.toStringAsFixed(0)}',
+                'Rs ${e.balanceAfter.pkrFormat}',
                 style: TextStyle(fontSize: 13,
                     fontWeight: FontWeight.w500, color: AppColor.textPrimary),
               ),
@@ -413,7 +414,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
               // Total
               Expanded(
                 flex: 2,
-                child: Text(o.totalAmount.toString(),
+                child: Text('Rs ${o.totalAmount.pkrFormat}',
                     style: TextStyle(fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: AppColor.textPrimary)),
@@ -422,7 +423,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
               // Paid
               Expanded(
                 flex: 2,
-                child: Text(o.paidAmount.toString(),
+                child: Text('Rs ${o.paidAmount.pkrFormat}',
                     style: TextStyle(fontSize: 13,
                         color: AppColor.success,
                         fontWeight: FontWeight.w500)),
@@ -432,7 +433,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
               Expanded(
                 flex: 2,
                 child: Text(
-                  o.isFullyPaid ? 'Clear' : o.remainingAmount.toString(),
+                  o.isFullyPaid ? 'Clear' : 'Rs ${o.remainingAmount.pkrFormat}',
                   style: TextStyle(
                     fontSize:   13,
                     fontWeight: FontWeight.w600,

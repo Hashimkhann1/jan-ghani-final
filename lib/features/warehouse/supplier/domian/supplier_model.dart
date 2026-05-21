@@ -2,6 +2,8 @@
 // supplier_model.dart
 // =============================================================
 
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
+
 class SupplierModel {
   // ── suppliers table columns ──────────────────────────────
   final String  id;
@@ -64,8 +66,8 @@ class SupplierModel {
 
   String get balanceLabel {
     if (isClear) return 'Clear';
-    if (hasDue)  return 'Rs ${outstandingBalance.toStringAsFixed(2)} Due';
-    return 'Rs ${outstandingBalance.abs().toStringAsFixed(0)} Advance';
+    if (hasDue)  return 'Rs ${outstandingBalance.pkrFormat} Due';
+    return 'Rs ${outstandingBalance.abs().pkrFormat} Advance';
   }
 
   String get paymentTermsLabel => '$paymentTerms days';
