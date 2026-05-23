@@ -15,7 +15,12 @@ import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation
 
 class PoCartItemRow extends ConsumerStatefulWidget {
   final PoCartItem cartItem;
-  const PoCartItemRow({super.key, required this.cartItem});
+  final int        index;          // 0-based — display mein +1 karenge
+  const PoCartItemRow({
+    super.key,
+    required this.cartItem,
+    required this.index,
+  });
 
   @override
   ConsumerState<PoCartItemRow> createState() =>
@@ -184,6 +189,32 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
       ),
       child: Row(
         children: [
+          // Index badge — 1, 2, 3 ...
+          SizedBox(
+            width: 28,
+            child: Center(
+              child: Container(
+                width:  22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color:        AppColor.primary.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Center(
+                  child: Text(
+                    '${widget.index + 1}',
+                    style: const TextStyle(
+                      fontSize:   10,
+                      fontWeight: FontWeight.w700,
+                      color:      AppColor.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+
           // Product name + category
           Expanded(
             flex: 3,

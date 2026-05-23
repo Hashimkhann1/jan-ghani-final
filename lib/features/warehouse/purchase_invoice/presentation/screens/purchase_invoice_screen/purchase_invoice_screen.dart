@@ -12,6 +12,7 @@ import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/widgets/purchase_invoice_widgets/po_cart_panel.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/widgets/purchase_invoice_widgets/po_product_list_panel.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_provider/supplier_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/stock_inventory_dialog.dart';
 
 class PurchaseInvoiceScreen extends ConsumerStatefulWidget {
   /// Null = New PO mode
@@ -173,6 +174,20 @@ class _TopBar extends ConsumerWidget {
           ),
 
           const Spacer(),
+
+          TextButton(
+            style: TextButton.styleFrom(backgroundColor: AppColor.primary),
+            onPressed: () => showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => const StockInventoryDialog(),
+            ),
+            child: const Text(
+              "Add New Inventory",
+              style: TextStyle(color: AppColor.white),
+            ),
+          ),
+          SizedBox(width: 12,),
 
           // Edit mode badge
           if (isEditMode)

@@ -52,15 +52,15 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
 SPEC CHECKSUMS:
-  app_links: 05a6ec2341985eb05e9f97dc63f5837c39895c3f
-  connectivity_plus: 4adf20a405e25b42b9c9f87feff8f4b6fde18a4e
-  flutter_libserialport: 2c523cb8d8203fc6d1b0da88190da31ac970eb93
+  app_links: c3185399a5cabc2e610ee5ad52fb7269b84ff869
+  connectivity_plus: 0a976dfd033b59192912fa3c6c7b54aab5093802
+  flutter_libserialport: d1a505fd4b05785f7b50cc7c93b361937ea1c5bd
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   libserialport: 1cb25e66ef3c92a8e59c2ea3820302c3fa2268cd
-  path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
-  printing: c4cf83c78fd684f9bc318e6aadc18972aa48f617
-  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
-  url_launcher_macos: f87a979182d112f911de6820aefddaf56ee9fbfd
+  path_provider_foundation: 0b743cbb62d8e47eab856f09262bb8c1ddcfe6ba
+  printing: 1dd6a1fce2209ec240698e2439a4adbb9b427637
+  shared_preferences_foundation: 5086985c1d43c5ba4d5e69a4e8083a389e2909e6
+  url_launcher_macos: 175a54c831f4375a6cf895875f716ee5af3888ce
 
 PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
 

@@ -26,6 +26,10 @@ class PoProductListPanel extends ConsumerWidget {
         .where((p) => p.isActive && p.deletedAt == null)
         .toList();
 
+    // Cart mein already existing product IDs — highlight ke liye
+    final cartProductIds =
+        poState.cartItems.map((i) => i.product.id).toSet();
+
     final query    = poState.searchQuery.toLowerCase();
     final filtered = query.isEmpty
         ? allProducts
@@ -63,7 +67,8 @@ class PoProductListPanel extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final product = filtered[index];
                 return _ProductListItem(
-                  product: product,
+                  product:   product,
+                  isInCart:  cartProductIds.contains(product.id),
                   onDoubleTap: () {
                     final poProduct = PoProduct(
                       id:            product.id,
@@ -88,9 +93,27 @@ class PoProductListPanel extends ConsumerWidget {
 
 // ─── Search Bar ──────────────────────────────────────────────
 
-class _SearchBar extends StatelessWidget {
+class _SearchBar extends StatefulWidget {
   final ValueChanged<String> onChanged;
   const _SearchBar({required this.onChanged});
+
+  @override
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _clear() {
+    _ctrl.clear();
+    widget.onChanged('');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +124,8 @@ class _SearchBar extends StatelessWidget {
         border: Border(bottom: BorderSide(color: AppColor.grey200)),
       ),
       child: TextField(
-        onChanged: onChanged,
+        controller: _ctrl,
+        onChanged:  widget.onChanged,
         style: const TextStyle(
             fontSize: 13, color: AppColor.textPrimary),
         cursorHeight: 14,
@@ -111,6 +135,24 @@ class _SearchBar extends StatelessWidget {
               fontSize: 13, color: AppColor.textHint),
           prefixIcon: const Icon(Icons.search,
               size: 18, color: AppColor.grey500),
+          // X button — sirf tab dikhega jab text ho
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _ctrl,
+            builder: (_, value, __) => value.text.isNotEmpty
+                ? GestureDetector(
+                    onTap: _clear,
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color:  AppColor.grey300,
+                        shape:  BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close_rounded,
+                          size: 14, color: AppColor.white),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           filled:    true,
           fillColor: AppColor.grey100,
           contentPadding: const EdgeInsets.symmetric(
@@ -128,10 +170,12 @@ class _SearchBar extends StatelessWidget {
 
 class _ProductListItem extends StatefulWidget {
   final ProductModel product;
+  final bool         isInCart;
   final VoidCallback onDoubleTap;
 
   const _ProductListItem({
     required this.product,
+    required this.isInCart,
     required this.onDoubleTap,
   });
 
@@ -170,6 +214,8 @@ class _ProductListItemState extends State<_ProductListItem>
     final p       = widget.product;
     final inStock = p.quantity > 0;
 
+    final isInCart = widget.isInCart;
+
     return GestureDetector(
       onDoubleTap: _onDoubleTap,
       child: ScaleTransition(
@@ -178,9 +224,16 @@ class _ProductListItemState extends State<_ProductListItem>
           padding: const EdgeInsets.symmetric(
               horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color:        AppColor.white,
+            color: isInCart
+                ? const Color(0xFFEEEDFE)   // light purple background
+                : AppColor.white,
             borderRadius: BorderRadius.circular(10),
-            border:       Border.all(color: AppColor.grey200),
+            border: Border.all(
+              color: isInCart
+                  ? const Color(0xFF6366F1)  // purple border
+                  : AppColor.grey200,
+              width: isInCart ? 1.5 : 1.0,
+            ),
           ),
           child: Row(
             children: [

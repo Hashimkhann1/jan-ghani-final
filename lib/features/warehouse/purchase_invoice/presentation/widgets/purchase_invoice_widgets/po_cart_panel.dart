@@ -22,12 +22,45 @@ import 'po_type_dropdown.dart';
 // MAIN PANEL
 // ─────────────────────────────────────────────────────────────
 
-class PoCartPanel extends ConsumerWidget {
+class PoCartPanel extends ConsumerStatefulWidget {
   const PoCartPanel({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PoCartPanel> createState() => _PoCartPanelState();
+}
+
+class _PoCartPanelState extends ConsumerState<PoCartPanel> {
+  final ScrollController _scrollCtrl = ScrollController();
+  int _prevCount = 0;
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  // Naya item add hone par list ke end mein animate karo
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve:    Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(purchaseInvoiceProvider);
+
+    // Jab cartItems ki count badhe — new item add hua — scroll karo
+    if (state.cartItems.length > _prevCount) {
+      _scrollToBottom();
+    }
+    _prevCount = state.cartItems.length;
 
     return Container(
       color: AppColor.background,
@@ -42,13 +75,16 @@ class PoCartPanel extends ConsumerWidget {
                       const PoCartTableHeader(),
                       Expanded(
                         child: ListView.separated(
+                          controller: _scrollCtrl,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 4),
                           itemCount: state.cartItems.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 4),
-                          itemBuilder: (context, index) =>
-                              PoCartItemRow(cartItem: state.cartItems[index]),
+                          itemBuilder: (context, index) => PoCartItemRow(
+                            index:    index,
+                            cartItem: state.cartItems[index],
+                          ),
                         ),
                       ),
                     ],

@@ -209,18 +209,34 @@ class _ProductTable extends StatelessWidget {
               color:   const Color(0xFFF8F9FF),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
-                children: _cols.map((h) => Expanded(
-                  flex: _flex(h),
-                  child: Text(
-                    h,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF6C7280),
-                      letterSpacing: 0.4,
+                children: [
+                  // # column — row ke index badge ke saath align
+                  const SizedBox(
+                    width: 32,
+                    child: Text(
+                      '#',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize:      12,
+                        fontWeight:    FontWeight.w700,
+                        color:         Color(0xFF6C7280),
+                        letterSpacing: 0.4,
+                      ),
                     ),
                   ),
-                )).toList(),
+                  ..._cols.map((h) => Expanded(
+                    flex: _flex(h),
+                    child: Text(
+                      h,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF6C7280),
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  )),
+                ],
               ),
             ),
             const Divider(height: 1, color: Color(0xFFE5E7EB)),
@@ -237,6 +253,7 @@ class _ProductTable extends StatelessWidget {
                       key:       ValueKey(products[index].id), // ✅ Correct diffing
                       product:   products[index],
                       isEven:    index.isEven,
+                      index:     index,
                       flex:      _flex,
                       onEdit:    () => onEdit(products[index]),
                       onHistory: () => onHistory(products[index]),
@@ -258,6 +275,7 @@ class _ProductTable extends StatelessWidget {
 class _ProductRow extends StatelessWidget {
   final ProductModel         product;
   final bool                 isEven;
+  final int                  index;           // 0-based — display mein +1
   final int Function(String) flex;
   final VoidCallback         onEdit;
   final VoidCallback         onHistory;
@@ -274,6 +292,7 @@ class _ProductRow extends StatelessWidget {
     required super.key,
     required this.product,
     required this.isEven,
+    required this.index,
     required this.flex,
     required this.onEdit,
     required this.onHistory,
@@ -302,6 +321,32 @@ class _ProductRow extends StatelessWidget {
         // ✅ Yeh static child hai — hover par rebuild skip hoga
         child: Row(
           children: [
+            // Index badge — 1, 2, 3 ...
+            SizedBox(
+              width: 32,
+              child: Center(
+                child: Container(
+                  width:  24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color:        const Color(0xFFEEF2FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${index + 1}',
+                      style: const TextStyle(
+                        fontSize:   10,
+                        fontWeight: FontWeight.w700,
+                        color:      Color(0xFF6366F1),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 5,),
+
             Expanded(
               flex: flex('SKU'),
               child: Text(

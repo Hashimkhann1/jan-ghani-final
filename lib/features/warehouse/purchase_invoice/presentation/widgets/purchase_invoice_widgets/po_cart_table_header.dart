@@ -22,6 +22,9 @@ class PoCartTableHeader extends StatelessWidget {
       ),
       child: const Row(
         children: [
+          // Index column — cart row ki width ke saath align
+          SizedBox(width: 28, child: _H(text: '#')),
+          SizedBox(width: 6),
           Expanded(flex: 3,
               child: _H(text: 'Product',
                   textAlign: TextAlign.start)),
