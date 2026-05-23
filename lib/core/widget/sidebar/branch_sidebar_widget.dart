@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/features/branch/accountant_transaction/presentation/screen/accountant_transaction_screen.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/branch/branch_stock_damage/presentation/screen/branch_stock_damage_screen.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all_customer_screen.dart';
@@ -90,6 +91,10 @@ final _cashierItems = <NavItem>[
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
     screen: const BranchTransferListScreen(),
+  ),
+  NavItem(
+    icon: Icons.local_shipping_rounded, label: 'Stock Damage',
+    screen: const BranchStockDamageScreen(),
   ),
 ];
 
