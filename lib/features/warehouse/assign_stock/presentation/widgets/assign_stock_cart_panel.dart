@@ -6,13 +6,45 @@ import 'assign_stock_cart_header.dart';
 import 'assign_stock_cart_row.dart';
 import 'assign_stock_cart_summary.dart';
 
-class AssignStockCartPanel extends ConsumerWidget {
+class AssignStockCartPanel extends ConsumerStatefulWidget {
   const AssignStockCartPanel({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AssignStockCartPanel> createState() =>
+      _AssignStockCartPanelState();
+}
+
+class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
+  final ScrollController _scrollCtrl = ScrollController();
+  int _prevCount = 0;
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(assignStockProvider);
     final notifier = ref.read(assignStockProvider.notifier);
+
+    if (state.cartItems.length > _prevCount) {
+      _scrollToBottom();
+    }
+    _prevCount = state.cartItems.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -183,6 +215,7 @@ class AssignStockCartPanel extends ConsumerWidget {
             ),
           )
               : ListView.separated(
+            controller: _scrollCtrl,
             padding: const EdgeInsets.symmetric(
                 horizontal: 12, vertical: 8),
             itemCount: state.cartItems.length,
@@ -190,7 +223,9 @@ class AssignStockCartPanel extends ConsumerWidget {
             const SizedBox(height: 6),
             itemBuilder: (context, index) {
               return AssignStockCartRow(
-                  item: state.cartItems[index]);
+                item:  state.cartItems[index],
+                index: index,
+              );
             },
           ),
         ),

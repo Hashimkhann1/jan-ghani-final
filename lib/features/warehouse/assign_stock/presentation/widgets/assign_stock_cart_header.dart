@@ -15,6 +15,8 @@ class AssignStockCartHeader extends StatelessWidget {
       ),
       child: const Row(
         children: [
+          SizedBox(width: 28, child: _H(text: '#')),
+          SizedBox(width: 6),
           Expanded(flex: 3, child: _H(text: 'Product', textAlign: TextAlign.start)),
           Expanded(flex: 2, child: _H(text: 'Qty')),
           Expanded(flex: 2, child: _H(text: 'Purchase Price')),

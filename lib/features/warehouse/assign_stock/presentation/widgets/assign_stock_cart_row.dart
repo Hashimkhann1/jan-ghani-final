@@ -7,8 +7,9 @@ import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/pro
 
 class AssignStockCartRow extends ConsumerStatefulWidget {
   final AssignStockCartItem item;
+  final int                 index;
 
-  const AssignStockCartRow({super.key, required this.item});
+  const AssignStockCartRow({super.key, required this.item, required this.index});
 
   @override
   ConsumerState<AssignStockCartRow> createState() =>
@@ -74,6 +75,32 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
       ),
       child: Row(
         children: [
+          // Index badge
+          SizedBox(
+            width: 28,
+            child: Center(
+              child: Container(
+                width:  22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color:        AppColor.primary.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Center(
+                  child: Text(
+                    '${widget.index + 1}',
+                    style: const TextStyle(
+                      fontSize:   10,
+                      fontWeight: FontWeight.w700,
+                      color:      AppColor.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+
           // Product name
           Expanded(
             flex: 3,
