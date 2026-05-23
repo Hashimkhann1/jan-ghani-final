@@ -13,14 +13,14 @@ class SyncConfig {
   static const int    dbPort     = 5432;
   static const String dbName     = 'store_db';
   static const String dbUser     = 'storeuser';
-  // static const String dbPassword = 'shahab';
-  static const String dbPassword = 'branchUser12C3';
+  static const String dbPassword = 'shahab';
+  // static const String dbPassword = 'branchUser12C3';
 
   // ── Supabase ──────────────────────────────────────
-  static const String supabaseUrl = '';
-  // static const String supabaseUrl = 'https://kjjtqfruxhjcxwvxwffz.supabase.co';
-  static const String supabaseKey = '';
-  // static const String supabaseKey = 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS';
+  // static const String supabaseUrl = '';
+  static const String supabaseUrl = 'https://kjjtqfruxhjcxwvxwffz.supabase.co';
+  // static const String supabaseKey = '';
+  static const String supabaseKey = 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS';
 
   static const int syncIntervalSeconds = 120;
 
@@ -41,6 +41,7 @@ class SyncConfig {
     'branch_expense',
     'branch_summary',
     'branch_stock_inventory',
+    'branch_stock_damage',
     'accountant_transactions',
   ];
 
