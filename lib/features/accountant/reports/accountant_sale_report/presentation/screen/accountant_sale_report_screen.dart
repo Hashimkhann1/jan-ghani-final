@@ -68,6 +68,16 @@ class _AccountantSaleReportScreenState
     }
   }
 
+  // ✅ FIX: Smart quantity formatter — decimal preserve karta hai
+  String _fmtQty(double q) =>
+      q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
+
+  final _amtFmt = NumberFormat('#,##,###', 'en_IN');
+
+  String _fmtAmt(double v) {
+    return 'Rs ${_amtFmt.format(v.toInt())}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(accountantSaleReportProvider);
@@ -144,7 +154,7 @@ class _AccountantSaleReportScreenState
             onPressed: () {
               notifier.setToday();
               final today = DateTime.now();
-              final todayClean = DateTime(today.year, today.month, today.day); // ← direct
+              final todayClean = DateTime(today.year, today.month, today.day);
               _fromCtrl.text = _dateFmt.format(todayClean);
               _toCtrl.text   = _dateFmt.format(todayClean);
             },
@@ -234,7 +244,7 @@ class _AccountantSaleReportScreenState
               _divider(),
               _SummaryTile(
                 label: 'Qty',
-                value: summary.totalQuantity.toStringAsFixed(0),
+                value: _fmtQty(summary.totalQuantity), // ✅ FIX
                 icon:  Icons.inventory_2_outlined,
                 color: AppColor.warning,
               ),
@@ -260,17 +270,15 @@ class _AccountantSaleReportScreenState
                 : RefreshIndicator(
               onRefresh: notifier.load,
               child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(
-                    16, 0, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 itemCount:      state.invoices.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 10),
-                itemBuilder: (_, i) =>
-                    _InvoiceCard(
-                      invoice: state.invoices[i],
-                      dateFmt: _dateFmt,
-                      timeFmt: _timeFmt,
-                    ),
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (_, i) => _InvoiceCard(
+                  invoice: state.invoices[i],
+                  dateFmt: _dateFmt,
+                  timeFmt: _timeFmt,
+                  fmtQty:  _fmtQty, // ✅ FIX: pass karo
+                ),
               ),
             ),
           ),
@@ -284,23 +292,20 @@ class _AccountantSaleReportScreenState
     color: const Color(0xFFE5E7EB),
     margin: const EdgeInsets.symmetric(horizontal: 6),
   );
-
-  final _amtFmt = NumberFormat('#,##,###', 'en_IN');
-
-  String _fmtAmt(double v) {
-    return 'Rs ${_amtFmt.format(v.toInt())}';
-  }
 }
 
 // ── Invoice Card ──────────────────────────────────────────────
 class _InvoiceCard extends StatefulWidget {
-  final SaleReportInvoice invoice;
-  final DateFormat        dateFmt;
-  final DateFormat        timeFmt;
+  final SaleReportInvoice      invoice;
+  final DateFormat             dateFmt;
+  final DateFormat             timeFmt;
+  final String Function(double) fmtQty; // ✅ FIX
+
   const _InvoiceCard({
     required this.invoice,
     required this.dateFmt,
     required this.timeFmt,
+    required this.fmtQty, // ✅ FIX
   });
 
   @override
@@ -361,8 +366,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(inv.invoiceNo,
                             style: const TextStyle(
@@ -392,7 +396,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8), // badge se thoda gap
+                        const SizedBox(width: 8),
                         _PayBadge(
                           label: inv.paymentLabel,
                           color: _paymentColor,
@@ -401,8 +405,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                     ),
                     const SizedBox(height: 4),
                     Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           '${widget.dateFmt.format(inv.invoiceDate)}  ${widget.timeFmt.format(inv.invoiceDate)}',
@@ -411,7 +414,8 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                               color:    AppColor.textHint),
                         ),
                         Text(
-                          '${inv.items.length} items  •  Qty: ${inv.totalQuantity.toStringAsFixed(0)}',
+                          // ✅ FIX: toStringAsFixed(0) → _fmtQty
+                          '${inv.items.length} items  •  Qty: ${widget.fmtQty(inv.totalQuantity)}',
                           style: const TextStyle(
                               fontSize: 10,
                               color:    AppColor.textHint),
@@ -441,18 +445,10 @@ class _InvoiceCardState extends State<_InvoiceCard> {
 
               // Items header
               Row(children: const [
-                Expanded(
-                    flex: 3,
-                    child: _IH(text: 'Product')),
-                Expanded(
-                    flex: 1,
-                    child: _IH(text: 'Qty', right: false)),
-                Expanded(
-                    flex: 1,
-                    child: _IH(text: 'Price', right: false)),
-                Expanded(
-                    flex: 1,
-                    child: _IH(text: 'Total', right: true)),
+                Expanded(flex: 3, child: _IH(text: 'Product')),
+                Expanded(flex: 1, child: _IH(text: 'Qty',   right: false)),
+                Expanded(flex: 1, child: _IH(text: 'Price', right: false)),
+                Expanded(flex: 1, child: _IH(text: 'Total', right: true)),
               ]),
               const SizedBox(height: 6),
 
@@ -471,7 +467,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      item.quantity.toStringAsFixed(0),
+                      widget.fmtQty(item.quantity), // ✅ FIX
                       style: const TextStyle(
                           fontSize: 12,
                           color:    AppColor.textSecondary),
@@ -513,8 +509,8 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                     Text(
                       '- Rs ${inv.totalDiscount.toStringAsFixed(0)}',
                       style: const TextStyle(
-                          fontSize: 12,
-                          color:    AppColor.success,
+                          fontSize:   12,
+                          color:      AppColor.success,
                           fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -588,8 +584,7 @@ class _DateField extends StatelessWidget {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide:
-            const BorderSide(color: AppColor.grey200),
+            borderSide: const BorderSide(color: AppColor.grey200),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -676,9 +671,9 @@ class _IH extends StatelessWidget {
   Widget build(BuildContext context) => Text(text,
       textAlign: right ? TextAlign.right : TextAlign.left,
       style: const TextStyle(
-          fontSize:   10,
-          fontWeight: FontWeight.w600,
-          color:      AppColor.textHint,
+          fontSize:      10,
+          fontWeight:    FontWeight.w600,
+          color:         AppColor.textHint,
           letterSpacing: 0.3));
 }
 
@@ -695,10 +690,12 @@ class _EmptyState extends StatelessWidget {
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text('Koi invoice nahi mila',
-            style: TextStyle(
-                fontSize:   16,
-                fontWeight: FontWeight.w600,
-                color:      Colors.grey.shade500)),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade500,
+          ),
+        ),
         const SizedBox(height: 6),
         Text('Filters change karein ya date range update karein',
             style: TextStyle(

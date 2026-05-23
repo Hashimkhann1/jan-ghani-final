@@ -6,6 +6,10 @@ import '../../data/model/accountant_profit_loss_model.dart';
 import '../provider/accountant_profit_loss_provider.dart';
 
 
+// ✅ Smart qty formatter — 0.5 → "0.50", 3 → "3"
+String _fmtQty(double q) =>
+    q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
+
 class PnlReportScreen extends ConsumerStatefulWidget {
   const PnlReportScreen({super.key});
 
@@ -261,13 +265,11 @@ class _PnlBody extends StatelessWidget {
         child: TabBarView(
           controller: tabCtrl,
           children: [
-            // Tab 1: Daily
             _DailyTab(
               daily:  summary.daily,
               dayFmt: dayFmt,
               fmtAmt: fmtAmt,
             ),
-            // Tab 2: Invoices
             _InvoicesTab(
               invoices: summary.invoices,
               timeFmt:  timeFmt,
@@ -388,8 +390,6 @@ class _DailyTab extends StatelessWidget {
   }
 }
 
-// ── Day Card ──────────────────────────────────────────────
-
 class _DayCard extends StatelessWidget {
   final PnlDaySummary           day;
   final DateFormat              dayFmt;
@@ -419,7 +419,6 @@ class _DayCard extends StatelessWidget {
         ],
       ),
       child: Row(children: [
-        // Date
         Container(
           padding: const EdgeInsets.symmetric(
               horizontal: 10, vertical: 8),
@@ -434,7 +433,6 @@ class _DayCard extends StatelessWidget {
         ),
         const SizedBox(width: 12),
 
-        // Sale Profit + Return Loss
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,7 +462,6 @@ class _DayCard extends StatelessWidget {
           ),
         ),
 
-        // Net Profit
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text('Net',
               style: const TextStyle(
@@ -507,8 +504,6 @@ class _InvoicesTab extends StatelessWidget {
     );
   }
 }
-
-// ── Invoice P&L Card ──────────────────────────────────────
 
 class _InvoicePnlCard extends StatefulWidget {
   final PnlInvoice              inv;
@@ -558,7 +553,6 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
             padding: const EdgeInsets.all(14),
             child: Row(children: [
 
-              // Icon
               Container(
                 width: 40, height: 40,
                 decoration: BoxDecoration(
@@ -602,7 +596,6 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                             ),
                           ],
                         ]),
-                        // Profit / Loss amount
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
@@ -664,7 +657,7 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
               // Items header
               const Row(children: [
                 Expanded(flex: 3, child: _IH(text: 'Product')),
-                Expanded(flex: 2, child: _IH(text: 'Formula',    right: false)),
+                Expanded(flex: 2, child: _IH(text: 'Formula',     right: false)),
                 Expanded(flex: 2, child: _IH(text: 'Profit/Item', right: true)),
               ]),
               const SizedBox(height: 6),
@@ -690,11 +683,14 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                         ),
                         Expanded(
                           flex: 2,
+                          // ✅ FIX: Sahi formula display
+                          // (sale - cost) × qty - discount
+                          // PEHLE: (sale - cost - discount) × qty  ❌
                           child: Text(
                             '(${item.salePrice.toStringAsFixed(0)}'
-                                ' - ${item.costPrice.toStringAsFixed(0)}'
-                                '${item.discount > 0 ? ' - ${item.discount.toStringAsFixed(0)}' : ''}'
-                                ') × ${item.quantity.toStringAsFixed(0)}',
+                                ' - ${item.costPrice.toStringAsFixed(0)})'
+                                ' × ${_fmtQty(item.quantity)}'
+                                '${item.discount > 0 ? ' - ${item.discount.toStringAsFixed(0)}' : ''}',
                             style: const TextStyle(
                                 fontSize: 9,
                                 color: AppColor.textHint),
