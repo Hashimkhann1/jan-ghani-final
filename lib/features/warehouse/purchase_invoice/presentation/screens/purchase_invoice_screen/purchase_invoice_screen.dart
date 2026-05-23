@@ -67,9 +67,6 @@ class _PurchaseInvoiceScreenState
 
   @override
   void dispose() {
-    // Screen close hone pe cart clear karo
-    // (taake agla new PO fresh start ho)
-    // Note: clearCart() automatically _existingOrderId reset karta hai
     super.dispose();
   }
 
@@ -133,8 +130,11 @@ class _TopBar extends ConsumerWidget {
           // Back button
           InkWell(
             onTap: () {
-              // Screen pop karne se pehle cart clear karo
-              ref.read(purchaseInvoiceProvider.notifier).clearCart();
+              // Edit mode mein clear karo — new mode mein cart preserve karo
+              // taake user dobara aaye toh items wahan hon
+              if (isEditMode) {
+                ref.read(purchaseInvoiceProvider.notifier).clearCart();
+              }
               Navigator.of(context).pop();
             },
             borderRadius: BorderRadius.circular(8),
