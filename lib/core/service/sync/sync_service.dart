@@ -25,24 +25,38 @@ class SyncConfig {
   static const int syncIntervalSeconds = 120;
 
   static const List<String> tables = [
-    'branch',
-    'branch_counter',
-    'branch_users',
-    'customer',
-    'branch_cash_counter',
-    'branch_cash_transaction',
-    'sale_invoices',            // ← pehle invoices
-    'sale_invoice_items',       // ← phir items
-    'sale_invoice_payments',    // ← phir payments (trigger: balance + credit)
-    'sale_returns',
-    'sale_return_payments',
-    'sale_return_items',
-    'customer_ledger',          // ← sabse akhir (trigger: balance - payment)
-    'branch_expense',
-    'branch_summary',
-    'branch_stock_inventory',
-    'branch_stock_damage',
-    'accountant_transactions',
+    // ── Layer 1: Root ─────────────────────────────────────────
+    'branch',                   // 1. koi dependency nahi
+
+    // ── Layer 2: Sirf branch per depend ──────────────────────
+    'branch_counter',           // 2. branch → counter
+    'customer',                 // 3. branch → customer
+    'branch_stock_inventory',   // 4. branch → stock inventory
+    'branch_expense',           // 5. branch → expense
+
+    // ── Layer 3: branch + branch_counter per depend ───────────
+    'branch_users',             // 6. branch + branch_counter → users
+    'branch_cash_counter',      // 7. branch + branch_counter → cash counter
+
+    // ── Layer 4: Layer 3 per depend ──────────────────────────
+    'branch_cash_transaction',  // 8.  branch_cash_counter → transaction
+    'branch_stock_damage',      // 9.  branch_stock_inventory → damage
+    'sale_invoices',            // 10. branch + branch_counter + branch_users + customer
+
+    // ── Layer 5: sale_invoices per depend ────────────────────
+    'sale_invoice_items',       // 11. sale_invoices → items
+    'sale_invoice_payments',    // 12. sale_invoices → payments  (trigger: cash/card/credit counter update)
+    'sale_returns',             // 13. sale_invoices + branch_users + customer
+
+    // ── Layer 6: Layer 5 per depend ──────────────────────────
+    'sale_return_items',        // 14. sale_returns + sale_invoice_items → return items
+    'sale_return_payments',     // 15. sale_returns → return payments
+    'customer_ledger',          // 16. customer + branch_counter  (trigger: balance update)
+
+    // ── Layer 7: Sab complete hone ke baad ───────────────────
+    'accountant_counter',       // 18. ⚠️ missing tha — accountant balance tracker
+    'accountant_transactions',  // 19. branch + accountant_counter → transactions
+    'branch_summary',           // 20. sabse akhir — sab tables ka summary
   ];
 
   static const Map<String, String> timestampColumns = {
@@ -52,16 +66,14 @@ class SyncConfig {
     'sale_return_items'     : 'created_at',
   };
 
-  static String getTimestampColumn(String table) =>
-      timestampColumns[table] ?? 'updated_at';
+  static String getTimestampColumn(String table) => timestampColumns[table] ?? 'updated_at';
 
   // ✅ FIX 1: branch_summary ka conflict column (store_id, counter_date) hai
   static const Map<String, String> conflictColumns = {
     'branch_summary': 'store_id,counter_date',
   };
 
-  static String getConflictColumn(String table) =>
-      conflictColumns[table] ?? 'id';
+  static String getConflictColumn(String table) => conflictColumns[table] ?? 'id';
 
   // ✅ FIX 2: Yeh columns Supabase mein nahi hain — upsert se pehle remove honge
   static const Map<String, List<String>> excludeColumns = {

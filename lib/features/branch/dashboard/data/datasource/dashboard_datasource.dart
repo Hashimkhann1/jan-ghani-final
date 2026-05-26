@@ -155,3 +155,60 @@ class DashboardDatasource {
     return double.tryParse(v.toString());
   }
 }
+
+// ─── Low Stock Datasource ─────────────────────────────────────────────────
+
+class LowStockDatasource {
+
+  Future<List<LowStockItem>> getAll({required String storeId}) async {
+    final conn = await DataBaseService.getConnection();
+
+    final result = await conn.execute(
+      Sql.named('''
+        SELECT
+          id              AS inv_id,
+          product_name,
+          sku,
+          barcode::text   AS barcode,
+          unit            AS unit_of_measure,
+          stock           AS quantity,
+          min_stock       AS min_stock_level,
+          sale_price      AS selling_price,
+          purchase_price  AS cost_price,
+          updated_at
+        FROM public.branch_stock_inventory
+        WHERE store_id = @storeId
+          AND (
+            stock <= 0
+            OR stock < min_stock
+          )
+        ORDER BY stock ASC, product_name ASC
+      '''),
+      parameters: {'storeId': storeId},
+    );
+
+    return result.map((row) {
+      final m = row.toColumnMap();
+      return LowStockItem(
+        id:           m['inv_id']?.toString() ?? '',
+        name:         m['product_name']?.toString() ?? '',
+        sku:          m['sku']?.toString() ?? '',
+        barcode:      m['barcode']?.toString(),
+        unit:         m['unit_of_measure']?.toString() ?? '',
+        quantity:     _dbl(m['quantity'])      ?? 0,
+        minStock:     _dbl(m['min_stock_level']) ?? 0,
+        sellingPrice: _dbl(m['selling_price']) ?? 0,
+        costPrice:    _dbl(m['cost_price'])    ?? 0,
+        updatedAt:    m['updated_at'] is DateTime
+            ? m['updated_at'] as DateTime
+            : DateTime.tryParse(m['updated_at'].toString()),
+      );
+    }).toList();
+  }
+
+  static double? _dbl(dynamic v) {
+    if (v == null) return null;
+    if (v is num)  return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+}
