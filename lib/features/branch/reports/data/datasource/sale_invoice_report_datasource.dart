@@ -1,6 +1,6 @@
 import 'package:postgres/postgres.dart';
 import '../../../../../core/service/db/db_service.dart';
-import '../model/sale_invoice_list_model.dart';
+import '../model/sale_invoice_report_model.dart';
 
 class CashierModel {
   final String id;

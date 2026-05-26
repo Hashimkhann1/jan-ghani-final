@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
+import '../../../branch_stock_inventory/presentation/provider/branch_stock_inventory_provider.dart';
 import '../../data/datasource/stock_transfer_remote_datasource.dart';
 import '../../data/model/stock_transfer_model.dart';
 
@@ -54,10 +55,10 @@ class StockTransferNotifier extends AsyncNotifier<List<StockTransfer>> {
       await _dataSource.acceptTransfer(transferId);
 
       state = AsyncData(
-        currentList.map((t) => t.id == transferId
-            ? _rebuildWithStatus(t, 'accepted')
-            : t).toList(),
+        currentList.map((t) => t.id == transferId ? _rebuildWithStatus(t, 'accepted') : t).toList(),
       );
+
+      await ref.read(branchStockProvider.notifier).load();
 
       return true;
     } catch (e, stack) {

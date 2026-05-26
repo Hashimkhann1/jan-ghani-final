@@ -21,15 +21,15 @@ class TopCustomer {
 }
 
 class DashboardData {
-  final double             cashSale;
-  final double             cardSale;
-  final double             creditSale;
-  final double             installment;
-  final double             totalSale;
-  final double             totalAmount;
-  final List<WeeklySale>   weeklySales;
-  final List<TopProduct>   topProducts;
-  final List<TopCustomer>  topCustomers;
+  final double            cashSale;
+  final double            cardSale;
+  final double            creditSale;
+  final double            installment;
+  final double            totalSale;
+  final double            totalAmount;
+  final List<WeeklySale>  weeklySales;
+  final List<TopProduct>  topProducts;
+  final List<TopCustomer> topCustomers;
 
   const DashboardData({
     required this.cashSale,
@@ -44,14 +44,49 @@ class DashboardData {
   });
 
   static DashboardData empty() => const DashboardData(
-    cashSale:    0,
-    cardSale:    0,
-    creditSale:  0,
-    installment: 0,
-    totalSale:   0,
-    totalAmount: 0,
-    weeklySales: [],
-    topProducts: [],
+    cashSale:     0,
+    cardSale:     0,
+    creditSale:   0,
+    installment:  0,
+    totalSale:    0,
+    totalAmount:  0,
+    weeklySales:  [],
+    topProducts:  [],
     topCustomers: [],
   );
+}
+
+// ─── Low Stock Models ─────────────────────────────────────────────────────
+
+enum StockStatus { outOfStock, low }
+
+class LowStockItem {
+  final String    id;
+  final String    name;
+  final String    sku;
+  final String?   barcode;
+  final String    unit;
+  final double    quantity;
+  final double    minStock;
+  final double    sellingPrice;
+  final double    costPrice;
+  final DateTime? updatedAt;
+
+  const LowStockItem({
+    required this.id,
+    required this.name,
+    required this.sku,
+    this.barcode,
+    required this.unit,
+    required this.quantity,
+    required this.minStock,
+    required this.sellingPrice,
+    required this.costPrice,
+    this.updatedAt,
+  });
+
+  StockStatus get status {
+    if (quantity <= 0) return StockStatus.outOfStock;
+    return StockStatus.low;
+  }
 }

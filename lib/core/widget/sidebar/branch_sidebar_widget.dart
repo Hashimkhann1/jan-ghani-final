@@ -13,6 +13,7 @@ import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all
 import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/screen/all_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/screen/counter_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/branch/expense/presentation/screen/all_expense_screen.dart';
+import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale_return_report_screen.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_screen.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
@@ -21,7 +22,7 @@ import '../../../features/branch/cash_counter/presentation/screen/cash_counter_s
 import '../../../features/branch/cash_counter/presentation/screen/counter_cash_transaction_screen.dart';
 import '../../../features/branch/cash_store/presentation/screen/store_summary_screen.dart';
 import '../../../features/branch/dashboard/presentation/screen/dashboard_screen.dart';
-import '../../../features/branch/sale_invoice/presentation/screen/sale_invoice_list_screen.dart';
+import '../../../features/branch/reports/presentation/screen/sale_invoice_report_screen.dart';
 import '../../../features/branch/store_user/presentation/screen/user_screen.dart';
 
 const _kGrey    = Color(0xFFD3D3D3);
@@ -84,9 +85,13 @@ final _cashierItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyI,
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Invoice Report',
+    icon: Icons.bar_chart_rounded, label: 'Sale Report',
     screen: const SaleInvoiceListScreen(),
     shortcutKey: LogicalKeyboardKey.keyR,
+  ),
+  NavItem(
+    icon: Icons.local_shipping_rounded, label: 'Sale Return Report',
+    screen: const SaleReturnReportScreen(),
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
