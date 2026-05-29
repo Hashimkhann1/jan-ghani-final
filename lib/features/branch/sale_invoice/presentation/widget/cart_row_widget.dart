@@ -29,6 +29,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
   late TextEditingController _taxCtrl;
   late TextEditingController _disCtrl;
   late TextEditingController _subCtrl;
+  final _cartScrollCtrl = ScrollController();
 
   final _fn = List.generate(5, (_) => FocusNode());
 
@@ -101,6 +102,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     _qtyCtrl.dispose(); _priceCtrl.dispose(); _taxCtrl.dispose();
     _disCtrl.dispose(); _subCtrl.dispose();
     for (final fn in _fn) { fn.dispose(); }
+    _cartScrollCtrl.dispose();
     super.dispose();
   }
 
@@ -195,121 +197,136 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
           width: isNavRow ? 1.5 : 1.0,
         ),
       ),
-      child: Row(children: [
-
-        // Product Name + SKU
-        Expanded(
-          flex: 3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.product.name,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600,
-                      color: AppColor.textPrimary),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(item.product.sku,
-                  style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
-            ],
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 1,
+            child: Text(
+              '${widget.rowIndex + 1}',
+              textAlign: TextAlign.start,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColor.textPrimary,
+              ),
+            ),
           ),
-        ),
 
-        // Qty
-        Expanded(
-          flex: 2,
-          child: _CellTF(
-            controller:  _qtyCtrl,
-            focusNode:   _fn[0],
-            isNavActive: isNavRow && nav.col == 0,
-            // ✅ FIX: >= 0 — 0 bhi state mein update hoga
-            onChanged: (v) {
-              final val = double.tryParse(v);
-              if (val != null && val >= 0)
-                notifier.updateQuantity(item.cartId, val);
-            },
-            onSubmitted: (_) => _commitQty(),
+          // Product Name + SKU
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.product.name,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(item.product.sku,
+                    style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+              ],
+            ),
           ),
-        ),
 
-        // Price
-        Expanded(
-          flex: 2,
-          child: _CellTF(
-            controller:  _priceCtrl,
-            focusNode:   _fn[1],
-            isNavActive: isNavRow && nav.col == 1,
-            onChanged:   (v) {
-              final val = double.tryParse(v);
-              if (val != null && val >= 0)
-                notifier.updateSalePrice(item.cartId, val);
-            },
-            onSubmitted: (_) => _commitPrice(),
+          // Qty
+          Expanded(
+            flex: 2,
+            child: _CellTF(
+              controller:  _qtyCtrl,
+              focusNode:   _fn[0],
+              isNavActive: isNavRow && nav.col == 0,
+              // ✅ FIX: >= 0 — 0 bhi state mein update hoga
+              onChanged: (v) {
+                final val = double.tryParse(v);
+                if (val != null && val >= 0)
+                  notifier.updateQuantity(item.cartId, val);
+              },
+              onSubmitted: (_) => _commitQty(),
+            ),
           ),
-        ),
 
-        // Tax
-        Expanded(
-          flex: 2,
-          child: _CellTF(
-            controller:  _taxCtrl,
-            focusNode:   _fn[2],
-            isNavActive: isNavRow && nav.col == 2,
-            prefix:      'Rs',
-            onChanged:   (v) {
-              final val = double.tryParse(v);
-              if (val != null && val >= 0)
-                notifier.updateTax(item.cartId, val);
-            },
-            onSubmitted: (_) => _commitTax(),
+          // Price
+          Expanded(
+            flex: 2,
+            child: _CellTF(
+              controller:  _priceCtrl,
+              focusNode:   _fn[1],
+              isNavActive: isNavRow && nav.col == 1,
+              onChanged:   (v) {
+                final val = double.tryParse(v);
+                if (val != null && val >= 0)
+                  notifier.updateSalePrice(item.cartId, val);
+              },
+              onSubmitted: (_) => _commitPrice(),
+            ),
           ),
-        ),
 
-        // Discount
-        Expanded(
-          flex: 2,
-          child: _CellTF(
-            controller:  _disCtrl,
-            focusNode:   _fn[3],
-            isNavActive: isNavRow && nav.col == 3,
-            prefix:      'Rs',
-            onChanged:   (v) {
-              final val = double.tryParse(v);
-              if (val != null && val >= 0)
-                notifier.updateDiscount(item.cartId, val);
-            },
-            onSubmitted: (_) => _commitDis(),
+          // Tax
+          Expanded(
+            flex: 2,
+            child: _CellTF(
+              controller:  _taxCtrl,
+              focusNode:   _fn[2],
+              isNavActive: isNavRow && nav.col == 2,
+              prefix:      'Rs',
+              onChanged:   (v) {
+                final val = double.tryParse(v);
+                if (val != null && val >= 0)
+                  notifier.updateTax(item.cartId, val);
+              },
+              onSubmitted: (_) => _commitTax(),
+            ),
           ),
-        ),
 
-        // SubTotal (highlighted)
-        Expanded(
-          flex: 2,
-          child: _CellTF(
-            controller:  _subCtrl,
-            focusNode:   _fn[4],
-            isNavActive: isNavRow && nav.col == 4,
-            highlighted: true,
-            onChanged:   (v) {
-              final val = double.tryParse(v);
-              if (val != null && val >= 0)
-                notifier.updateSubTotal(item.cartId, val);
-            },
-            onSubmitted: (_) => _commitSub(),
+          // Discount
+          Expanded(
+            flex: 2,
+            child: _CellTF(
+              controller:  _disCtrl,
+              focusNode:   _fn[3],
+              isNavActive: isNavRow && nav.col == 3,
+              prefix:      'Rs',
+              onChanged:   (v) {
+                final val = double.tryParse(v);
+                if (val != null && val >= 0)
+                  notifier.updateDiscount(item.cartId, val);
+              },
+              onSubmitted: (_) => _commitDis(),
+            ),
           ),
-        ),
 
-        // Delete
-        GestureDetector(
-          onTap: () => notifier.removeFromCart(item.cartId),
-          child: Container(
-            width: 28, height: 28,
-            decoration: BoxDecoration(
-                color: AppColor.errorLight,
-                borderRadius: BorderRadius.circular(7)),
-            child: const Icon(Icons.delete_outline, size: 15, color: AppColor.error),
+          // SubTotal (highlighted)
+          Expanded(
+            flex: 2,
+            child: _CellTF(
+              controller:  _subCtrl,
+              focusNode:   _fn[4],
+              isNavActive: isNavRow && nav.col == 4,
+              highlighted: true,
+              onChanged:   (v) {
+                final val = double.tryParse(v);
+                if (val != null && val >= 0)
+                  notifier.updateSubTotal(item.cartId, val);
+              },
+              onSubmitted: (_) => _commitSub(),
+            ),
           ),
-        ),
-      ]),
+
+          // Delete
+          GestureDetector(
+            onTap: () => notifier.removeFromCart(item.cartId),
+            child: Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                  color: AppColor.errorLight,
+                  borderRadius: BorderRadius.circular(7)),
+              child: const Icon(Icons.delete_outline, size: 15, color: AppColor.error),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

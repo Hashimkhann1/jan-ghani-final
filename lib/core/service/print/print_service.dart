@@ -37,6 +37,7 @@ class ThermalPrintService {
     required double grandTotal,
     required List<PaymentEntry> payments,
     required String cashierName,
+    String? customerId,
     double? returnAmount,
     double? previousBalance,
     double? paidAmount,
@@ -50,11 +51,6 @@ class ThermalPrintService {
     final isCreditSale = payments.any(
           (p) => p.method.toLowerCase() == 'credit' && p.amount > 0.01,
     );
-
-    // ── Scenario detection ──────────────────────────────────
-    // Scenario 1: Walk-in — no customer selected
-    // Scenario 2: Full credit — customer + credit only (no cash/card)
-    // Scenario 3: Partial — customer + some cash/card + some credit
 
     final cashPaid = payments
         .where((p) => p.method.toLowerCase() == 'cash' && p.amount > 0.01)
@@ -141,8 +137,7 @@ class ThermalPrintService {
           _dashedLine(),
 
           // ══════════════════════════════════════════════════
-          // SCENARIO 1: Walk-in customer (no customer account)
-          // SUB TOTAL → DISCOUNT → NET TOTAL → payments → return
+          // SCENARIO 1: Walk-in
           // ══════════════════════════════════════════════════
           if (!hasCustomer) ...[
             _infoRow('SUB TOTAL:', _fmt(totalAmount)),
@@ -160,9 +155,7 @@ class ThermalPrintService {
           ],
 
           // ══════════════════════════════════════════════════
-          // SCENARIO 2: Full Credit (customer + zero cash/card)
-          // SUB TOTAL → DISCOUNT → PREVIOUS BAL → NET AMOUNT
-          // → payment rows → CURRENT BAL → credit note
+          // SCENARIO 2: Full Credit
           // ══════════════════════════════════════════════════
           if (hasCustomer && isCreditSale && totalCashCard < 0.01) ...[
             _infoRow('SUB TOTAL:', _fmt(totalAmount)),
@@ -186,9 +179,7 @@ class ThermalPrintService {
           ],
 
           // ══════════════════════════════════════════════════
-          // SCENARIO 3: Partial Payment (customer + cash/card + credit)
-          // SUB TOTAL → DISCOUNT → PREVIOUS BAL → NET AMOUNT
-          // → payment rows → PAY AMOUNT → CURRENT BAL → credit note
+          // SCENARIO 3: Partial Payment
           // ══════════════════════════════════════════════════
           if (hasCustomer && isCreditSale && totalCashCard > 0.01) ...[
             _infoRow('SUB TOTAL:', _fmt(totalAmount)),
@@ -215,10 +206,7 @@ class ThermalPrintService {
           ],
 
           // ══════════════════════════════════════════════════
-          // SCENARIO 2 + 3: Customer with ZERO credit but cash paid
-          // (pure cash/card sale for a customer account)
-          // SUB TOTAL → DISCOUNT → PREVIOUS BAL → NET AMOUNT
-          // → payments → PAY AMOUNT → CURRENT BAL
+          // SCENARIO 4: Customer — Pure Cash/Card
           // ══════════════════════════════════════════════════
           if (hasCustomer && !isCreditSale) ...[
             _infoRow('SUB TOTAL:', _fmt(totalAmount)),
@@ -249,7 +237,7 @@ class ThermalPrintService {
           pw.SizedBox(height: 3),
           _dashedLine(),
 
-          // ── Credit Note (jab bhi credit ho) ───────────────
+          // ── Credit Note ────────────────────────────────────
           if (isCreditSale) ...[
             pw.SizedBox(height: 3),
             pw.Center(
@@ -262,6 +250,28 @@ class ThermalPrintService {
               ),
             ),
             pw.SizedBox(height: 2),
+            _dashedLine(),
+          ],
+
+          // ── QR Code (sirf customer ke liye) ───────────────
+          if (customerId != null && customerId.isNotEmpty) ...[
+            pw.SizedBox(height: 5),
+            pw.Center(
+              child: pw.BarcodeWidget(
+                barcode: pw.Barcode.qrCode(),
+                data: "https://janghani.netlify.app/$customerId",
+                width:  60,
+                height: 60,
+              ),
+            ),
+            pw.SizedBox(height: 3),
+            pw.Center(
+              child: pw.Text(
+                'ID: $customerId',
+                style: const pw.TextStyle(fontSize: 6.5),
+              ),
+            ),
+            pw.SizedBox(height: 4),
             _dashedLine(),
           ],
 

@@ -2,7 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../model/specific_customer_ledger_model.dart';
 
-class CustomerLedgerDatasource {
+class SpecificCustomerLedgerDatasource {
   final _client = Supabase.instance.client;
 
   Future<List<SpecificCustomerLedgerModel>> getByCustomer({

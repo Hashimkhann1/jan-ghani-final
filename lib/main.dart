@@ -3,16 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/service/db/db_service.dart';
 import 'package:jan_ghani_final/core/theme/light_theme.dart';
-import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
-import 'package:jan_ghani_final/features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
+import 'package:jan_ghani_final/features/branch/customer/presentation/screen/customer_detail_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/store_config.dart';
 import '../core/service/session/accountant_session.dart';
 import '../core/service/sync/sync_service.dart';
-import '../core/widget/sidebar/branch_sidebar_widget.dart';
 import '../features/branch/authentication/presentation/provider/auth_provider.dart';
-import '../features/branch/authentication/presentation/screen/login_screen.dart';
+import 'core/widget/sidebar/branch_sidebar_widget.dart';
+import 'features/branch/authentication/presentation/screen/login_screen.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -46,7 +45,6 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context,WidgetRef ref) {
     final auth = ref.watch(authProvider);
-
     return ProviderScope(
       child: MaterialApp(
         title: 'Jan Ghani',

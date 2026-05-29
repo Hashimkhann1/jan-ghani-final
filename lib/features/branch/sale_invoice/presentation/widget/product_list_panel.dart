@@ -66,11 +66,13 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
   // Enter yahan NAHI handle hoga — TextField.onSubmitted handle karega
   // ─────────────────────────────────────────────────────────────
   void _handleSearchKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return;
+    // ✅ KeyDownEvent + KeyRepeatEvent dono handle karo
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return;
+
     final key = event.logicalKey;
 
-    // ESC — search clear karo
-    if (key == LogicalKeyboardKey.escape) {
+    // ESC — sirf KeyDownEvent pe
+    if (key == LogicalKeyboardKey.escape && event is KeyDownEvent) {
       if (_searchCtrl.text.isNotEmpty) {
         _searchCtrl.clear();
         final isReturn =
@@ -283,13 +285,13 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
   }
 
   void _onProductAdded(String name, double qty, {bool isReturn = false}) {
-    _searchCtrl.clear();
+    // _searchCtrl.clear();
     _qtyCtrl.text = '1';
-    if (isReturn) {
-      ref.read(saleReturnProvider.notifier).updateSearch('');
-    } else {
-      ref.read(saleInvoiceProvider.notifier).updateSearch('');
-    }
+    // if (isReturn) {
+    //   ref.read(saleReturnProvider.notifier).updateSearch('');
+    // } else {
+    //   ref.read(saleInvoiceProvider.notifier).updateSearch('');
+    // }
     setState(() => _hoveredIndex = -1);
     _showAddedFeedback(name, qty);
     WidgetsBinding.instance.addPostFrameCallback((_) {

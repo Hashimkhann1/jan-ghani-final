@@ -20,15 +20,45 @@ import 'disable_text_field_widget.dart';
 import '../screen/payment_dialog.dart';
 
 String _fmtD(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
-
-class CartPanel extends ConsumerWidget {
-  CartPanel({super.key});
-
+class CartPanel extends ConsumerStatefulWidget {
+  const CartPanel({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartPanel> createState() => _CartPanelState();
+}
+
+class _CartPanelState extends ConsumerState<CartPanel> {
+  final _cartScrollCtrl = ScrollController();
+  int _lastCartLength = 0;
+
+  @override
+  void dispose() {
+    _cartScrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_cartScrollCtrl.hasClients) {
+        _cartScrollCtrl.animateTo(
+          _cartScrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state    = ref.watch(saleInvoiceProvider);
     final isReturn = state.saleType == SaleType.saleReturn;
+
+    // ✅ Naya item add hone pe auto-scroll
+    if (state.cartItems.length > _lastCartLength) {
+      _scrollToBottom();
+    }
+    _lastCartLength = state.cartItems.length;
 
     // ── F2 shortcut — Pay Now trigger ─────────────────────────
     ref.listen<bool>(payNowTriggerProvider, (_, trigger) {
@@ -98,6 +128,7 @@ class CartPanel extends ConsumerWidget {
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 itemCount: state.cartItems.length,
+                controller: _cartScrollCtrl,
                 separatorBuilder: (_, __) =>
                 const SizedBox(height: 5),
                 itemBuilder: (context, index) => CartItemRow(cartItem: state.cartItems[index], rowIndex: index),

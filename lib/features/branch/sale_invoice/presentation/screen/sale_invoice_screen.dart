@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/color/app_color.dart';
-import '../../../../../core/service/hardware/cash_drawer_service.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
 import '../../data/model/sale_invoice_model.dart';
@@ -13,7 +12,7 @@ import '../provider/sale_invoice_provider.dart';
 import '../widget/cart_panel.dart';
 import '../widget/held_invoices_sheet.dart';
 import '../widget/product_list_panel.dart';
-import 'return_payment_dialog.dart'; // ← Ctrl+A ke liye add kiya
+import 'return_payment_dialog.dart';
 
 // ── FocusNode providers ────────────────────────────────────────────
 final posSearchFocusProvider = Provider<FocusNode>((ref) {
@@ -241,13 +240,13 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       _confirmNewInvoice();
       return true;
     }
-
-    // F8 / Ctrl+D — Cash drawer
-    if (key == LogicalKeyboardKey.f8 ||
-        (ctrl && key == LogicalKeyboardKey.keyD)) {
-      if (CashDrawerService.isSupported) _openCashDrawer();
-      return true;
-    }
+    //
+    // // F8 / Ctrl+D — Cash drawer
+    // if (key == LogicalKeyboardKey.f8 ||
+    //     (ctrl && key == LogicalKeyboardKey.keyD)) {
+    //   if (CashDrawerService.isSupported) _openCashDrawer();
+    //   return true;
+    // }
 
     // ESC — Dialog band karo ya cart clear karo
     if (key == LogicalKeyboardKey.escape) {
@@ -320,21 +319,21 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     );
   }
 
-  Future<void> _openCashDrawer() async {
-    if (!CashDrawerService.isSupported) return;
-    final ok = await CashDrawerService.openDrawer();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        ok ? '💵 Cash drawer khul gaya' : '⚠️ Drawer nahi khula — port check karein',
-        style: const TextStyle(fontSize: 13),
-      ),
-      backgroundColor: ok ? AppColor.success : AppColor.warning,
-      behavior:        SnackBarBehavior.floating,
-      duration:        const Duration(seconds: 2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ));
-  }
+  // Future<void> _openCashDrawer() async {
+  //   if (!CashDrawerService.isSupported) return;
+  //   final ok = await CashDrawerService.openDrawer();
+  //   if (!mounted) return;
+  //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  //     content: Text(
+  //       ok ? '💵 Cash drawer khul gaya' : '⚠️ Drawer nahi khula — port check karein',
+  //       style: const TextStyle(fontSize: 13),
+  //     ),
+  //     backgroundColor: ok ? AppColor.success : AppColor.warning,
+  //     behavior:        SnackBarBehavior.floating,
+  //     duration:        const Duration(seconds: 2),
+  //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  //   ));
+  // }
 
   // ── Build ──────────────────────────────────────────────────────
   @override
@@ -447,29 +446,29 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
             const SizedBox(width: 6),
           ],
 
-          if (CashDrawerService.isSupported) ...[
-            SizedBox(
-              height: double.infinity,
-              child: TextButton.icon(
-                onPressed: _openCashDrawer,
-                icon: Icon(Icons.point_of_sale_outlined,
-                    size: 14, color: AppColor.textSecondary),
-                label: Text('Drawer',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: AppColor.textSecondary,
-                        fontWeight: FontWeight.w500)),
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColor.grey100,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: AppColor.grey300, width: 0.5)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-          ],
+          // if (CashDrawerService.isSupported) ...[
+          //   SizedBox(
+          //     height: double.infinity,
+          //     child: TextButton.icon(
+          //       onPressed: _openCashDrawer,
+          //       icon: Icon(Icons.point_of_sale_outlined,
+          //           size: 14, color: AppColor.textSecondary),
+          //       label: Text('Drawer',
+          //           style: TextStyle(
+          //               fontSize: 12,
+          //               color: AppColor.textSecondary,
+          //               fontWeight: FontWeight.w500)),
+          //       style: TextButton.styleFrom(
+          //         backgroundColor: AppColor.grey100,
+          //         padding: const EdgeInsets.symmetric(horizontal: 12),
+          //         shape: RoundedRectangleBorder(
+          //             borderRadius: BorderRadius.circular(8),
+          //             side: BorderSide(color: AppColor.grey300, width: 0.5)),
+          //       ),
+          //     ),
+          //   ),
+          //   const SizedBox(width: 6),
+          // ],
 
           if (!isReturn)
             Container(
@@ -501,8 +500,8 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       ),
       body: Row(
         children: [
-          const Expanded(flex: 35, child: ProductListPanel()),
-          Expanded(flex: 65, child: CartPanel()),
+          const Expanded(flex: 32, child: ProductListPanel()),
+          Expanded(flex: 68, child: CartPanel()),
         ],
       ),
     );

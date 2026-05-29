@@ -16,6 +16,7 @@ class CartTableHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Row(children: [
+        Expanded(flex: 1, child: _H(text: '#', textAlign: TextAlign.start)),
         Expanded(flex: 3, child: _H(text: 'Product', textAlign: TextAlign.start)),
         Expanded(flex: 2, child: _H(text: 'Qty')),
         Expanded(flex: 2, child: _H(text: 'Price')),
