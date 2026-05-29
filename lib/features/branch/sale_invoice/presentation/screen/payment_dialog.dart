@@ -236,15 +236,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     ));
   }
 
-  Future<void> _print(
-      dynamic state,
-      List<PaymentEntry> payments, {
-        double? returnAmount,
-        double? previousBalance,
-        double? paidAmount,
-        double? currentBalance,
-        bool    hasCustomer = false,   // ✅ new param
-      }) async {
+  Future<void> _print(dynamic state, List<PaymentEntry> payments, {double? returnAmount, double? previousBalance, double? paidAmount, double? currentBalance, bool    hasCustomer = false,}) async {
     try {
       final auth = ref.read(authProvider);
 
@@ -270,6 +262,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
         invoiceNo:       state.invoiceNo,
         date:            state.date,
         customerName:    state.selectedCustomer?.name,
+        customerId:      state.selectedCustomer?.id,  // ✅ yeh add karo
         items:           state.cartItems,
         totalAmount:     state.totalBeforeTax,
         totalDiscount:   state.totalDiscount,
@@ -277,9 +270,9 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
         payments:        payments,
         cashierName:     auth.user?.fullName ?? 'Unknown',
         returnAmount:    returnAmount,
-        previousBalance: hasCustomer ? previousBalance : null,  // ✅
-        paidAmount:      hasCustomer ? paidAmount      : null,  // ✅
-        currentBalance:  hasCustomer ? currentBalance  : null,  // ✅
+        previousBalance: hasCustomer ? previousBalance : null,
+        paidAmount:      hasCustomer ? paidAmount      : null,
+        currentBalance:  hasCustomer ? currentBalance  : null,
       );
 
       debugPrint('✅ Print successful');

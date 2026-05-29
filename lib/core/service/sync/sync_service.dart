@@ -78,7 +78,6 @@ class SyncConfig {
   // ✅ FIX 2: Yeh columns Supabase mein nahi hain — upsert se pehle remove honge
   static const Map<String, List<String>> excludeColumns = {
     'accountant_transactions': ['is_synced'],
-    'customer': ['balance'],
   };
 }
 
@@ -414,6 +413,11 @@ class SyncService {
   // ─────────────────────────────────────────────
   //  🔄 Single Table Sync
   // ─────────────────────────────────────────────
+
+  // ─────────────────────────────────────────
+//  🔄 Single Table Sync
+// ─────────────────────────────────────────
+
   static Future<int> _syncTable(
       Connection     localConn,
       SupabaseClient supabase,
@@ -424,24 +428,36 @@ class SyncService {
       final tsCol       = SyncConfig.getTimestampColumn(tableName);
       final conflictCol = SyncConfig.getConflictColumn(tableName);
 
+      // ── Tables jo hamesha full sync karengi ───
+      const forceFullSyncTables = [
+        'sale_invoices',
+        'sale_invoice_items',
+        'sale_invoice_payments',
+      ];
+
       // ── Supabase mein last timestamp lo ───────
       String? lastSync;
-      try {
-        final result = await supabase
-            .from(tableName)
-            .select(tsCol)
-            .order(tsCol, ascending: false)
-            .limit(1);
 
-        if (result.isNotEmpty && result[0][tsCol] != null) {
-          lastSync = result[0][tsCol].toString();
-          print('   📅 $tableName — last sync: $lastSync');
-        } else {
-          print('   📅 $tableName — Supabase empty, full sync karega');
+      if (forceFullSyncTables.contains(tableName)) {
+        print('   🔄 $tableName — forced full sync (trigger-safe mode)');
+      } else {
+        try {
+          final result = await supabase
+              .from(tableName)
+              .select(tsCol)
+              .order(tsCol, ascending: false)
+              .limit(1);
+
+          if (result.isNotEmpty && result[0][tsCol] != null) {
+            lastSync = result[0][tsCol].toString();
+            print('   📅 $tableName — last sync: $lastSync');
+          } else {
+            print('   📅 $tableName — Supabase empty, full sync karega');
+          }
+        } catch (e) {
+          print('   ⚠️  $tableName lastSync fetch failed: $e');
+          lastSync = null;
         }
-      } catch (e) {
-        print('   ⚠️  $tableName lastSync fetch failed: $e');
-        lastSync = null;
       }
 
       // ── Local se rows lo ──────────────────────
@@ -468,7 +484,7 @@ class SyncService {
 
       if (rows.isEmpty) return 0;
 
-      // ✅ FIX 2: Supabase mein jo columns nahi hain unhe remove karo
+      // ── Exclude columns ───────────────────────
       final excludeCols = SyncConfig.excludeColumns[tableName] ?? [];
       List<Map<String, dynamic>> supabaseRows = rows;
       if (excludeCols.isNotEmpty) {
@@ -493,23 +509,18 @@ class SyncService {
         final batch = supabaseRows.sublist(i, end);
 
         try {
-          // ✅ FIX 1: conflictCol ab 'store_id,counter_date' bhi ho sakta hai
           await supabase
               .from(tableName)
               .upsert(batch, onConflict: conflictCol);
           total += batch.length;
 
-          // Successful IDs track karo
           if (tableName == 'accountant_transactions') {
-            syncedIds.addAll(
-              batch.map((r) => r['id'].toString()),
-            );
+            syncedIds.addAll(batch.map((r) => r['id'].toString()));
           }
 
         } catch (batchErr) {
           print('   ⚠️  $tableName batch fail, row-by-row try: $batchErr');
-          for (int j = 0; j < batch.length; j++) {
-            final row = batch[j];
+          for (final row in batch) {
             try {
               await supabase
                   .from(tableName)
@@ -519,7 +530,6 @@ class SyncService {
               if (tableName == 'accountant_transactions') {
                 syncedIds.add(row['id'].toString());
               }
-
             } catch (rowErr) {
               print('   ❌ $tableName row skip: $rowErr');
               print('      Row: $row');
@@ -528,7 +538,7 @@ class SyncService {
         }
       }
 
-      // ✅ FIX 2: Sirf jo actually sync hue unka is_synced = true karo
+      // ── accountant_transactions is_synced update ──
       if (tableName == 'accountant_transactions' && syncedIds.isNotEmpty) {
         final ids = syncedIds.map((id) => "'$id'").join(',');
         await localConn.execute(
@@ -536,7 +546,7 @@ class SyncService {
               'SET is_synced = true '
               'WHERE id IN ($ids)'),
         );
-        print('   ✅ accountant_transactions: ${syncedIds.length} records is_synced = true ho gaye');
+        print('   ✅ accountant_transactions: ${syncedIds.length} records is_synced = true');
       }
 
       sendPort.send({
