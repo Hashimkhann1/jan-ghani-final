@@ -1,9 +1,9 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'package:jan_ghani_final/core/stub/io_stub.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/service/db/db_service.dart';
 import 'package:jan_ghani_final/core/theme/light_theme.dart';
-import 'package:jan_ghani_final/features/branch/customer/presentation/screen/customer_detail_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/store_config.dart';
@@ -12,6 +12,7 @@ import '../core/service/sync/sync_service.dart';
 import '../features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'core/widget/sidebar/branch_sidebar_widget.dart';
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
+
 
 final supabase = Supabase.instance.client;
 
@@ -24,6 +25,9 @@ void main() async{
   await Supabase.initialize(
     url: 'https://kjjtqfruxhjcxwvxwffz.supabase.co',
     anonKey: 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS',
+    realtimeClientOptions: const RealtimeClientOptions(
+      logLevel: RealtimeLogLevel.info,
+    ),
   );
   await SharedPreferences.getInstance();
   await StoreConfig.load();
@@ -45,13 +49,23 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context,WidgetRef ref) {
     final auth = ref.watch(authProvider);
+    String? customerId;
+    if (kIsWeb) {
+      final path = Uri.base.path;
+      final id   = path.replaceFirst('/', '').trim();
+      if (id.isNotEmpty) customerId = id;
+    }
     return ProviderScope(
       child: MaterialApp(
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
         // home: isLoggedIn ? AccountantDashboardScreen() : AccountantLoginScreen(),
-        home: auth.isLoading ?
+        home:
+        // CustomerVerificationScreen(
+        //   customerId: customerId!,
+        // )
+        auth.isLoading ?
         Scaffold(
           body: const CircularProgressIndicator(),
         ) :

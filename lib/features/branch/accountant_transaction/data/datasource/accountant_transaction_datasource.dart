@@ -35,22 +35,46 @@ class AccountantDataSource {
   // ── Active accountants ────────────────────────────────────────────────────
 
   Future<List<AccountantUserModel>> getActiveAccountants() async {
-    final res = await _supabase
-        .from('accountant_users')
-        .select('id, name, phone, username, is_active, created_at')
-        .eq('is_active', true)
-        .order('name');
+    try {
+      final res = await _supabase
+          .from('accountant_users')
+          .select('id, name, phone, username, is_active, created_at')
+          .eq('is_active', true)
+          .order('name');
 
-    return (res as List).map((u) => AccountantUserModel(
-      id:          u['id']        as String,
-      name:        u['name']      as String,
-      phone:       u['phone']     as String?,
-      username:    u['username']  as String,
-      isActive:    u['is_active'] as bool? ?? true,
-      createdAt:   DateTime.parse(u['created_at'] as String),
-      totalAmount: 0.0,
-    )).toList();
+      // res is already List<Map<String, dynamic>>
+      return res.map((u) => AccountantUserModel(
+        id:          u['id']         as String,
+        name:        u['name']       as String,
+        phone:       u['phone']      as String?,
+        username:    u['username']   as String,
+        isActive:    u['is_active']  as bool? ?? true,
+        createdAt:   DateTime.parse(u['created_at'] as String),
+        totalAmount: 0.0,
+      )).toList();
+    } catch (e) {
+      print('❌ getActiveAccountants error: $e');
+      rethrow;
+    }
   }
+
+  // Future<List<AccountantUserModel>> getActiveAccountants() async {
+  //   final res = await _supabase
+  //       .from('accountant_users')
+  //       .select('id, name, phone, username, is_active, created_at')
+  //       .eq('is_active', true)
+  //       .order('name');
+  //
+  //   return (res as List).map((u) => AccountantUserModel(
+  //     id:          u['id']        as String,
+  //     name:        u['name']      as String,
+  //     phone:       u['phone']     as String?,
+  //     username:    u['username']  as String,
+  //     isActive:    u['is_active'] as bool? ?? true,
+  //     createdAt:   DateTime.parse(u['created_at'] as String),
+  //     totalAmount: 0.0,
+  //   )).toList();
+  // }
 
   // ── Transactions ──────────────────────────────────────────────────────────
 

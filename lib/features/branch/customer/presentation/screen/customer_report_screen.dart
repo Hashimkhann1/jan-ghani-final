@@ -6,41 +6,36 @@ import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../data/model/customer_invoice_model.dart';
 import '../../data/model/customer_return_model.dart';
 import '../../data/model/specific_customer_ledger_model.dart';
-import '../provider/customer_invoice_provider.dart';
-import '../provider/customer_return_provider.dart';
-import '../provider/specific_customer_ledger_provider.dart';
+import '../provider/customer_report_provider.dart';
 
-class CustomerDetailScreen extends ConsumerStatefulWidget {
+class CustomerReportScreen extends ConsumerStatefulWidget {
   final String customerId;
   final String customerName;
 
-  const CustomerDetailScreen({
+  const CustomerReportScreen({
     super.key,
     required this.customerId,
     required this.customerName,
   });
 
   @override
-  ConsumerState<CustomerDetailScreen> createState() =>
-      _CustomerDetailScreenState();
+  ConsumerState<CustomerReportScreen> createState() =>
+      _CustomerReportScreenState();
 }
 
-class _CustomerDetailScreenState
-    extends ConsumerState<CustomerDetailScreen>
+class _CustomerReportScreenState
+    extends ConsumerState<CustomerReportScreen>
     with SingleTickerProviderStateMixin {
 
   late TabController _tabCtrl;
-  final _dateFmt  = DateFormat('dd MMM yyyy');
-  final _timeFmt  = DateFormat('hh:mm a');
-  final _amtFmt   = NumberFormat('#,##,###', 'en_IN');
+  final _dateFmt = DateFormat('dd MMM yyyy');
+  final _timeFmt = DateFormat('hh:mm a');
+  final _amtFmt  = NumberFormat('#,##,###', 'en_IN');
 
-  // ── Sale filters ──────────────────────────────────────────
   final _saleFromCtrl = TextEditingController();
   final _saleToCtrl   = TextEditingController();
-
-  // ── Return filters ────────────────────────────────────────
-  final _retFromCtrl = TextEditingController();
-  final _retToCtrl   = TextEditingController();
+  final _retFromCtrl  = TextEditingController();
+  final _retToCtrl    = TextEditingController();
 
   ({String customerId, String customerName}) get _args => (
   customerId:   widget.customerId,
@@ -53,11 +48,11 @@ class _CustomerDetailScreenState
     _tabCtrl = TabController(length: 3, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final sale = ref.read(customerInvoiceProvider(_args));
+      final sale = ref.read(customerReportInvoiceProvider(_args));
       _saleFromCtrl.text = _dateFmt.format(sale.fromDate);
       _saleToCtrl.text   = _dateFmt.format(sale.toDate);
 
-      final ret = ref.read(customerReturnProvider(_args));
+      final ret = ref.read(customerReportReturnProvider(_args));
       _retFromCtrl.text = _dateFmt.format(ret.fromDate);
       _retToCtrl.text   = _dateFmt.format(ret.toDate);
     });
@@ -101,30 +96,37 @@ class _CustomerDetailScreenState
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Customer Detail',
-                style: TextStyle(
-                    fontSize:   16,
-                    fontWeight: FontWeight.w700,
-                    color:      Color(0xFF1A1D23))),
-            Text(widget.customerName,
-                style: const TextStyle(
-                    fontSize: 12, color: AppColor.textSecondary)),
+            Text(
+              widget.customerName,
+              style: const TextStyle(
+                fontSize:   16,
+                fontWeight: FontWeight.w700,
+                color:      Color(0xFF1A1D23),
+              ),
+            ),
+            const Text(
+              'Customer Report',
+              style: TextStyle(
+                fontSize: 11,
+                color:    AppColor.textSecondary,
+              ),
+            ),
           ],
         ),
         toolbarHeight: 65,
         bottom: TabBar(
-          controller:         _tabCtrl,
-          labelColor:         AppColor.primary,
-          unselectedLabelColor: AppColor.textSecondary,
-          indicatorColor:     AppColor.primary,
-          indicatorWeight:    2.5,
-          labelStyle: const TextStyle(
+          controller:              _tabCtrl,
+          labelColor:              AppColor.primary,
+          unselectedLabelColor:    AppColor.textSecondary,
+          indicatorColor:          AppColor.primary,
+          indicatorWeight:         2.5,
+          labelStyle:              const TextStyle(
               fontSize: 13, fontWeight: FontWeight.w700),
-          unselectedLabelStyle: const TextStyle(
+          unselectedLabelStyle:    const TextStyle(
               fontSize: 13, fontWeight: FontWeight.w500),
           tabs: const [
-            Tab(text: 'Sales',   icon: Icon(Icons.receipt_long_outlined,   size: 18)),
-            Tab(text: 'Returns', icon: Icon(Icons.assignment_return_outlined, size: 18)),
+            Tab(text: 'Sales',   icon: Icon(Icons.receipt_long_outlined,       size: 18)),
+            Tab(text: 'Returns', icon: Icon(Icons.assignment_return_outlined,   size: 18)),
             Tab(text: 'Ledger',  icon: Icon(Icons.account_balance_wallet_outlined, size: 18)),
           ],
         ),
@@ -134,29 +136,29 @@ class _CustomerDetailScreenState
         controller: _tabCtrl,
         children: [
           _SaleTab(
-            args:       _args,
-            dateFmt:    _dateFmt,
-            timeFmt:    _timeFmt,
-            fromCtrl:   _saleFromCtrl,
-            toCtrl:     _saleToCtrl,
-            fmt:        _fmt,
-            pickDate:   _pickDate,
-          ),
-          _ReturnTab(
-            args:       _args,
-            dateFmt:    _dateFmt,
-            timeFmt:    _timeFmt,
-            fromCtrl:   _retFromCtrl,
-            toCtrl:     _retToCtrl,
-            fmt:        _fmt,
-            pickDate:   _pickDate,
-          ),
-          _LedgerTab(
             args:     _args,
             dateFmt:  _dateFmt,
             timeFmt:  _timeFmt,
-            amtFmt:   _amtFmt,
+            fromCtrl: _saleFromCtrl,
+            toCtrl:   _saleToCtrl,
             fmt:      _fmt,
+            pickDate: _pickDate,
+          ),
+          _ReturnTab(
+            args:     _args,
+            dateFmt:  _dateFmt,
+            timeFmt:  _timeFmt,
+            fromCtrl: _retFromCtrl,
+            toCtrl:   _retToCtrl,
+            fmt:      _fmt,
+            pickDate: _pickDate,
+          ),
+          _LedgerTab(
+            args:    _args,
+            dateFmt: _dateFmt,
+            timeFmt: _timeFmt,
+            amtFmt:  _amtFmt,
+            fmt:     _fmt,
           ),
         ],
       ),
@@ -188,20 +190,13 @@ class _SaleTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state    = ref.watch(customerInvoiceProvider(args));
-    final notifier = ref.read(customerInvoiceProvider(args).notifier);
-    final invoices = state.filteredInvoices;
-
-    final refundItems = [
-      DropdownItem<String?>(value: null,     label: 'All Types',   icon: Icons.swap_horiz_rounded),
-      DropdownItem<String?>(value: 'cash',   label: 'Cash',        icon: Icons.payments_outlined),
-      DropdownItem<String?>(value: 'card',   label: 'Card',        icon: Icons.credit_card_outlined),
-      DropdownItem<String?>(value: 'credit', label: 'Credit',      icon: Icons.receipt_long_outlined),
-    ];
+    final state    = ref.watch(customerReportInvoiceProvider(args));
+    final notifier = ref.read(customerReportInvoiceProvider(args).notifier);
+    final invoices = state.filtered;
 
     return Column(children: [
 
-      // ── Filters ──────────────────────────────────────────
+      // ── Filters ──────────────────────────────────────────────
       Container(
         color:   Colors.white,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -234,29 +229,30 @@ class _SaleTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 10),
-          OutlinedButton(
-            onPressed: () {
-              notifier.setToday();
-              final today = DateTime.now();
-              final d     = DateTime(today.year, today.month, today.day);
-              fromCtrl.text = dateFmt.format(d);
-              toCtrl.text   = dateFmt.format(d);
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColor.primary,
-              side:    const BorderSide(color: AppColor.primary),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 11),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+          SizedBox(
+            width: 72,
+            child: OutlinedButton(
+              onPressed: () {
+                notifier.setToday();
+                final today = DateTime.now();
+                final d     = DateTime(today.year, today.month, today.day);
+                fromCtrl.text = dateFmt.format(d);
+                toCtrl.text   = dateFmt.format(d);
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColor.primary,
+                side:    const BorderSide(color: AppColor.primary),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                shape:   RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Today', style: TextStyle(fontSize: 12)),
             ),
-            child: const Text('Today',
-                style: TextStyle(fontSize: 12)),
           ),
         ]),
       ),
 
-      // ── Summary ───────────────────────────────────────────
+      // ── Summary ──────────────────────────────────────────────
       Container(
         color:   Colors.white,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
@@ -294,14 +290,14 @@ class _SaleTab extends ConsumerWidget {
       Container(height: 1, color: const Color(0xFFE5E7EB)),
       const SizedBox(height: 6),
 
-      // ── List ──────────────────────────────────────────────
+      // ── List ─────────────────────────────────────────────────
       Expanded(
         child: state.isLoading
             ? const Center(child: CircularProgressIndicator())
             : invoices.isEmpty
             ? const _EmptyState(
             icon:    Icons.receipt_long_outlined,
-            message: 'Koi sale nahi mili')
+            message: 'No sales found')
             : RefreshIndicator(
           onRefresh: notifier.load,
           child: ListView.separated(
@@ -344,14 +340,14 @@ class _ReturnTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state    = ref.watch(customerReturnProvider(args));
-    final notifier = ref.read(customerReturnProvider(args).notifier);
+    final state    = ref.watch(customerReportReturnProvider(args));
+    final notifier = ref.read(customerReportReturnProvider(args).notifier);
     final returns  = state.returns;
     final summary  = state.summary;
 
     return Column(children: [
 
-      // ── Filters ──────────────────────────────────────────
+      // ── Filters ──────────────────────────────────────────────
       Container(
         color:   Colors.white,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -384,29 +380,30 @@ class _ReturnTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 10),
-          OutlinedButton(
-            onPressed: () {
-              notifier.setToday();
-              final today = DateTime.now();
-              final d     = DateTime(today.year, today.month, today.day);
-              fromCtrl.text = dateFmt.format(d);
-              toCtrl.text   = dateFmt.format(d);
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColor.error,
-              side:    const BorderSide(color: AppColor.error),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 11),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+          SizedBox(
+            width: 70,
+            child: OutlinedButton(
+              onPressed: () {
+                notifier.setToday();
+                final today = DateTime.now();
+                final d     = DateTime(today.year, today.month, today.day);
+                fromCtrl.text = dateFmt.format(d);
+                toCtrl.text   = dateFmt.format(d);
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColor.error,
+                side:    const BorderSide(color: AppColor.error),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                shape:   RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Today', style: TextStyle(fontSize: 12)),
             ),
-            child: const Text('Today',
-                style: TextStyle(fontSize: 12)),
           ),
         ]),
       ),
 
-      // ── Summary ───────────────────────────────────────────
+      // ── Summary ──────────────────────────────────────────────
       Container(
         color:   Colors.white,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
@@ -444,14 +441,14 @@ class _ReturnTab extends ConsumerWidget {
       Container(height: 1, color: const Color(0xFFE5E7EB)),
       const SizedBox(height: 6),
 
-      // ── List ──────────────────────────────────────────────
+      // ── List ─────────────────────────────────────────────────
       Expanded(
         child: state.isLoading
             ? const Center(child: CircularProgressIndicator())
             : returns.isEmpty
             ? const _EmptyState(
             icon:    Icons.assignment_return_outlined,
-            message: 'Koi return nahi mila')
+            message: 'No returns found')
             : RefreshIndicator(
           onRefresh: notifier.load,
           child: ListView.separated(
@@ -490,12 +487,12 @@ class _LedgerTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state    = ref.watch(customerLedgerProvider(args));
-    final notifier = ref.read(customerLedgerProvider(args).notifier);
+    final state    = ref.watch(customerReportLedgerProvider(args));
+    final notifier = ref.read(customerReportLedgerProvider(args).notifier);
 
     return Column(children: [
 
-      // ── Summary ───────────────────────────────────────────
+      // ── Summary ──────────────────────────────────────────────
       Container(
         color:   Colors.white,
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -528,14 +525,14 @@ class _LedgerTab extends ConsumerWidget {
       Container(height: 1, color: const Color(0xFFE5E7EB)),
       const SizedBox(height: 6),
 
-      // ── List ──────────────────────────────────────────────
+      // ── List ─────────────────────────────────────────────────
       Expanded(
         child: state.isLoading
             ? const Center(child: CircularProgressIndicator())
             : state.ledger.isEmpty
             ? const _EmptyState(
             icon:    Icons.account_balance_wallet_outlined,
-            message: 'Koi ledger record nahi')
+            message: 'No ledger records found')
             : RefreshIndicator(
           onRefresh: notifier.load,
           child: ListView.separated(
@@ -578,8 +575,7 @@ class _SaleCardState extends State<_SaleCard> {
 
   @override
   Widget build(BuildContext context) {
-    final inv      = widget.inv;
-    final subtotal = inv.items.fold(0.0, (s, i) => s + i.totalAmount);
+    final inv = widget.inv;
 
     return Container(
       decoration: BoxDecoration(
@@ -595,7 +591,7 @@ class _SaleCardState extends State<_SaleCard> {
       ),
       child: Column(children: [
 
-        // ── Header ────────────────────────────────────────
+        // ── Header ──────────────────────────────────────────────
         InkWell(
           onTap: () => setState(() => _expanded = !_expanded),
           borderRadius: BorderRadius.circular(12),
@@ -636,17 +632,15 @@ class _SaleCardState extends State<_SaleCard> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _PayBadge(type: inv.paymentType),
-                        Text(
-                          '${inv.items.length} items',
-                          style: const TextStyle(
-                              fontSize: 10,
-                              color:    AppColor.textHint),
-                        ),
+                        Text('${inv.items.length} items',
+                            style: const TextStyle(
+                                fontSize: 10, color: AppColor.textHint)),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${widget.dateFmt.format(inv.invoiceDate)}  ${widget.timeFmt.format(inv.invoiceDate)}',
+                      '${widget.dateFmt.format(inv.invoiceDate)}  '
+                          '${widget.timeFmt.format(inv.invoiceDate)}',
                       style: const TextStyle(
                           fontSize: 10, color: AppColor.textHint),
                     ),
@@ -664,7 +658,7 @@ class _SaleCardState extends State<_SaleCard> {
           ),
         ),
 
-        // ── Expanded ──────────────────────────────────────
+        // ── Expanded ─────────────────────────────────────────────
         if (_expanded) ...[
           Container(height: 1, color: const Color(0xFFE5E7EB)),
           Padding(
@@ -683,20 +677,17 @@ class _SaleCardState extends State<_SaleCard> {
                   Expanded(flex: 3,
                       child: Text(item.productName,
                           style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textPrimary),
+                              fontSize: 12, color: AppColor.textPrimary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis)),
                   Expanded(flex: 1,
                       child: Text(item.qtyLabel,
                           style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textSecondary))),
+                              fontSize: 12, color: AppColor.textSecondary))),
                   Expanded(flex: 2,
                       child: Text(item.priceLabel,
                           style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textSecondary))),
+                              fontSize: 12, color: AppColor.textSecondary))),
                   Expanded(flex: 2,
                       child: Text(item.totalLabel,
                           textAlign: TextAlign.right,
@@ -713,8 +704,7 @@ class _SaleCardState extends State<_SaleCard> {
                   children: [
                     const Text('Discount',
                         style: TextStyle(
-                            fontSize: 12,
-                            color:    AppColor.textSecondary)),
+                            fontSize: 12, color: AppColor.textSecondary)),
                     Text('- ${inv.discountLabel}',
                         style: const TextStyle(
                             fontSize:   12,
@@ -729,8 +719,7 @@ class _SaleCardState extends State<_SaleCard> {
                 children: [
                   const Text('Grand Total',
                       style: TextStyle(
-                          fontSize:   13,
-                          fontWeight: FontWeight.w700)),
+                          fontSize: 13, fontWeight: FontWeight.w700)),
                   Text(inv.grandTotalLabel,
                       style: const TextStyle(
                           fontSize:   14,
@@ -821,13 +810,11 @@ class _ReturnCardState extends State<_ReturnCard> {
                                 fontSize:   13,
                                 fontWeight: FontWeight.w700,
                                 color:      AppColor.error)),
-                        Text(
-                          'Rs ${ret.grandTotal.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              fontSize:   14,
-                              fontWeight: FontWeight.w800,
-                              color:      Color(0xFF1A1D23)),
-                        ),
+                        Text('Rs ${ret.grandTotal.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                fontSize:   14,
+                                fontWeight: FontWeight.w800,
+                                color:      Color(0xFF1A1D23))),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -837,17 +824,15 @@ class _ReturnCardState extends State<_ReturnCard> {
                         _PayBadge2(
                             label: ret.paymentLabel,
                             color: _refundColor),
-                        Text(
-                          '${ret.items.length} items',
-                          style: const TextStyle(
-                              fontSize: 10,
-                              color:    AppColor.textHint),
-                        ),
+                        Text('${ret.items.length} items',
+                            style: const TextStyle(
+                                fontSize: 10, color: AppColor.textHint)),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${widget.dateFmt.format(ret.returnDate)}  ${widget.timeFmt.format(ret.returnDate)}',
+                      '${widget.dateFmt.format(ret.returnDate)}  '
+                          '${widget.timeFmt.format(ret.returnDate)}',
                       style: const TextStyle(
                           fontSize: 10, color: AppColor.textHint),
                     ),
@@ -883,24 +868,19 @@ class _ReturnCardState extends State<_ReturnCard> {
                   Expanded(flex: 3,
                       child: Text(item.productName,
                           style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textPrimary),
+                              fontSize: 12, color: AppColor.textPrimary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis)),
                   Expanded(flex: 1,
                       child: Text(item.quantity.toStringAsFixed(0),
                           style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textSecondary))),
+                              fontSize: 12, color: AppColor.textSecondary))),
                   Expanded(flex: 2,
-                      child: Text(
-                          'Rs ${item.price.toStringAsFixed(0)}',
+                      child: Text('Rs ${item.price.toStringAsFixed(0)}',
                           style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textSecondary))),
+                              fontSize: 12, color: AppColor.textSecondary))),
                   Expanded(flex: 2,
-                      child: Text(
-                          'Rs ${item.totalAmount.toStringAsFixed(0)}',
+                      child: Text('Rs ${item.totalAmount.toStringAsFixed(0)}',
                           textAlign: TextAlign.right,
                           style: const TextStyle(
                               fontSize:   12,
@@ -915,15 +895,12 @@ class _ReturnCardState extends State<_ReturnCard> {
                   children: [
                     const Text('Discount',
                         style: TextStyle(
-                            fontSize: 12,
-                            color:    AppColor.textSecondary)),
-                    Text(
-                      '- Rs ${ret.totalDiscount.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          fontSize:   12,
-                          fontWeight: FontWeight.w600,
-                          color:      AppColor.success),
-                    ),
+                            fontSize: 12, color: AppColor.textSecondary)),
+                    Text('- Rs ${ret.totalDiscount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                            fontSize:   12,
+                            fontWeight: FontWeight.w600,
+                            color:      AppColor.success)),
                   ],
                 ),
               ],
@@ -933,15 +910,12 @@ class _ReturnCardState extends State<_ReturnCard> {
                 children: [
                   const Text('Grand Total',
                       style: TextStyle(
-                          fontSize:   13,
-                          fontWeight: FontWeight.w700)),
-                  Text(
-                    'Rs ${ret.grandTotal.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                        fontSize:   14,
-                        fontWeight: FontWeight.w800,
-                        color:      AppColor.error),
-                  ),
+                          fontSize: 13, fontWeight: FontWeight.w700)),
+                  Text('Rs ${ret.grandTotal.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                          fontSize:   14,
+                          fontWeight: FontWeight.w800,
+                          color:      AppColor.error)),
                 ],
               ),
             ]),
@@ -957,9 +931,9 @@ class _ReturnCardState extends State<_ReturnCard> {
 // ══════════════════════════════════════════════════════════════
 class _LedgerRow extends StatelessWidget {
   final SpecificCustomerLedgerModel entry;
-  final DateFormat          dateFmt;
-  final DateFormat          timeFmt;
-  final NumberFormat        amtFmt;
+  final DateFormat                  dateFmt;
+  final DateFormat                  timeFmt;
+  final NumberFormat                amtFmt;
 
   const _LedgerRow({
     required this.entry,
@@ -1025,13 +999,11 @@ class _LedgerRow extends StatelessWidget {
                                 fontWeight: FontWeight.w700,
                                 color:      color)),
                       ),
-                      if (entry.notes != null &&
-                          entry.notes!.isNotEmpty) ...[
+                      if (entry.notes != null && entry.notes!.isNotEmpty) ...[
                         const SizedBox(height: 3),
                         Text(entry.notes!,
                             style: const TextStyle(
-                                fontSize: 11,
-                                color:    AppColor.textHint)),
+                                fontSize: 11, color: AppColor.textHint)),
                       ],
                     ],
                   ),
@@ -1053,18 +1025,18 @@ class _LedgerRow extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${dateFmt.format(entry.createdAt)}  ${timeFmt.format(entry.createdAt)}',
+                    '${dateFmt.format(entry.createdAt)}  '
+                        '${timeFmt.format(entry.createdAt)}',
                     style: const TextStyle(
                         fontSize: 10, color: AppColor.textHint),
                   ),
                   Row(children: [
                     Text(_fmt(entry.previousAmount),
                         style: const TextStyle(
-                            fontSize: 11,
-                            color:    AppColor.textSecondary)),
+                            fontSize: 11, color: AppColor.textSecondary)),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6),
-                      child: Icon(Icons.arrow_forward_rounded,
+                      child:   Icon(Icons.arrow_forward_rounded,
                           size: 12, color: AppColor.textHint),
                     ),
                     Text(_fmt(entry.newAmount),
@@ -1088,7 +1060,6 @@ class _LedgerRow extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 // Shared Helper Widgets
 // ══════════════════════════════════════════════════════════════
-
 class _StatTile extends StatelessWidget {
   final String   label;
   final String   value;
@@ -1130,8 +1101,7 @@ class _StatTile extends StatelessWidget {
 }
 
 Widget _vDivider() => Container(
-  width:  1,
-  height: 36,
+  width:  1, height: 36,
   color:  const Color(0xFFE5E7EB),
   margin: const EdgeInsets.symmetric(horizontal: 6),
 );
@@ -1153,8 +1123,7 @@ class _DateField extends StatelessWidget {
     readOnly:     true,
     onTap:        onTap,
     cursorHeight: 14,
-    style: const TextStyle(
-        fontSize: 12, fontWeight: FontWeight.w600),
+    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
     decoration: InputDecoration(
       labelText:  label,
       labelStyle: const TextStyle(
@@ -1171,8 +1140,7 @@ class _DateField extends StatelessWidget {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide:
-        const BorderSide(color: AppColor.grey200),
+        borderSide: const BorderSide(color: AppColor.grey200),
       ),
     ),
   );
@@ -1187,6 +1155,7 @@ class _PayBadge extends StatelessWidget {
       : type.contains('card')
       ? AppColor.info
       : AppColor.success;
+
   String get _label => type.contains('credit')
       ? 'Credit'
       : type.contains('card')
@@ -1239,9 +1208,9 @@ class _IH extends StatelessWidget {
   Widget build(BuildContext context) => Text(text,
       textAlign: right ? TextAlign.right : TextAlign.left,
       style: const TextStyle(
-          fontSize:     10,
-          fontWeight:   FontWeight.w600,
-          color:        AppColor.textHint,
+          fontSize:      10,
+          fontWeight:    FontWeight.w600,
+          color:         AppColor.textHint,
           letterSpacing: 0.3));
 }
 
