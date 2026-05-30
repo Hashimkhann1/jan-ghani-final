@@ -4,86 +4,94 @@ import 'dart:isolate';
 import 'package:postgres/postgres.dart';
 import 'package:supabase/supabase.dart';
 
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
 //  CONFIG
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
 class SyncConfig {
-  // ── Local PostgreSQL ──────────────────────────────
+  // ── Local PostgreSQL ──────────────────────────────────────
   static const String dbHost     = '127.0.0.1';
   static const int    dbPort     = 5432;
   static const String dbName     = 'store_db';
   static const String dbUser     = 'storeuser';
-  static const String dbPassword = 'shahab';
-  // static const String dbPassword = 'branchUser12C3';
+  static const String dbPassword = 'branchUser12C3';
 
-  // ── Supabase ──────────────────────────────────────
-  // static const String supabaseUrl = '';
+  // ── Supabase ──────────────────────────────────────────────
   static const String supabaseUrl = 'https://kjjtqfruxhjcxwvxwffz.supabase.co';
-  // static const String supabaseKey = '';
   static const String supabaseKey = 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS';
 
+  // ── Sync interval (seconds) ───────────────────────────────
   static const int syncIntervalSeconds = 120;
 
+  // ── Tables — dependency order mein (parent pehle) ────────
   static const List<String> tables = [
-    // ── Layer 1: Root ─────────────────────────────────────────
-    'branch',                   // 1. koi dependency nahi
-
-    // ── Layer 2: Sirf branch per depend ──────────────────────
-    'branch_counter',           // 2. branch → counter
-    'customer',                 // 3. branch → customer
-    'branch_stock_inventory',   // 4. branch → stock inventory
-    'branch_expense',           // 5. branch → expense
-
-    // ── Layer 3: branch + branch_counter per depend ───────────
-    'branch_users',             // 6. branch + branch_counter → users
-    'branch_cash_counter',      // 7. branch + branch_counter → cash counter
-
-    // ── Layer 4: Layer 3 per depend ──────────────────────────
-    'branch_cash_transaction',  // 8.  branch_cash_counter → transaction
-    'branch_stock_damage',      // 9.  branch_stock_inventory → damage
-    'sale_invoices',            // 10. branch + branch_counter + branch_users + customer
-
-    // ── Layer 5: sale_invoices per depend ────────────────────
-    'sale_invoice_items',       // 11. sale_invoices → items
-    'sale_invoice_payments',    // 12. sale_invoices → payments  (trigger: cash/card/credit counter update)
-    'sale_returns',             // 13. sale_invoices + branch_users + customer
-
-    // ── Layer 6: Layer 5 per depend ──────────────────────────
-    'sale_return_items',        // 14. sale_returns + sale_invoice_items → return items
-    'sale_return_payments',     // 15. sale_returns → return payments
-    'customer_ledger',          // 16. customer + branch_counter  (trigger: balance update)
-
-    // ── Layer 7: Sab complete hone ke baad ───────────────────
-    'accountant_counter',       // 18. ⚠️ missing tha — accountant balance tracker
-    'accountant_transactions',  // 19. branch + accountant_counter → transactions
-    'branch_summary',           // 20. sabse akhir — sab tables ka summary
+    'branch',
+    'branch_counter',
+    'customer',
+    'branch_stock_inventory',
+    'branch_expense',
+    'branch_users',
+    'branch_cash_counter',
+    'branch_cash_transaction',
+    'branch_stock_damage',
+    'sale_invoices',
+    'sale_invoice_items',
+    'sale_invoice_payments',
+    'sale_returns',
+    'sale_return_items',
+    'sale_return_payments',
+    'accountant_counter',
+    'accountant_transactions',
+    'customer_ledger',
+    'branch_summary',
   ];
 
-  static const Map<String, String> timestampColumns = {
+  // ── Har table ka timestamp column ────────────────────────
+  static const Map<String, String> _timestampColumns = {
     'sale_invoice_items'    : 'created_at',
     'sale_invoice_payments' : 'created_at',
-    'sale_return_payments'  : 'created_at',
     'sale_return_items'     : 'created_at',
+    'sale_return_payments'  : 'created_at',
   };
 
-  static String getTimestampColumn(String table) => timestampColumns[table] ?? 'updated_at';
-
-  // ✅ FIX 1: branch_summary ka conflict column (store_id, counter_date) hai
-  static const Map<String, String> conflictColumns = {
+  // ── Har table ka conflict (primary key) column ────────────
+  static const Map<String, String> _conflictColumns = {
     'branch_summary': 'store_id,counter_date',
   };
 
-  static String getConflictColumn(String table) => conflictColumns[table] ?? 'id';
-
-  // ✅ FIX 2: Yeh columns Supabase mein nahi hain — upsert se pehle remove honge
+  // ── Yeh columns Supabase mein nahi hain — upsert se remove honge
   static const Map<String, List<String>> excludeColumns = {
     'accountant_transactions': ['is_synced'],
   };
+
+  static String timestampColumn(String table) =>
+      _timestampColumns[table] ?? 'updated_at';
+
+  static String conflictColumn(String table) =>
+      _conflictColumns[table] ?? 'id';
 }
 
-// ─────────────────────────────────────────────────
-//  SYNC STATUS MODEL
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  ISOLATE MESSAGE TYPES
+// ═══════════════════════════════════════════════════════════
+sealed class _IsolateMsg {}
+
+class _TableSuccess extends _IsolateMsg {
+  final String table;
+  final int    count;
+  _TableSuccess(this.table, this.count);
+}
+
+class _TableError extends _IsolateMsg {
+  final String table;
+  final String error;
+  _TableError(this.table, this.error);
+}
+
+class _SyncComplete extends _IsolateMsg {}
+
+// ═══════════════════════════════════════════════════════════
+//  SYNC STATUS
+// ═══════════════════════════════════════════════════════════
 class SyncStatus {
   final bool                isSyncing;
   final bool                hasInternet;
@@ -92,7 +100,7 @@ class SyncStatus {
   final String?             lastError;
   final Map<String, String> tableStatus;
 
-  SyncStatus({
+  const SyncStatus({
     this.isSyncing    = false,
     this.hasInternet  = false,
     this.lastSyncTime,
@@ -114,14 +122,14 @@ class SyncStatus {
         hasInternet:  hasInternet  ?? this.hasInternet,
         lastSyncTime: lastSyncTime ?? this.lastSyncTime,
         totalSynced:  totalSynced  ?? this.totalSynced,
-        lastError:    lastError    ?? this.lastError,
+        lastError:    lastError,
         tableStatus:  tableStatus  ?? this.tableStatus,
       );
 }
 
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
 //  ISOLATE ARGS
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
 class _IsolateArgs {
   final SendPort sendPort;
   final String   supabaseUrl;
@@ -134,232 +142,173 @@ class _IsolateArgs {
   });
 }
 
-// ─────────────────────────────────────────────────
-//  MAIN SYNC SERVICE
-// ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  SYNC SERVICE  (Singleton)
+// ═══════════════════════════════════════════════════════════
 class SyncService {
-  static final SyncService _instance = SyncService._internal();
+  static final SyncService _instance = SyncService._();
   factory SyncService() => _instance;
-  SyncService._internal();
+  SyncService._();
 
   Isolate?     _isolate;
   ReceivePort? _receivePort;
   Timer?       _syncTimer;
-  Timer?       _monitorTimer;
-  bool         _isRunning = false;
+  Timer?       _internetTimer;
+  bool         _running = false;
 
-  final StreamController<SyncStatus> _statusController =
-  StreamController<SyncStatus>.broadcast();
+  SyncStatus _status = const SyncStatus();
+  SyncStatus get currentStatus => _status;
 
-  Stream<SyncStatus> get statusStream => _statusController.stream;
-  SyncStatus _currentStatus = SyncStatus();
-  SyncStatus get currentStatus => _currentStatus;
+  final _statusCtrl = StreamController<SyncStatus>.broadcast();
+  Stream<SyncStatus> get statusStream => _statusCtrl.stream;
 
-  // ── Start ─────────────────────────────────────
   Future<void> start() async {
-    if (_isRunning) return;
-    _isRunning = true;
-
-    final errorPort = RawReceivePort((pair) {
-      final error = (pair as List)[0];
-      final stack = (pair as List)[1];
-      print('🔴 Isolate uncaught error: $error');
-      print('🔴 Stack: $stack');
-      _updateStatus(_currentStatus.copyWith(
-        isSyncing: false,
-        lastError: error.toString(),
-      ));
-    });
-    Isolate.current.addErrorListener(errorPort.sendPort);
-
-    print('╔══════════════════════════════════════╗');
-    print('║   🏪 Store DB Sync Service Start      ║');
-    print('╚══════════════════════════════════════╝');
-
-    _monitorInternet();
+    if (_running) return;
+    _running = true;
+    _log('🏪 Store Sync Service — Start');
+    _startInternetMonitor();
     await _runSync();
-
     _syncTimer = Timer.periodic(
       Duration(seconds: SyncConfig.syncIntervalSeconds),
           (_) => _runSync(),
     );
   }
 
-  // ── Stop ──────────────────────────────────────
+  Future<void> syncNow() async {
+    _log('🔁 Manual sync...');
+    await _runSync();
+  }
+
   void stop() {
     _syncTimer?.cancel();
-    _monitorTimer?.cancel();
-    _isolate?.kill(priority: Isolate.immediate);
-    _receivePort?.close();
-    _isolate     = null;
-    _receivePort = null;
-    _isRunning   = false;
-    print('🛑 Sync service band ho gayi');
+    _internetTimer?.cancel();
+    _killIsolate();
+    _running = false;
+    _log('🛑 Sync service band');
   }
 
-  // ── Internet Check ────────────────────────────
-  static Future<bool> _hasInternet() async {
-    try {
-      final result = await InternetAddress.lookup('supabase.co')
-          .timeout(const Duration(seconds: 5));
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
+  void dispose() {
+    stop();
+    _statusCtrl.close();
   }
 
-  // ── Internet Monitor (polling every 15s) ──────
-  void _monitorInternet() {
-    _monitorTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
-      final hasNet = await _hasInternet();
-      final wasNet = _currentStatus.hasInternet;
-
-      _updateStatus(_currentStatus.copyWith(hasInternet: hasNet));
-
+  void _startInternetMonitor() {
+    _internetTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      final hasNet = await _checkInternet();
+      final wasNet = _status.hasInternet;
+      _emit(_status.copyWith(hasInternet: hasNet));
       if (hasNet && !wasNet) {
-        print('🌐 Internet aa gaya — Sync shuru...');
+        _log('🌐 Internet aa gaya — sync shuru');
         _runSync();
       } else if (!hasNet && wasNet) {
-        print('📵 Internet chala gaya');
+        _log('📵 Internet chala gaya');
       }
     });
   }
 
-  // ── Run Sync ──────────────────────────────────
   Future<void> _runSync() async {
-    if (_currentStatus.isSyncing) {
-      print('⏳ Sync pehle se chal rahi hai — skip');
+    if (_status.isSyncing) {
+      _log('⏳ Pehle se chal rahi hai — skip');
       return;
     }
-
-    final hasNet = await _hasInternet();
-
+    final hasNet = await _checkInternet();
     if (!hasNet) {
-      print('📵 Internet nahi — sync skip');
-      _updateStatus(_currentStatus.copyWith(hasInternet: false));
+      _log('📵 Internet nahi — skip');
+      _emit(_status.copyWith(hasInternet: false));
       return;
     }
-
-    _updateStatus(_currentStatus.copyWith(
-      isSyncing:   true,
-      hasInternet: true,
-    ));
-
-    _isolate?.kill(priority: Isolate.immediate);
-    _receivePort?.close();
+    _emit(_status.copyWith(isSyncing: true, hasInternet: true));
+    _killIsolate();
     _receivePort = ReceivePort();
-
     try {
       _isolate = await Isolate.spawn(
-        _syncIsolate,
+        _isolateEntry,
         _IsolateArgs(
           sendPort:    _receivePort!.sendPort,
           supabaseUrl: SyncConfig.supabaseUrl,
           supabaseKey: SyncConfig.supabaseKey,
         ),
         errorsAreFatal: false,
-        debugName: 'StoreSyncIsolate',
+        debugName: 'SyncIsolate',
       );
-
-      await for (final message in _receivePort!) {
-        if (message is Map<String, dynamic>) {
-          _handleIsolateMessage(message);
-        }
-        if (message == 'DONE') {
-          _receivePort!.close();
-          _receivePort = null;
-          break;
-        }
+      await for (final msg in _receivePort!) {
+        if (msg is _IsolateMsg) _handleMsg(msg);
+        if (msg == 'DONE') break;
       }
     } catch (e) {
-      print('❌ Isolate spawn error: $e');
-      _updateStatus(_currentStatus.copyWith(
-        isSyncing: false,
-        lastError: e.toString(),
-      ));
+      _log('❌ Isolate error: $e');
+      _emit(_status.copyWith(isSyncing: false, lastError: e.toString()));
+    } finally {
+      _receivePort?.close();
+      _receivePort = null;
     }
   }
 
-  // ── Handle Messages ───────────────────────────
-  void _handleIsolateMessage(Map<String, dynamic> msg) {
-    final type = msg['type'] as String;
-    switch (type) {
-      case 'table_success':
-        final table  = msg['table'] as String;
-        final count  = msg['count'] as int;
-        final newMap = Map<String, String>.from(_currentStatus.tableStatus);
-        newMap[table] = 'ok ($count)';
-        _updateStatus(_currentStatus.copyWith(
-          tableStatus: newMap,
-          totalSynced: _currentStatus.totalSynced + count,
+  void _handleMsg(_IsolateMsg msg) {
+    switch (msg) {
+      case _TableSuccess(:final table, :final count):
+        final map = Map<String, String>.from(_status.tableStatus);
+        map[table] = count > 0 ? '✅ $count synced' : '✅ up-to-date';
+        _emit(_status.copyWith(
+          tableStatus: map,
+          totalSynced: _status.totalSynced + count,
         ));
-        break;
-
-      case 'table_error':
-        final table  = msg['table'] as String;
-        final error  = msg['error'] as String;
-        final newMap = Map<String, String>.from(_currentStatus.tableStatus);
-        newMap[table] = 'error';
-        _updateStatus(_currentStatus.copyWith(
-          tableStatus: newMap,
+      case _TableError(:final table, :final error):
+        final map = Map<String, String>.from(_status.tableStatus);
+        map[table] = '❌ error';
+        _emit(_status.copyWith(
+          tableStatus: map,
           lastError:   '[$table] $error',
         ));
-        break;
-
-      case 'sync_complete':
-        _updateStatus(_currentStatus.copyWith(
+      case _SyncComplete():
+        _emit(_status.copyWith(
           isSyncing:    false,
           lastSyncTime: DateTime.now(),
           lastError:    null,
         ));
-        break;
     }
   }
 
-  void _updateStatus(SyncStatus status) {
-    _currentStatus = status;
-    if (!_statusController.isClosed) {
-      _statusController.add(status);
-    }
+  void _killIsolate() {
+    _isolate?.kill(priority: Isolate.immediate);
+    _isolate = null;
   }
 
-  static Future<void> _recalculateCustomerBalances(
-      SupabaseClient supabase,
-      SendPort sendPort,
-      ) async {
+  void _emit(SyncStatus s) {
+    _status = s;
+    if (!_statusCtrl.isClosed) _statusCtrl.add(s);
+  }
+
+  static Future<bool> _checkInternet() async {
     try {
-      print('  🔄 Customer balances recalculate ho rahe hain...');
-      await supabase.rpc('recalculate_all_customer_balances');
-      print('  ✅ Customer balances correct ho gaye');
-    } catch (e) {
-      print('  ⚠️  Balance recalculate failed: $e');
-      sendPort.send({
-        'type': 'table_error',
-        'table': 'balance_recalculate',
-        'error': e.toString(),
-      });
+      final res = await InternetAddress.lookup('supabase.co')
+          .timeout(const Duration(seconds: 5));
+      return res.isNotEmpty && res[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 
-  // ═══════════════════════════════════════════════
+  static void _log(String msg) => print(msg);
+
+  // ══════════════════════════════════════════════
   //  🏭 ISOLATE — Background Thread
-  // ═══════════════════════════════════════════════
-  static Future<void> _syncIsolate(_IsolateArgs args) async {
-    final sendPort = args.sendPort;
-    final now      = DateTime.now();
+  // ══════════════════════════════════════════════
 
-    print('\n${"═" * 50}');
-    print('  🕐 Sync shuru: ${now.hour}:${now.minute.toString().padLeft(2, "0")}:${now.second.toString().padLeft(2, "0")}');
-    print('${"═" * 50}');
+  static Future<void> _isolateEntry(_IsolateArgs args) async {
+    final send = args.sendPort;
 
-    Connection?     localConn;
+    _log('═' * 50);
+    _log('  🕐 Sync: ${DateTime.now()}');
+    _log('═' * 50);
+
+    Connection?     db;
     SupabaseClient? supabase;
 
     try {
-      print('  🔌 Local PostgreSQL se connect ho raha hai...');
-      localConn = await Connection.open(
+      db = await Connection.open(
         Endpoint(
-          host:     '127.0.0.1',
+          host:     SyncConfig.dbHost,
           port:     SyncConfig.dbPort,
           database: SyncConfig.dbName,
           username: SyncConfig.dbUser,
@@ -367,211 +316,165 @@ class SyncService {
         ),
         settings: ConnectionSettings(sslMode: SslMode.disable),
       );
-      print('  ✅ Local DB connected');
+      _log('  ✅ Local DB connected');
 
-      print('  🔌 Supabase se connect ho raha hai...');
       supabase = SupabaseClient(
         args.supabaseUrl,
         args.supabaseKey,
-        authOptions: const AuthClientOptions(
-          autoRefreshToken: false,
-        ),
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
       );
-      print('  ✅ Supabase client ready');
+      _log('  ✅ Supabase connected');
 
+      // ── Har table sync karo ───────────────────
       for (final table in SyncConfig.tables) {
-        final count = await _syncTable(localConn, supabase, table, sendPort);
-        print(count > 0
-            ? '   🔄 $table: $count records sync hue!'
-            : '   ✅ $table: Sab sync hai');
+        final count = await _syncTable(db, supabase, table, send);
+        _log(count > 0
+            ? '  🔄 $table: $count rows synced'
+            : '  ✅ $table: kuch nahi tha');
       }
 
-      await _recalculateCustomerBalances(supabase, sendPort);
+      send.send(_SyncComplete());
+      _log('${"─" * 50}');
+      _log('  ✅ Sync complete!');
 
-      sendPort.send({'type': 'sync_complete'});
-      print('${"─" * 50}');
-      print('  ✅ Sync Complete!');
-      print('${"═" * 50}\n');
-
-    } catch (e, stack) {
-      print('  ❌ Connection/Sync Error: $e');
-      print('  Stack: $stack');
-      sendPort.send({
-        'type':  'table_error',
-        'table': 'connection',
-        'error': e.toString(),
-      });
+    } catch (e, st) {
+      _log('  ❌ Sync error: $e\n$st');
+      send.send(_TableError('connection', e.toString()));
     } finally {
-      await localConn?.close();
+      await db?.close();
       supabase?.dispose();
-      sendPort.send('DONE');
+      send.send('DONE');
     }
   }
 
-
-
-  // ─────────────────────────────────────────────
-  //  🔄 Single Table Sync
-  // ─────────────────────────────────────────────
-
-  // ─────────────────────────────────────────
-//  🔄 Single Table Sync
-// ─────────────────────────────────────────
+  // ══════════════════════════════════════════════
+  //  🔄 Single Table Sync — Seedha upsert
+  //  Koi RPC nahi, koi special case nahi
+  //  Sare triggers delete ho chuke hain
+  // ══════════════════════════════════════════════
 
   static Future<int> _syncTable(
-      Connection     localConn,
+      Connection     db,
       SupabaseClient supabase,
-      String         tableName,
-      SendPort       sendPort,
+      String         table,
+      SendPort       send,
       ) async {
     try {
-      final tsCol       = SyncConfig.getTimestampColumn(tableName);
-      final conflictCol = SyncConfig.getConflictColumn(tableName);
+      final tsCol       = SyncConfig.timestampColumn(table);
+      final conflictCol = SyncConfig.conflictColumn(table);
 
-      // ── Tables jo hamesha full sync karengi ───
-      const forceFullSyncTables = [
-        'sale_invoices',
-        'sale_invoice_items',
-        'sale_invoice_payments',
-      ];
+      // ── Step 1: Supabase mein last timestamp lo ─
+      String? lastSyncedAt;
+      try {
+        final res = await supabase
+            .from(table)
+            .select(tsCol)
+            .order(tsCol, ascending: false)
+            .limit(1);
 
-      // ── Supabase mein last timestamp lo ───────
-      String? lastSync;
-
-      if (forceFullSyncTables.contains(tableName)) {
-        print('   🔄 $tableName — forced full sync (trigger-safe mode)');
-      } else {
-        try {
-          final result = await supabase
-              .from(tableName)
-              .select(tsCol)
-              .order(tsCol, ascending: false)
-              .limit(1);
-
-          if (result.isNotEmpty && result[0][tsCol] != null) {
-            lastSync = result[0][tsCol].toString();
-            print('   📅 $tableName — last sync: $lastSync');
-          } else {
-            print('   📅 $tableName — Supabase empty, full sync karega');
-          }
-        } catch (e) {
-          print('   ⚠️  $tableName lastSync fetch failed: $e');
-          lastSync = null;
+        if (res.isNotEmpty && res[0][tsCol] != null) {
+          lastSyncedAt = res[0][tsCol].toString();
+          _log('  📅 $table — last synced: $lastSyncedAt');
+        } else {
+          _log('  📅 $table — Supabase empty, full sync');
         }
+      } catch (e) {
+        _log('  ⚠️  $table — lastSync fetch fail: $e');
       }
 
-      // ── Local se rows lo ──────────────────────
-      List<Map<String, dynamic>> rows;
+      // ── Step 2: Local se naye rows lo ──────────
+      final List<Map<String, dynamic>> rows;
 
-      if (lastSync != null) {
-        final result = await localConn.execute(
+      if (lastSyncedAt != null) {
+        final result = await db.execute(
           Sql.named(
-            'SELECT * FROM "$tableName" '
-                'WHERE "$tsCol" > @lastSync::timestamptz '
+            'SELECT * FROM "$table" '
+                'WHERE "$tsCol" > @ts::timestamptz '
                 'ORDER BY "$tsCol" ASC',
           ),
-          parameters: {'lastSync': lastSync},
+          parameters: {'ts': lastSyncedAt},
         );
-        rows = result.map((r) => _convertRow(r.toColumnMap())).toList();
+        rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
       } else {
-        final result = await localConn.execute(
-          Sql('SELECT * FROM "$tableName" ORDER BY "$tsCol" ASC'),
+        final result = await db.execute(
+          Sql('SELECT * FROM "$table" ORDER BY "$tsCol" ASC'),
         );
-        rows = result.map((r) => _convertRow(r.toColumnMap())).toList();
+        rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
       }
 
-      print('   📦 $tableName: ${rows.length} rows local se mile');
-
-      if (rows.isEmpty) return 0;
-
-      // ── Exclude columns ───────────────────────
-      final excludeCols = SyncConfig.excludeColumns[tableName] ?? [];
-      List<Map<String, dynamic>> supabaseRows = rows;
-      if (excludeCols.isNotEmpty) {
-        supabaseRows = rows.map((r) {
-          final map = Map<String, dynamic>.from(r);
-          for (final col in excludeCols) {
-            map.remove(col);
-          }
-          return map;
-        }).toList();
+      _log('  📦 $table: ${rows.length} rows milein');
+      if (rows.isEmpty) {
+        send.send(_TableSuccess(table, 0));
+        return 0;
       }
 
-      // ── Batch upsert ──────────────────────────
+      // ── Step 3: Exclude columns ─────────────────
+      final excludeCols = SyncConfig.excludeColumns[table] ?? [];
+      final supaRows = excludeCols.isEmpty
+          ? rows
+          : rows.map((r) {
+        final m = Map<String, dynamic>.from(r);
+        for (final col in excludeCols) m.remove(col);
+        return m;
+      }).toList();
+
+      // ── Step 4: Seedha upsert — koi trigger nahi ─
       const batchSize = 50;
-      int total       = 0;
+      int totalSynced = 0;
       final List<String> syncedIds = [];
 
-      for (int i = 0; i < supabaseRows.length; i += batchSize) {
-        final end   = (i + batchSize) > supabaseRows.length
-            ? supabaseRows.length
-            : i + batchSize;
-        final batch = supabaseRows.sublist(i, end);
-
+      for (int i = 0; i < supaRows.length; i += batchSize) {
+        final batch = supaRows.sublist(
+          i,
+          (i + batchSize).clamp(0, supaRows.length),
+        );
         try {
-          await supabase
-              .from(tableName)
-              .upsert(batch, onConflict: conflictCol);
-          total += batch.length;
-
-          if (tableName == 'accountant_transactions') {
+          await supabase.from(table).upsert(batch, onConflict: conflictCol);
+          totalSynced += batch.length;
+          if (table == 'accountant_transactions') {
             syncedIds.addAll(batch.map((r) => r['id'].toString()));
           }
-
         } catch (batchErr) {
-          print('   ⚠️  $tableName batch fail, row-by-row try: $batchErr');
+          _log('  ⚠️  $table batch fail — row-by-row: $batchErr');
           for (final row in batch) {
             try {
-              await supabase
-                  .from(tableName)
-                  .upsert(row, onConflict: conflictCol);
-              total++;
-
-              if (tableName == 'accountant_transactions') {
+              await supabase.from(table).upsert(row, onConflict: conflictCol);
+              totalSynced++;
+              if (table == 'accountant_transactions') {
                 syncedIds.add(row['id'].toString());
               }
             } catch (rowErr) {
-              print('   ❌ $tableName row skip: $rowErr');
-              print('      Row: $row');
+              _log('  ❌ $table row skip: $rowErr\n     Row: $row');
             }
           }
         }
       }
 
-      // ── accountant_transactions is_synced update ──
-      if (tableName == 'accountant_transactions' && syncedIds.isNotEmpty) {
-        final ids = syncedIds.map((id) => "'$id'").join(',');
-        await localConn.execute(
-          Sql('UPDATE public.accountant_transactions '
-              'SET is_synced = true '
-              'WHERE id IN ($ids)'),
+      // ── Step 5: accountant_transactions is_synced ─
+      if (table == 'accountant_transactions' && syncedIds.isNotEmpty) {
+        final idList = syncedIds.map((id) => "'$id'").join(',');
+        await db.execute(
+          Sql('UPDATE accountant_transactions '
+              'SET is_synced = true WHERE id IN ($idList)'),
         );
-        print('   ✅ accountant_transactions: ${syncedIds.length} records is_synced = true');
+        _log('  ✅ accountant_transactions: ${syncedIds.length} is_synced=true');
       }
 
-      sendPort.send({
-        'type':  'table_success',
-        'table': tableName,
-        'count': total,
-      });
-      return total;
+      send.send(_TableSuccess(table, totalSynced));
+      return totalSynced;
 
-    } catch (e, stack) {
-      print('   ❌ $tableName sync error: $e');
-      print('      Stack: $stack');
-      sendPort.send({
-        'type':  'table_error',
-        'table': tableName,
-        'error': e.toString(),
-      });
+    } catch (e, st) {
+      _log('  ❌ $table sync error: $e\n$st');
+      send.send(_TableError(table, e.toString()));
       return 0;
     }
   }
 
-  // ─────────────────────────────────────────────
-  //  🔧 Row Convert — Type-safe
-  // ─────────────────────────────────────────────
-  static Map<String, dynamic> _convertRow(Map<String, dynamic> row) {
+  // ══════════════════════════════════════════════
+  //  Row Convert — Dart types → JSON safe
+  // ══════════════════════════════════════════════
+
+  static Map<String, dynamic> _toJsonRow(Map<String, dynamic> row) {
     return row.map((key, value) {
       if (value == null)     return MapEntry(key, null);
       if (value is DateTime) return MapEntry(key, value.toUtc().toIso8601String());
@@ -583,18 +486,5 @@ class SyncService {
       if (value is Map)      return MapEntry(key, value);
       return MapEntry(key, value.toString());
     });
-  }
-
-  // ─────────────────────────────────────────────
-  //  🔁 Manual Sync
-  // ─────────────────────────────────────────────
-  Future<void> syncNow() async {
-    print('🔁 Manual sync shuru...');
-    await _runSync();
-  }
-
-  void dispose() {
-    stop();
-    _statusController.close();
   }
 }
