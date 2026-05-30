@@ -13,7 +13,7 @@ class SyncConfig {
   static const int    dbPort     = 5432;
   static const String dbName     = 'store_db';
   static const String dbUser     = 'storeuser';
-  static const String dbPassword = 'branchUser12C3';
+  static const String dbPassword = 'shahab';
 
   // ── Supabase ──────────────────────────────────────────────
   static const String supabaseUrl = 'https://kjjtqfruxhjcxwvxwffz.supabase.co';
