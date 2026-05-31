@@ -33,15 +33,15 @@ class CustomerReportDatasource {
   final _client = Supabase.instance.client;
 
   // ── Step 1: Verify phone last 4 digits ──────────────────────
-  /// Returns customer name if valid, null if wrong/not found
-  Future<String?> verifyPhone({
+
+  Future<Map<String, dynamic>?> verifyPhone({
     required String customerId,
     required String phoneLast4,
   }) async {
     try {
       final row = await _client
           .from('customer')
-          .select('name, phone')
+          .select('name, phone, balance')
           .eq('id', customerId)
           .isFilter('deleted_at', null)
           .maybeSingle();
@@ -54,7 +54,10 @@ class CustomerReportDatasource {
       final actualLast4 = phone.substring(phone.length - 4);
       if (actualLast4 != phoneLast4.trim()) return null;
 
-      return row['name']?.toString() ?? '';
+      return {
+        'name':    row['name']?.toString() ?? '',
+        'balance': double.tryParse(row['balance']?.toString() ?? '0') ?? 0.0,
+      };
     } catch (e) {
       print('❌ verifyPhone error: $e');
       return null;

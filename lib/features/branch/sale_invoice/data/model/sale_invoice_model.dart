@@ -1,6 +1,3 @@
-// lib/features/sale_invoice/data/model/sale_invoice_model.dart
-// ── MODIFIED: successMessage + CartItem toJson/fromJson added ──
-
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/data/model/branch_stock_model.dart';
 import 'package:jan_ghani_final/features/branch/customer/data/model/customer_model.dart';
 

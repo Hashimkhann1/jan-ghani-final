@@ -42,7 +42,6 @@ class SaleReturnDatasource {
     final counterFilter = counterId != null
         ? 'AND sr.counter_id = @counterId::uuid'
         : '';
-
     final userFilter = userId != null
         ? 'AND sr.user_id = @userId::uuid'
         : '';
@@ -106,7 +105,8 @@ class SaleReturnDatasource {
           product_name,
           sku,
           barcode::text AS barcode,
-          price,
+          sale_price,
+          purchase_price,
           quantity,
           discount,
           subtotal,
@@ -124,14 +124,15 @@ class SaleReturnDatasource {
       final returnId = m['return_id'].toString();
       itemsMap.putIfAbsent(returnId, () => []);
       itemsMap[returnId]!.add(SaleReturnItemDetail.fromMap({
-        'product_name': m['product_name'],
-        'sku':          m['sku'],
-        'barcode':      m['barcode'],
-        'price':        m['price'],
-        'quantity':     m['quantity'],
-        'discount':     m['discount'],
-        'subtotal':     m['subtotal'],
-        'total_amount': m['total_amount'],
+        'product_name':   m['product_name'],
+        'sku':            m['sku'],
+        'barcode':        m['barcode'],
+        'sale_price':     m['sale_price'],
+        'purchase_price': m['purchase_price'],
+        'quantity':       m['quantity'],
+        'discount':       m['discount'],
+        'subtotal':       m['subtotal'],
+        'total_amount':   m['total_amount'],
       }));
     }
 
