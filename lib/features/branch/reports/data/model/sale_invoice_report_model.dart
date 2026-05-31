@@ -29,9 +29,9 @@ class SaleInvoiceListModel {
     required this.items,
   });
 
-  String get grandTotalLabel   => 'Rs ${grandTotal.toStringAsFixed(0)}';
-  String get totalAmountLabel  => 'Rs ${totalAmount.toStringAsFixed(0)}';
-  String get discountLabel     => 'Rs ${totalDiscount.toStringAsFixed(0)}';
+  String get grandTotalLabel  => 'Rs ${grandTotal.toStringAsFixed(0)}';
+  String get totalAmountLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
+  String get discountLabel    => 'Rs ${totalDiscount.toStringAsFixed(0)}';
 
   String get paymentLabel {
     switch (paymentType) {
@@ -62,7 +62,8 @@ class SaleInvoiceListModel {
 class SaleInvoiceItemDetail {
   final String  productName;
   final String? sku;
-  final double  price;
+  final double  salePrice;
+  final double  purchasePrice;
   final double  quantity;
   final double  discount;
   final double  totalAmount;
@@ -70,26 +71,28 @@ class SaleInvoiceItemDetail {
   const SaleInvoiceItemDetail({
     required this.productName,
     this.sku,
-    required this.price,
+    required this.salePrice,
+    required this.purchasePrice,
     required this.quantity,
     required this.discount,
     required this.totalAmount,
   });
 
-  String get priceLabel    => 'Rs ${price.toStringAsFixed(0)}';
-  String get totalLabel    => 'Rs ${totalAmount.toStringAsFixed(0)}';
-  String get qtyLabel      => quantity % 1 == 0
+  String get priceLabel => 'Rs ${salePrice.toStringAsFixed(0)}';
+  String get totalLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
+  String get qtyLabel   => quantity % 1 == 0
       ? quantity.toInt().toString()
       : quantity.toStringAsFixed(2);
 
   static SaleInvoiceItemDetail fromMap(Map<String, dynamic> m) =>
       SaleInvoiceItemDetail(
-        productName: m['product_name']?.toString() ?? '',
-        sku:         m['sku']?.toString(),
-        price:       _dbl(m['price'])        ?? 0,
-        quantity:    _dbl(m['quantity'])     ?? 0,
-        discount:    _dbl(m['discount'])     ?? 0,
-        totalAmount: _dbl(m['total_amount']) ?? 0,
+        productName:   m['product_name']?.toString()  ?? '',
+        sku:           m['sku']?.toString(),
+        salePrice:     _dbl(m['sale_price'])     ?? 0,
+        purchasePrice: _dbl(m['purchase_price']) ?? 0,
+        quantity:      _dbl(m['quantity'])       ?? 0,
+        discount:      _dbl(m['discount'])       ?? 0,
+        totalAmount:   _dbl(m['total_amount'])   ?? 0,
       );
 
   static double? _dbl(dynamic v) {

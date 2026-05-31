@@ -10,7 +10,7 @@ class CashierModel {
 
 class SaleInvoiceListDatasource {
 
-  // ── Cashiers list (manager ke liye) ──────────────────────
+  // ── Cashiers list ─────────────────────────────────────────
   Future<List<CashierModel>> getCashiers({required String storeId}) async {
     final conn   = await DataBaseService.getConnection();
     final result = await conn.execute(
@@ -33,19 +33,19 @@ class SaleInvoiceListDatasource {
     }).toList();
   }
 
+  // ── Get All Invoices ──────────────────────────────────────
   Future<List<SaleInvoiceListModel>> getAll({
     required String   storeId,
     required DateTime fromDate,
     required DateTime toDate,
     String?           counterId,
-    String?           userId,      // cashier filter
+    String?           userId,
   }) async {
     final conn = await DataBaseService.getConnection();
 
     final counterFilter = counterId != null
         ? 'AND si.counter_id = @counterId::uuid'
         : '';
-
     final userFilter = userId != null
         ? 'AND si.user_id = @userId::uuid'
         : '';
@@ -66,9 +66,9 @@ class SaleInvoiceListDatasource {
           u.full_name     AS cashier_name,
           STRING_AGG(sip.payment_method, ',') AS payment_type
         FROM public.sale_invoices si
-        LEFT JOIN public.customer       c   ON c.id   = si.customer_id
-        LEFT JOIN public.branch_counter co  ON co.id  = si.counter_id
-        LEFT JOIN public.branch_users   u   ON u.id   = si.user_id
+        LEFT JOIN public.customer            c   ON c.id  = si.customer_id
+        LEFT JOIN public.branch_counter      co  ON co.id = si.counter_id
+        LEFT JOIN public.branch_users        u   ON u.id  = si.user_id
         LEFT JOIN public.sale_invoice_payments sip ON sip.invoice_id = si.id
         WHERE si.store_id          = @storeId::uuid
           AND si.deleted_at        IS NULL
@@ -101,8 +101,14 @@ class SaleInvoiceListDatasource {
     final itemsResult = await conn.execute(
       Sql.named('''
         SELECT
-          invoice_id, product_name, sku,
-          price, quantity, discount, total_amount
+          invoice_id,
+          product_name,
+          sku,
+          sale_price,
+          purchase_price,
+          quantity,
+          discount,
+          total_amount
         FROM public.sale_invoice_items
         WHERE invoice_id = ANY(@ids::uuid[])
         ORDER BY created_at ASC
@@ -116,12 +122,13 @@ class SaleInvoiceListDatasource {
       final invoiceId = m['invoice_id'].toString();
       itemsMap.putIfAbsent(invoiceId, () => []);
       itemsMap[invoiceId]!.add(SaleInvoiceItemDetail.fromMap({
-        'product_name': m['product_name'],
-        'sku':          m['sku'],
-        'price':        m['price'],
-        'quantity':     m['quantity'],
-        'discount':     m['discount'],
-        'total_amount': m['total_amount'],
+        'product_name':   m['product_name'],
+        'sku':            m['sku'],
+        'sale_price':     m['sale_price'],
+        'purchase_price': m['purchase_price'],
+        'quantity':       m['quantity'],
+        'discount':       m['discount'],
+        'total_amount':   m['total_amount'],
       }));
     }
 

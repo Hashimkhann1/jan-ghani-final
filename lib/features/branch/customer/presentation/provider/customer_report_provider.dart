@@ -13,11 +13,13 @@ enum VerifyStatus { idle, loading, verified, failed }
 class CustomerVerifyState {
   final VerifyStatus status;
   final String?      customerName;
+  final double       customerBalance;   // ← naya field
   final String?      errorMessage;
 
   const CustomerVerifyState({
-    this.status       = VerifyStatus.idle,
+    this.status          = VerifyStatus.idle,
     this.customerName,
+    this.customerBalance = 0.0,         // ← default 0
     this.errorMessage,
   });
 
@@ -27,11 +29,13 @@ class CustomerVerifyState {
   CustomerVerifyState copyWith({
     VerifyStatus? status,
     String?       customerName,
+    double?       customerBalance,
     String?       errorMessage,
   }) => CustomerVerifyState(
-    status:       status       ?? this.status,
-    customerName: customerName ?? this.customerName,
-    errorMessage: errorMessage ?? this.errorMessage,
+    status:          status          ?? this.status,
+    customerName:    customerName    ?? this.customerName,
+    customerBalance: customerBalance ?? this.customerBalance,
+    errorMessage:    errorMessage    ?? this.errorMessage,
   );
 }
 
@@ -39,9 +43,7 @@ class CustomerVerifyNotifier extends StateNotifier<CustomerVerifyState> {
   final CustomerReportDatasource _ds;
   final String customerId;
 
-  CustomerVerifyNotifier(this.customerId)
-      : _ds = CustomerReportDatasource(),
-        super(const CustomerVerifyState());
+  CustomerVerifyNotifier(this.customerId): _ds = CustomerReportDatasource(), super(const CustomerVerifyState());
 
   Future<void> verify(String phoneLast4) async {
     if (phoneLast4.trim().length != 4) {
@@ -54,15 +56,16 @@ class CustomerVerifyNotifier extends StateNotifier<CustomerVerifyState> {
 
     state = state.copyWith(status: VerifyStatus.loading);
 
-    final name = await _ds.verifyPhone(
-      customerId:  customerId,
-      phoneLast4:  phoneLast4,
+    final result = await _ds.verifyPhone(
+      customerId: customerId,
+      phoneLast4: phoneLast4,
     );
 
-    if (name != null) {
+    if (result != null) {
       state = CustomerVerifyState(
-        status:       VerifyStatus.verified,
-        customerName: name,
+        status:          VerifyStatus.verified,
+        customerName:    result['name'] as String?,
+        customerBalance: result['balance'] as double? ?? 0.0,  // ← store karo
       );
     } else {
       state = CustomerVerifyState(

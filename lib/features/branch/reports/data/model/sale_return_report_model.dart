@@ -66,7 +66,8 @@ class SaleReturnItemDetail {
   final String  productName;
   final String? sku;
   final String? barcode;
-  final double  price;
+  final double  salePrice;      // ← price ki jagah
+  final double  purchasePrice;  // ← naya
   final double  quantity;
   final double  discount;
   final double  subtotal;
@@ -76,14 +77,15 @@ class SaleReturnItemDetail {
     required this.productName,
     this.sku,
     this.barcode,
-    required this.price,
+    required this.salePrice,
+    required this.purchasePrice,
     required this.quantity,
     required this.discount,
     required this.subtotal,
     required this.totalAmount,
   });
 
-  String get priceLabel => 'Rs ${price.toStringAsFixed(0)}';
+  String get priceLabel => 'Rs ${salePrice.toStringAsFixed(0)}';
   String get totalLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
   String get qtyLabel   => quantity % 1 == 0
       ? quantity.toInt().toString()
@@ -91,14 +93,15 @@ class SaleReturnItemDetail {
 
   static SaleReturnItemDetail fromMap(Map<String, dynamic> m) =>
       SaleReturnItemDetail(
-        productName: m['product_name']?.toString() ?? '',
-        sku:         m['sku']?.toString(),
-        barcode:     m['barcode']?.toString(),
-        price:       _dbl(m['price'])        ?? 0,
-        quantity:    _dbl(m['quantity'])     ?? 0,
-        discount:    _dbl(m['discount'])     ?? 0,
-        subtotal:    _dbl(m['subtotal'])     ?? 0,
-        totalAmount: _dbl(m['total_amount']) ?? 0,
+        productName:   m['product_name']?.toString()  ?? '',
+        sku:           m['sku']?.toString(),
+        barcode:       m['barcode']?.toString(),
+        salePrice:     _dbl(m['sale_price'])     ?? 0,
+        purchasePrice: _dbl(m['purchase_price']) ?? 0,
+        quantity:      _dbl(m['quantity'])       ?? 0,
+        discount:      _dbl(m['discount'])       ?? 0,
+        subtotal:      _dbl(m['subtotal'])       ?? 0,
+        totalAmount:   _dbl(m['total_amount'])   ?? 0,
       );
 
   static double? _dbl(dynamic v) {

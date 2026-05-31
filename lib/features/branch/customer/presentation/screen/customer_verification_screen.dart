@@ -48,15 +48,18 @@ class _CustomerVerificationScreenState
     if (!mounted) return;
 
     if (state.isVerified) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CustomerReportScreen(
-            customerId:   widget.customerId,
-            customerName: state.customerName ?? '',
+      if (state.isVerified) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CustomerReportScreen(
+              customerId:      widget.customerId,
+              customerName:    state.customerName ?? '',
+              customerBalance: state.customerBalance,   // ← pass karo
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
