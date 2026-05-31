@@ -12,6 +12,8 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_finance/domain/ware
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentation/provider/warehouse_finance_provider/warehouse_finance_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentation/widgets/cash_in_dialog.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/screen/warehouse_cash_requests_screen.dart';
 
 String _fmt(double v) => 'Rs. ${v.pkrFormat}';
 
@@ -99,6 +101,51 @@ class _Header extends ConsumerWidget {
                     strokeWidth: 2, color: AppColor.primary))
                 : const Icon(Icons.refresh_rounded,
                 color: AppColor.textSecondary),
+          ),
+          // ── Cash Requests (accountant se aayi cash) ───────────
+          Consumer(
+            builder: (context, ref, _) {
+              final pending = ref.watch(pendingCashRequestsProvider);
+              final count = pending.asData?.value.length ?? 0;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    tooltip: 'Cash Requests',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const WarehouseCashRequestsScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.move_to_inbox_rounded,
+                        color: AppColor.textSecondary),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColor.cashOut,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                            minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$count',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(width: 8),
           TextButton(
