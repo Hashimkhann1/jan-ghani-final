@@ -39,10 +39,9 @@ class SyncConfig {
     'sale_returns',
     'sale_return_items',
     'sale_return_payments',
-    'accountant_counter',
-    'accountant_transactions',
     'customer_ledger',
     'branch_summary',
+    "branch_transaction_to_janghani",
   ];
 
   // ── Har table ka timestamp column ────────────────────────
