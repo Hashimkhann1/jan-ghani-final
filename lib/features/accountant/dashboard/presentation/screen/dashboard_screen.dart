@@ -8,6 +8,7 @@ import 'package:jan_ghani_final/features/accountant/authentication/presentation/
 import 'package:jan_ghani_final/features/accountant/reports/accountant_customer/presentation/screen/accountant_customer_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/reports/accountant_sale_report/presentation/screen/accountant_sale_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/reports/accountant_sale_return_report/presentation/screen/sale_return_report_screen.dart';
+import 'package:jan_ghani_final/features/accountant/accountant_all_warehouses/presentation/screen/accountant_all_warehouses_screen.dart';
 import '../../../reports/accountant_profit_loss_report/presentation/screen/accountant_profit_loss_report_screen.dart';
 import '../../../reports/branch_cash_counter_report/presentation/screen/branch_cash_counter_screen.dart';
 import '../../../warehouse_transaction/presentationpresentation/screen/warehouse_transaction_screen.dart';
@@ -34,7 +35,7 @@ class _AccountantDashboardScreenState
     final screens = [
       const _DashboardBody(),
       AccountantBranchTransactionScreen(accountantId: accountantId),
-      const AccountantWarehouseTransactionScreen(),
+      const AccountantAllWarehousesScreen(),
       const AccountantInvestmentScreen(),
     ];
 
