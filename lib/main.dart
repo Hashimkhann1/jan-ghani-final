@@ -13,8 +13,6 @@ import '../core/service/sync/sync_service.dart';
 import '../core/widget/sidebar/branch_sidebar_widget.dart';
 import '../features/branch/authentication/presentation/provider/auth_provider.dart';
 import '../features/branch/authentication/presentation/screen/login_screen.dart';
-import 'features/accountant/authentication/presentation/screen/login_screen.dart';
-import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -48,16 +46,12 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context,WidgetRef ref) {
     final auth = ref.watch(authProvider);
-
     return ProviderScope(
       child: MaterialApp(
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
-        // home: isLoggedIn ? AccountantDashboardScreen() : AccountantLoginScreen(),
-        home:
-        // AIBusinessChatbotScreen(),
-        auth.isLoading ?
+        home: auth.isLoading ?
         Scaffold(
           body: const CircularProgressIndicator(),
         ) :
