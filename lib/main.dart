@@ -13,7 +13,6 @@ import '../core/service/sync/sync_service.dart';
 import '../core/widget/sidebar/branch_sidebar_widget.dart';
 import '../features/branch/authentication/presentation/provider/auth_provider.dart';
 import '../features/branch/authentication/presentation/screen/login_screen.dart';
-import 'features/accountant/ai_chatbot_screen.dart';
 import 'features/accountant/authentication/presentation/screen/login_screen.dart';
 import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 
