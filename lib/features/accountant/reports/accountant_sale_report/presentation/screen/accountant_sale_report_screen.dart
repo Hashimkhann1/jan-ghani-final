@@ -476,10 +476,9 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'Rs ${item.price.toStringAsFixed(0)}',
+                      'Rs ${item.salePrice.toStringAsFixed(0)}', // ✅ price → salePrice
                       style: const TextStyle(
-                          fontSize: 12,
-                          color:    AppColor.textSecondary),
+                          fontSize: 12, color: AppColor.textSecondary),
                     ),
                   ),
                   Expanded(

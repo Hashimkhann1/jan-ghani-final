@@ -20,6 +20,7 @@ import 'disable_text_field_widget.dart';
 import '../screen/payment_dialog.dart';
 
 String _fmtD(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
+
 class CartPanel extends ConsumerStatefulWidget {
   const CartPanel({super.key});
 
@@ -54,22 +55,12 @@ class _CartPanelState extends ConsumerState<CartPanel> {
     final state    = ref.watch(saleInvoiceProvider);
     final isReturn = state.saleType == SaleType.saleReturn;
 
-    // ✅ Naya item add hone pe auto-scroll
     if (state.cartItems.length > _lastCartLength) {
       _scrollToBottom();
     }
     _lastCartLength = state.cartItems.length;
 
     // ── F2 shortcut — Pay Now trigger ─────────────────────────
-    ref.listen<bool>(payNowTriggerProvider, (_, trigger) {
-      if (trigger) {
-        ref.read(payNowTriggerProvider.notifier).state = false;
-        if (state.cartItems.isNotEmpty && !isReturn) {
-          showPaymentDialog(context, ref);
-        }
-      }
-    });
-
     ref.listen<bool>(payNowTriggerProvider, (_, trigger) {
       if (trigger) {
         ref.read(payNowTriggerProvider.notifier).state = false;
@@ -117,29 +108,27 @@ class _CartPanelState extends ConsumerState<CartPanel> {
       child: Column(children: [
         const InvoiceHeaderWidget(),
         Expanded(
-          child: isReturn ?
-          const _ReturnBody() :
-          (state.cartItems.isEmpty ?
-          const _EmptyCart() :
-          Column(
+          child: isReturn
+              ? const _ReturnBody()
+              : (state.cartItems.isEmpty
+              ? const _EmptyCart()
+              : Column(
             children: [
               const CartTableHeader(),
               Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                itemCount: state.cartItems.length,
-                controller: _cartScrollCtrl,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 5),
-                itemBuilder: (context, index) => CartItemRow(cartItem: state.cartItems[index], rowIndex: index),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  itemCount: state.cartItems.length,
+                  controller: _cartScrollCtrl,
+                  separatorBuilder: (_, __) => const SizedBox(height: 5),
+                  itemBuilder: (context, index) =>
+                      CartItemRow(cartItem: state.cartItems[index], rowIndex: index),
+                ),
               ),
-            ),
             ],
           )),
         ),
-        isReturn ?
-        const _ReturnSummary() :
-        const CartSummaryWidget(),
+        isReturn ? const _ReturnSummary() : const CartSummaryWidget(),
       ]),
     );
   }
@@ -156,8 +145,11 @@ class InvoiceHeaderWidget extends ConsumerWidget {
     final returnState    = ref.watch(saleReturnProvider);
     final returnNotifier = ref.read(saleReturnProvider.notifier);
     final isReturn       = state.saleType == SaleType.saleReturn;
-    final customers = ref.watch(customerProvider).allCustomers.where((c) => c.deletedAt == null && c.isActive).toList();
+    final customers      = ref.watch(customerProvider).allCustomers
+        .where((c) => c.deletedAt == null && c.isActive)
+        .toList();
     final dateFmt = DateFormat('dd-MM-yyyy');
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: const BoxDecoration(
@@ -165,7 +157,7 @@ class InvoiceHeaderWidget extends ConsumerWidget {
         border: Border(bottom: BorderSide(color: AppColor.grey200)),
       ),
       child: Column(children: [
-        // Row 1: No + Date + Hold button
+        // ── Row 1: Invoice No + Date ───────────────────────────
         Row(children: [
           Expanded(
             flex: 2,
@@ -184,20 +176,10 @@ class InvoiceHeaderWidget extends ConsumerWidget {
               icon:  Icons.calendar_today_outlined,
             ),
           ),
-          const SizedBox(width: 10),
-          // ── Hold button (F3) ──────────────────────────────────
-          // if (!isReturn)
-          //   Tooltip(
-          //     message: 'Hold Invoice (F3)',
-          //     child: _HoldButton(
-          //       enabled: state.cartItems.isNotEmpty,
-          //       onHold:  () => _showHoldDialog(context, ref),
-          //     ),
-          //   ),
         ]),
         const SizedBox(height: 10),
 
-        // Row 2: Type + Customer
+        // ── Row 2: Type + Customer ─────────────────────────────
         Row(children: [
           Expanded(
             flex: 2,
@@ -209,207 +191,96 @@ class InvoiceHeaderWidget extends ConsumerWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            flex: 5,
+            flex: 4,
             child: _CustomerDropdown(
-              customers: customers,
+              customers:        customers,
               selectedCustomer: isReturn ? returnState.selectedCustomer : state.selectedCustomer,
-              isReturn: isReturn,
-              onSelected: isReturn ? (c) => returnNotifier.selectCustomer(c) : (c) => notifier.selectCustomer(c),
+              isReturn:         isReturn,
+              onSelected:       isReturn
+                  ? (c) => returnNotifier.selectCustomer(c)
+                  : (c) => notifier.selectCustomer(c),
             ),
           ),
+          const SizedBox(width: 10),
+          if (!isReturn) ...[
+            Expanded(
+              flex: 3,
+              child: _NoteTextField(
+                value:     state.notes ?? '',
+                onChanged: (v) => notifier.setNotes(v),
+              ),
+            ),
+          ],
+
         ]),
+
       ]),
     );
   }
-  void _showHoldDialog(BuildContext context, WidgetRef ref) {
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (dialogCtx) => Dialog(
-        backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
 
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 28, 28, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header ──────────────────────────────────
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFF3CD),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.pause_rounded,
-                        color: Color(0xFFF5A623),
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hold Invoice',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A1A1A),
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'You can resume this invoice later',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF888888),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-          
-                const SizedBox(height: 20),
-          
-                // ── Label field ─────────────────────────────
-                const Text(
-                  'Label (optional)',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF888888),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: ctrl,
-                  autofocus: true,
-                  style: const TextStyle(fontSize: 13.5),
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Table 3, Counter 1...',
-                    hintStyle: const TextStyle(
-                      fontSize: 13.5,
-                      color: Color(0xFFBBBBBB),
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.label_outline_rounded,
-                      color: Color(0xFFF5A623),
-                      size: 16,
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFFFFDF7),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: Color(0xFFE0E0E0),
-                        width: 1,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: Color(0xFFF5A623),
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                  onSubmitted: (_) => _holdAndClose(dialogCtx, ctrl, ref),
-                ),
-                const SizedBox(height: 7),
-                const Text(
-                  'If no label is provided, the invoice number will be used.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFFAAAAAA),
-                  ),
-                ),
-          
-                const SizedBox(height: 22),
-          
-                // ── Buttons ─────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(dialogCtx),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          foregroundColor: const Color(0xFF555555),
-                          side: const BorderSide(
-                            color: Color(0xFFE0E0E0),
-                            width: 1,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: FilledButton.icon(
-                        onPressed: () => _holdAndClose(dialogCtx, ctrl, ref),
-                        icon: const Icon(Icons.pause_rounded, size: 16),
-                        label: const Text(
-                          'Hold Invoice',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFF5A623),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+}
+
+// ── Note TextField ────────────────────────────────────────────────
+class _NoteTextField extends StatefulWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const _NoteTextField({required this.value, required this.onChanged});
+
+  @override
+  State<_NoteTextField> createState() => _NoteTextFieldState();
+}
+
+class _NoteTextFieldState extends State<_NoteTextField> {
+  late TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.value);
   }
 
-  void _holdAndClose(BuildContext dialogCtx, TextEditingController ctrl, WidgetRef ref,) {
-    Navigator.pop(dialogCtx);
-    final label = ctrl.text.trim().isEmpty ? null : ctrl.text.trim();
-    ref.read(saleInvoiceProvider.notifier).holdCurrentInvoice(label: label);
+  @override
+  void didUpdateWidget(_NoteTextField old) {
+    super.didUpdateWidget(old);
+    // Clear cart pe bahar se value reset ho to sync karo
+    if (widget.value != _ctrl.text) {
+      _ctrl.text = widget.value;
+      _ctrl.selection = TextSelection.collapsed(offset: _ctrl.text.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Note"),
+        SizedBox(height: 5,),
+        TextField(
+          controller:  _ctrl,
+          onChanged: widget.onChanged,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
+          decoration: InputDecoration(
+            labelText:  'Invoice note (optional)...',
+            filled:      true,
+            fillColor:   AppColor.grey100,
+          )
+        ),
+      ],
+    );
   }
 }
 
+// ── Hold Button ───────────────────────────────────────────────────
 class _HoldButton extends StatelessWidget {
   final bool enabled;
   final VoidCallback onHold;
@@ -423,12 +294,12 @@ class _HoldButton extends StatelessWidget {
       const Text(' ', style: TextStyle(fontSize: 10)),
       const SizedBox(height: 4),
       SizedBox(
-        width:  76,     // ← fixed width zaroor chahiye
-        height: 42,
+        width: 76, height: 42,
         child: ElevatedButton.icon(
           onPressed: enabled ? onHold : null,
           icon:  const Icon(Icons.pause_circle_outline_rounded, size: 15),
-          label: const Text('Hold', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+          label: const Text('Hold',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
           style: ElevatedButton.styleFrom(
             backgroundColor:         AppColor.warning,
             foregroundColor:         Colors.white,
@@ -444,10 +315,11 @@ class _HoldButton extends StatelessWidget {
   );
 }
 
+// ── Customer Dropdown ─────────────────────────────────────────────
 class _CustomerDropdown extends ConsumerWidget {
-  final List<CustomerModel>      customers;
-  final CustomerModel?           selectedCustomer;
-  final bool                     isReturn;
+  final List<CustomerModel>          customers;
+  final CustomerModel?               selectedCustomer;
+  final bool                         isReturn;
   final ValueChanged<CustomerModel?> onSelected;
 
   const _CustomerDropdown({
@@ -459,19 +331,17 @@ class _CustomerDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accent       = isReturn ? AppColor.error : AppColor.primary;
+    final accent        = isReturn ? AppColor.error : AppColor.primary;
     final customerFocus = ref.watch(posCustomerFocusProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Label row with shortcut hint ──────────────────────
         Row(children: [
           const Text('Customer',
               style: TextStyle(
-                  fontSize:   12,
-                  fontWeight: FontWeight.w600,
-                  color:      AppColor.textSecondary)),
+                  fontSize: 12, fontWeight: FontWeight.w600,
+                  color: AppColor.textSecondary)),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -488,10 +358,6 @@ class _CustomerDropdown extends ConsumerWidget {
         const SizedBox(height: 5),
         Focus(
           focusNode: customerFocus,
-          onFocusChange: (hasFocus) {
-            // Focus milne pe dropdown ka search box focus karo
-            // (DropdownSearch apna popup nahi kholta automatically)
-          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             decoration: customerFocus.hasFocus ? BoxDecoration(
@@ -502,7 +368,7 @@ class _CustomerDropdown extends ConsumerWidget {
               )],
             ) : null,
             child: DropdownSearch<CustomerModel?>(
-              key: ref.read(customerDropdownKeyProvider),
+              key:        ref.read(customerDropdownKeyProvider),
               items:      (filter, _) => [null, ...customers],
               filterFn:   (c, filter) => c == null
                   ? 'Walk In'.toLowerCase().contains(filter.toLowerCase())
@@ -519,7 +385,7 @@ class _CustomerDropdown extends ConsumerWidget {
                       fontSize: 13, color: AppColor.textHint),
                   prefixIcon: Icon(Icons.person_outline,
                       size: 18, color: AppColor.grey500),
-                  filled:     true,
+                  filled:    true,
                   fillColor: isReturn
                       ? AppColor.error.withOpacity(0.05)
                       : AppColor.grey100,
@@ -532,21 +398,20 @@ class _CustomerDropdown extends ConsumerWidget {
                       borderRadius:
                       const BorderRadius.all(Radius.circular(8)),
                       borderSide: BorderSide(
-                          color: isReturn
-                              ? AppColor.error
-                              : AppColor.grey200,
+                          color: isReturn ? AppColor.error : AppColor.grey200,
                           width: isReturn ? 1.2 : 1.0)),
                   focusedBorder: OutlineInputBorder(
                       borderRadius:
                       const BorderRadius.all(Radius.circular(8)),
-                      borderSide: BorderSide(color: accent, width: 1.5)),
+                      borderSide:
+                      BorderSide(color: accent, width: 1.5)),
                 ),
               ),
               popupProps: PopupProps.menu(
                 showSearchBox: true,
                 searchFieldProps: TextFieldProps(
                   cursorHeight: 16,
-                  autofocus: true,
+                  autofocus:   true,
                   decoration: InputDecoration(
                     hintText:  'Search customer...',
                     hintStyle: const TextStyle(fontSize: 14),
@@ -561,53 +426,53 @@ class _CustomerDropdown extends ConsumerWidget {
                   ),
                   style: const TextStyle(fontSize: 14),
                 ),
-                itemBuilder:
-                    (ctx, customer, isDisabled, isSelected) => ListTile(
-                  leading: CircleAvatar(
-                    radius:          16,
-                    backgroundColor: accent.withOpacity(0.1),
-                    child: Text(
-                      customer == null
-                          ? 'W'
-                          : customer.name[0].toUpperCase(),
-                      style: TextStyle(
-                          fontSize:   13,
-                          fontWeight: FontWeight.w700,
-                          color:      accent),
+                itemBuilder: (ctx, customer, isDisabled, isSelected) =>
+                    ListTile(
+                      leading: CircleAvatar(
+                        radius:          16,
+                        backgroundColor: accent.withOpacity(0.1),
+                        child: Text(
+                          customer == null
+                              ? 'W'
+                              : customer.name[0].toUpperCase(),
+                          style: TextStyle(
+                              fontSize:   13,
+                              fontWeight: FontWeight.w700,
+                              color:      accent),
+                        ),
+                      ),
+                      title: Text(
+                        customer == null ? 'Walk In' : customer.name,
+                        style: TextStyle(
+                            fontSize:   14,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: isSelected
+                                ? accent
+                                : AppColor.textPrimary),
+                      ),
+                      subtitle: customer != null
+                          ? Text(customer.code,
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColor.textSecondary))
+                          : null,
+                      trailing: isSelected
+                          ? Icon(Icons.check_circle, size: 18, color: accent)
+                          : null,
                     ),
-                  ),
-                  title: Text(
-                    customer == null ? 'Walk In' : customer.name,
-                    style: TextStyle(
-                        fontSize:   14,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: isSelected
-                            ? accent
-                            : AppColor.textPrimary),
-                  ),
-                  subtitle: customer != null
-                      ? Text(customer.code,
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color:    AppColor.textSecondary))
-                      : null,
-                  trailing: isSelected
-                      ? Icon(Icons.check_circle, size: 18, color: accent)
-                      : null,
-                ),
                 fit:         FlexFit.loose,
                 constraints: const BoxConstraints(maxHeight: 300),
               ),
             ),
-          ), // AnimatedContainer
-        ),   // Focus
+          ),
+        ),
       ],
     );
   }
 }
 
+// ── Return Body ───────────────────────────────────────────────────
 class _ReturnBody extends ConsumerWidget {
   const _ReturnBody();
 
@@ -638,13 +503,15 @@ class _ReturnBody extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           itemCount: returnState.cartItems.length,
           separatorBuilder: (_, __) => const SizedBox(height: 5),
-          itemBuilder: (_, i) => _ReturnItemRow(item: returnState.cartItems[i]),
+          itemBuilder: (_, i) =>
+              _ReturnItemRow(item: returnState.cartItems[i]),
         ),
       ),
     ]);
   }
 }
 
+// ── Return Summary ────────────────────────────────────────────────
 class _ReturnSummary extends ConsumerWidget {
   const _ReturnSummary();
 
@@ -676,9 +543,9 @@ class _ReturnSummary extends ConsumerWidget {
                     color:      AppColor.error)),
             Text('Rs ${_fmt(returnState.grandTotal)}',
                 style: const TextStyle(
-                    fontSize:     18,
-                    fontWeight:   FontWeight.w900,
-                    color:        AppColor.error,
+                    fontSize:      18,
+                    fontWeight:    FontWeight.w900,
+                    color:         AppColor.error,
                     letterSpacing: -0.5)),
           ],
         ),
@@ -736,6 +603,7 @@ class _ReturnSummary extends ConsumerWidget {
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 }
 
+// ── Return Item Row ───────────────────────────────────────────────
 class _ReturnItemRow extends ConsumerStatefulWidget {
   final ReturnCartItem item;
   const _ReturnItemRow({required this.item});
@@ -773,7 +641,9 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
 
   @override
   void dispose() {
-    _qtyCtrl.dispose(); _priceCtrl.dispose(); _disCtrl.dispose();
+    _qtyCtrl.dispose();
+    _priceCtrl.dispose();
+    _disCtrl.dispose();
     super.dispose();
   }
 
@@ -795,18 +665,21 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
       child: Row(children: [
         Expanded(
           flex: 3,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(item.product.name,
-                style: const TextStyle(
-                    fontSize:   13,
-                    fontWeight: FontWeight.w600,
-                    color:      AppColor.textPrimary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            Text(item.product.sku,
-                style: const TextStyle(
-                    fontSize: 10, color: AppColor.textHint)),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.product.name,
+                  style: const TextStyle(
+                      fontSize:   13,
+                      fontWeight: FontWeight.w600,
+                      color:      AppColor.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              Text(item.product.sku,
+                  style: const TextStyle(
+                      fontSize: 10, color: AppColor.textHint)),
+            ],
+          ),
         ),
         Expanded(flex: 2, child: _RTF(
           controller:    _qtyCtrl,
@@ -814,12 +687,15 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
           onFocusChange: (f) => _qtyFocused = f,
           onChanged:     (v) {
             final val = double.tryParse(v);
-            if (val != null && val > 0) notifier.updateQuantity(item.cartId, val);
+            if (val != null && val > 0)
+              notifier.updateQuantity(item.cartId, val);
           },
           onSubmitted: (_) {
             final val = double.tryParse(_qtyCtrl.text.trim());
-            if (val != null && val > 0) notifier.updateQuantity(item.cartId, val);
-            else _qtyCtrl.text = _fmt(item.quantity);
+            if (val != null && val > 0)
+              notifier.updateQuantity(item.cartId, val);
+            else
+              _qtyCtrl.text = _fmt(item.quantity);
           },
         )),
         Expanded(flex: 2, child: _RTF(
@@ -827,11 +703,13 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
           onFocusChange: (_) {},
           onChanged: (v) {
             final val = double.tryParse(v);
-            if (val != null && val >= 0) notifier.updateReturnPrice(item.cartId, val);
+            if (val != null && val >= 0)
+              notifier.updateReturnPrice(item.cartId, val);
           },
           onSubmitted: (_) {
             final val = double.tryParse(_priceCtrl.text.trim());
-            if (val == null) _priceCtrl.text = item.returnPrice.toStringAsFixed(0);
+            if (val == null)
+              _priceCtrl.text = item.returnPrice.toStringAsFixed(0);
           },
         )),
         Expanded(flex: 2, child: _RTF(
@@ -840,23 +718,24 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
           onFocusChange: (_) {},
           onChanged: (v) {
             final val = double.tryParse(v);
-            if (val != null && val >= 0) notifier.updateDiscount(item.cartId, val);
+            if (val != null && val >= 0)
+              notifier.updateDiscount(item.cartId, val);
           },
           onSubmitted: (_) {
             final val = double.tryParse(_disCtrl.text.trim());
-            if (val == null) _disCtrl.text = item.discountAmount.toStringAsFixed(0);
+            if (val == null)
+              _disCtrl.text = item.discountAmount.toStringAsFixed(0);
           },
         )),
         Expanded(
           flex: 2,
           child: Text(
-              'Rs ${_fmtD(item.subTotal)}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize:   13,
-                  fontWeight: FontWeight.w700,
-                  color:      AppColor.error,
-              ),
+            'Rs ${_fmtD(item.subTotal)}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize:   13,
+                fontWeight: FontWeight.w700,
+                color:      AppColor.error),
           ),
         ),
         GestureDetector(
@@ -875,6 +754,7 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
   }
 }
 
+// ── Return Text Field ─────────────────────────────────────────────
 class _RTF extends StatefulWidget {
   final TextEditingController controller;
   final ValueChanged<bool>    onFocusChange;
@@ -929,8 +809,7 @@ class _RTFState extends State<_RTF> {
           color:      widget.color),
       decoration: InputDecoration(
         prefixText:  widget.prefix != null ? '${widget.prefix} ' : null,
-        prefixStyle: const TextStyle(
-            fontSize: 10, color: AppColor.textHint),
+        prefixStyle: const TextStyle(fontSize: 10, color: AppColor.textHint),
         isDense:     true,
         filled:      true,
         fillColor:   AppColor.error.withOpacity(0.05),
@@ -947,6 +826,7 @@ class _RTFState extends State<_RTF> {
   );
 }
 
+// ── Small Helpers ─────────────────────────────────────────────────
 class _RH extends StatelessWidget {
   final String text;
   final bool   left;
@@ -955,9 +835,9 @@ class _RH extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(text,
       style: const TextStyle(
-          fontSize:   11,
-          fontWeight: FontWeight.w700,
-          color:      AppColor.error,
+          fontSize:      11,
+          fontWeight:    FontWeight.w700,
+          color:         AppColor.error,
           letterSpacing: 0.3),
       textAlign: left ? TextAlign.left : TextAlign.center);
 }
@@ -966,7 +846,9 @@ class _RSR extends StatelessWidget {
   final String label, value;
   final bool   isCount;
   final Color? color;
-  const _RSR({required this.label, required this.value, this.isCount = false, this.color});
+  const _RSR(
+      {required this.label, required this.value,
+        this.isCount = false, this.color});
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -987,6 +869,7 @@ class _RSR extends StatelessWidget {
   );
 }
 
+// ── Empty States ──────────────────────────────────────────────────
 class _EmptyCart extends StatelessWidget {
   const _EmptyCart();
 
@@ -1049,4 +932,3 @@ class _EmptyReturn extends StatelessWidget {
     ),
   );
 }
-

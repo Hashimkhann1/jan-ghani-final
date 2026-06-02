@@ -2,48 +2,46 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/dashboard_model.dart';
 
 abstract class DashboardRemoteDatasource {
-  Future<AccountantCounterModel?> getCounter({required String accountantId});
-  Future<List<RecentTransactionModel>> getRecentTransactions({required String accountantId});
+  Future<JanghaniAmountModel?> getJanghaniAmount();
+  Future<List<RecentTransactionModel>> getRecentTransactions();
 }
 
 class DashboardRemoteDatasourceImpl implements DashboardRemoteDatasource {
   final SupabaseClient _client;
   const DashboardRemoteDatasourceImpl(this._client);
 
+  // Janghani cash in hand
   @override
-  Future<AccountantCounterModel?> getCounter({required String accountantId}) async {
+  Future<JanghaniAmountModel?> getJanghaniAmount() async {
     try {
       final res = await _client
-          .from('accountant_counter')
-          .select('total_amount, total_investment')
-          .eq('accountant_id', accountantId)
+          .from('janghani_net_amount')
+          .select('cash_in_hand')
           .maybeSingle();
 
-      print('✅ Counter: $res');
+      print('✅ Janghani amount: $res');
       if (res == null) return null;
-      return AccountantCounterModel.fromMap(res);
+      return JanghaniAmountModel.fromMap(res);
     } catch (e) {
-      print('❌ Counter error: $e');
+      print('❌ Janghani amount error: $e');
       rethrow;
     }
   }
 
+  // Branch transactions jo janghani ko aye
   @override
-  Future<List<RecentTransactionModel>> getRecentTransactions({required String accountantId}) async {
+  Future<List<RecentTransactionModel>> getRecentTransactions() async {
     try {
       final res = await _client
-          .from('accountant_transactions')
-          .select('id, branch_name, transaction_type, amount, created_at')
-          .eq('accountant_id', accountantId)
+          .from('branch_transaction_to_janghani')
+          .select('id, pay_amount, type, created_at, branch_id, assign_by_name')
           .order('created_at', ascending: false)
           .limit(10);
 
-      print('✅ Recent: $res');
-      return (res as List)
-          .map((e) => RecentTransactionModel.fromMap(e as Map<String, dynamic>))
-          .toList();
+      print('✅ Transactions: $res');
+      return (res as List).map((e) => RecentTransactionModel.fromMap(e as Map<String, dynamic>)).toList();
     } catch (e) {
-      print('❌ Recent error: $e');
+      print('❌ Transactions error: $e');
       rethrow;
     }
   }

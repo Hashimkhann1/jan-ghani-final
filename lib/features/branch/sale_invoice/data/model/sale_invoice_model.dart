@@ -128,6 +128,8 @@ class SaleInvoiceState {
   final String?            successMessage;   // ← NEW
   final SaleType           saleType;
   final List<PaymentEntry> payments;
+  final String? notes;
+
 
   const SaleInvoiceState({
     required this.invoiceNo,
@@ -140,6 +142,7 @@ class SaleInvoiceState {
     this.errorMessage,
     this.successMessage,
     this.payments      = const [],
+    this.notes
   });
 
   // ── Computed ──────────────────────────────────────────────────
@@ -168,6 +171,8 @@ class SaleInvoiceState {
     String?              errorMessage,
     String?              successMessage,
     bool                 clearSuccess   = false,
+    String?              notes,               // ← ADD
+    bool                 clearNotes     = false, // ← ADD
     SaleType?            saleType,
     List<PaymentEntry>?  payments,
   }) =>
@@ -182,6 +187,7 @@ class SaleInvoiceState {
         isSaving:         isSaving         ?? this.isSaving,
         errorMessage:     errorMessage,
         successMessage:   clearSuccess ? null : (successMessage ?? this.successMessage),
+        notes:            clearNotes ? null : (notes ?? this.notes), // ← ADD
         saleType:         saleType         ?? this.saleType,
         payments:         payments         ?? this.payments,
       );

@@ -7,10 +7,10 @@ class DashboardRepositoryImpl implements DashboardRepository {
   const DashboardRepositoryImpl(this.datasource);
 
   @override
-  Future<AccountantCounterModel?> getCounter({required String accountantId}) =>
-      datasource.getCounter(accountantId: accountantId);
+  Future<JanghaniAmountModel?> getJanghaniAmount() =>
+      datasource.getJanghaniAmount();
 
   @override
-  Future<List<RecentTransactionModel>> getRecentTransactions({required String accountantId}) =>
-      datasource.getRecentTransactions(accountantId: accountantId);
+  Future<List<RecentTransactionModel>> getRecentTransactions() =>
+      datasource.getRecentTransactions();
 }

@@ -286,6 +286,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
         totalAmount:   state.totalBeforeTax,
         totalDiscount: state.totalDiscount,
         grandTotal:    state.grandTotal,
+        notes:         state.notes,
         items:         state.cartItems,
         payments:      state.payments,
       );
@@ -308,7 +309,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     final no = await _ds.generateInvoiceNo(_storeId);
     state = SaleInvoiceState(
       invoiceNo: no,
-      date:      DateTime.now(),
+      date: DateTime.now(),
       cartItems: [],
       payments:  [],
     );
@@ -318,10 +319,15 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     state = state.copyWith(
       cartItems:     [],
       clearCustomer: true,
+      clearNotes:    true,   // ← ADD
       searchQuery:   '',
       payments:      [],
     );
     _initInvoiceNo();
+  }
+
+  void setNotes(String value) {
+    state = state.copyWith(notes: value.isEmpty ? null : value);
   }
 
   void setSaleType(SaleType type) {

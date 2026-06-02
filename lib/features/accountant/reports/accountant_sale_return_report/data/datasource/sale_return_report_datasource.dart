@@ -41,8 +41,8 @@ class AccountantSaleReturnDatasource {
           customer (name),
           sale_return_payments (payment_method, amount),
           sale_return_items (
-            product_name, sku, price,
-            quantity, discount, total_amount
+            product_name, sku, sale_price,
+            purchase_price, quantity, discount, total_amount
           )
         ''')
         .eq('status', 'completed')
@@ -70,12 +70,13 @@ class AccountantSaleReturnDatasource {
 
       final items = (r['sale_return_items'] as List? ?? [])
           .map((i) => SaleReturnItem(
-        productName: i['product_name']?.toString() ?? '',
-        sku:         i['sku']?.toString(),
-        price:       _dbl(i['price'])       ?? 0,
-        quantity:    _dbl(i['quantity'])     ?? 0,
-        discount:    _dbl(i['discount'])     ?? 0,
-        totalAmount: _dbl(i['total_amount']) ?? 0,
+        productName:   i['product_name']?.toString() ?? '',
+        sku:           i['sku']?.toString(),
+        salePrice:     _dbl(i['sale_price'])          ?? 0,  // ✅
+        purchasePrice: _dbl(i['purchase_price'])      ?? 0,  // ✅
+        quantity:      _dbl(i['quantity'])             ?? 0,
+        discount:      _dbl(i['discount'])             ?? 0,
+        totalAmount:   _dbl(i['total_amount'])         ?? 0,
       ))
           .toList();
 

@@ -31,16 +31,16 @@ class AccountantSaleReportDatasource {
     var baseQuery = _client
         .from('sale_invoices')
         .select('''
-        id, invoice_no, invoice_date,
-        total_amount, total_discount, grand_total,
-        status, customer_id, deleted_at,
-        customer (name),
-        sale_invoice_payments (payment_method, amount),
-        sale_invoice_items (
-          product_name, sku, price,
-          quantity, discount, total_amount
-        )
-      ''')
+  id, invoice_no, invoice_date,
+  total_amount, total_discount, grand_total,
+  status, customer_id, deleted_at,
+  customer (name),
+  sale_invoice_payments (payment_method, amount),
+  sale_invoice_items (
+    product_name, sku, sale_price,
+    purchase_price, quantity, discount, total_amount
+  )
+''')
         .eq('status', 'completed')       // ← store_id filter hata diya
         .gte('invoice_date', fromDate.toIso8601String())
         .lte('invoice_date',
@@ -66,14 +66,14 @@ class AccountantSaleReportDatasource {
 
       final items = (r['sale_invoice_items'] as List? ?? [])
           .map((i) => SaleReportItem(
-        productName: i['product_name']?.toString() ?? '',
-        sku:         i['sku']?.toString(),
-        price:       _dbl(i['price'])       ?? 0,
-        quantity:    _dbl(i['quantity'])     ?? 0,
-        discount:    _dbl(i['discount'])     ?? 0,
-        totalAmount: _dbl(i['total_amount']) ?? 0,
-      ))
-          .toList();
+        productName:   i['product_name']?.toString()   ?? '',
+        sku:           i['sku']?.toString(),
+        salePrice:     _dbl(i['sale_price'])            ?? 0,
+        purchasePrice: _dbl(i['purchase_price'])        ?? 0,
+        quantity:      _dbl(i['quantity'])              ?? 0,
+        discount:      _dbl(i['discount'])              ?? 0,
+        totalAmount:   _dbl(i['total_amount'])          ?? 0,
+      )).toList();
 
       final customerName = r['customer'] != null
           ? r['customer']['name']?.toString()

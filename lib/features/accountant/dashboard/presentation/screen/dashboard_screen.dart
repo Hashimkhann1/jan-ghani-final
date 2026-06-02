@@ -30,7 +30,8 @@ class _AccountantDashboardScreenState
   @override
   Widget build(BuildContext context) {
     final sessionAsync = ref.watch(accountantSessionDataProvider);
-    final accountantId = sessionAsync.asData?.value?['id'] as String? ?? '';
+    final accountantId =
+        sessionAsync.asData?.value?['id'] as String? ?? '';
 
     final screens = [
       const _DashboardBody(),
@@ -40,42 +41,49 @@ class _AccountantDashboardScreenState
     ];
 
     return Scaffold(
-      appBar: AppBar(
-
-      ),
+      appBar: AppBar(),
       body: screens[_selectedIndex],
       drawer: Drawer(
         child: ListView(
           children: [
             ListTile(
-              title: Text("Sale Report"),
-              onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => AccountantSaleReportScreen()));
-              },
+              title: const Text('Sale Report'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => AccountantSaleReportScreen()),
+              ),
             ),
             ListTile(
-              title: Text("Sale Return Report"),
-              onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => AccountantSaleReturnReportScreen()));
-              },
+              title: const Text('Sale Return Report'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => AccountantSaleReturnReportScreen()),
+              ),
             ),
             ListTile(
-              title: Text("Profit & Loss Report"),
-              onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PnlReportScreen()));
-              },
+              title: const Text('Profit & Loss Report'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PnlReportScreen()),
+              ),
             ),
             ListTile(
-              title: Text("Branch Cash Counter Report"),
-              onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => BranchCashCounterReportScreen()));
-              },
+              title: const Text('Branch Cash Counter Report'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => BranchCashCounterReportScreen()),
+              ),
             ),
             ListTile(
-              title: Text("Customer Report"),
-              onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => AccountantCustomerReportScreen()));
-              },
+              title: const Text('Customer Report'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => AccountantCustomerReportScreen()),
+              ),
             ),
           ],
         ),
@@ -125,14 +133,14 @@ class _DashboardBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sessionAsync = ref.watch(accountantSessionDataProvider);
-    final counterAsync = ref.watch(accountantCounterProvider);
-    final recentAsync  = ref.watch(recentTransactionsProvider);
+    final sessionAsync   = ref.watch(accountantSessionDataProvider);
+    final amountAsync    = ref.watch(janghaniAmountProvider);
+    final recentAsync    = ref.watch(recentTransactionsProvider);
 
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(accountantCounterProvider);
+          ref.invalidate(janghaniAmountProvider);
           ref.invalidate(recentTransactionsProvider);
         },
         child: SingleChildScrollView(
@@ -142,7 +150,7 @@ class _DashboardBody extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              // ── Header ────────────────────────────────────────────────────
+              // ── Header ────────────────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -172,8 +180,6 @@ class _DashboardBody extends ConsumerWidget {
                       ),
                     ],
                   ),
-
-                  // Logout
                   GestureDetector(
                     onTap: () async {
                       await AccountantSession.clear();
@@ -189,7 +195,8 @@ class _DashboardBody extends ConsumerWidget {
                     },
                     child: CircleAvatar(
                       radius: 24,
-                      backgroundColor: AppColor.primary.withOpacity(0.15),
+                      backgroundColor:
+                      AppColor.primary.withOpacity(0.15),
                       child: const Icon(
                         Icons.person_rounded,
                         color: AppColor.primary,
@@ -202,18 +209,18 @@ class _DashboardBody extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
-              // ── Counter Card ──────────────────────────────────────────────
-              counterAsync.when(
-                data: (counter) => _CounterCard(counter: counter),
-                loading: () => const _ShimmerCard(height: 160),
+              // ── Cash In Hand Card ─────────────────────────────────────
+              amountAsync.when(
+                data: (amount) => _CashCard(amount: amount),
+                loading: () => const _ShimmerCard(height: 130),
                 error: (e, _) => const _ErrorCard(),
               ),
 
               const SizedBox(height: 24),
 
-              // ── Recent Activity ───────────────────────────────────────────
+              // ── Transaction History ───────────────────────────────────
               const Text(
-                'Recent Activity',
+                'Transaction History',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -229,7 +236,8 @@ class _DashboardBody extends ConsumerWidget {
                     padding: EdgeInsets.all(32),
                     child: Text(
                       'Koi transaction nahi mili',
-                      style: TextStyle(color: AppColor.textMuted),
+                      style:
+                      TextStyle(color: AppColor.textMuted),
                     ),
                   ),
                 )
@@ -257,10 +265,10 @@ class _DashboardBody extends ConsumerWidget {
   }
 }
 
-// ── Counter Card ──────────────────────────────────────────────────────────────
-class _CounterCard extends StatelessWidget {
-  final AccountantCounterModel? counter;
-  const _CounterCard({required this.counter});
+// ── Cash In Hand Card ─────────────────────────────────────────────────────────
+class _CashCard extends StatelessWidget {
+  final JanghaniAmountModel? amount;
+  const _CashCard({required this.amount});
 
   String _fmt(double? val) {
     if (val == null) return 'Rs. 0';
@@ -294,42 +302,37 @@ class _CounterCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Total Amount',
+            'Cash in Hand',
             style: TextStyle(
-                color: Colors.white.withOpacity(0.8), fontSize: 13),
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            _fmt(counter?.totalAmount),
+            _fmt(amount?.cashInHand),
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 32,
+              fontSize: 36,
               fontWeight: FontWeight.w700,
               letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.trending_up_rounded,
-                  color: Colors.white70, size: 16),
+              Icon(
+                Icons.account_balance_wallet_rounded,
+                color: Colors.white.withOpacity(0.7),
+                size: 14,
+              ),
               const SizedBox(width: 6),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Total Investment',
-                    style: TextStyle(color: Colors.white70, fontSize: 11),
-                  ),
-                  Text(
-                    _fmt(counter?.totalInvestment),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+              Text(
+                'Janghani Net Amount',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -413,7 +416,9 @@ class _RecentTile extends StatelessWidget {
                 Text(
                   _formatDate(tx.createdAt),
                   style: const TextStyle(
-                      fontSize: 12, color: AppColor.textMuted),
+                    fontSize: 12,
+                    color: AppColor.textMuted,
+                  ),
                 ),
               ],
             ),

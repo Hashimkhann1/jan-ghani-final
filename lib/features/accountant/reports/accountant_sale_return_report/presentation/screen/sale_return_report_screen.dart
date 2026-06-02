@@ -496,10 +496,9 @@ class _ReturnCardState extends State<_ReturnCard> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'Rs ${item.price.toStringAsFixed(0)}',
+                      'Rs ${item.salePrice.toStringAsFixed(0)}', // ✅
                       style: const TextStyle(
-                          fontSize: 12,
-                          color:    AppColor.textSecondary),
+                          fontSize: 12, color: AppColor.textSecondary),
                     ),
                   ),
                   Expanded(

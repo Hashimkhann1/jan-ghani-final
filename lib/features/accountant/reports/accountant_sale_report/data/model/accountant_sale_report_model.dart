@@ -41,15 +41,17 @@ class SaleReportInvoice {
 class SaleReportItem {
   final String  productName;
   final String? sku;
-  final double  price;
+  final double  salePrice;      // price → salePrice
+  final double  purchasePrice;  // discount → purchasePrice (cost_price)
   final double  quantity;
-  final double  discount;
+  final double  discount;       // invoice discount (alag field)
   final double  totalAmount;
 
   const SaleReportItem({
     required this.productName,
     this.sku,
-    required this.price,
+    required this.salePrice,
+    required this.purchasePrice,
     required this.quantity,
     required this.discount,
     required this.totalAmount,

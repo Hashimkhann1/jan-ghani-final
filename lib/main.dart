@@ -1,4 +1,6 @@
+// import 'dart:io';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/service/db/db_service.dart';
@@ -11,6 +13,9 @@ import '../core/service/sync/sync_service.dart';
 import '../core/widget/sidebar/branch_sidebar_widget.dart';
 import '../features/branch/authentication/presentation/provider/auth_provider.dart';
 import '../features/branch/authentication/presentation/screen/login_screen.dart';
+import 'features/accountant/ai_chatbot_screen.dart';
+import 'features/accountant/authentication/presentation/screen/login_screen.dart';
+import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -51,7 +56,9 @@ class MyApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
         // home: isLoggedIn ? AccountantDashboardScreen() : AccountantLoginScreen(),
-        home: auth.isLoading ?
+        home:
+        // AIBusinessChatbotScreen(),
+        auth.isLoading ?
         Scaffold(
           body: const CircularProgressIndicator(),
         ) :

@@ -47,7 +47,8 @@ class SaleReturnInvoice {
 class SaleReturnItem {
   final String  productName;
   final String? sku;
-  final double  price;
+  final double  salePrice;      // price → salePrice
+  final double  purchasePrice;  // naya field
   final double  quantity;
   final double  discount;
   final double  totalAmount;
@@ -55,7 +56,8 @@ class SaleReturnItem {
   const SaleReturnItem({
     required this.productName,
     this.sku,
-    required this.price,
+    required this.salePrice,
+    required this.purchasePrice,
     required this.quantity,
     required this.discount,
     required this.totalAmount,

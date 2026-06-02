@@ -1,19 +1,16 @@
-class AccountantCounterModel {
-  final double totalAmount;
-  final double totalInvestment;
+class JanghaniAmountModel {
+  final double cashInHand;
 
-  const AccountantCounterModel({
-    required this.totalAmount,
-    required this.totalInvestment,
-  });
+  const JanghaniAmountModel({required this.cashInHand});
 
-  factory AccountantCounterModel.fromMap(Map<String, dynamic> map) {
-    return AccountantCounterModel(
-      totalAmount:      (map['total_amount']      as num?)?.toDouble() ?? 0,
-      totalInvestment:  (map['total_investment']  as num?)?.toDouble() ?? 0,
+  factory JanghaniAmountModel.fromMap(Map<String, dynamic> map) {
+    return JanghaniAmountModel(
+      cashInHand: (map['cash_in_hand'] as num?)?.toDouble() ?? 0,
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class RecentTransactionModel {
   final String id;
@@ -32,10 +29,10 @@ class RecentTransactionModel {
 
   factory RecentTransactionModel.fromMap(Map<String, dynamic> map) {
     return RecentTransactionModel(
-      id:              map['id']?.toString()               ?? '',
-      branchName:      map['branch_name']?.toString()      ?? 'Unknown',
-      transactionType: map['transaction_type']?.toString() ?? '',
-      amount:          (map['amount'] as num?)?.toDouble() ?? 0,
+      id:              map['id']?.toString() ?? '',
+      branchName:      map['assign_by_name']?.toString() ?? 'Unknown',
+      transactionType: map['type']?.toString() ?? '',
+      amount:          (map['pay_amount'] as num?)?.toDouble() ?? 0,
       createdAt:       DateTime.tryParse(
         map['created_at']?.toString() ?? '',
       ) ?? DateTime.now(),

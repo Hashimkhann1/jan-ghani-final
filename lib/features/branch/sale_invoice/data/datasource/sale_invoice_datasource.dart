@@ -24,6 +24,7 @@ class SaleInvoiceDatasource {
     required double             grandTotal,
     required List<CartItem>     items,
     required List<PaymentEntry> payments,
+    required String?            notes,
   }) async {
     final conn = await DataBaseService.getConnection();
     late String invoiceId;
@@ -33,16 +34,18 @@ class SaleInvoiceDatasource {
       // ── 1. Invoice insert ──────────────────────────────
       final result = await tx.execute(
         Sql.named('''
-          INSERT INTO public.sale_invoices (
-            store_id, counter_id, user_id, customer_id,
-            invoice_no, total_amount, total_discount, grand_total, status
-          ) VALUES (
-            @storeId::uuid, @counterId::uuid, @userId::uuid,
-            ${customerId != null ? '@customerId::uuid' : 'NULL'},
-            @invoiceNo, @totalAmount, @totalDiscount, @grandTotal, 'completed'
-          )
-          RETURNING id
-        '''),
+    INSERT INTO public.sale_invoices (
+      store_id, counter_id, user_id, customer_id,
+      invoice_no, total_amount, total_discount, grand_total,
+      notes, status
+    ) VALUES (
+      @storeId::uuid, @counterId::uuid, @userId::uuid,
+      ${customerId != null ? '@customerId::uuid' : 'NULL'},
+      @invoiceNo, @totalAmount, @totalDiscount, @grandTotal,
+      @notes, 'completed'
+    )
+    RETURNING id
+  '''),
         parameters: {
           'storeId':       storeId,
           'counterId':     counterId,
@@ -52,9 +55,9 @@ class SaleInvoiceDatasource {
           'totalAmount':   totalAmount,
           'totalDiscount': totalDiscount,
           'grandTotal':    grandTotal,
+          'notes':         notes,
         },
       );
-
       invoiceId = result.first.toColumnMap()['id'].toString();
 
       // ── 2. Items insert ────────────────────────────────

@@ -11,6 +11,7 @@ class SaleInvoiceListModel {
   final String?  customerName;
   final String?  counterName;
   final String?  cashierName;
+  final String?  notes;                          // ← ADD
   final List<SaleInvoiceItemDetail> items;
 
   const SaleInvoiceListModel({
@@ -26,9 +27,11 @@ class SaleInvoiceListModel {
     this.customerName,
     this.counterName,
     this.cashierName,
+    this.notes,                                  // ← ADD
     required this.items,
   });
 
+  // baaki sab same rahega...
   String get grandTotalLabel  => 'Rs ${grandTotal.toStringAsFixed(0)}';
   String get totalAmountLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
   String get discountLabel    => 'Rs ${totalDiscount.toStringAsFixed(0)}';

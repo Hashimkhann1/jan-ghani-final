@@ -60,6 +60,7 @@ class SaleInvoiceListDatasource {
           si.total_amount,
           si.total_discount,
           si.grand_total,
+          si.notes,                              
           si.customer_id,
           c.name          AS customer_name,
           co.counter_name AS counter_name,
@@ -150,6 +151,7 @@ class SaleInvoiceListDatasource {
         customerName:  m['customer_name']?.toString(),
         counterName:   m['counter_name']?.toString(),
         cashierName:   m['cashier_name']?.toString(),
+        notes:         m['notes']?.toString(),       // ← ADD
         items:         itemsMap[id] ?? [],
       );
     }).toList();

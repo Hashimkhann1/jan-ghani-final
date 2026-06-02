@@ -5,8 +5,6 @@ import '../../../../../../core/color/app_color.dart';
 import '../../data/model/accountant_profit_loss_model.dart';
 import '../provider/accountant_profit_loss_provider.dart';
 
-
-// ✅ Smart qty formatter — 0.5 → "0.50", 3 → "3"
 String _fmtQty(double q) =>
     q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
 
@@ -47,8 +45,8 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
   String _fmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
 
   Future<void> _pickDate(BuildContext context, bool isFrom) async {
-    final state = ref.read(pnlReportProvider);
-    final init  = isFrom ? state.fromDate : state.toDate;
+    final state  = ref.read(pnlReportProvider);
+    final init   = isFrom ? state.fromDate : state.toDate;
     final picked = await showDatePicker(
       context:     context,
       initialDate: init,
@@ -88,7 +86,8 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10)),
           action: SnackBarAction(
-            label: 'OK', textColor: Colors.white,
+            label:     'OK',
+            textColor: Colors.white,
             onPressed: notifier.clearError,
           ),
         ));
@@ -103,8 +102,9 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
         surfaceTintColor: Colors.transparent,
         title: const Text('Profit & Loss',
             style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1D23))),
+                fontSize:   17,
+                fontWeight: FontWeight.w700,
+                color:      Color(0xFF1A1D23))),
         actions: [
           IconButton(
             onPressed: notifier.load,
@@ -117,8 +117,8 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
               final n = DateTime.now();
               _fromCtrl.text =
                   _dateFmt.format(DateTime(n.year, n.month, 1));
-              _toCtrl.text = _dateFmt
-                  .format(DateTime(n.year, n.month, n.day));
+              _toCtrl.text =
+                  _dateFmt.format(DateTime(n.year, n.month, n.day));
             },
             child: const Text('Month'),
           ),
@@ -148,15 +148,17 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
           child: Row(children: [
             Expanded(
               child: _DateField(
-                label: 'Start Date', controller: _fromCtrl,
-                onTap: () => _pickDate(context, true),
+                label:      'Start Date',
+                controller: _fromCtrl,
+                onTap:      () => _pickDate(context, true),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _DateField(
-                label: 'End Date', controller: _toCtrl,
-                onTap: () => _pickDate(context, false),
+                label:      'End Date',
+                controller: _toCtrl,
+                onTap:      () => _pickDate(context, false),
               ),
             ),
           ]),
@@ -204,13 +206,11 @@ class _PnlBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(children: [
 
-      // ── Summary Card ────────────────────────────────────
+      // ── Summary Card ─────────────────────────────────
       Container(
         color:   Colors.white,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         child: Column(children: [
-
-          // 4 stat chips
           Row(children: [
             _StatChip(
               label: 'Sale Profit',
@@ -226,10 +226,7 @@ class _PnlBody extends StatelessWidget {
               icon:  Icons.trending_down_rounded,
             ),
           ]),
-
           const SizedBox(height: 10),
-
-          // Net Profit highlight
           _NetProfitBanner(
             netProfit:     summary.netProfit,
             profitMargin:  summary.profitMargin,
@@ -242,15 +239,15 @@ class _PnlBody extends StatelessWidget {
 
       Container(height: 1, color: const Color(0xFFE5E7EB)),
 
-      // ── Tabs ────────────────────────────────────────────
+      // ── Tabs ──────────────────────────────────────────
       Container(
         color: Colors.white,
         child: TabBar(
-          controller:       tabCtrl,
-          labelColor:       AppColor.primary,
+          controller:          tabCtrl,
+          labelColor:          AppColor.primary,
           unselectedLabelColor: AppColor.textSecondary,
-          indicatorColor:   AppColor.primary,
-          indicatorWeight:  2,
+          indicatorColor:      AppColor.primary,
+          indicatorWeight:     2,
           labelStyle: const TextStyle(
               fontSize: 13, fontWeight: FontWeight.w600),
           tabs: const [
@@ -260,7 +257,6 @@ class _PnlBody extends StatelessWidget {
         ),
       ),
 
-      // ── Tab Views ────────────────────────────────────────
       Expanded(
         child: TabBarView(
           controller: tabCtrl,
@@ -287,10 +283,10 @@ class _PnlBody extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════
 
 class _NetProfitBanner extends StatelessWidget {
-  final double              netProfit;
-  final double              profitMargin;
-  final int                 totalInvoices;
-  final int                 totalReturns;
+  final double                  netProfit;
+  final double                  profitMargin;
+  final int                     totalInvoices;
+  final int                     totalReturns;
   final String Function(double) fmtAmt;
 
   const _NetProfitBanner({
@@ -310,9 +306,12 @@ class _NetProfitBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.12), color.withOpacity(0.04)],
-          begin:  Alignment.centerLeft,
-          end:    Alignment.centerRight,
+          colors: [
+            color.withOpacity(0.12),
+            color.withOpacity(0.04),
+          ],
+          begin: Alignment.centerLeft,
+          end:   Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.25)),
@@ -332,16 +331,18 @@ class _NetProfitBanner extends StatelessWidget {
               Text(
                 isProfit ? 'Net Profit' : 'Net Loss',
                 style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w600,
-                    color: color),
+                    fontSize:   12,
+                    fontWeight: FontWeight.w600,
+                    color:      color),
               ),
             ]),
             const SizedBox(height: 4),
             Text(
               fmtAmt(netProfit.abs()),
               style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w900,
-                  color: color),
+                  fontSize:   20,
+                  fontWeight: FontWeight.w900,
+                  color:      color),
             ),
           ]),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -384,8 +385,8 @@ class _DailyTab extends StatelessWidget {
       padding:          const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount:        daily.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) => _DayCard(
-          day: daily[i], dayFmt: dayFmt, fmtAmt: fmtAmt),
+      itemBuilder: (_, i) =>
+          _DayCard(day: daily[i], dayFmt: dayFmt, fmtAmt: fmtAmt),
     );
   }
 }
@@ -415,7 +416,8 @@ class _DayCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
               color:      Colors.black.withOpacity(0.04),
-              blurRadius: 6, offset: const Offset(0, 2)),
+              blurRadius: 6,
+              offset:     const Offset(0, 2)),
         ],
       ),
       child: Row(children: [
@@ -428,11 +430,11 @@ class _DayCard extends StatelessWidget {
           ),
           child: Text(dayFmt.format(day.date),
               style: const TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w700,
-                  color: AppColor.primary)),
+                  fontSize:   11,
+                  fontWeight: FontWeight.w700,
+                  color:      AppColor.primary)),
         ),
         const SizedBox(width: 12),
-
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,7 +445,8 @@ class _DayCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text('Sale: ${fmtAmt(day.saleProfit)}',
                     style: const TextStyle(
-                        fontSize: 11, color: AppColor.success,
+                        fontSize:   11,
+                        color:      AppColor.success,
                         fontWeight: FontWeight.w600)),
               ]),
               if (day.returnProfit > 0) ...[
@@ -454,23 +457,24 @@ class _DayCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text('Return: ${fmtAmt(day.returnProfit)}',
                       style: const TextStyle(
-                          fontSize: 11, color: AppColor.error,
+                          fontSize:   11,
+                          color:      AppColor.error,
                           fontWeight: FontWeight.w600)),
                 ]),
               ],
             ],
           ),
         ),
-
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('Net',
-              style: const TextStyle(
+          const Text('Net',
+              style: TextStyle(
                   fontSize: 10, color: AppColor.textHint)),
           const SizedBox(height: 2),
           Text(fmtAmt(net.abs()),
               style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w800,
-                  color: color)),
+                  fontSize:   14,
+                  fontWeight: FontWeight.w800,
+                  color:      color)),
         ]),
       ]),
     );
@@ -499,8 +503,11 @@ class _InvoicesTab extends StatelessWidget {
       padding:          const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount:        invoices.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) =>
-          _InvoicePnlCard(inv: invoices[i], timeFmt: timeFmt, fmtAmt: fmtAmt),
+      itemBuilder: (_, i) => _InvoicePnlCard(
+        inv:     invoices[i],
+        timeFmt: timeFmt,
+        fmtAmt:  fmtAmt,
+      ),
     );
   }
 }
@@ -525,11 +532,10 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
 
   @override
   Widget build(BuildContext context) {
-    final inv      = widget.inv;
-    final isReturn = inv.isReturn;
-    final profit   = inv.totalProfit;
-    final isProfit = profit >= 0;
-
+    final inv        = widget.inv;
+    final isReturn   = inv.isReturn;
+    final profit     = inv.totalProfit;
+    final isProfit   = profit >= 0;
     final accentColor = isReturn ? AppColor.error : AppColor.primary;
     final profitColor = isProfit ? AppColor.success : AppColor.error;
 
@@ -540,7 +546,8 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
         boxShadow: [
           BoxShadow(
               color:      Colors.black.withOpacity(0.04),
-              blurRadius: 6, offset: const Offset(0, 2)),
+              blurRadius: 6,
+              offset:     const Offset(0, 2)),
         ],
       ),
       child: Column(children: [
@@ -554,7 +561,8 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
             child: Row(children: [
 
               Container(
-                width: 40, height: 40,
+                width:  40,
+                height: 40,
                 decoration: BoxDecoration(
                   color:        accentColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
@@ -578,21 +586,23 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                         Row(children: [
                           Text(inv.invoiceNo,
                               style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w700,
-                                  color: accentColor)),
+                                  fontSize:   13,
+                                  fontWeight: FontWeight.w700,
+                                  color:      accentColor)),
                           if (isReturn) ...[
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(
-                                color:        AppColor.error.withOpacity(0.1),
+                                color: AppColor.error.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text('Return',
                                   style: TextStyle(
-                                      fontSize: 9, fontWeight: FontWeight.w700,
-                                      color: AppColor.error)),
+                                      fontSize:   9,
+                                      fontWeight: FontWeight.w700,
+                                      color:      AppColor.error)),
                             ),
                           ],
                         ]),
@@ -600,7 +610,7 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color:        profitColor.withOpacity(0.1),
+                            color: profitColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
                                 color: profitColor.withOpacity(0.3)),
@@ -608,8 +618,9 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                           child: Text(
                             '${isProfit ? '+' : '-'} ${widget.fmtAmt(profit.abs())}',
                             style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w800,
-                                color: profitColor),
+                                fontSize:   12,
+                                fontWeight: FontWeight.w800,
+                                color:      profitColor),
                           ),
                         ),
                       ],
@@ -622,8 +633,10 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                           child: Text(
                             inv.customerName ?? 'Walk In',
                             style: const TextStyle(
-                                fontSize: 11, color: AppColor.textSecondary),
-                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                                fontSize: 11,
+                                color:    AppColor.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Text(
@@ -647,7 +660,7 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
           ),
         ),
 
-        // ── Expanded: per-item breakdown ─────────────────
+        // ── Expanded: per-item breakdown ──────────────────
         if (_expanded) ...[
           Container(height: 1, color: const Color(0xFFE5E7EB)),
           Padding(
@@ -657,61 +670,53 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
               // Items header
               const Row(children: [
                 Expanded(flex: 3, child: _IH(text: 'Product')),
-                Expanded(flex: 2, child: _IH(text: 'Formula',     right: false)),
-                Expanded(flex: 2, child: _IH(text: 'Profit/Item', right: true)),
+                Expanded(flex: 2, child: _IH(text: 'Formula',      right: false)),
+                Expanded(flex: 2, child: _IH(text: 'Profit/Item',  right: true)),
               ]),
               const SizedBox(height: 6),
 
               ...inv.items.map((item) {
                 final itemProfit = item.profit;
-                final iP = itemProfit >= 0;
+                final iP         = itemProfit >= 0;
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Expanded(
-                          flex: 3,
-                          child: Text(item.productName,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColor.textPrimary),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          // ✅ FIX: Sahi formula display
-                          // (sale - cost) × qty - discount
-                          // PEHLE: (sale - cost - discount) × qty  ❌
-                          child: Text(
-                            '(${item.salePrice.toStringAsFixed(0)}'
-                                ' - ${item.costPrice.toStringAsFixed(0)})'
-                                ' × ${_fmtQty(item.quantity)}'
-                                '${item.discount > 0 ? ' - ${item.discount.toStringAsFixed(0)}' : ''}',
-                            style: const TextStyle(
-                                fontSize: 9,
-                                color: AppColor.textHint),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            '${iP ? '+' : '-'} Rs ${itemProfit.abs().toStringAsFixed(0)}',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: iP
-                                    ? AppColor.success
-                                    : AppColor.error),
-                          ),
-                        ),
-                      ]),
-                    ],
-                  ),
+                  child: Row(children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(item.productName,
+                          style: const TextStyle(
+                              fontSize:   12,
+                              fontWeight: FontWeight.w600,
+                              color:      AppColor.textPrimary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      // (salePrice - purchasePrice) × qty - discount
+                      child: Text(
+                        '(${item.salePrice.toStringAsFixed(0)}'
+                            ' - ${item.purchasePrice.toStringAsFixed(0)})'
+                            ' × ${_fmtQty(item.quantity)}'
+                            '${item.discount > 0 ? ' - ${item.discount.toStringAsFixed(0)}' : ''}',
+                        style: const TextStyle(
+                            fontSize: 9, color: AppColor.textHint),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${iP ? '+' : '-'} Rs ${itemProfit.abs().toStringAsFixed(0)}',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                            fontSize:   12,
+                            fontWeight: FontWeight.w700,
+                            color:      iP
+                                ? AppColor.success
+                                : AppColor.error),
+                      ),
+                    ),
+                  ]),
                 );
               }),
 
@@ -723,13 +728,15 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                   Text(
                     isReturn ? 'Return Loss' : 'Invoice Profit',
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700),
+                        fontSize:   13,
+                        fontWeight: FontWeight.w700),
                   ),
                   Text(
                     '${profit >= 0 ? '+' : '-'} ${widget.fmtAmt(profit.abs())}',
                     style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w800,
-                        color: profitColor),
+                        fontSize:   14,
+                        fontWeight: FontWeight.w800,
+                        color:      profitColor),
                   ),
                 ],
               ),
@@ -752,15 +759,16 @@ class _StatChip extends StatelessWidget {
   final IconData icon;
 
   const _StatChip({
-    required this.label, required this.value,
-    required this.color, required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
   });
 
   @override
   Widget build(BuildContext context) => Expanded(
     child: Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color:        color.withOpacity(0.07),
         borderRadius: BorderRadius.circular(10),
@@ -782,8 +790,9 @@ class _StatChip extends StatelessWidget {
             children: [
               Text(value,
                   style: TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w800,
-                      color: color),
+                      fontSize:   13,
+                      fontWeight: FontWeight.w800,
+                      color:      color),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
               Text(label,
@@ -811,18 +820,21 @@ class _InfoBadge extends StatelessWidget {
     ),
     child: Text(label,
         style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w700,
-            color: color)),
+            fontSize:   11,
+            fontWeight: FontWeight.w700,
+            color:      color)),
   );
 }
 
 class _DateField extends StatelessWidget {
-  final String label;
+  final String                label;
   final TextEditingController controller;
-  final VoidCallback onTap;
+  final VoidCallback          onTap;
 
   const _DateField({
-    required this.label, required this.controller, required this.onTap,
+    required this.label,
+    required this.controller,
+    required this.onTap,
   });
 
   @override
@@ -831,23 +843,27 @@ class _DateField extends StatelessWidget {
     children: [
       Text(label,
           style: const TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600,
-              color: AppColor.textSecondary)),
+              fontSize:   11,
+              fontWeight: FontWeight.w600,
+              color:      AppColor.textSecondary)),
       const SizedBox(height: 4),
       TextField(
-        controller: controller, readOnly: true, onTap: onTap,
+        controller:   controller,
+        readOnly:     true,
+        onTap:        onTap,
         cursorHeight: 14,
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.calendar_today_outlined,
               size: 16, color: AppColor.primary),
-          filled: true, fillColor: AppColor.grey100,
+          filled:    true,
+          fillColor: AppColor.grey100,
           contentPadding: const EdgeInsets.symmetric(
               horizontal: 10, vertical: 12),
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none),
+              borderSide:   BorderSide.none),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide:
@@ -871,8 +887,10 @@ class _IH extends StatelessWidget {
   Widget build(BuildContext context) => Text(text,
       textAlign: right ? TextAlign.right : TextAlign.left,
       style: const TextStyle(
-          fontSize: 10, fontWeight: FontWeight.w600,
-          color: AppColor.textHint, letterSpacing: 0.3));
+          fontSize:      10,
+          fontWeight:    FontWeight.w600,
+          color:         AppColor.textHint,
+          letterSpacing: 0.3));
 }
 
 class _EmptyState extends StatelessWidget {
@@ -886,8 +904,9 @@ class _EmptyState extends StatelessWidget {
       const SizedBox(height: 16),
       Text('Koi data nahi mila',
           style: TextStyle(
-              fontSize: 16, fontWeight: FontWeight.w600,
-              color: Colors.grey.shade500)),
+              fontSize:   16,
+              fontWeight: FontWeight.w600,
+              color:      Colors.grey.shade500)),
       const SizedBox(height: 6),
       Text('Date range change karein',
           style: TextStyle(

@@ -2,7 +2,7 @@ class PnlItem {
   final String  productName;
   final String? sku;
   final double  salePrice;
-  final double  costPrice;
+  final double  purchasePrice;  // costPrice → purchasePrice
   final double  discount;
   final double  quantity;
 
@@ -10,15 +10,15 @@ class PnlItem {
     required this.productName,
     this.sku,
     required this.salePrice,
-    required this.costPrice,
+    required this.purchasePrice,
     required this.discount,
     required this.quantity,
   });
 
-  /// (price - cost_price - discount) × quantity
-  double get profit  => (salePrice - costPrice - discount) * quantity;
-  double get revenue => salePrice * quantity;
-  double get cost    => costPrice * quantity;
+  // (salePrice - purchasePrice) × quantity - discount
+  double get profit  => (salePrice - purchasePrice) * quantity - discount;
+  double get revenue => salePrice  * quantity;
+  double get cost    => purchasePrice * quantity;
 }
 
 class PnlInvoice {

@@ -5,6 +5,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/branch/reports/data/model/sale_invoice_report_model.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../provider/sale_invoice_report_provider.dart';
 
@@ -495,10 +496,10 @@ class _CustomerStatsBanner extends StatelessWidget {
 // Invoice Card
 // ══════════════════════════════════════════════════════════════
 class _InvoiceCard extends StatelessWidget {
-  final dynamic    inv;
+  final SaleInvoiceListModel inv;
   final DateFormat dateFmt;
   final DateFormat timeFmt;
-  final bool       isManager;
+  final bool isManager;
 
   const _InvoiceCard({
     required this.inv,
@@ -509,8 +510,7 @@ class _InvoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double subtotal = inv.items
-        .fold(0.0, (s, i) => s + (i.totalAmount as double? ?? 0.0));
+    final double subtotal = inv.items.fold(0.0, (s, i) => s + (i.totalAmount as double? ?? 0.0));
 
     return Container(
       decoration: BoxDecoration(
@@ -543,7 +543,7 @@ class _InvoiceCard extends StatelessWidget {
                 const Icon(Icons.receipt_long_outlined,
                     size: 15, color: AppColor.primary),
                 const SizedBox(width: 6),
-                Text(inv.invoiceNo as String,
+                Text(inv.invoiceNo,
                     style: const TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w800,
                         color: AppColor.primary, letterSpacing: 0.3)),
@@ -551,11 +551,11 @@ class _InvoiceCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(dateFmt.format(inv.invoiceDate as DateTime),
+                    Text(dateFmt.format(inv.invoiceDate),
                         style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w700,
                             color: AppColor.textPrimary)),
-                    Text(timeFmt.format(inv.invoiceDate as DateTime),
+                    Text(timeFmt.format(inv.invoiceDate),
                         style: const TextStyle(
                             fontSize: 11, color: AppColor.textSecondary)),
                   ],
@@ -574,7 +574,7 @@ class _InvoiceCard extends StatelessWidget {
                     size: 13, color: AppColor.textSecondary),
                 const SizedBox(width: 5),
                 Text(
-                  (inv.customerName as String?) ?? 'Walk In',
+                  (inv.customerName) ?? 'Walk In',
                   style: TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w600,
                       color: inv.customerName != null
@@ -582,7 +582,7 @@ class _InvoiceCard extends StatelessWidget {
                           : AppColor.textSecondary),
                 ),
                 const Spacer(),
-                _PaymentBadge(type: inv.paymentType as String),
+                _PaymentBadge(type: inv.paymentType),
               ],
             ),
           ),
@@ -603,7 +603,24 @@ class _InvoiceCard extends StatelessWidget {
                 ],
               ),
             ),
-
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              spacing: 5,
+              children: [
+                Text(
+                  "Note:",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  inv.notes.toString(),
+                ),
+              ],
+            ),
+          ),
           if (isManager && inv.cashierName != null)
             Padding(
               padding: const EdgeInsets.only(
@@ -620,7 +637,6 @@ class _InvoiceCard extends StatelessWidget {
                 ],
               ),
             ),
-
           const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
           // ── Product Table ─────────────────────────────────
@@ -681,7 +697,7 @@ class _InvoiceCard extends StatelessWidget {
                 const SizedBox(height: 4),
 
                 ...inv.items.asMap().entries.map<Widget>((entry) {
-                  final idx  = entry.key as int;
+                  final idx  = entry.key;
                   final item = entry.value;
                   return Container(
                     padding: const EdgeInsets.symmetric(
@@ -709,7 +725,7 @@ class _InvoiceCard extends StatelessWidget {
                               const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
-                                    item.productName as String,
+                                    item.productName,
                                     style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
@@ -721,14 +737,14 @@ class _InvoiceCard extends StatelessWidget {
                         ),
                         Expanded(
                             flex: 2,
-                            child: Text(item.priceLabel as String,
+                            child: Text(item.priceLabel,
                                 textAlign: TextAlign.right,
                                 style: const TextStyle(
                                     fontSize: 11,
                                     color: AppColor.textPrimary))),
                         Expanded(
                             flex: 1,
-                            child: Text(item.qtyLabel as String,
+                            child: Text(item.qtyLabel,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                     fontSize: 11,
@@ -737,14 +753,14 @@ class _InvoiceCard extends StatelessWidget {
                         Expanded(
                             flex: 2,
                             child: Text(
-                                'Rs ${(item.discount as double).toStringAsFixed(0)}',
+                                'Rs ${(item.discount).toStringAsFixed(0)}',
                                 textAlign: TextAlign.right,
                                 style: const TextStyle(
                                     fontSize: 11,
                                     color: AppColor.warning))),
                         Expanded(
                             flex: 2,
-                            child: Text(item.totalLabel as String,
+                            child: Text(item.totalLabel,
                                 textAlign: TextAlign.right,
                                 style: const TextStyle(
                                     fontSize: 11,
@@ -765,11 +781,11 @@ class _InvoiceCard extends StatelessWidget {
                   valueColor: AppColor.textPrimary,
                 ),
 
-                if ((inv.totalDiscount as double) > 0) ...[
+                if ((inv.totalDiscount) > 0) ...[
                   const SizedBox(height: 4),
                   _TotalRow(
                     label:      'Discount',
-                    value:      inv.discountLabel as String,
+                    value:      inv.discountLabel,
                     valueColor: AppColor.warning,
                   ),
                 ],
@@ -788,7 +804,7 @@ class _InvoiceCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _StatusBadge(status: inv.status as String),
+                      _StatusBadge(status: inv.status),
                       Row(
                         children: [
                           const Text('Total Amount:',
@@ -797,7 +813,7 @@ class _InvoiceCard extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                   color: AppColor.textSecondary)),
                           const SizedBox(width: 10),
-                          Text(inv.grandTotalLabel as String,
+                          Text(inv.grandTotalLabel,
                               style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,

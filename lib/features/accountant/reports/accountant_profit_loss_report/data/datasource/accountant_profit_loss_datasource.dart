@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../model/accountant_profit_loss_model.dart';
 
 class PnlReportDatasource {
@@ -15,7 +14,6 @@ class PnlReportDatasource {
     // ── Step 1: Parallel fetch invoices + returns ─────────
     final results = await Future.wait([
 
-      // Sale invoices — cost_price directly in items
       _client
           .from('sale_invoices')
           .select('''
@@ -23,7 +21,7 @@ class PnlReportDatasource {
             customer (name),
             sale_invoice_items (
               product_name, sku,
-              price, cost_price,
+              sale_price, purchase_price,
               quantity, discount
             )
           ''')
@@ -31,16 +29,15 @@ class PnlReportDatasource {
           .gte('invoice_date', fromDate.toIso8601String())
           .lte('invoice_date', toEnd.toIso8601String()),
 
-      // Sale returns — product_id se purchase_price baad mein lenge
       _client
           .from('sale_returns')
           .select('''
             id, return_no, return_date, deleted_at,
             customer (name),
             sale_return_items (
-              product_id,
               product_name, sku,
-              price, quantity, discount
+              sale_price, purchase_price,
+              quantity, discount
             )
           ''')
           .eq('status', 'completed')
@@ -48,40 +45,14 @@ class PnlReportDatasource {
           .lte('return_date', toEnd.toIso8601String()),
     ]);
 
-    final salesRaw   = (results[0] as List)
+    final salesRaw = (results[0] as List)
         .where((r) => r['deleted_at'] == null)
         .toList();
     final returnsRaw = (results[1] as List)
         .where((r) => r['deleted_at'] == null)
         .toList();
 
-    // ── Step 2: Collect unique product_ids from returns ───
-    final Set<String> productIds = {};
-    for (final r in returnsRaw) {
-      for (final item in (r['sale_return_items'] as List? ?? [])) {
-        final pid = item['product_id']?.toString();
-        if (pid != null && pid.isNotEmpty) productIds.add(pid);
-      }
-    }
-
-    // ── Step 3: Fetch purchase_price from branch_stock_inventory
-    // Map: product_id → purchase_price
-    final Map<String, double> purchasePriceMap = {};
-
-    if (productIds.isNotEmpty) {
-      final inventory = await _client
-          .from('branch_stock_inventory')
-          .select('product_id, purchase_price')
-          .inFilter('product_id', productIds.toList());
-
-      for (final row in (inventory as List)) {
-        final pid   = row['product_id']?.toString();
-        final price = _dbl(row['purchase_price']) ?? 0;
-        if (pid != null) purchasePriceMap[pid] = price;
-      }
-    }
-
-    // ── Step 4: Build invoice list ────────────────────────
+    // ── Step 2: Build invoice list ────────────────────────
     final List<PnlInvoice> allInvoices = [];
 
     for (final r in salesRaw) {
@@ -89,7 +60,7 @@ class PnlReportDatasource {
         invoiceNo:    r['invoice_no']?.toString() ?? '',
         date:         DateTime.parse(r['invoice_date'].toString()).toLocal(),
         customerName: r['customer']?['name']?.toString(),
-        items:        _parseSaleItems(r['sale_invoice_items']),
+        items:        _parseItems(r['sale_invoice_items']),
         isReturn:     false,
       ));
     }
@@ -99,14 +70,14 @@ class PnlReportDatasource {
         invoiceNo:    r['return_no']?.toString() ?? '',
         date:         DateTime.parse(r['return_date'].toString()).toLocal(),
         customerName: r['customer']?['name']?.toString(),
-        items:        _parseReturnItems(r['sale_return_items'], purchasePriceMap),
+        items:        _parseItems(r['sale_return_items']),
         isReturn:     true,
       ));
     }
 
     allInvoices.sort((a, b) => b.date.compareTo(a.date));
 
-    // ── Step 5: Aggregate totals ──────────────────────────
+    // ── Step 3: Aggregate totals ──────────────────────────
     double grossSaleProfit   = 0;
     double grossReturnProfit = 0;
     double totalSaleRevenue  = 0;
@@ -122,7 +93,7 @@ class PnlReportDatasource {
       }
     }
 
-    // ── Step 6: Daily breakdown ───────────────────────────
+    // ── Step 4: Daily breakdown ───────────────────────────
     final Map<String, PnlDaySummary> dailyMap = {};
 
     for (final inv in allInvoices) {
@@ -155,37 +126,20 @@ class PnlReportDatasource {
     );
   }
 
-  // sale_invoice_items — cost_price column directly
-  List<PnlItem> _parseSaleItems(dynamic raw) =>
+  // ── Single parser — dono tables ka same columns hain ────
+  List<PnlItem> _parseItems(dynamic raw) =>
       (raw as List? ?? []).map((i) => PnlItem(
-        productName: i['product_name']?.toString() ?? '',
-        sku:         i['sku']?.toString(),
-        salePrice:   _dbl(i['price'])      ?? 0,
-        costPrice:   _dbl(i['cost_price']) ?? 0,
-        discount:    _dbl(i['discount'])   ?? 0,
-        quantity:    _dbl(i['quantity'])   ?? 0,
+        productName:   i['product_name']?.toString()  ?? '',
+        sku:           i['sku']?.toString(),
+        salePrice:     _dbl(i['sale_price'])           ?? 0,
+        purchasePrice: _dbl(i['purchase_price'])       ?? 0,
+        discount:      _dbl(i['discount'])             ?? 0,
+        quantity:      _dbl(i['quantity'])             ?? 0,
       )).toList();
 
-  // sale_return_items — purchase_price from branch_stock_inventory map
-  List<PnlItem> _parseReturnItems(
-      dynamic raw,
-      Map<String, double> purchasePriceMap,
-      ) =>
-      (raw as List? ?? []).map((i) {
-        final pid         = i['product_id']?.toString() ?? '';
-        final costPrice   = purchasePriceMap[pid] ?? 0;
-        return PnlItem(
-          productName: i['product_name']?.toString() ?? '',
-          sku:         i['sku']?.toString(),
-          salePrice:   _dbl(i['price'])    ?? 0,
-          costPrice:   costPrice,
-          discount:    _dbl(i['discount']) ?? 0,
-          quantity:    _dbl(i['quantity']) ?? 0,
-        );
-      }).toList();
-
   static String _dayKey(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+          '${d.day.toString().padLeft(2, '0')}';
 
   static double? _dbl(dynamic v) {
     if (v == null) return null;
