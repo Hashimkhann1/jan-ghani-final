@@ -41,7 +41,38 @@ class SyncConfig {
     'sale_return_payments',
     'customer_ledger',
     'branch_summary',
-    "branch_transaction_to_janghani",
+    'branch_transaction_to_janghani',
+  ];
+
+  // ── Yeh tables mein store_id column HAI ──────────────────
+  // Inke liye last timestamp store_id se filter hoga
+  // (har branch apna alag timestamp check karegi)
+  static const List<String> storeIdTables = [
+    'branch_cash_counter',
+    'branch_cash_transaction',
+    'branch_counter',
+    'branch_expense',
+    'branch_stock_damage',
+    'branch_stock_inventory',
+    'branch_summary',
+    'branch_users',
+    'customer',
+    'customer_ledger',
+    'sale_invoice_payments',
+    'sale_invoices',
+    'sale_return_payments',
+    'sale_returns',
+  ];
+
+  // ── Yeh tables HAMESHA full sync hongi ───────────────────
+  // branch: alag machines pe updated_at purana ho sakta hai
+  // sale_invoice_items / sale_return_items: koi store_id nahi
+  // branch_transaction_to_janghani: same reason
+  static const List<String> fullSyncTables = [
+    'branch',
+    'sale_invoice_items',
+    'sale_return_items',
+    'branch_transaction_to_janghani',
   ];
 
   // ── Har table ka timestamp column ────────────────────────
@@ -50,6 +81,7 @@ class SyncConfig {
     'sale_invoice_payments' : 'created_at',
     'sale_return_items'     : 'created_at',
     'sale_return_payments'  : 'created_at',
+    'branch_stock_damage'   : 'created_at',
   };
 
   // ── Har table ka conflict (primary key) column ────────────
@@ -324,9 +356,19 @@ class SyncService {
       );
       _log('  ✅ Supabase connected');
 
+      // ── Is machine ki store_id lo ─────────────
+      final storeId = await _getLocalStoreId(db);
+      if (storeId == null) {
+        _log('  ❌ store_id nahi mila — sync cancel');
+        send.send(_TableError('branch', 'Local branch/store_id nahi mila'));
+        send.send('DONE');
+        return;
+      }
+      _log('  🏪 Store ID: $storeId');
+
       // ── Har table sync karo ───────────────────
       for (final table in SyncConfig.tables) {
-        final count = await _syncTable(db, supabase, table, send);
+        final count = await _syncTable(db, supabase, table, storeId, send);
         _log(count > 0
             ? '  🔄 $table: $count rows synced'
             : '  ✅ $table: kuch nahi tha');
@@ -347,58 +389,137 @@ class SyncService {
   }
 
   // ══════════════════════════════════════════════
-  //  🔄 Single Table Sync — Seedha upsert
-  //  Koi RPC nahi, koi special case nahi
-  //  Sare triggers delete ho chuke hain
+  //  🏪 Local store_id fetch karo
+  // ══════════════════════════════════════════════
+
+  static Future<String?> _getLocalStoreId(Connection db) async {
+    try {
+      final result = await db.execute(
+        Sql('SELECT id FROM branch LIMIT 1'),
+      );
+      if (result.isEmpty) return null;
+      return result.first.toColumnMap()['id']?.toString();
+    } catch (e) {
+      _log('  ❌ store_id fetch error: $e');
+      return null;
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  //  🔄 Single Table Sync
+  //
+  //  3 strategies:
+  //  1. fullSyncTables   → hamesha poora data
+  //  2. storeIdTables    → store_id filter + timestamp
+  //  3. baaki            → sirf timestamp filter
   // ══════════════════════════════════════════════
 
   static Future<int> _syncTable(
       Connection     db,
       SupabaseClient supabase,
       String         table,
+      String         storeId,
       SendPort       send,
       ) async {
     try {
       final tsCol       = SyncConfig.timestampColumn(table);
       final conflictCol = SyncConfig.conflictColumn(table);
+      final isFullSync  = SyncConfig.fullSyncTables.contains(table);
+      final hasStoreId  = SyncConfig.storeIdTables.contains(table);
 
-      // ── Step 1: Supabase mein last timestamp lo ─
+      // ── Step 1: Last timestamp lo ───────────────
       String? lastSyncedAt;
-      try {
-        final res = await supabase
-            .from(table)
-            .select(tsCol)
-            .order(tsCol, ascending: false)
-            .limit(1);
 
-        if (res.isNotEmpty && res[0][tsCol] != null) {
-          lastSyncedAt = res[0][tsCol].toString();
-          _log('  📅 $table — last synced: $lastSyncedAt');
-        } else {
-          _log('  📅 $table — Supabase empty, full sync');
+      if (isFullSync) {
+        // Full sync — timestamp check hi nahi
+        _log('  🔁 $table — full sync mode');
+      } else {
+        try {
+          // KEY FIX: store_id wale tables ke liye
+          // SIRF IS BRANCH ka last timestamp lo
+          // Dusri branch ka timestamp ignore hoga
+          final query = hasStoreId
+              ? supabase
+              .from(table)
+              .select(tsCol)
+              .eq('store_id', storeId)        // ← per-branch filter
+              .order(tsCol, ascending: false)
+              .limit(1)
+              : supabase
+              .from(table)
+              .select(tsCol)
+              .order(tsCol, ascending: false)
+              .limit(1);
+
+          final res = await query;
+
+          if (res.isNotEmpty && res[0][tsCol] != null) {
+            lastSyncedAt = res[0][tsCol].toString();
+            _log('  📅 $table — last synced: $lastSyncedAt'
+                '${hasStoreId ? " (store: $storeId)" : ""}');
+          } else {
+            _log('  📅 $table — Supabase mein kuch nahi, full sync');
+          }
+        } catch (e) {
+          _log('  ⚠️  $table — lastSync fetch fail: $e');
         }
-      } catch (e) {
-        _log('  ⚠️  $table — lastSync fetch fail: $e');
       }
 
-      // ── Step 2: Local se naye rows lo ──────────
+      // ── Step 2: Local se rows lo ───────────────
       final List<Map<String, dynamic>> rows;
 
-      if (lastSyncedAt != null) {
-        final result = await db.execute(
-          Sql.named(
-            'SELECT * FROM "$table" '
-                'WHERE "$tsCol" > @ts::timestamptz '
-                'ORDER BY "$tsCol" ASC',
-          ),
-          parameters: {'ts': lastSyncedAt},
-        );
-        rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+      if (isFullSync) {
+        // Full sync — poora table (store_id filter bhi)
+        if (hasStoreId) {
+          final result = await db.execute(
+            Sql.named('SELECT * FROM "$table" WHERE store_id = @sid ORDER BY "$tsCol" ASC'),
+            parameters: {'sid': storeId},
+          );
+          rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        } else {
+          final result = await db.execute(
+            Sql('SELECT * FROM "$table" ORDER BY "$tsCol" ASC'),
+          );
+          rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        }
+      } else if (lastSyncedAt != null) {
+        // Incremental — timestamp ke baad wale rows
+        if (hasStoreId) {
+          final result = await db.execute(
+            Sql.named(
+              'SELECT * FROM "$table" '
+                  'WHERE store_id = @sid '
+                  '  AND "$tsCol" > @ts::timestamptz '
+                  'ORDER BY "$tsCol" ASC',
+            ),
+            parameters: {'sid': storeId, 'ts': lastSyncedAt},
+          );
+          rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        } else {
+          final result = await db.execute(
+            Sql.named(
+              'SELECT * FROM "$table" '
+                  'WHERE "$tsCol" > @ts::timestamptz '
+                  'ORDER BY "$tsCol" ASC',
+            ),
+            parameters: {'ts': lastSyncedAt},
+          );
+          rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        }
       } else {
-        final result = await db.execute(
-          Sql('SELECT * FROM "$table" ORDER BY "$tsCol" ASC'),
-        );
-        rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        // Supabase empty tha — poora local data bhejo
+        if (hasStoreId) {
+          final result = await db.execute(
+            Sql.named('SELECT * FROM "$table" WHERE store_id = @sid ORDER BY "$tsCol" ASC'),
+            parameters: {'sid': storeId},
+          );
+          rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        } else {
+          final result = await db.execute(
+            Sql('SELECT * FROM "$table" ORDER BY "$tsCol" ASC'),
+          );
+          rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        }
       }
 
       _log('  📦 $table: ${rows.length} rows milein');
@@ -417,7 +538,7 @@ class SyncService {
         return m;
       }).toList();
 
-      // ── Step 4: Seedha upsert — koi trigger nahi ─
+      // ── Step 4: Upsert Supabase mein ────────────
       const batchSize = 50;
       int totalSynced = 0;
       final List<String> syncedIds = [];

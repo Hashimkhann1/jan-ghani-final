@@ -9,6 +9,7 @@ import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all
 import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/screen/all_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/screen/counter_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/branch/expense/presentation/screen/all_expense_screen.dart';
+import 'package:jan_ghani_final/features/branch/reports/presentation/screen/csr_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale_return_report_screen.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
@@ -81,6 +82,14 @@ final _cashierItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyI,
   ),
   NavItem(
+    icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
+    screen: const BranchTransferListScreen(),
+  ),
+  NavItem(
+    icon: Icons.local_shipping_rounded, label: 'Stock Damage',
+    screen: const BranchStockDamageScreen(),
+  ),
+  NavItem(
     icon: Icons.bar_chart_rounded, label: 'Sale Report',
     screen: const SaleInvoiceListScreen(),
     shortcutKey: LogicalKeyboardKey.keyR,
@@ -90,12 +99,9 @@ final _cashierItems = <NavItem>[
     screen: const SaleReturnReportScreen(),
   ),
   NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
-    screen: const BranchTransferListScreen(),
-  ),
-  NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Stock Damage',
-    screen: const BranchStockDamageScreen(),
+    icon: Icons.bar_chart_rounded, label: 'Customer Sale or Sale Return Report',
+    screen: const CsrScreen(),
+    shortcutKey: LogicalKeyboardKey.keyR,
   ),
 ];
 
@@ -164,8 +170,22 @@ final _managerItems = <NavItem>[
     screen: const AllCounterScreen(),
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Sale Invoice',
+    icon: Icons.local_shipping_rounded, label: 'Stock Damage',
+    screen: const BranchStockDamageScreen(),
+  ),
+  NavItem(
+    icon: Icons.bar_chart_rounded, label: 'Sale Invoice Report',
     screen: const SaleInvoiceListScreen(),
+    shortcutKey: LogicalKeyboardKey.keyR,
+  ),
+  NavItem(
+    icon: Icons.bar_chart_rounded, label: 'Sale Return Report',
+    screen: const SaleReturnReportScreen(),
+    shortcutKey: LogicalKeyboardKey.keyR,
+  ),
+  NavItem(
+    icon: Icons.bar_chart_rounded, label: 'Customer Sale or Sale Return Report',
+    screen: const CsrScreen(),
     shortcutKey: LogicalKeyboardKey.keyR,
   ),
 ];
