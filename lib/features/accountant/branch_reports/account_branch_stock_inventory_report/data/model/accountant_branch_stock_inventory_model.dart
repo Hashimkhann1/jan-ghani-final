@@ -61,8 +61,7 @@ class AccountantBranchInventoryModel {
       maxStock:       _dbl(m['max_stock'])          ?? 0,
       unit:           m['unit']?.toString()          ?? '',
       updatedAt:      DateTime.tryParse(
-          m['updated_at']?.toString() ?? '') ??
-          DateTime.now(),
+          m['updated_at']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -75,12 +74,30 @@ class AccountantBranchInventoryModel {
 
 enum StockStatus { inStock, lowStock, outOfStock }
 
+// ── Summary ───────────────────────────────────────────────
 class AccountantBranchInventorySummary {
   final int    totalProducts;
   final int    inStock;
   final int    lowStock;
   final int    outOfStock;
   final double totalStockValue;
+  final double totalSaleValue;
+  final double totalPurchaseValue;
+
+  // InStock breakdown
+  final double inStockQty;
+  final double inStockSaleValue;
+  final double inStockPurchaseValue;
+
+  // LowStock breakdown
+  final double lowStockQty;
+  final double lowStockSaleValue;
+  final double lowStockPurchaseValue;
+
+  // OutOfStock breakdown
+  final double outStockQty;
+  final double outStockSaleValue;
+  final double outStockPurchaseValue;
 
   const AccountantBranchInventorySummary({
     required this.totalProducts,
@@ -88,5 +105,25 @@ class AccountantBranchInventorySummary {
     required this.lowStock,
     required this.outOfStock,
     required this.totalStockValue,
+    this.totalSaleValue        = 0,
+    this.totalPurchaseValue    = 0,
+    this.inStockQty            = 0,
+    this.inStockSaleValue      = 0,
+    this.inStockPurchaseValue  = 0,
+    this.lowStockQty           = 0,
+    this.lowStockSaleValue     = 0,
+    this.lowStockPurchaseValue = 0,
+    this.outStockQty           = 0,
+    this.outStockSaleValue     = 0,
+    this.outStockPurchaseValue = 0,
   });
+
+  factory AccountantBranchInventorySummary.empty() =>
+      const AccountantBranchInventorySummary(
+        totalProducts: 0,
+        inStock:       0,
+        lowStock:      0,
+        outOfStock:    0,
+        totalStockValue: 0,
+      );
 }

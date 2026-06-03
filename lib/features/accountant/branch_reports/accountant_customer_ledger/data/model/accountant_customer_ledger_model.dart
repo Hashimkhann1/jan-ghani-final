@@ -23,13 +23,16 @@ class CustomerLedgerModel {
 
   factory CustomerLedgerModel.fromMap(Map<String, dynamic> m) =>
       CustomerLedgerModel(
-        id:             m['id']            as String,
-        customerId:     m['customer_id']   as String,
-        customerName:   m['customer_name'] as String,
+        id:             m['id']          as String,
+        customerId:     m['customer_id'] as String,
+        // ← joined object se naam lo, fallback stored naam pe
+        customerName:   (m['customer'] as Map<String, dynamic>?)?['name'] as String?
+            ?? m['customer_name'] as String?
+            ?? '',
         previousAmount: double.parse(m['previous_amount'].toString()),
         payAmount:      double.parse(m['pay_amount'].toString()),
         newAmount:      double.parse(m['new_amount'].toString()),
-        notes:          m['notes']         as String?,
+        notes:          m['notes'] as String?,
         createdAt:      DateTime.parse(m['created_at'] as String),
       );
 }

@@ -65,26 +65,35 @@ class AccountantCustomerReportNotifier
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final customers = await _datasource.fetchCustomers();
+      final filtered  = _applyFilters(customers, state.searchQuery, state.filterType);
       state = state.copyWith(
         allCustomers: customers,
-        filtered:     _applyFilters(customers, state.searchQuery, state.filterType),
-        summary:      _buildSummary(customers),
-        isLoading:    false,
+        filtered: filtered,
+        summary: _buildSummary(filtered),
+        isLoading: false,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
-  void search(String q) => state = state.copyWith(
-    searchQuery: q,
-    filtered:    _applyFilters(state.allCustomers, q, state.filterType),
-  );
+  void search(String q) {
+    final filtered = _applyFilters(state.allCustomers, q, state.filterType);
+    state = state.copyWith(
+      searchQuery: q,
+      filtered:    filtered,
+      summary:     _buildSummary(filtered),
+    );
+  }
 
-  void setFilter(String? type) => state = state.copyWith(
-    filterType: type,
-    filtered:   _applyFilters(state.allCustomers, state.searchQuery, type),
-  );
+  void setFilter(String? type) {
+    final filtered = _applyFilters(state.allCustomers, state.searchQuery, type);
+    state = state.copyWith(
+      filterType: type,
+      filtered:   filtered,
+      summary:    _buildSummary(filtered),
+    );
+  }
 
   void clearError() => state = state.copyWith(errorMessage: null);
 

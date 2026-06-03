@@ -38,24 +38,26 @@ class AccountantCustomerLedgerDatasource {
         .eq('store_id', branchId)
         .isFilter('deleted_at', null);
 
-    // ✅ customerId null ho to yeh filter nahi lagega
     if (customerId != null) {
       query = query.eq('customer_id', customerId);
     }
-
     if (startDate != null) {
       query = query.gte('created_at', startDate.toIso8601String());
     }
     if (endDate != null) {
-      final end = DateTime(
-          endDate.year, endDate.month, endDate.day, 23, 59, 59);
+      final end = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
       query = query.lte('created_at', end.toIso8601String());
     }
 
     final rows = await query.order('created_at', ascending: false);
 
-    return (rows as List)
-        .map((r) => CustomerLedgerModel.fromMap(r as Map<String, dynamic>))
-        .toList();
+    final customers   = await fetchCustomers();
+    final customerMap = { for (var c in customers) c.id: c.name };
+
+    return (rows as List).map((r) {
+      final map = Map<String, dynamic>.from(r as Map<String, dynamic>);
+      map['customer_name'] = customerMap[map['customer_id']] ?? map['customer_name'] ?? '';
+      return CustomerLedgerModel.fromMap(map);
+    }).toList();
   }
 }

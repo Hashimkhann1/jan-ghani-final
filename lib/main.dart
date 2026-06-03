@@ -29,7 +29,7 @@ final accountantSessionCheckProvider = FutureProvider<bool>((ref) async {
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+  // await dotenv.load(fileName: '.env');
   await Supabase.initialize(
     url: 'https://kjjtqfruxhjcxwvxwffz.supabase.co',
     anonKey: 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS',

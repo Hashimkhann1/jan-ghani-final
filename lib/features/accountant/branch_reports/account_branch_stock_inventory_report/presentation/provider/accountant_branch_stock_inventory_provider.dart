@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../data/datasource/accountant_branch_stock_inventory_datasource.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
+
+const _sentinel = Object();
 
 // ── State ─────────────────────────────────────────────────
 class AccountantBranchInventoryState {
@@ -21,14 +22,13 @@ class AccountantBranchInventoryState {
     this.stockFilter,
     this.isLoading   = false,
     this.errorMessage,
-  }) : summary = summary ??
-      const AccountantBranchInventorySummary(
-        totalProducts:   0,
-        inStock:         0,
-        lowStock:        0,
-        outOfStock:      0,
-        totalStockValue: 0,
-      );
+  }) : summary = summary ?? const AccountantBranchInventorySummary(
+    totalProducts:   0,
+    inStock:         0,
+    lowStock:        0,
+    outOfStock:      0,
+    totalStockValue: 0,
+  );
 
   AccountantBranchInventoryState copyWith({
     List<AccountantBranchInventoryModel>? allItems,
@@ -44,7 +44,7 @@ class AccountantBranchInventoryState {
         filtered:     filtered     ?? this.filtered,
         summary:      summary      ?? this.summary,
         searchQuery:  searchQuery  ?? this.searchQuery,
-        stockFilter:  stockFilter  == _sentinel
+        stockFilter:  stockFilter == _sentinel
             ? this.stockFilter
             : stockFilter as StockStatus?,
         isLoading:    isLoading    ?? this.isLoading,
@@ -53,8 +53,6 @@ class AccountantBranchInventoryState {
             : errorMessage as String?,
       );
 }
-
-const _sentinel = Object();
 
 // ── Notifier ──────────────────────────────────────────────
 class AccountantBranchInventoryNotifier
@@ -78,10 +76,7 @@ class AccountantBranchInventoryNotifier
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(
-        isLoading:    false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
@@ -95,56 +90,72 @@ class AccountantBranchInventoryNotifier
   void setStockFilter(StockStatus? filter) {
     state = state.copyWith(
       stockFilter: filter,
-      filtered:    _applyFilters(
-          state.allItems, state.searchQuery, filter),
+      filtered:    _applyFilters(state.allItems, state.searchQuery, filter),
     );
   }
 
   void clearError() => state = state.copyWith(errorMessage: null);
 
-  // ── Helpers ──────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────
   List<AccountantBranchInventoryModel> _applyFilters(
       List<AccountantBranchInventoryModel> all,
-      String      q,
+      String       q,
       StockStatus? filter,
       ) {
     var list = all;
-
     if (q.isNotEmpty) {
       final lower = q.toLowerCase();
       list = list.where((i) =>
       i.productName.toLowerCase().contains(lower) ||
-          i.sku.toLowerCase().contains(lower)         ||
-          i.barcodes.any((b) => b.contains(lower))).toList();
+          i.sku.toLowerCase().contains(lower)     ||
+          i.barcodes.any((b) => b.contains(lower)),
+      ).toList();
     }
-
     if (filter != null) {
-      list = list
-          .where((i) => i.stockStatus == filter)
-          .toList();
+      list = list.where((i) => i.stockStatus == filter).toList();
     }
-
     return list;
   }
 
   AccountantBranchInventorySummary _buildSummary(
       List<AccountantBranchInventoryModel> items) {
+
+    final inStockItems    = items.where((i) => i.stockStatus == StockStatus.inStock).toList();
+    final lowStockItems   = items.where((i) => i.stockStatus == StockStatus.lowStock).toList();
+    final outOfStockItems = items.where((i) => i.stockStatus == StockStatus.outOfStock).toList();
+
+    double qty(List<AccountantBranchInventoryModel> l)      => l.fold(0, (s, i) => s + i.stock);
+    double sale(List<AccountantBranchInventoryModel> l)     => l.fold(0, (s, i) => s + (i.stock * i.salePrice));
+    double purchase(List<AccountantBranchInventoryModel> l) => l.fold(0, (s, i) => s + (i.stock * i.purchasePrice));
+
     return AccountantBranchInventorySummary(
-      totalProducts:   items.length,
-      inStock:         items.where((i) =>
-      i.stockStatus == StockStatus.inStock).length,
-      lowStock:        items.where((i) =>
-      i.stockStatus == StockStatus.lowStock).length,
-      outOfStock:      items.where((i) =>
-      i.stockStatus == StockStatus.outOfStock).length,
-      totalStockValue: items.fold(
-          0, (s, i) => s + (i.stock * i.purchasePrice)),
+      totalProducts:      items.length,
+      inStock:            inStockItems.length,
+      lowStock:           lowStockItems.length,
+      outOfStock:         outOfStockItems.length,
+      totalStockValue:    purchase(items),
+      totalPurchaseValue: purchase(items),
+      totalSaleValue:     sale(items),
+      // InStock
+      inStockQty:            qty(inStockItems),
+      inStockSaleValue:      sale(inStockItems),
+      inStockPurchaseValue:  purchase(inStockItems),
+      // LowStock
+      lowStockQty:           qty(lowStockItems),
+      lowStockSaleValue:     sale(lowStockItems),
+      lowStockPurchaseValue: purchase(lowStockItems),
+      // OutOfStock
+      outStockQty:           qty(outOfStockItems),
+      outStockSaleValue:     sale(outOfStockItems),
+      outStockPurchaseValue: purchase(outOfStockItems),
     );
   }
 }
 
 // ── Provider ──────────────────────────────────────────────
-final accountantBranchInventoryProvider = StateNotifierProvider.autoDispose.family<AccountantBranchInventoryNotifier, AccountantBranchInventoryState, String>(
+final accountantBranchInventoryProvider = StateNotifierProvider.autoDispose
+    .family<AccountantBranchInventoryNotifier,
+    AccountantBranchInventoryState, String>(
       (ref, branchId) =>
       AccountantBranchInventoryNotifier(branchId: branchId),
 );

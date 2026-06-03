@@ -3,6 +3,7 @@ import 'package:jan_ghani_final/features/accountant/branch_reports/account_branc
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_branch_summary/presentation/screen/accountant_branch_summary_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_customer_ledger/presentation/screen/accountant_customer_ledger_screen.dart';
 import '../../../../../../core/color/app_color.dart';
+import 'accountant_branch_transaction/presentation/screen/accountant_branch_transaction_report_screen.dart';
 import 'accountant_customer/presentation/screen/accountant_customer_report_screen.dart';
 import 'accountant_profit_loss_report/presentation/screen/accountant_profit_loss_report_screen.dart';
 import 'accountant_sale_report/presentation/screen/accountant_sale_report_screen.dart';
@@ -150,6 +151,14 @@ class BranchReportListScreen extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (_) => BranchSummaryReportScreen(branchId: branchId),
+          ),
+        );
+        break;
+      case 6:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AccountantBranchTransactionScreen(branchId: branchId),
           ),
         );
         break;

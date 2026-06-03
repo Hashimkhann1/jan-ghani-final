@@ -43,6 +43,9 @@ class CustomerLedgerState {
   double get totalPaid =>
       filtered.fold(0.0, (s, e) => s + e.payAmount);
 
+  double get totalCollected =>
+      ledgerEntries.fold(0.0, (s, e) => s + e.payAmount);
+
   double get currentBalance =>
       filtered.isNotEmpty ? filtered.first.newAmount : 0;
 
@@ -149,11 +152,9 @@ class CustomerLedgerNotifier
         startDate:  state.startDate,
         endDate:    state.endDate,
       );
-      state = state.copyWith(
-          ledgerEntries: entries, isLoadingLedger: false);
+      state = state.copyWith(ledgerEntries: entries, isLoadingLedger: false);
     } catch (e) {
-      state = state.copyWith(
-          isLoadingLedger: false, errorMessage: e.toString());
+      state = state.copyWith(isLoadingLedger: false, errorMessage: e.toString());
     }
   }
 }

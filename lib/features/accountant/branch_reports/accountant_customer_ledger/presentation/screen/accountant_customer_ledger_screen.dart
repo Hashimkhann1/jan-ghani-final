@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../accountant_customer/data/model/accountant_customer_model.dart';
 import '../../data/model/accountant_customer_ledger_model.dart';
 import '../provider/accountant_customer_ledger_provider.dart';
@@ -125,12 +126,15 @@ class _AccountantCustomerLedgerScreenState
               children: [
 
                 // Customer Dropdown
-                state.isLoadingCustomers
-                    ? const Center(child: CircularProgressIndicator())
-                    : _CustomerDropdown(
-                  customers: state.customers,
-                  selected:  state.selectedCustomer,
-                  onChanged: notifier.selectCustomer,
+                AppSearchableDropdown<AccountantCustomerReportModel>(
+                  hint: 'Customer select karein',
+                  items: state.customers.map((c) => DropdownItem(
+                    value: c,
+                    label: '${c.name}  •  ${c.code}',
+                    icon:  Icons.person_outline_rounded,
+                  )).toList(),
+                  value:     state.selectedCustomer,
+                  onChanged: (c) { if (c != null) notifier.selectCustomer(c); },
                 ),
 
                 const SizedBox(height: 10),
@@ -227,16 +231,21 @@ class _AccountantCustomerLedgerScreenState
             ),
           ),
 
-          // ── Summary Cards ───────────────────────────────
-          if (state.selectedCustomer != null)
-          // ── Summary Cards ───────────────────────────────
+          if (state.filtered.isNotEmpty)
             Container(
               color:   Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
               child: Row(
                 children: [
                   _SummaryCard(
-                    label: 'Total Paid',
+                    label: 'Total Collected',
+                    value: _fmt(state.totalCollected),
+                    icon:  Icons.account_balance_wallet_outlined,
+                    color: AppColor.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryCard(
+                    label: 'Filtered Total',
                     value: _fmt(state.totalPaid),
                     icon:  Icons.payments_outlined,
                     color: AppColor.success,
@@ -246,7 +255,7 @@ class _AccountantCustomerLedgerScreenState
                     label: 'Entries',
                     value: '${state.filtered.length}',
                     icon:  Icons.receipt_long_outlined,
-                    color: AppColor.primary,
+                    color: AppColor.warning,
                   ),
                 ],
               ),
@@ -257,8 +266,7 @@ class _AccountantCustomerLedgerScreenState
           // Result count
           if (!state.isLoadingLedger && state.filtered.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   Text('${state.filtered.length} entry mili',
@@ -403,96 +411,6 @@ class _DateButton extends StatelessWidget {
   }
 }
 
-// ── Customer Dropdown ──────────────────────────────────────
-class _CustomerDropdown extends StatelessWidget {
-  final List<AccountantCustomerReportModel>       customers;
-  final AccountantCustomerReportModel?            selected;
-  final ValueChanged<AccountantCustomerReportModel> onChanged;
-
-  const _CustomerDropdown({
-    required this.customers,
-    required this.selected,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color:        AppColor.grey100,
-        borderRadius: BorderRadius.circular(10),
-        border:       Border.all(color: AppColor.grey200),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<AccountantCustomerReportModel>(
-          value:      selected,
-          isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded,
-              color: AppColor.primary),
-          style: const TextStyle(
-              fontSize:   14,
-              fontWeight: FontWeight.w600,
-              color:      Color(0xFF1A1D23)),
-          hint: const Text('Customer select karein',
-              style: TextStyle(
-                  fontSize: 13, color: AppColor.textHint)),
-          items: customers.map((c) {
-            return DropdownMenuItem(
-              value: c,
-              child: Row(
-                children: [
-                  Container(
-                    width:  30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: AppColor.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Text(
-                        c.name.isNotEmpty
-                            ? c.name[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                            fontSize:   13,
-                            fontWeight: FontWeight.w800,
-                            color:      AppColor.primary),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize:       MainAxisSize.min,
-                      children: [
-                        Text(c.name,
-                            style: const TextStyle(
-                                fontSize:   13,
-                                fontWeight: FontWeight.w600),
-                            maxLines:  1,
-                            overflow:  TextOverflow.ellipsis),
-                        Text(c.code,
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color:    AppColor.textHint)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-          onChanged: (c) {
-            if (c != null) onChanged(c);
-          },
-        ),
-      ),
-    );
-  }
-}
-
 // ── Ledger Card ────────────────────────────────────────────
 class _LedgerCard extends StatelessWidget {
   final CustomerLedgerModel     entry;
@@ -531,41 +449,51 @@ class _LedgerCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColor.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text('#$index',
                       style: const TextStyle(
-                          fontSize:   11,
-                          fontWeight: FontWeight.w700,
-                          color:      AppColor.primary)),
+                          fontSize: 11, fontWeight: FontWeight.w700, color: AppColor.primary)),
                 ),
                 const SizedBox(width: 8),
+
+                // ✅ SIRF YEH BLOCK NAYA HAI — customer name
                 Expanded(
-                  child: Text(
-                    dateFmt.format(entry.createdAt.toLocal()),
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColor.textHint),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.customerName.isNotEmpty ? entry.customerName : '—',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A1D23)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        dateFmt.format(entry.createdAt.toLocal()),
+                        style: const TextStyle(fontSize: 11, color: AppColor.textHint),
+                      ),
+                    ],
                   ),
                 ),
+                // ✅ DATE wali Text ab upar move ho gayi, yahan se hatao
+
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColor.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                        color: AppColor.success.withOpacity(0.3)),
+                    border: Border.all(color: AppColor.success.withOpacity(0.3)),
                   ),
                   child: Text(
                     'Paid: ${fmtAmt(entry.payAmount)}',
                     style: const TextStyle(
-                        fontSize:   11,
-                        fontWeight: FontWeight.w700,
-                        color:      AppColor.success),
+                        fontSize: 11, fontWeight: FontWeight.w700, color: AppColor.success),
                   ),
                 ),
               ],
