@@ -20,11 +20,11 @@ class AccountantBranchInventoryReportScreen extends ConsumerStatefulWidget {
 class _AccountantBranchInventoryReportScreenState
     extends ConsumerState<AccountantBranchInventoryReportScreen> {
   final _searchCtrl = TextEditingController();
-  final _amtFmt     = NumberFormat('#,##,###', 'en_IN');
+  final _amtFmt     = NumberFormat('#,##,###.##', 'en_IN');
 
-  String _fmtAmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
-  String _fmtQty(double q) =>
-      q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
+  // Hamesha 2 decimal places show karega
+  String _fmtAmt(double v) => 'Rs ${_amtFmt.format(v)}';
+  String _fmtQty(double q) => q.toStringAsFixed(2);
 
   @override
   void dispose() {
@@ -699,6 +699,7 @@ class _PriceTile extends StatelessWidget {
     ],
   );
 }
+
 // ── Shared Widgets ─────────────────────────────────────────
 
 class _SummaryTile extends StatelessWidget {

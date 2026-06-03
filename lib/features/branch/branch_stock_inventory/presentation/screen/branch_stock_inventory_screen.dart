@@ -82,12 +82,19 @@ class _BranchStockInventoryScreenState
               final totalQty     = products.fold(0.0, (s, p) => s + p.quantity);
               final totalCostVal = products.fold(0.0, (s, p) => s + p.costPrice * p.quantity);
               final totalSaleVal = products.fold(0.0, (s, p) => s + p.sellingPrice * p.quantity);
-              String fmtAmt(double v) => 'Rs ${v.toStringAsFixed(2)}';
+
+              // FIXED: #,##,##0.## — 0.86 sahi dikhega, trailing zeros hide
+              final _amtFmt = RegExp(r'');
+              String fmtAmt(double v) {
+                if (v == v.truncateToDouble()) return 'Rs ${v.toInt()}';
+                final s = v.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
+                return 'Rs $s';
+              }
 
               return Row(children: [
                 SummaryCard(
                   title: 'Total Products',
-                  value: '${posState.totalProducts.toStringAsFixed(2)}',
+                  value: '${posState.totalProducts.toStringAsFixed(0)}',
                   icon:  Icons.inventory_2_outlined,
                   color: AppColor.primary,
                 ),
@@ -443,7 +450,6 @@ class _InventoryTable extends ConsumerWidget {
   final List<BranchStockModel> rows;
   const _InventoryTable({required this.rows});
 
-  // Column widths
   static const _widths = [
     80.0,  // SKU
     120.0, // Barcode
@@ -468,7 +474,6 @@ class _InventoryTable extends ConsumerWidget {
   ];
 
   static double get _totalWidth => _widths.fold(0.0, (s, w) => s + w) + 32;
-
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -578,7 +583,7 @@ class _DataRow extends StatelessWidget {
   final BranchStockModel row;
   final int              index;
   final List<double>     widths;
-  final dynamic          auth; // your auth type
+  final dynamic          auth;
   final VoidCallback     onEdit;
   final VoidCallback     onDelete;
   final void Function(String) onDenied;
@@ -592,6 +597,12 @@ class _DataRow extends StatelessWidget {
     required this.onDelete,
     required this.onDenied,
   });
+
+  // FIXED: int → double format helper
+  static String _fmt(double v) {
+    if (v == v.truncateToDouble()) return v.toInt().toString();
+    return v.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -663,13 +674,13 @@ class _DataRow extends StatelessWidget {
                       color:      AppColor.textSecondary)),
             ),
           ),
-          // Cost Price
+          // Cost Price — FIXED via model getter
           SizedBox(
             width: widths[4],
             child: Text(row.costPriceLabel,
                 style: const TextStyle(fontSize: 13)),
           ),
-          // Sale Price
+          // Sale Price — FIXED via model getter
           SizedBox(
             width: widths[5],
             child: Text(row.sellingPriceLabel,
@@ -678,7 +689,7 @@ class _DataRow extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color:      AppColor.primary)),
           ),
-          // Wholesale
+          // Wholesale — FIXED via model getter
           SizedBox(
             width: widths[6],
             child: Text(row.wholesalePriceLabel,
@@ -703,25 +714,29 @@ class _DataRow extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 13, color: AppColor.textSecondary)),
           ),
-          // Min Stock
+          // Min Stock — FIXED: int.toString() → double aware
           SizedBox(
             width: widths[9],
-            child: Text('${row.minStockLevel} ${row.unitOfMeasure}',
-                style: const TextStyle(
-                    fontSize: 12, color: AppColor.textSecondary)),
+            child: Text(
+              '${row.minStockLevel} ${row.unitOfMeasure}',
+              style: const TextStyle(
+                  fontSize: 12, color: AppColor.textSecondary),
+            ),
           ),
-          // Max Stock
+          // Max Stock — FIXED
           SizedBox(
             width: widths[10],
-            child: Text('${row.maxStockLevel} ${row.unitOfMeasure}',
-                style: const TextStyle(
-                    fontSize: 12, color: AppColor.textSecondary)),
+            child: Text(
+              '${row.maxStockLevel} ${row.unitOfMeasure}',
+              style: const TextStyle(
+                  fontSize: 12, color: AppColor.textSecondary),
+            ),
           ),
-          // Quantity
+          // Quantity — FIXED: toStringAsFixed(2) → smart _fmt
           SizedBox(
             width: widths[11],
             child: Text(
-              row.quantity.toStringAsFixed(2),
+              _fmt(row.quantity),
               style: TextStyle(
                   fontSize:   13,
                   fontWeight: FontWeight.w700,
@@ -738,14 +753,14 @@ class _DataRow extends StatelessWidget {
                   icon:    Icons.edit_outlined,
                   color:   AppColor.primary,
                   tooltip: 'Edit',
-                  onTap: onEdit
+                  onTap:   onEdit,
                 ),
                 const SizedBox(width: 6),
                 CustomerActionButton(
                   icon:    Icons.delete_outline_rounded,
                   color:   AppColor.error,
                   tooltip: 'Delete',
-                  onTap:  onDelete
+                  onTap:   onDelete,
                 ),
               ],
             ),

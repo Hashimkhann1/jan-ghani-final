@@ -8,7 +8,7 @@ import '../provider/accountant_profit_loss_provider.dart';
 String _fmtQty(double q) => q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
 
 class PnlReportScreen extends ConsumerStatefulWidget {
-  const PnlReportScreen({super.key, required this.branchId});  // ← ADD
+  const PnlReportScreen({super.key, required this.branchId});
   final String branchId;
 
   @override
@@ -45,7 +45,7 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
   String _fmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
 
   Future<void> _pickDate(BuildContext context, bool isFrom) async {
-    final state  = ref.read(pnlReportProvider(widget.branchId));   // watch → read
+    final state  = ref.read(pnlReportProvider(widget.branchId));
     final init   = isFrom ? state.fromDate : state.toDate;
     final picked = await showDatePicker(
       context:     context,
@@ -60,7 +60,7 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
       ),
     );
     if (picked != null) {
-      final n = ref.read(pnlReportProvider(widget.branchId).notifier);  // branchId + .notifier
+      final n = ref.read(pnlReportProvider(widget.branchId).notifier);
       if (isFrom) {
         _fromCtrl.text = _dateFmt.format(picked);
         n.setFromDate(picked);
@@ -535,10 +535,10 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
 
   @override
   Widget build(BuildContext context) {
-    final inv        = widget.inv;
-    final isReturn   = inv.isReturn;
-    final profit     = inv.totalProfit;
-    final isProfit   = profit >= 0;
+    final inv         = widget.inv;
+    final isReturn    = inv.isReturn;
+    final profit      = inv.totalProfit;
+    final isProfit    = profit >= 0;
     final accentColor = isReturn ? AppColor.error : AppColor.primary;
     final profitColor = isProfit ? AppColor.success : AppColor.error;
 
@@ -696,20 +696,21 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                     ),
                     Expanded(
                       flex: 2,
-                      // (salePrice - purchasePrice) × qty - discount
+                      // ✅ UPDATED: toStringAsFixed(1) — shows 0.1 and 10.0 style
                       child: Text(
-                        '(${item.salePrice.toStringAsFixed(0)}'
-                            ' - ${item.purchasePrice.toStringAsFixed(0)})'
+                        '(${item.salePrice.toStringAsFixed(1)}'
+                            ' - ${item.purchasePrice.toStringAsFixed(1)})'
                             ' × ${_fmtQty(item.quantity)}'
-                            '${item.discount > 0 ? ' - ${item.discount.toStringAsFixed(0)}' : ''}',
+                            '${item.discount > 0 ? ' - ${item.discount.toStringAsFixed(1)}' : ''}',
                         style: const TextStyle(
                             fontSize: 9, color: AppColor.textHint),
                       ),
                     ),
                     Expanded(
                       flex: 2,
+                      // ✅ UPDATED: toStringAsFixed(1) for profit amount
                       child: Text(
-                        '${iP ? '+' : '-'} Rs ${itemProfit.abs().toStringAsFixed(0)}',
+                        '${iP ? '+' : '-'} Rs ${itemProfit.abs().toStringAsFixed(1)}',
                         textAlign: TextAlign.right,
                         style: TextStyle(
                             fontSize:   12,

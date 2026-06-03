@@ -11,7 +11,7 @@ class BranchStockModel {
   final double   sellingPrice;
   final double?  wholesalePrice;
   final double   taxRate;
-  final double   discount;       // ← new
+  final double   discount;
   final int      minStockLevel;
   final int      maxStockLevel;
   final int      reorderPoint;
@@ -36,7 +36,7 @@ class BranchStockModel {
     required this.sellingPrice,
     this.wholesalePrice,
     required this.taxRate,
-    required this.discount,      // ← new
+    required this.discount,
     required this.minStockLevel,
     required this.maxStockLevel,
     required this.reorderPoint,
@@ -52,7 +52,7 @@ class BranchStockModel {
   // ── Getters ───────────────────────────────────────────────
   double get availableQuantity => quantity - reservedQuantity;
 
-  bool get isLowStock  =>
+  bool get isLowStock =>
       isTrackStock && quantity <= reorderPoint && quantity > 0;
   bool get isOutOfStock => isTrackStock && quantity <= 0;
 
@@ -62,35 +62,41 @@ class BranchStockModel {
     return 'In Stock';
   }
 
-  String get costPriceLabel      => 'Rs ${costPrice.toStringAsFixed(0)}';
-  String get sellingPriceLabel   => 'Rs ${sellingPrice.toStringAsFixed(0)}';
+  // ── FIXED: toStringAsFixed(0) → _fmt() jo 0.86 sahi dikhaye ──
+  static String _fmt(double v) {
+    // 0.86 → "0.86" | 100.0 → "100" | 1.50 → "1.5"
+    if (v == v.truncateToDouble()) return v.toInt().toString();
+    return v.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
+  }
+
+  String get costPriceLabel      => 'Rs ${_fmt(costPrice)}';
+  String get sellingPriceLabel   => 'Rs ${_fmt(sellingPrice)}';
   String get wholesalePriceLabel =>
-      wholesalePrice != null ? 'Rs ${wholesalePrice!.toStringAsFixed(0)}' : '—';
+      wholesalePrice != null ? 'Rs ${_fmt(wholesalePrice!)}' : '—';
   String get taxRateLabel        => '${taxRate.toStringAsFixed(1)}%';
   String get discountLabel       => '${discount.toStringAsFixed(1)}%';
-  String get quantityLabel       => '${quantity.toStringAsFixed(0)}';
-  String get availableLabel      =>
-      '${availableQuantity.toStringAsFixed(0)} $unitOfMeasure';
+  String get quantityLabel       => _fmt(quantity);
+  String get availableLabel      => '${_fmt(availableQuantity)} $unitOfMeasure';
 
   factory BranchStockModel.fromMap(Map<String, dynamic> map) {
     return BranchStockModel(
-      id:               _str(map['inv_id'])          ?? '',
-      storeId:          _str(map['store_id'])         ?? '',
-      productId:        _str(map['product_id'])       ?? '',
-      sku:              _str(map['sku'])              ?? '',
+      id:               _str(map['inv_id'])           ?? '',
+      storeId:          _str(map['store_id'])          ?? '',
+      productId:        _str(map['product_id'])        ?? '',
+      sku:              _str(map['sku'])               ?? '',
       barcode:          _str(map['barcode']),
-      name:             _str(map['name'])             ?? '',
+      name:             _str(map['name'])              ?? '',
       description:      _str(map['description']),
-      unitOfMeasure:    _str(map['unit_of_measure'])  ?? 'pcs',
-      costPrice:        _dbl(map['cost_price'])       ?? 0.0,
-      sellingPrice:     _dbl(map['selling_price'])    ?? 0.0,
+      unitOfMeasure:    _str(map['unit_of_measure'])   ?? 'pcs',
+      costPrice:        _dbl(map['cost_price'])        ?? 0.0,
+      sellingPrice:     _dbl(map['selling_price'])     ?? 0.0,
       wholesalePrice:   _dbl(map['wholesale_price']),
-      taxRate:          _dbl(map['tax_rate'])         ?? 0.0,
-      discount:         _dbl(map['discount'])         ?? 0.0,  // ← new
-      minStockLevel:    _int(map['min_stock_level'])  ?? 0,
-      maxStockLevel:    _int(map['max_stock_level'])  ?? 0,
-      reorderPoint:     _int(map['reorder_point'])    ?? 0,
-      isActive:         map['is_active']     as bool? ?? true,
+      taxRate:          _dbl(map['tax_rate'])          ?? 0.0,
+      discount:         _dbl(map['discount'])          ?? 0.0,
+      minStockLevel:    _int(map['min_stock_level'])   ?? 0,
+      maxStockLevel:    _int(map['max_stock_level'])   ?? 0,
+      reorderPoint:     _int(map['reorder_point'])     ?? 0,
+      isActive:         map['is_active']      as bool? ?? true,
       isTrackStock:     map['is_track_stock'] as bool? ?? true,
       quantity:         _dbl(map['quantity'])          ?? 0.0,
       reservedQuantity: _dbl(map['reserved_quantity']) ?? 0.0,

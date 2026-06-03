@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../data/model/accountant_customer_model.dart';
 import '../provider/accountant_customer_provider.dart';
@@ -107,7 +108,7 @@ class _AccountantCustomerReportScreenState
 
             const SizedBox(height: 10),
 
-            // Filter chips — All / Credit / Petrol / ⚠️ Exceeded
+            // Filter chips
             SizedBox(
               height: 34,
               child: ListView(
@@ -119,7 +120,6 @@ class _AccountantCustomerReportScreenState
                   const SizedBox(width: 8),
                   _FilterChip(label: 'Petrol',   selected: state.filterType == 'petrol',    color: const Color(0xFF8B5CF6),    onTap: () => notifier.setFilter('petrol')),
                   const SizedBox(width: 8),
-                  // Exceeded chip — count badge ke saath
                   _ExceededChip(
                     selected: state.filterType == 'exceeded',
                     count:    state.summary.limitExceededCount,
@@ -136,13 +136,13 @@ class _AccountantCustomerReportScreenState
           color:   Colors.white,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
           child: Row(children: [
-            _SummaryTile(label: 'Total',       value: '${state.summary.totalCustomers}',         icon: Icons.people_outline_rounded,          color: AppColor.primary),
+            _SummaryTile(label: 'Total',       value: '${state.summary.totalCustomers}',     icon: Icons.people_outline_rounded,          color: AppColor.primary),
             _vDivider(),
-            _SummaryTile(label: 'Active',      value: '${state.summary.activeCustomers}',        icon: Icons.person_outline_rounded,          color: AppColor.success),
+            _SummaryTile(label: 'Active',      value: '${state.summary.activeCustomers}',    icon: Icons.person_outline_rounded,          color: AppColor.success),
             _vDivider(),
-            _SummaryTile(label: 'Outstanding', value: _fmt(state.summary.totalOutstanding),      icon: Icons.account_balance_wallet_outlined, color: AppColor.error,           small: true),
+            _SummaryTile(label: 'Outstanding', value: _fmt(state.summary.totalOutstanding),  icon: Icons.account_balance_wallet_outlined, color: AppColor.error,           small: true),
             _vDivider(),
-            _SummaryTile(label: 'Limit Cross', value: '${state.summary.limitExceededCount}',     icon: Icons.warning_amber_rounded,           color: const Color(0xFFEF4444), small: false),
+            _SummaryTile(label: 'Limit Cross', value: '${state.summary.limitExceededCount}', icon: Icons.warning_amber_rounded,           color: const Color(0xFFEF4444)),
           ]),
         ),
 
@@ -205,12 +205,46 @@ class _CustomerCard extends StatelessWidget {
     }
   }
 
+  // ── WhatsApp Reminder ─────────────────────────────────
+  Future<void> _sendWhatsAppReminder(BuildContext context) async {
+    final balance = fmtAmt(customer.balance);
+    final name    = customer.name;
+
+    final message =
+        'السلام علیکم $name صاحب،\n\n'
+        'امید ہے آپ بالکل ٹھیک ہوں گے۔\n\n'
+        '*جان غنی اسٹور* کی طرف سے گزارش ہے کہ '
+        'آپ کے اکاؤنٹ میں ابھی *Rs $balance* کا بقایا جات موجود ہے۔\n\n'
+        'مہربانی فرما کر جلد از جلد کچھ رقم جمع کروائیں تاکہ '
+        'آپ کا اکاؤنٹ درست رہے اور آپ کو مزید سہولت مل سکے۔\n\n'
+        'شکریہ 🙏\n'
+        '*جان غنی اسٹور*';
+
+    final phone     = customer.phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final intlPhone = phone.startsWith('0') ? '92${phone.substring(1)}' : phone;
+    final url       = Uri.parse('https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}');
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('WhatsApp nahi khul raha'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final exceeded     = customer.isCreditLimitExceeded;
     final hasBalance   = customer.balance > 0;
     final balanceColor = exceeded
-        ? const Color(0xFFEF4444)       // limit cross — red
+        ? const Color(0xFFEF4444)
         : hasBalance
         ? AppColor.error
         : AppColor.success;
@@ -220,7 +254,6 @@ class _CustomerCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        // Limit cross card ko subtle red border
         border: exceeded
             ? Border.all(color: const Color(0xFFEF4444).withOpacity(0.4), width: 1.5)
             : Border.all(color: Colors.transparent),
@@ -274,7 +307,6 @@ class _CustomerCard extends StatelessWidget {
                                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A1D23)),
                                   maxLines: 1, overflow: TextOverflow.ellipsis),
                             ),
-                            // Limit cross badge
                             if (exceeded) ...[
                               const SizedBox(width: 6),
                               Container(
@@ -293,7 +325,6 @@ class _CustomerCard extends StatelessWidget {
                           ]),
                         ),
                         const SizedBox(width: 8),
-                        // Balance badge
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -309,7 +340,6 @@ class _CustomerCard extends StatelessWidget {
 
                     const SizedBox(height: 5),
 
-                    // Phone + Code
                     Row(children: [
                       const Icon(Icons.phone_outlined, size: 12, color: AppColor.textHint),
                       const SizedBox(width: 4),
@@ -326,7 +356,6 @@ class _CustomerCard extends StatelessWidget {
             ]),
 
             // ── Credit Limit Section ──────────────────────
-            // Sirf tab dikhao jab creditLimit > 0 ho
             if (customer.creditLimit > 0) ...[
               const SizedBox(height: 10),
               Container(
@@ -340,7 +369,6 @@ class _CustomerCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Label + amounts
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -360,7 +388,6 @@ class _CustomerCard extends StatelessWidget {
                             ),
                           ),
                         ]),
-                        // Used / Limit
                         RichText(text: TextSpan(children: [
                           TextSpan(
                             text: fmtAmt(customer.balance),
@@ -378,7 +405,6 @@ class _CustomerCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    // Progress bar
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
@@ -400,11 +426,7 @@ class _CustomerCard extends StatelessWidget {
                       const SizedBox(height: 5),
                       Text(
                         '⚠️ Limit se ${fmtAmt(customer.balance - customer.creditLimit)} zyada hai',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFFEF4444),
-                        ),
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFFEF4444)),
                       ),
                     ] else ...[
                       const SizedBox(height: 4),
@@ -454,6 +476,41 @@ class _CustomerCard extends StatelessWidget {
                 ),
               ],
             ),
+
+            // ── WhatsApp Reminder Button ──────────────────
+            if (customer.phone.isNotEmpty && customer.balance > 0) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: GestureDetector(
+                  onTap: () => _sendWhatsAppReminder(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF25D366).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF25D366).withOpacity(0.4)),
+                    ),
+                    child:  Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat, size: 16, color: Color(0xFF25D366)),
+                        SizedBox(width: 6),
+                        Text(
+                          'ادائیگی یاد دہانی بھیجیں',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF25D366),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
           ],
         ),
       ),
@@ -508,7 +565,6 @@ class _FilterChip extends StatelessWidget {
   );
 }
 
-// Exceeded chip — red color + count badge
 class _ExceededChip extends StatelessWidget {
   final bool selected; final int count; final VoidCallback onTap;
   const _ExceededChip({required this.selected, required this.count, required this.onTap});
