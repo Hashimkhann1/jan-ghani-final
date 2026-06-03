@@ -99,7 +99,7 @@ final _cashierItems = <NavItem>[
     screen: const SaleReturnReportScreen(),
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Customer Sale or Sale Return Report',
+    icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
     shortcutKey: LogicalKeyboardKey.keyR,
   ),
@@ -184,7 +184,7 @@ final _managerItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyR,
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Customer Sale or Sale Return Report',
+    icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
     shortcutKey: LogicalKeyboardKey.keyR,
   ),
