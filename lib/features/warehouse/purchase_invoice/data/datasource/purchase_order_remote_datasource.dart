@@ -840,6 +840,32 @@ class PurchaseOrderRemoteDataSource {
       //     'salePrice':   item.salePrice,
       //   },
       // );
+
+      // ── Stock movement log — purchase_in ─────────────────
+      // warehouse_inventory + warehouse_products update ke BAAD
+      // Same transaction mein hai — agar fail ho toh sab rollback
+      await conn.execute(
+        Sql.named('''
+          INSERT INTO warehouse_stock_movements (
+            id,             warehouse_id,   product_id,
+            movement_type,  quantity,        unit_cost,
+            reference_type, reference_id,   notes
+          ) VALUES (
+            @id,            @warehouseId,   @productId,
+            'purchase_in',  @quantity,      @unitCost,
+            'purchase',     @referenceId,   @notes
+          )
+        '''),
+        parameters: {
+          'id':          const Uuid().v4(),
+          'warehouseId': warehouseId,
+          'productId':   item.productId,
+          'quantity':    item.quantityOrdered,
+          'unitCost':    double.parse(item.unitCost.toStringAsFixed(2)),
+          'referenceId': poId,
+          'notes':       'PO receive — ${item.productName}',
+        },
+      );
     }
   }
 

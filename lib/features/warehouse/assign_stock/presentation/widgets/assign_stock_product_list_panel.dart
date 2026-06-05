@@ -5,11 +5,26 @@ import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/pro
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 
-class AssignStockProductListPanel extends ConsumerWidget {
+class AssignStockProductListPanel extends ConsumerStatefulWidget {
   const AssignStockProductListPanel({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AssignStockProductListPanel> createState() =>
+      _AssignStockProductListPanelState();
+}
+
+class _AssignStockProductListPanelState
+    extends ConsumerState<AssignStockProductListPanel> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(assignStockProvider);
     final notifier = ref.read(assignStockProvider.notifier);
     final productState = ref.watch(productProvider);
@@ -41,6 +56,7 @@ class AssignStockProductListPanel extends ConsumerWidget {
               border: Border(bottom: BorderSide(color: AppColor.grey200)),
             ),
             child: TextField(
+              controller: _searchController,
               onChanged: notifier.updateSearch,
               style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
               cursorHeight: 14,
@@ -48,6 +64,15 @@ class AssignStockProductListPanel extends ConsumerWidget {
                 hintText: 'Name, SKU ya barcode se search...',
                 hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
                 prefixIcon: const Icon(Icons.search, size: 18, color: AppColor.grey500),
+                suffixIcon: state.searchQuery.isNotEmpty
+                    ? GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          notifier.updateSearch('');
+                        },
+                        child: const Icon(Icons.close, size: 16, color: AppColor.grey500),
+                      )
+                    : null,
                 filled: true,
                 fillColor: AppColor.grey100,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),

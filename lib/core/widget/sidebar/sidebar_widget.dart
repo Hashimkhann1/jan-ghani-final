@@ -12,6 +12,7 @@ import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/screens/warehouse_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/presentation/screens/warehouse_expense_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentation/screens/warehouse_finance_screen/warehouse_finance_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/presentation/screens/warehouse_reports_shell.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/screens/user_screen.dart';
 
@@ -76,6 +77,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       icon: Icons.money_off_outlined,
       label: 'Expense',
       screen: const WarehouseExpenseScreen(),
+    ),
+    NavItem(
+      icon: Icons.bar_chart_rounded,
+      label: 'Reports',
+      screen: const SizedBox.shrink(),
     ),
   ];
 
@@ -159,6 +165,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       label: 'User',
       screen: const AllUserScreen(),
     ),
+    NavItem(
+      icon: Icons.bar_chart_rounded,
+      label: 'Reports',
+      screen: const SizedBox.shrink(),
+    ),
   ];
 
   List<NavItem> _getItemsByRole(String? role) {
@@ -176,7 +187,23 @@ class _SideBarState extends ConsumerState<SideBar> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
     final items = _getItemsByRole(user?.role);
+    final currentItem = items[_index];
+    final isReports = currentItem.label == 'Reports';
 
+    // Reports screen: no main sidebar — full width shell
+    if (isReports) {
+      return Scaffold(
+        backgroundColor: _kBg,
+        body: WarehouseReportsShell(
+          onBack: () => setState(() {
+            _index = 0;
+            _settingsOpen = false;
+          }),
+        ),
+      );
+    }
+
+    // Normal layout: sidebar + content
     return Scaffold(
       backgroundColor: _kBg,
       body: Row(
@@ -236,9 +263,7 @@ class _SideBarState extends ConsumerState<SideBar> {
             ),
           ),
           Container(width: 1, color: _kGrey),
-          Expanded(
-            child: items[_index].screen,
-          ),
+          Expanded(child: currentItem.screen),
         ],
       ),
     );
