@@ -116,23 +116,25 @@ extension DoubleExtension on double {
   EdgeInsets get vPadding => EdgeInsets.symmetric(vertical: this);
   BorderRadius get roundedAll => BorderRadius.circular(this);
 
-  /// Pakistani comma format: 2013343.5 → "20,13,343.5"
-  /// Whole numbers: 2013343.0 → "20,13,343"
+  /// Whole numbers: 2013343.0 → "2,013,343"
   String get pkrFormat {
-    final isNeg  = this < 0;
-    final abs    = this.abs();
+    final isNeg   = this < 0;
+    final abs     = this.abs();
     final intPart = abs.toInt();
     final decPart = abs - intPart;
 
-    // Format integer part with Pakistani comma system
+    // Standard comma every 3 digits
     final s      = intPart.toString();
-    final fmtInt = _pkrIntFormat(s);
+    final fmtInt = s.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'),
+          (m) => '${m[1]},',
+    );
 
     // Decimal: show only if non-zero, max 2 places, trim trailing zeros
     String dec = '';
     if (decPart > 0.00001) {
-      dec = decPart.toStringAsFixed(2).substring(1); // ".XX"
-      dec = dec.replaceAll(RegExp(r'0+$'), '');       // ".50" → ".5"
+      dec = decPart.toStringAsFixed(2).substring(1);
+      dec = dec.replaceAll(RegExp(r'0+$'), '');
       if (dec == '.') dec = '';
     }
 

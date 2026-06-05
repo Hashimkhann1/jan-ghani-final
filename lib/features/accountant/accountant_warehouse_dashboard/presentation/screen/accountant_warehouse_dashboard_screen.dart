@@ -162,19 +162,19 @@ class _DashboardContent extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // ── Quantity in stock ─────────────────────────────────────────
-        _MetricCard(
-          icon: Icons.widgets_rounded,
-          iconBg: const Color(0xFFFFF4E5),
-          iconColor: Color(0xFFF59E0B),
-          title: 'Stock Quantity',
-          value: '${_qty(stats.totalInventoryQty)} units',
-          subLabel: 'Active Products',
-          subValue: _num(stats.totalProducts),
-          subValueColor: AppColor.textDark,
-        ),
+        // // ── Quantity in stock ─────────────────────────────────────────
+        // _MetricCard(
+        //   icon: Icons.widgets_rounded,
+        //   iconBg: const Color(0xFFFFF4E5),
+        //   iconColor: Color(0xFFF59E0B),
+        //   title: 'Stock Quantity',
+        //   value: '${_qty(stats.totalInventoryQty)} units',
+        //   subLabel: 'Active Products',
+        //   subValue: _num(stats.totalProducts),
+        //   subValueColor: AppColor.textDark,
+        // ),
 
-        const SizedBox(height: 12),
+        // const SizedBox(height: 12),
 
         // ── Orders (tap → all orders screen) ──────────────────────────
         _MetricCard(
