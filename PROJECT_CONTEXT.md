@@ -31,7 +31,7 @@ AppConfig.appMode       // 'warehouse' ya 'store'
 ---
 
 ## Database
-- **Local**: PostgreSQL (direct connection via `postgres` package, `DatabaseService.connection`)
+- **Local**: PostgreSQL (direct connection via `postgres` package, `DatabaseService.getConnection()` — async)
 - **Remote**: Supabase (sync service chalti hai background mein)
 - **Schema location**: `/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.7.sql`
 
@@ -106,10 +106,26 @@ lib/
     │   ├── warehouse_user/           ← User management
     │   └── warehouse_reports/        ← *** NAYA FEATURE (humne banaya) ***
     │       ├── presentation/screens/
-    │       │   └── warehouse_reports_shell.dart   ← Reports shell (drawer + routing)
-    │       └── inventory/presentation/
-    │           ├── providers/inventory_report_provider.dart
-    │           └── screens/inventory_report_screen.dart
+    │       │   └── warehouse_reports_shell.dart        ← Reports shell (drawer + routing)
+    │       ├── inventory/
+    │       │   └── presentation/
+    │       │       ├── providers/inventory_report_provider.dart
+    │       │       └── screens/inventory_report_screen.dart
+    │       ├── supplier/
+    │       │   ├── data/datasources/supplier_report_local_datasource.dart
+    │       │   └── presentation/
+    │       │       ├── providers/supplier_report_provider.dart
+    │       │       └── screens/supplier_report_screen.dart
+    │       ├── purchase/
+    │       │   ├── data/datasources/purchase_report_local_datasource.dart
+    │       │   └── presentation/
+    │       │       ├── providers/purchase_report_provider.dart
+    │       │       └── screens/purchase_report_screen.dart
+    │       └── cash_flow/
+    │           ├── data/datasources/cash_flow_report_local_datasource.dart
+    │           └── presentation/
+    │               ├── providers/cash_flow_report_provider.dart
+    │               └── screens/cash_flow_report_screen.dart
     │
     ├── accountant/                   ← TOUCH NAHI KARNA
     └── branch/                       ← TOUCH NAHI KARNA
@@ -169,11 +185,11 @@ Jab Reports select ho, main 90px sidebar HIDE ho jata hai, sirf shell full-scree
 - Default: **drawer closed**
 - **Back button** → Dashboard (`onBack` callback)
 - **Reports list** (5 items):
-  1. Inventory — ACTIVE (`InventoryReportScreen`)
-  2. Purchases — Coming Soon
-  3. Transfers — Coming Soon
-  4. Suppliers — Coming Soon
-  5. Cash Flow — Coming Soon
+  1. Inventory  — ACTIVE ✅ (`InventoryReportScreen`)
+  2. Purchases  — ACTIVE ✅ (`PurchaseReportScreen`)
+  3. Transfers  — Coming Soon (abhi tak nahi bana)
+  4. Suppliers  — ACTIVE ✅ (`SupplierReportScreen`)
+  5. Cash Flow  — ACTIVE ✅ (`CashFlowReportScreen`)
 
 **Animation fix:** `OverflowBox` + `SizedBox` inside `AnimatedContainer` with `Clip.hardEdge` — ye zaroori hai warna layout overflow errors aate hain during animation.
 ```dart
@@ -210,6 +226,92 @@ AnimatedContainer(
 
 ---
 
+## Supplier Report (`supplierReportProvider` + `SupplierReportScreen`)
+
+**Datasource:** `lib/features/warehouse/warehouse_reports/supplier/data/datasources/supplier_report_local_datasource.dart`
+- 6 queries: `getSummary()`, `getTopByBalance()`, `getTopByPurchase()`, `getMonthlyTrend()`, `getAllSuppliers()`, `getRecentLedger()`
+- Models: `SupplierSummaryData`, `SupplierBalanceItem`, `SupplierPurchaseItem`, `MonthlyPurchaseData`, `RecentLedgerEntry`
+
+**Provider:** `lib/features/warehouse/warehouse_reports/supplier/presentation/providers/supplier_report_provider.dart`
+- `SupplierReportState` with `copyWith(clearError: bool)` pattern
+- `Future.wait([...])` — 6 queries parallel
+
+**Screen:** `lib/features/warehouse/warehouse_reports/supplier/presentation/screens/supplier_report_screen.dart`
+- **4 Summary Cards** — Total active suppliers, Total outstanding, Cleared suppliers, Pending balance
+- **PieChart** — Top 6 suppliers by outstanding balance (touch interactive, legend with amounts)
+- **BarChart** — Top 6 suppliers by total purchase volume
+- **LineChart** — Monthly purchase trend (last 6 months)
+- **Suppliers Table** — All active suppliers (name, phone, code, orders, purchased, balance)
+- **Recent Ledger** — Last 20 entries from `supplier_ledger` (type badge, amount, balance after)
+
+---
+
+## Purchase Report (`purchaseReportProvider` + `PurchaseReportScreen`)
+
+**Datasource:** `lib/features/warehouse/warehouse_reports/purchase/data/datasources/purchase_report_local_datasource.dart`
+- 7 queries: `getSummary()`, `getStatusDistribution()`, `getTopSuppliersByValue()`, `getMonthlyTrend()`, `getSupplierCompletion()`, `getRecentPos()`, `getPendingPos()`
+- Models: `PurchaseSummaryData`, `PoStatusCount`, `SupplierPoValue`, `MonthlyPoData`, `SupplierCompletionData`, `RecentPoEntry`
+
+**Provider:** `lib/features/warehouse/warehouse_reports/purchase/presentation/providers/purchase_report_provider.dart`
+
+**Screen:** `lib/features/warehouse/warehouse_reports/purchase/presentation/screens/purchase_report_screen.dart`
+- **4 Summary Cards** — Total POs, Total value, Received, Pending
+- **PieChart** — PO status distribution (draft/ordered/partial/received/cancelled) with count + % legend
+- **BarChart** — Top 6 suppliers by PO value
+- **LineChart** — Monthly PO trend (last 6 months)
+- **Progress bars** — Supplier delivery completion rate (green ≥90%, yellow ≥50%, red <50%)
+- **Pending POs table** — All non-received POs with status badge
+- **Recent POs table** — Last 10 POs
+
+---
+
+## Cash Flow Report (`cashFlowReportProvider` + `CashFlowReportScreen`)
+
+**Datasource:** `lib/features/warehouse/warehouse_reports/cash_flow/data/datasources/cash_flow_report_local_datasource.dart`
+- 4 queries: `getSummary()`, `getMonthlyData()`, `getExpenseBreakdown()`, `getTypeBreakdown()`
+- Models: `CashFlowSummary`, `MonthlyCashFlowData`, `ExpenseCategoryData`, `TransactionTypeData`
+- `_fillMissingMonths()` helper — 6 months guarantee even if DB has no data
+- **SQL fix:** `getMonthlyData()` uses CTE + `DISTINCT ON` to avoid PostgreSQL error 42803
+
+**SQL pattern (CTE + DISTINCT ON) — important:**
+```sql
+WITH monthly_stats AS (
+  SELECT DATE_TRUNC('month', created_at)::date AS month,
+    COALESCE(SUM(ABS(amount)) FILTER (WHERE entry_type = 'cash_in'), 0) AS cash_in,
+    COALESCE(SUM(ABS(amount)) FILTER (WHERE entry_type != 'cash_in'), 0) AS cash_out
+  FROM warehouse_cash_transactions
+  WHERE warehouse_id = @wid
+    AND created_at >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'
+  GROUP BY DATE_TRUNC('month', created_at)
+),
+last_balance_per_month AS (
+  SELECT DISTINCT ON (DATE_TRUNC('month', created_at))
+    DATE_TRUNC('month', created_at)::date AS month,
+    cash_in_hand_after AS end_balance
+  FROM warehouse_cash_transactions
+  WHERE warehouse_id = @wid
+    AND created_at >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'
+  ORDER BY DATE_TRUNC('month', created_at), created_at DESC
+)
+SELECT ms.month, ms.cash_in, ms.cash_out, COALESCE(lb.end_balance, 0) AS end_balance
+FROM monthly_stats ms LEFT JOIN last_balance_per_month lb ON lb.month = ms.month
+ORDER BY ms.month
+```
+> ⚠️ Correlated subquery inside GROUP BY `→` error 42803. CTE + DISTINCT ON se fix hota hai.
+
+**Provider:** `lib/features/warehouse/warehouse_reports/cash_flow/presentation/providers/cash_flow_report_provider.dart`
+
+**Screen:** `lib/features/warehouse/warehouse_reports/cash_flow/presentation/screens/cash_flow_report_screen.dart`
+- **4 Summary Cards** — Cash in hand, Total in, Total out, Net flow
+- **Triple LineChart** — 3 simultaneous `LineChartBarData`: Cash In (green), Cash Out (red), Balance (primary/purple)
+- **Grouped BarChart** — 2 rods per group (In=green, Out=red), `barsSpace: 3`
+- **Net Flow BarChart** — `fromY`/`toY` for negative bars, positive=green, negative=red
+- **Donut PieChart** — `centerSpaceRadius: 52`, Stack overlay for center text (total amount)
+- **Progress bars** — Transaction type breakdown
+- ❌ No Recent Transactions section (removed per request)
+
+---
+
 ## Key Reusable Widgets (Dashboard)
 **File:** `lib/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart`
 
@@ -231,7 +333,10 @@ MovementRow(entry, isLast)
 |---|---|---|---|
 | `productProvider` | `warehouse_stock_inventory/presentation/provider/product_provider.dart` | `StateNotifierProvider<ProductNotifier, ProductState>` | All products + stock |
 | `authProvider` | `warehouse/auth/presentation/provider/auth_provider.dart` | StateNotifier | Current user + login/logout |
-| `inventoryReportProvider` | `warehouse_reports/inventory/.../inventory_report_provider.dart` | `Provider<InventoryReportData>` | Derived from productProvider |
+| `inventoryReportProvider` | `warehouse_reports/inventory/.../inventory_report_provider.dart` | `Provider<InventoryReportData>` | Derived from productProvider, koi DB call nahi |
+| `supplierReportProvider` | `warehouse_reports/supplier/.../supplier_report_provider.dart` | `StateNotifierProvider<SupplierReportNotifier, SupplierReportState>` | 6 DB queries parallel Future.wait |
+| `purchaseReportProvider` | `warehouse_reports/purchase/.../purchase_report_provider.dart` | `StateNotifierProvider<PurchaseReportNotifier, PurchaseReportState>` | 7 DB queries parallel Future.wait |
+| `cashFlowReportProvider` | `warehouse_reports/cash_flow/.../cash_flow_report_provider.dart` | `StateNotifierProvider<CashFlowReportNotifier, CashFlowReportState>` | 4 DB queries parallel Future.wait |
 | `transferReportProvider` | `assign_stock/presentation/providers/assign_stock_report_provider.dart` | `StateNotifierProvider<TransferReportNotifier, TransferReportState>` | Stock transfers data |
 | `assignStockProvider` | `assign_stock/presentation/providers/assign_stock_provider.dart` | StateNotifier | Cart state for assigning stock |
 | `warehouseDashboardProvider` | `warehouse_dashboard/presentation/provider/` | StateNotifier | Dashboard data |
@@ -296,17 +401,72 @@ class ProductModel {
 - **Supabase schema change nahi karna** — sirf read/reference ke liye dekh sakte ho
 - **New reports:** `warehouse_reports_shell.dart` mein `_reports` list mein add karo, `isComingSoon: false` karo aur `screen:` pass karo
 - **`withOpacity()` deprecated hai** — project mein sab jagah use ho raha hai, existing code mein mat change karo, naye code mein bhi same rakho for consistency
+- **`DashStatCard` already `Expanded` return karta hai** — kabhi bhi `Expanded(child: DashStatCard(...))` mat karo, seedha `DashStatCard(...)` use karo `Row` mein
+- **`SectionCard.headerIcon` expects `Widget`** — `IconData` nahi dena, wrap karo: `Container(width:26, height:26, decoration: BoxDecoration(color: colorLight, borderRadius: BorderRadius.circular(6)), alignment: Alignment.center, child: Icon(icon, size:14, color: color))`
 
 ---
 
-## Recently Done (Is Session Mein)
+## warehouse_stock_movements Fix (Purchase Invoice)
+
+**File:** `lib/features/warehouse/purchase_invoice/data/datasource/purchase_order_remote_datasource.dart`
+**Function:** `_handleReceivedInventory()` → `for` loop mein har item ke liye
+
+**Problem:** PO receive hone par `warehouse_inventory` aur `warehouse_products` update hote the lekin `warehouse_stock_movements` mein koi log entry nahi hoti thi.
+
+**Fix:** `UPDATE warehouse_products` ke baad `INSERT INTO warehouse_stock_movements` add kiya:
+```dart
+await conn.execute(
+  Sql.named('''
+    INSERT INTO warehouse_stock_movements (
+      id, warehouse_id, product_id,
+      movement_type, quantity, unit_cost,
+      reference_type, reference_id, notes
+    ) VALUES (
+      @id, @warehouseId, @productId,
+      'purchase_in', @quantity, @unitCost,
+      'purchase', @referenceId, @notes
+    )
+  '''),
+  parameters: {
+    'id':          const Uuid().v4(),
+    'warehouseId': warehouseId,
+    'productId':   item.productId,
+    'quantity':    item.quantityOrdered,
+    'unitCost':    double.parse(item.unitCost.toStringAsFixed(2)),
+    'referenceId': poId,
+    'notes':       'PO receive — \${item.productName}',
+  },
+);
+```
+**Safe kyun hai:**
+- Additive only — koi existing code nahi toota
+- Same `conn` transaction — fail ho toh sab rollback
+- Multiple items bhi sahi kaam karta hai (`for` loop mein hai)
+- Valid CHECK constraint values: `movement_type = 'purchase_in'`, `reference_type = 'purchase'`
+
+---
+
+## Session 1 — Kya Kiya
+
 1. `assign_stock` search field mein **clear (X) button** add kiya
 2. **`warehouse_reports` feature** banaya from scratch:
    - `WarehouseReportsShell` — collapsible drawer (44/192px), back to dashboard
-   - `InventoryReportScreen` — pie chart, health panel, transfers section, out-of-stock table
-   - `inventoryReportProvider` — derived from productProvider
+   - `InventoryReportScreen` + `inventoryReportProvider` — derived from productProvider
 3. **Sidebar** update — Reports par main sidebar hide, shell full-screen
 4. **Overflow fix** — `OverflowBox + SizedBox + Clip.hardEdge` pattern for animated drawer
+
+## Session 2 — Kya Kiya
+
+1. **Supplier Report** — complete (`SupplierReportScreen` + `supplierReportProvider` + `SupplierReportLocalDatasource`)
+   - PieChart, BarChart, LineChart, supplier table, recent ledger
+2. **Purchase Report** — complete (`PurchaseReportScreen` + `purchaseReportProvider` + `PurchaseReportLocalDatasource`)
+   - PieChart, BarChart, LineChart, progress bars, pending/recent tables
+3. **Cash Flow Report** — complete (`CashFlowReportScreen` + `cashFlowReportProvider` + `CashFlowReportLocalDatasource`)
+   - Triple LineChart, Grouped BarChart, Net Flow BarChart (negative bars), Donut PieChart
+   - SQL error 42803 fix: CTE + DISTINCT ON pattern
+   - Recent Transactions section removed per request
+4. **`warehouse_reports_shell.dart`** — Purchases, Suppliers, Cash Flow `isComingSoon: false`, screens connected
+5. **`warehouse_stock_movements` fix** — `_handleReceivedInventory()` mein INSERT log add kiya (production-safe)
 
 ---
 

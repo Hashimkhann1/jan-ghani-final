@@ -6,6 +6,7 @@
 // =============================================================
 
 import 'package:flutter/material.dart';
+import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 // ── Enums ─────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ class PoSupplier {
   final String company;
   final String phone;
   final int    paymentTerms;
+  final double outstanding;
 
   const PoSupplier({
     required this.id,
@@ -74,6 +76,7 @@ class PoSupplier {
     required this.company,
     required this.phone,
     required this.paymentTerms,
+    this.outstanding = 0,
   });
 
   String get initials => name
@@ -82,6 +85,16 @@ class PoSupplier {
       .map((w) => w[0])
       .join()
       .toUpperCase();
+
+  // ── Outstanding helpers ───────────────────────────────────
+  bool get hasDue  => outstanding > 0;
+
+  /// Dropdown subtitle ke liye: "Rs 12,500 Due" / "Rs 500 Advance" / "Clear"
+  String get outstandingLabel {
+    if (outstanding == 0) return 'Clear';
+    if (hasDue)           return 'Rs ${outstanding.pkrFormat} Due';
+    return 'Rs ${outstanding.abs().pkrFormat} Advance';
+  }
 }
 
 // ── Purchase Product ──────────────────────────────────────────

@@ -115,10 +115,6 @@ class PurchaseReportScreen extends ConsumerWidget {
 
                   // ── Pending POs ───────────────────────────
                   _PendingPoSection(entries: state.pendingPos),
-                  const SizedBox(height: 16),
-
-                  // ── Recent POs table ──────────────────────
-                  _RecentPoTable(entries: state.recentPos),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -811,128 +807,6 @@ class _PendingPoSection extends StatelessWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppColor.textPrimary),
-                        textAlign: TextAlign.right),
-                  ),
-                ],
-              ),
-            );
-          }),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// RECENT POs TABLE
-// ─────────────────────────────────────────────────────────────
-
-class _RecentPoTable extends StatelessWidget {
-  final List<RecentPoEntry> entries;
-  const _RecentPoTable({required this.entries});
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionCard(
-      headerIcon: Container(
-        width: 26, height: 26,
-        decoration: BoxDecoration(
-            color: AppColor.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(6)),
-        alignment: Alignment.center,
-        child: const Icon(Icons.list_alt_outlined, size: 14, color: AppColor.primary),
-      ),
-      title: 'Recent Purchase Orders',
-      headerTrailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-            color: AppColor.infoLight,
-            borderRadius: BorderRadius.circular(12)),
-        child: Text('Last ${entries.length}',
-            style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: AppColor.info)),
-      ),
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: const BoxDecoration(
-            color:  AppColor.grey100,
-            border: Border(bottom: BorderSide(color: AppColor.grey200)),
-          ),
-          child: const Row(
-            children: [
-              Expanded(flex: 2, child: Text('PO#', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 3, child: Text('Supplier', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 2, child: Text('Status', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 3, child: Text('Total', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary), textAlign: TextAlign.right)),
-              Expanded(flex: 3, child: Text('Paid', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary), textAlign: TextAlign.right)),
-              Expanded(flex: 2, child: Text('Date', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary), textAlign: TextAlign.right)),
-            ],
-          ),
-        ),
-
-        if (entries.isEmpty)
-          const _EmptyState(message: 'Koi PO nahi mila')
-        else
-          ...entries.asMap().entries.map((e) {
-            final po     = e.value;
-            final isLast = e.key == entries.length - 1;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                border: isLast
-                    ? null
-                    : const Border(
-                        bottom: BorderSide(color: AppColor.grey100)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(po.poNumber,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.textPrimary),
-                        overflow: TextOverflow.ellipsis),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(po.supplierName ?? '—',
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColor.textSecondary),
-                        overflow: TextOverflow.ellipsis),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: _PoStatusBadge(status: po.status),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text('Rs ${po.totalAmount.pkrFormat}',
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.textPrimary),
-                        textAlign: TextAlign.right),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text('Rs ${po.paidAmount.pkrFormat}',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: po.isFullyPaid
-                                ? AppColor.success
-                                : AppColor.warning),
-                        textAlign: TextAlign.right),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(po.orderDate.timeAgo,
-                        style: const TextStyle(
-                            fontSize: 10, color: AppColor.textHint),
                         textAlign: TextAlign.right),
                   ),
                 ],

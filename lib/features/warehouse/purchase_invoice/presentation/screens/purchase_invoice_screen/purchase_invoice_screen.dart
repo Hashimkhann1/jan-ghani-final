@@ -59,6 +59,7 @@ class _PurchaseInvoiceScreenState
       company:      s.companyName  ?? '',
       phone:        s.phone,
       paymentTerms: s.paymentTerms ?? 30,
+      outstanding:  s.outstandingBalance,
     ))
         .toList();
 

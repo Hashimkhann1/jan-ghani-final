@@ -6,7 +6,6 @@ import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_report_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart';
-import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
 
 // ─────────────────────────────────────────────────────────────
 // MAIN SCREEN
@@ -47,10 +46,6 @@ class InventoryReportScreen extends ConsumerWidget {
 
                   // ── Stock Transfers Report ───────────────
                   const _StockTransferSection(),
-                  const SizedBox(height: 16),
-
-                  // ── Out of Stock only ────────────────────
-                  _OutOfStockSection(products: invData.activeProducts),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -1007,173 +1002,6 @@ class _TransferRow extends StatelessWidget {
                 ),
               ),
             )),
-        ],
-      ),
-    );
-  }
-}
-
-// ═════════════════════════════════════════════════════════════
-// OUT OF STOCK SECTION
-// ═════════════════════════════════════════════════════════════
-
-class _OutOfStockSection extends StatelessWidget {
-  final List<ProductModel> products;
-  const _OutOfStockSection({required this.products});
-
-  @override
-  Widget build(BuildContext context) {
-    final outOfStock = products
-        .where((p) => p.isTrackStock && p.quantity == 0)
-        .toList();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColor.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.grey200),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColor.grey200)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 26, height: 26,
-                    decoration: BoxDecoration(color: AppColor.errorLight, borderRadius: BorderRadius.circular(6)),
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.remove_shopping_cart_outlined, size: 14, color: AppColor.error),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text('Out of Stock Products',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: outOfStock.isEmpty ? AppColor.successLight : AppColor.errorLight,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      outOfStock.isEmpty ? 'All stocked' : '${outOfStock.length} products',
-                      style: TextStyle(
-                          fontSize: 10, fontWeight: FontWeight.w600,
-                          color: outOfStock.isEmpty ? AppColor.success : AppColor.error),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            if (outOfStock.isEmpty)
-              // All good state
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 28),
-                child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.check_circle_outline_rounded, size: 36, color: AppColor.success),
-                  SizedBox(height: 8),
-                  Text('Sab products stocked hain!',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.success)),
-                  SizedBox(height: 2),
-                  Text('Koi bhi product out of stock nahi hai',
-                      style: TextStyle(fontSize: 11, color: AppColor.textSecondary)),
-                ])),
-              )
-            else ...[
-              // Table header
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                color: AppColor.grey100,
-                child: const Row(
-                  children: [
-                    Expanded(flex: 3, child: _TblHeader('Product')),
-                    Expanded(flex: 1, child: _TblHeader('SKU')),
-                    Expanded(flex: 2, child: _TblHeader('Category')),
-                    Expanded(flex: 1, child: _TblHeader('Reorder Pt', align: TextAlign.center)),
-                    Expanded(flex: 2, child: _TblHeader('Selling Price', align: TextAlign.right)),
-                    Expanded(flex: 1, child: _TblHeader('UOM', align: TextAlign.center)),
-                  ],
-                ),
-              ),
-              ...outOfStock.asMap().entries.map((e) => _OutOfStockRow(
-                product: e.value,
-                isLast: e.key == outOfStock.length - 1,
-              )),
-              // Footer
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                decoration: BoxDecoration(
-                  color: AppColor.errorLight.withOpacity(0.3),
-                  border: const Border(top: BorderSide(color: AppColor.grey100)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber_rounded, size: 12, color: AppColor.error),
-                    const SizedBox(width: 5),
-                    Text('${outOfStock.length} products immediately restock karni hain',
-                        style: const TextStyle(fontSize: 11, color: AppColor.error, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OutOfStockRow extends StatelessWidget {
-  final ProductModel product;
-  final bool isLast;
-  const _OutOfStockRow({required this.product, this.isLast = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100)),
-      ),
-      child: Row(
-        children: [
-          // Product name + dot
-          Expanded(flex: 3, child: Row(children: [
-            Container(width: 6, height: 6,
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColor.error)),
-            const SizedBox(width: 8),
-            Expanded(child: Text(product.name,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
-                overflow: TextOverflow.ellipsis)),
-          ])),
-          // SKU
-          Expanded(flex: 1, child: Text(product.sku,
-              style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
-              overflow: TextOverflow.ellipsis)),
-          // Category
-          Expanded(flex: 2, child: Text(product.categoryName ?? '-',
-              style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
-              overflow: TextOverflow.ellipsis)),
-          // Reorder point
-          Expanded(flex: 1, child: Text('${product.reorderPoint}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.warning))),
-          // Selling price
-          Expanded(flex: 2, child: Text('Rs ${product.sellingPrice.pkrFormat}',
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.textPrimary))),
-          // UOM
-          Expanded(flex: 1, child: Text(product.unitOfMeasure,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: AppColor.textSecondary))),
         ],
       ),
     );
