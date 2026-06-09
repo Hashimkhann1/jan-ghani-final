@@ -6,7 +6,8 @@ import '../../data/model/branch_cash_counter_model.dart';
 import '../provider/branch_cash_counter_provider.dart';
 
 class BranchCashCounterReportScreen extends ConsumerStatefulWidget {
-  const BranchCashCounterReportScreen({required this.branchId, super.key});
+  const BranchCashCounterReportScreen(
+      {required this.branchId, super.key});
   final String branchId;
 
   @override
@@ -26,8 +27,10 @@ class _BranchCashCounterReportScreenState
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _fromCtrl.text = _dateFmt.format(DateTime(now.year, now.month, 1));
-    _toCtrl.text   = _dateFmt.format(DateTime(now.year, now.month, now.day));
+    _fromCtrl.text =
+        _dateFmt.format(DateTime(now.year, now.month, 1));
+    _toCtrl.text =
+        _dateFmt.format(DateTime(now.year, now.month, now.day));
   }
 
   @override
@@ -49,13 +52,15 @@ class _BranchCashCounterReportScreenState
       lastDate:    DateTime.now(),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColor.primary),
+          colorScheme:
+          const ColorScheme.light(primary: AppColor.primary),
         ),
         child: child!,
       ),
     );
     if (picked != null) {
-      final n = ref.read(branchCashCounterProvider(widget.branchId).notifier);
+      final n =
+      ref.read(branchCashCounterProvider(widget.branchId).notifier);
       if (isFrom) {
         _fromCtrl.text = _dateFmt.format(picked);
         n.setFromDate(picked);
@@ -69,7 +74,8 @@ class _BranchCashCounterReportScreenState
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(branchCashCounterProvider(widget.branchId));
-    final notifier = ref.read(branchCashCounterProvider(widget.branchId).notifier);
+    final notifier =
+    ref.read(branchCashCounterProvider(widget.branchId).notifier);
 
     ref.listen<BranchCashCounterState>(
         branchCashCounterProvider(widget.branchId), (prev, next) {
@@ -87,7 +93,6 @@ class _BranchCashCounterReportScreenState
           ),
         ));
       }
-      // Controllers update when loading completes
       if (prev?.isLoading == true && !next.isLoading) {
         _fromCtrl.text = _dateFmt.format(next.fromDate);
         _toCtrl.text   = _dateFmt.format(next.toDate);
@@ -100,11 +105,14 @@ class _BranchCashCounterReportScreenState
         backgroundColor:  Colors.white,
         elevation:        0,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Cash Counter Report',
-            style: TextStyle(
-                fontSize:   17,
-                fontWeight: FontWeight.w700,
-                color:      Color(0xFF1A1D23))),
+        title: const Text(
+          'Cash Counter Report',
+          style: TextStyle(
+            fontSize:   17,
+            fontWeight: FontWeight.w700,
+            color:      Color(0xFF1A1D23),
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: notifier.load,
@@ -115,8 +123,10 @@ class _BranchCashCounterReportScreenState
             onPressed: () {
               notifier.setThisMonth();
               final n = DateTime.now();
-              _fromCtrl.text = _dateFmt.format(DateTime(n.year, n.month, 1));
-              _toCtrl.text   = _dateFmt.format(DateTime(n.year, n.month, n.day));
+              _fromCtrl.text =
+                  _dateFmt.format(DateTime(n.year, n.month, 1));
+              _toCtrl.text =
+                  _dateFmt.format(DateTime(n.year, n.month, n.day));
             },
             child: const Text('Month'),
           ),
@@ -134,55 +144,59 @@ class _BranchCashCounterReportScreenState
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: const Color(0xFFE5E7EB)),
+          child:
+          Container(height: 1, color: const Color(0xFFE5E7EB)),
         ),
       ),
-      body: Column(children: [
+      body: Column(
+        children: [
 
-        // ── Date Filters ──────────────────────────────────
-        Container(
-          color:   Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Row(children: [
-            Expanded(
-              child: _DateField(
-                label:      'Start Date',
-                controller: _fromCtrl,
-                onTap:      () => _pickDate(context, true),
+          // ── Date Filters ─────────────────────────────────────────────
+          Container(
+            color:   Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(children: [
+              Expanded(
+                child: _DateField(
+                  label:      'Start Date',
+                  controller: _fromCtrl,
+                  onTap:      () => _pickDate(context, true),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _DateField(
-                label:      'End Date',
-                controller: _toCtrl,
-                onTap:      () => _pickDate(context, false),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DateField(
+                  label:      'End Date',
+                  controller: _toCtrl,
+                  onTap:      () => _pickDate(context, false),
+                ),
               ),
-            ),
-          ]),
-        ),
-
-        // ── Body ──────────────────────────────────────────
-        Expanded(
-          child: state.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : state.summary == null || state.summary!.days.isEmpty
-              ? const _EmptyState()
-              : _CounterBody(
-            summary: state.summary!,
-            dayFmt:  _dayFmt,
-            fmtAmt:  _fmt,
+            ]),
           ),
-        ),
-      ]),
+          Container(height: 1, color: const Color(0xFFE5E7EB)),
+
+          // ── Body ─────────────────────────────────────────────────────
+          Expanded(
+            child: state.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : state.summary == null ||
+                state.summary!.days.isEmpty
+                ? const _EmptyState()
+                : _CounterBody(
+              summary: state.summary!,
+              dayFmt:  _dayFmt,
+              fmtAmt:  _fmt,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Body
-// ═══════════════════════════════════════════════════════════
-
+// ══════════════════════════════════════════════════════════════════════════════
+// Body
+// ══════════════════════════════════════════════════════════════════════════════
 class _CounterBody extends StatelessWidget {
   final BranchCashCounterSummary summary;
   final DateFormat               dayFmt;
@@ -197,132 +211,54 @@ class _CounterBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
       children: [
 
-        // ── Period Summary Card ───────────────────────────
-        Container(
-          decoration: BoxDecoration(
-            color:        Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                  color:      Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset:     const Offset(0, 2)),
-            ],
-          ),
-          child: Column(children: [
-
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColor.primary.withOpacity(0.06),
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(14)),
-              ),
-              child: Row(children: [
-                const Icon(Icons.point_of_sale_outlined,
-                    size: 18, color: AppColor.primary),
-                const SizedBox(width: 8),
-                const Text('Period Summary',
-                    style: TextStyle(
-                        fontSize:   14,
-                        fontWeight: FontWeight.w700,
-                        color:      AppColor.primary)),
-              ]),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(children: [
-
-                _SummaryRow(
-                  icon:  Icons.payments_outlined,
-                  label: 'Cash Sale',
-                  value: fmtAmt(summary.totalCashSale),
-                  color: AppColor.success,
-                ),
-                const SizedBox(height: 10),
-                _SummaryRow(
-                  icon:  Icons.credit_card_outlined,
-                  label: 'Card Sale',
-                  value: fmtAmt(summary.totalCardSale),
-                  color: AppColor.info,
-                ),
-                const SizedBox(height: 10),
-                _SummaryRow(
-                  icon:  Icons.receipt_long_outlined,
-                  label: 'Credit Sale',
-                  value: fmtAmt(summary.totalCreditSale),
-                  color: AppColor.warning,
-                ),
-                const SizedBox(height: 10),
-                _SummaryRow(
-                  icon:  Icons.calendar_month_outlined,
-                  label: 'Installment',
-                  value: fmtAmt(summary.totalInstallment),
-                  color: AppColor.primary,
-                ),
-
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1, color: Color(0xFFE5E7EB)),
-                ),
-
-                _SummaryRow(
-                  icon:  Icons.south_rounded,
-                  label: 'Cash In',
-                  value: fmtAmt(summary.totalCashIn),
-                  color: AppColor.success,
-                ),
-                const SizedBox(height: 10),
-                _SummaryRow(
-                  icon:  Icons.north_rounded,
-                  label: 'Cash Out',
-                  value: fmtAmt(summary.totalCashOut),
-                  color: AppColor.error,
-                  prefix: '- ',
-                ),
-
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1, color: Color(0xFFE5E7EB)),
-                ),
-
-                // Total Sale
-                _SummaryRow(
-                  icon:  Icons.shopping_cart_outlined,
-                  label: 'Total Sale',
-                  value: fmtAmt(summary.totalSale),
-                  color: AppColor.primary,
-                ),
-                const SizedBox(height: 10),
-
-                // Total Amount (cash received)
-                _SummaryRow(
-                  icon:  Icons.account_balance_wallet_outlined,
-                  label: 'Total Amount',
-                  value: fmtAmt(summary.totalAmount),
-                  color: const Color(0xFF8B5CF6),
-                ),
-              ]),
-            ),
-          ]),
-        ),
+        // ── Period Summary Card ───────────────────────────────────────
+        _PeriodSummaryCard(summary: summary, fmtAmt: fmtAmt),
 
         const SizedBox(height: 16),
 
-        // ── Daily Breakdown ───────────────────────────────
-        const Text('Daily Breakdown',
+        // ── Section title ─────────────────────────────────────────────
+        Row(children: [
+          Container(
+            width:  3,
+            height: 16,
+            decoration: BoxDecoration(
+              color:        AppColor.primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Daily Breakdown',
             style: TextStyle(
-                fontSize:   14,
-                fontWeight: FontWeight.w700,
-                color:      Color(0xFF1A1D23))),
+              fontSize:   14,
+              fontWeight: FontWeight.w700,
+              color:      Color(0xFF1A1D23),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color:        AppColor.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${summary.days.length} days',
+              style: const TextStyle(
+                fontSize:   11,
+                fontWeight: FontWeight.w600,
+                color:      AppColor.primary,
+              ),
+            ),
+          ),
+        ]),
         const SizedBox(height: 10),
 
+        // ── Day Cards ─────────────────────────────────────────────────
         ...summary.days.map((d) => Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: _DayCard(day: d, dayFmt: dayFmt, fmtAmt: fmtAmt),
@@ -332,10 +268,245 @@ class _CounterBody extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Day Card — collapsed + expanded with ALL fields
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
+// Period Summary Card
+// ══════════════════════════════════════════════════════════════════════════════
+class _PeriodSummaryCard extends StatelessWidget {
+  final BranchCashCounterSummary summary;
+  final String Function(double)  fmtAmt;
 
+  const _PeriodSummaryCard({
+    required this.summary,
+    required this.fmtAmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color:        Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border:       Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color:      Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset:     const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+
+          // ── Header ───────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColor.primary.withOpacity(0.06),
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(14)),
+            ),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color:        AppColor.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.point_of_sale_outlined,
+                    size: 16, color: AppColor.primary),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Period Summary',
+                style: TextStyle(
+                  fontSize:   14,
+                  fontWeight: FontWeight.w700,
+                  color:      AppColor.primary,
+                ),
+              ),
+            ]),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+
+                // ── Sales 2x2 grid ────────────────────────────────────
+                Row(children: [
+                  Expanded(
+                    child: _SummaryGridCard(
+                      icon:  Icons.payments_outlined,
+                      label: 'Cash Sale',
+                      value: fmtAmt(summary.totalCashSale),
+                      color: AppColor.success,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _SummaryGridCard(
+                      icon:  Icons.credit_card_outlined,
+                      label: 'Card Sale',
+                      value: fmtAmt(summary.totalCardSale),
+                      color: AppColor.info,
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(
+                    child: _SummaryGridCard(
+                      icon:  Icons.receipt_long_outlined,
+                      label: 'Credit Sale',
+                      value: fmtAmt(summary.totalCreditSale),
+                      color: AppColor.warning,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _SummaryGridCard(
+                      icon:  Icons.calendar_month_outlined,
+                      label: 'Installment',
+                      value: fmtAmt(summary.totalInstallment),
+                      color: AppColor.primary,
+                    ),
+                  ),
+                ]),
+
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                const SizedBox(height: 12),
+
+                // ── Cash In / Out row ─────────────────────────────────
+                Row(children: [
+                  Expanded(
+                    child: _SummaryGridCard(
+                      icon:  Icons.south_rounded,
+                      label: 'Cash In',
+                      value: fmtAmt(summary.totalCashIn),
+                      color: AppColor.success,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _SummaryGridCard(
+                      icon:  Icons.north_rounded,
+                      label: 'Cash Out',
+                      value: fmtAmt(summary.totalCashOut),
+                      color: AppColor.error,
+                      prefix: '- ',
+                    ),
+                  ),
+                ]),
+
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                const SizedBox(height: 12),
+
+                // ── Totals row ────────────────────────────────────────
+                Row(children: [
+                  Expanded(
+                    child: _SummaryGridCard(
+                      icon:  Icons.shopping_cart_outlined,
+                      label: 'Total Sale',
+                      value: fmtAmt(summary.totalSale),
+                      color: AppColor.primary,
+                      large: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _SummaryGridCard(
+                      icon:  Icons.account_balance_wallet_outlined,
+                      label: 'Total Amount',
+                      value: fmtAmt(summary.totalAmount),
+                      color: const Color(0xFF8B5CF6),
+                      large: true,
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Summary Grid Card ──────────────────────────────────────────────────────
+class _SummaryGridCard extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final String   value;
+  final Color    color;
+  final String   prefix;
+  final bool     large;
+
+  const _SummaryGridCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    this.prefix = '',
+    this.large  = false,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(
+        horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(
+      color:        color.withOpacity(0.06),
+      borderRadius: BorderRadius.circular(10),
+      border:       Border.all(color: color.withOpacity(0.15)),
+    ),
+    child: Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color:        color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Icon(icon, size: 14, color: color),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$prefix$value',
+                style: TextStyle(
+                  fontSize:   large ? 13 : 12,
+                  fontWeight: FontWeight.w800,
+                  color:      color,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color:    AppColor.textHint,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Day Card
+// ══════════════════════════════════════════════════════════════════════════════
 class _DayCard extends StatefulWidget {
   final BranchCashCounterDay    day;
   final DateFormat              dayFmt;
@@ -358,221 +529,258 @@ class _DayCardState extends State<_DayCard> {
   Widget build(BuildContext context) {
     final d = widget.day;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
         color:        Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _expanded
+              ? AppColor.primary.withOpacity(0.25)
+              : const Color(0xFFEEEEEE),
+        ),
+        boxShadow: _expanded
+            ? [
           BoxShadow(
-              color:      Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset:     const Offset(0, 2)),
+            color:      AppColor.primary.withOpacity(0.06),
+            blurRadius: 12,
+            offset:     const Offset(0, 4),
+          )
+        ]
+            : [
+          BoxShadow(
+            color:      Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset:     const Offset(0, 2),
+          )
         ],
       ),
-      child: Column(children: [
+      child: Column(
+        children: [
 
-        // ── Collapsed Header ──────────────────────────────
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 12),
-            child: Row(children: [
+          // ── Collapsed Header ──────────────────────────────────────────
+          InkWell(
+            onTap:        () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
 
-              // Date badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color:        AppColor.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(widget.dayFmt.format(d.date),
-                    style: const TextStyle(
+                  // Date badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColor.primary.withOpacity(0.12),
+                          AppColor.primary.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end:   Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      widget.dayFmt.format(d.date),
+                      style: const TextStyle(
                         fontSize:   11,
                         fontWeight: FontWeight.w700,
-                        color:      AppColor.primary)),
-              ),
-              const SizedBox(width: 10),
+                        color:      AppColor.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
 
-              // Quick chips
-              Expanded(
-                child: Wrap(spacing: 4, runSpacing: 4, children: [
-                  if (d.cashSale > 0)
-                    _MiniChip(
-                        label: 'Cash: ${widget.fmtAmt(d.cashSale)}',
-                        color: AppColor.success),
-                  if (d.cardSale > 0)
-                    _MiniChip(
-                        label: 'Card: ${widget.fmtAmt(d.cardSale)}',
-                        color: AppColor.info),
-                  if (d.creditSale > 0)
-                    _MiniChip(
-                        label: 'Credit: ${widget.fmtAmt(d.creditSale)}',
-                        color: AppColor.warning),
-                  if (d.installment > 0)
-                    _MiniChip(
-                        label: 'Install: ${widget.fmtAmt(d.installment)}',
-                        color: AppColor.primary),
-                ]),
-              ),
-              const SizedBox(width: 8),
+                  // Mini chips
+                  Expanded(
+                    child: Wrap(
+                      spacing:    4,
+                      runSpacing: 4,
+                      children: [
+                        if (d.cashSale > 0)
+                          _MiniChip(
+                              label:
+                              'Cash: ${widget.fmtAmt(d.cashSale)}',
+                              color: AppColor.success),
+                        if (d.cardSale > 0)
+                          _MiniChip(
+                              label:
+                              'Card: ${widget.fmtAmt(d.cardSale)}',
+                              color: AppColor.info),
+                        if (d.creditSale > 0)
+                          _MiniChip(
+                              label:
+                              'Credit: ${widget.fmtAmt(d.creditSale)}',
+                              color: AppColor.warning),
+                        if (d.installment > 0)
+                          _MiniChip(
+                              label:
+                              'Install: ${widget.fmtAmt(d.installment)}',
+                              color: AppColor.primary),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
 
-              // Total Sale
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(widget.fmtAmt(d.totalSale),
-                    style: const TextStyle(
-                        fontSize:   13,
-                        fontWeight: FontWeight.w800,
-                        color:      AppColor.primary)),
-                const Text('Total Sale',
-                    style: TextStyle(
-                        fontSize: 9, color: AppColor.textHint)),
-              ]),
-              const SizedBox(width: 4),
-              AnimatedRotation(
-                turns:    _expanded ? 0.5 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: const Icon(Icons.keyboard_arrow_down,
-                    size: 18, color: AppColor.grey400),
+                  // Total + expand arrow
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        widget.fmtAmt(d.totalSale),
+                        style: const TextStyle(
+                          fontSize:   13,
+                          fontWeight: FontWeight.w800,
+                          color:      AppColor.primary,
+                        ),
+                      ),
+                      const Text(
+                        'Total Sale',
+                        style: TextStyle(
+                            fontSize: 9,
+                            color:    AppColor.textHint),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 4),
+                  AnimatedRotation(
+                    turns:    _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(Icons.keyboard_arrow_down,
+                        size: 18, color: AppColor.grey400),
+                  ),
+                ],
               ),
-            ]),
+            ),
           ),
-        ),
 
-        // ── Expanded Detail — ALL 8 fields ───────────────
-        if (_expanded) ...[
-          Container(height: 1, color: const Color(0xFFE5E7EB)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(children: [
+          // ── Expanded Detail ───────────────────────────────────────────
+          if (_expanded) ...[
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 14),
+              height: 1,
+              color:  const Color(0xFFE5E7EB),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                children: [
 
-              // Sales section
-              _DetailRow(
-                  icon:  Icons.payments_outlined,
-                  label: 'Cash Sale',
-                  value: widget.fmtAmt(d.cashSale),
-                  color: AppColor.success),
-              const SizedBox(height: 8),
-              _DetailRow(
-                  icon:  Icons.credit_card_outlined,
-                  label: 'Card Sale',
-                  value: widget.fmtAmt(d.cardSale),
-                  color: AppColor.info),
-              const SizedBox(height: 8),
-              _DetailRow(
-                  icon:  Icons.receipt_long_outlined,
-                  label: 'Credit Sale',
-                  value: widget.fmtAmt(d.creditSale),
-                  color: AppColor.warning),
-              const SizedBox(height: 8),
-              _DetailRow(
-                  icon:  Icons.calendar_month_outlined,
-                  label: 'Installment',
-                  value: widget.fmtAmt(d.installment),
-                  color: AppColor.primary),
+                  // Sales grid
+                  Row(children: [
+                    Expanded(
+                      child: _DetailGridCard(
+                        icon:  Icons.payments_outlined,
+                        label: 'Cash Sale',
+                        value: widget.fmtAmt(d.cashSale),
+                        color: AppColor.success,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _DetailGridCard(
+                        icon:  Icons.credit_card_outlined,
+                        label: 'Card Sale',
+                        value: widget.fmtAmt(d.cardSale),
+                        color: AppColor.info,
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Expanded(
+                      child: _DetailGridCard(
+                        icon:  Icons.receipt_long_outlined,
+                        label: 'Credit Sale',
+                        value: widget.fmtAmt(d.creditSale),
+                        color: AppColor.warning,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _DetailGridCard(
+                        icon:  Icons.calendar_month_outlined,
+                        label: 'Installment',
+                        value: widget.fmtAmt(d.installment),
+                        color: AppColor.primary,
+                      ),
+                    ),
+                  ]),
 
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  const SizedBox(height: 10),
+                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  const SizedBox(height: 10),
+
+                  // Cash movements
+                  Row(children: [
+                    Expanded(
+                      child: _DetailGridCard(
+                        icon:  Icons.south_rounded,
+                        label: 'Cash In',
+                        value: widget.fmtAmt(d.cashIn),
+                        color: AppColor.success,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _DetailGridCard(
+                        icon:  Icons.north_rounded,
+                        label: 'Cash Out',
+                        value: widget.fmtAmt(d.cashOut),
+                        color: AppColor.error,
+                      ),
+                    ),
+                  ]),
+
+                  const SizedBox(height: 10),
+                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  const SizedBox(height: 10),
+
+                  // Totals
+                  Row(children: [
+                    Expanded(
+                      child: _DetailGridCard(
+                        icon:  Icons.shopping_cart_outlined,
+                        label: 'Total Sale',
+                        value: widget.fmtAmt(d.totalSale),
+                        color: AppColor.primary,
+                        bold:  true,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _DetailGridCard(
+                        icon:  Icons.account_balance_wallet_outlined,
+                        label: 'Total Amount',
+                        value: widget.fmtAmt(d.totalAmount),
+                        color: const Color(0xFF8B5CF6),
+                        bold:  true,
+                      ),
+                    ),
+                  ]),
+                ],
               ),
-
-              // Cash movements
-              _DetailRow(
-                  icon:  Icons.south_rounded,
-                  label: 'Cash In',
-                  value: widget.fmtAmt(d.cashIn),
-                  color: AppColor.success),
-              const SizedBox(height: 8),
-              _DetailRow(
-                  icon:  Icons.north_rounded,
-                  label: 'Cash Out',
-                  value: widget.fmtAmt(d.cashOut),
-                  color: AppColor.error),
-
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Divider(height: 1, color: Color(0xFFE5E7EB)),
-              ),
-
-              // Totals
-              _DetailRow(
-                  icon:  Icons.shopping_cart_outlined,
-                  label: 'Total Sale',
-                  value: widget.fmtAmt(d.totalSale),
-                  color: AppColor.primary,
-                  bold:  true),
-              const SizedBox(height: 8),
-              _DetailRow(
-                  icon:  Icons.account_balance_wallet_outlined,
-                  label: 'Total Amount',
-                  value: widget.fmtAmt(d.totalAmount),
-                  color: const Color(0xFF8B5CF6),
-                  bold:  true),
-            ]),
-          ),
+            ),
+          ],
         ],
-      ]),
+      ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Shared Widgets
-// ═══════════════════════════════════════════════════════════
-
-class _SummaryRow extends StatelessWidget {
-  final IconData icon;
-  final String   label;
-  final String   value;
-  final Color    color;
-  final String   prefix;
-
-  const _SummaryRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-    this.prefix = '',
-  });
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Row(children: [
-        Container(
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(
-            color:        color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(icon, size: 13, color: color),
-        ),
-        const SizedBox(width: 8),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                color:    Color(0xFF4B5563))),
-      ]),
-      Text('$prefix$value',
-          style: TextStyle(
-              fontSize:   13,
-              fontWeight: FontWeight.w700,
-              color:      color)),
-    ],
-  );
-}
-
-class _DetailRow extends StatelessWidget {
+// ── Detail Grid Card (inside expanded day) ────────────────────────────────
+class _DetailGridCard extends StatelessWidget {
   final IconData icon;
   final String   label;
   final String   value;
   final Color    color;
   final bool     bold;
 
-  const _DetailRow({
+  const _DetailGridCard({
     required this.icon,
     required this.label,
     required this.value,
@@ -581,34 +789,61 @@ class _DetailRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Row(children: [
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(
+        horizontal: 10, vertical: 9),
+    decoration: BoxDecoration(
+      color:        color.withOpacity(bold ? 0.08 : 0.05),
+      borderRadius: BorderRadius.circular(9),
+      border:       Border.all(
+          color: color.withOpacity(bold ? 0.2 : 0.12)),
+    ),
+    child: Row(
+      children: [
         Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
-            color:        color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(5),
+            color:        color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(icon, size: 12, color: color),
         ),
         const SizedBox(width: 8),
-        Text(label,
-            style: TextStyle(
-                fontSize:   12,
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-                color:      const Color(0xFF4B5563))),
-      ]),
-      Text(value,
-          style: TextStyle(
-              fontSize:   12,
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-              color:      color)),
-    ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize:   bold ? 12 : 11,
+                  fontWeight: bold
+                      ? FontWeight.w800
+                      : FontWeight.w700,
+                  color: color,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 1),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 9,
+                  color:    AppColor.textHint,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// Shared Widgets
+// ══════════════════════════════════════════════════════════════════════════════
 class _MiniChip extends StatelessWidget {
   final String label;
   final Color  color;
@@ -616,16 +851,21 @@ class _MiniChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    padding: const EdgeInsets.symmetric(
+        horizontal: 7, vertical: 3),
     decoration: BoxDecoration(
       color:        color.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(5),
+      border:       Border.all(color: color.withOpacity(0.2)),
     ),
-    child: Text(label,
-        style: TextStyle(
-            fontSize:   9,
-            fontWeight: FontWeight.w600,
-            color:      color)),
+    child: Text(
+      label,
+      style: TextStyle(
+        fontSize:   9,
+        fontWeight: FontWeight.w600,
+        color:      color,
+      ),
+    ),
   );
 }
 
@@ -644,11 +884,14 @@ class _DateField extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(label,
-          style: const TextStyle(
-              fontSize:   11,
-              fontWeight: FontWeight.w600,
-              color:      AppColor.textSecondary)),
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize:   11,
+          fontWeight: FontWeight.w600,
+          color:      AppColor.textSecondary,
+        ),
+      ),
       const SizedBox(height: 4),
       TextField(
         controller:   controller,
@@ -686,19 +929,27 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.point_of_sale_outlined,
-          size: 64, color: Colors.grey.shade300),
-      const SizedBox(height: 16),
-      Text('Koi data nahi mila',
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.point_of_sale_outlined,
+            size: 64, color: Colors.grey.shade300),
+        const SizedBox(height: 16),
+        Text(
+          'Koi data nahi mila',
           style: TextStyle(
-              fontSize:   16,
-              fontWeight: FontWeight.w600,
-              color:      Colors.grey.shade500)),
-      const SizedBox(height: 6),
-      Text('Date range change karein',
+            fontSize:   16,
+            fontWeight: FontWeight.w600,
+            color:      Colors.grey.shade500,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Date range change karein',
           style: TextStyle(
-              fontSize: 13, color: Colors.grey.shade400)),
-    ]),
+              fontSize: 13, color: Colors.grey.shade400),
+        ),
+      ],
+    ),
   );
 }

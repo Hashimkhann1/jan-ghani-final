@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 
 class AmountBadge extends StatelessWidget {

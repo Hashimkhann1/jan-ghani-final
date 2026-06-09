@@ -271,8 +271,3 @@ class _AllCustomerLedgerScreenState
     );
   }
 }
-
-
-// ── Counter Chip ──────────────────────────────────────────────
-
-// ── Amount Badge ──────────────────────────────────────────────

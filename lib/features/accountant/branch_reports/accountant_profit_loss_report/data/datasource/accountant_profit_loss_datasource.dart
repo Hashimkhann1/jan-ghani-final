@@ -4,6 +4,39 @@ import '../model/accountant_profit_loss_model.dart';
 class PnlReportDatasource {
   final _client = Supabase.instance.client;
 
+  // ── Paginated fetcher — sab rows lata hai ──────────────
+  Future<List<Map<String, dynamic>>> _fetchAllPages({
+    required String table,
+    required String select,
+    required String storeId,
+    required String dateColumn,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    const pageSize = 1000;
+    int offset = 0;
+    final List<Map<String, dynamic>> all = [];
+
+    while (true) {
+      final batch = await _client
+          .from(table)
+          .select(select)
+          .eq('store_id', storeId)
+          .eq('status', 'completed')
+          .gte(dateColumn, from.toIso8601String())
+          .lte(dateColumn, to.toIso8601String())
+          .range(offset, offset + pageSize - 1);
+
+      final rows = (batch as List).cast<Map<String, dynamic>>();
+      all.addAll(rows);
+
+      if (rows.length < pageSize) break; // last page
+      offset += pageSize;
+    }
+
+    return all;
+  }
+
   Future<PnlSummary> getReport({
     required DateTime fromDate,
     required DateTime toDate,
@@ -12,46 +45,46 @@ class PnlReportDatasource {
     final toEnd = DateTime(
         toDate.year, toDate.month, toDate.day, 23, 59, 59);
 
-    // ── Step 1: Parallel fetch invoices + returns ─────────
+    // ── Step 1: Parallel fetch — ab sari rows aayengi ─────
     final results = await Future.wait([
-
-      _client
-          .from('sale_invoices')
-          .select('''
-            id, invoice_no, invoice_date, deleted_at,
-            customer (name),
-            sale_invoice_items (
-              product_name, sku,
-              sale_price, purchase_price,
-              quantity, discount
-            )
-          ''')
-          .eq('store_id', storeId)
-          .eq('status', 'completed')
-          .gte('invoice_date', fromDate.toIso8601String())
-          .lte('invoice_date', toEnd.toIso8601String()),
-
-      _client
-          .from('sale_returns')
-          .select('''
-            id, return_no, return_date, deleted_at,
-            customer (name),
-            sale_return_items (
-              product_name, sku,
-              sale_price, purchase_price,
-              quantity, discount
-            )
-          ''')
-          .eq('store_id', storeId)
-          .eq('status', 'completed')
-          .gte('return_date', fromDate.toIso8601String())
-          .lte('return_date', toEnd.toIso8601String()),
+      _fetchAllPages(
+        table:      'sale_invoices',
+        select:     '''
+          id, invoice_no, invoice_date, deleted_at,
+          customer (name),
+          sale_invoice_items (
+            product_name, sku,
+            sale_price, purchase_price,
+            quantity, discount
+          )
+        ''',
+        storeId:    storeId,
+        dateColumn: 'invoice_date',
+        from:       fromDate,
+        to:         toEnd,
+      ),
+      _fetchAllPages(
+        table:      'sale_returns',
+        select:     '''
+          id, return_no, return_date, deleted_at,
+          customer (name),
+          sale_return_items (
+            product_name, sku,
+            sale_price, purchase_price,
+            quantity, discount
+          )
+        ''',
+        storeId:    storeId,
+        dateColumn: 'return_date',
+        from:       fromDate,
+        to:         toEnd,
+      ),
     ]);
 
-    final salesRaw = (results[0] as List)
+    final salesRaw = results[0]
         .where((r) => r['deleted_at'] == null)
         .toList();
-    final returnsRaw = (results[1] as List)
+    final returnsRaw = results[1]
         .where((r) => r['deleted_at'] == null)
         .toList();
 
@@ -129,7 +162,7 @@ class PnlReportDatasource {
     );
   }
 
-  // ── Single parser — dono tables ka same columns hain ────
+  // ── Single parser ─────────────────────────────────────
   List<PnlItem> _parseItems(dynamic raw) =>
       (raw as List? ?? []).map((i) => PnlItem(
         productName:   i['product_name']?.toString()  ?? '',

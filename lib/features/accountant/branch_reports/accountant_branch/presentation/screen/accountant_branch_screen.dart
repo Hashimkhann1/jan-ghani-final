@@ -21,12 +21,15 @@ class _BranchScreenState extends ConsumerState<BranchScreen> {
     super.dispose();
   }
 
+  bool _isDesktop(BuildContext context) =>
+      MediaQuery.of(context).size.width >= 800;
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(branchProvider);
     final notifier = ref.read(branchProvider.notifier);
+    final desktop  = _isDesktop(context);
 
-    // ── Error Snackbar ────────────────────────────────────
     ref.listen<BranchState>(branchProvider, (_, next) {
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -46,125 +49,444 @@ class _BranchScreenState extends ConsumerState<BranchScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: CustomScrollView(
-        slivers: [
-
-          // ── SliverAppBar ──────────────────────────────────
-          SliverAppBar(
-            floating:         true,
-            backgroundColor:  Colors.white,
-            surfaceTintColor: Colors.transparent,
-            elevation:        0,
-            title: const Text(
-              'Branches',
-              style: TextStyle(
-                fontSize:   20,
-                fontWeight: FontWeight.w800,
-                color:      Color(0xFF1A1D23),
-              ),
-            ),
-            actions: [
-              IconButton(
-                onPressed: notifier.load,
-                icon: const Icon(Icons.refresh_rounded,
-                    color: AppColor.textSecondary),
-                tooltip: 'Refresh',
-              ),
-              const SizedBox(width: 4),
-            ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(72),
-              child: Container(
-                color:   Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: TextField(
-                  controller: _searchCtrl,
-                  onChanged:  notifier.search,
-                  style: const TextStyle(fontSize: 14),
-                  cursorHeight: 16,
-                  decoration: InputDecoration(
-                    hintText: 'Branch dhoondein...',
-                    hintStyle: const TextStyle(
-                        fontSize: 13, color: AppColor.textHint),
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        size: 20, color: AppColor.primary),
-                    suffixIcon: state.searchQuery.isNotEmpty
-                        ? IconButton(
-                      icon: const Icon(Icons.clear_rounded,
-                          size: 18, color: AppColor.textHint),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        notifier.search('');
-                      },
-                    )
-                        : null,
-                    filled:    true,
-                    fillColor: AppColor.grey100,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:   BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                      const BorderSide(color: AppColor.grey200),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(
-                          color: AppColor.primary, width: 1.5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // ── Subtitle ──────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(
-                'Kisi branch ko tap karke uska data dekhein',
-                style: TextStyle(
-                    fontSize: 13, color: Colors.grey.shade500),
-              ),
-            ),
-          ),
-
-          // ── Loading ───────────────────────────────────────
-          if (state.isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
-
-          // ── Empty ─────────────────────────────────────────
-          else if (state.filtered.isEmpty)
-            const SliverFillRemaining(child: _EmptyState())
-
-          // ── List ──────────────────────────────────────────
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              sliver: SliverList.separated(
-                itemCount:        state.filtered.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, i) =>
-                    _BranchCard(branch: state.filtered[i]),
-              ),
-            ),
-        ],
+      body: desktop
+          ? _DesktopLayout(
+        state:    state,
+        notifier: notifier,
+        searchCtrl: _searchCtrl,
+      )
+          : _MobileLayout(
+        state:    state,
+        notifier: notifier,
+        searchCtrl: _searchCtrl,
       ),
     );
   }
 }
 
+// ── Desktop Layout ────────────────────────────────────────────────────────────
+class _DesktopLayout extends StatelessWidget {
+  final BranchState state;
+  final dynamic notifier;
+  final TextEditingController searchCtrl;
 
-class _BranchCard extends StatelessWidget {
+  const _DesktopLayout({
+    required this.state,
+    required this.notifier,
+    required this.searchCtrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Top bar ──────────────────────────────────────────
+        Container(
+          color:   Colors.white,
+          padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'Branches',
+                    style: TextStyle(
+                      fontSize:   22,
+                      fontWeight: FontWeight.w700,
+                      color:      Color(0xFF1A1D23),
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Kisi branch ko tap karke uska data dekhein',
+                    style: TextStyle(fontSize: 13, color: AppColor.textHint),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              SizedBox(
+                width: 280,
+                child: _SearchField(
+                  controller: searchCtrl,
+                  query:      state.searchQuery,
+                  onChanged:  notifier.search,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // ✅ SizedBox mein wrap karo — fixed width do
+              SizedBox(
+                width: 120,
+                child: OutlinedButton.icon(
+                  onPressed: notifier.load,
+                  icon:  const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Refresh'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColor.primary,
+                    side: const BorderSide(color: AppColor.primary),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+        // ── Stats row ────────────────────────────────────────
+        Container(
+          color:   Colors.white,
+          padding: const EdgeInsets.fromLTRB(28, 14, 28, 14),
+          child: Row(
+            children: [
+              _StatPill(
+                icon:  Icons.store_rounded,
+                label: 'Total Branches',
+                value: '${state.filtered.length}',
+              ),
+              const SizedBox(width: 16),
+              if (state.searchQuery.isNotEmpty)
+                _StatPill(
+                  icon:  Icons.search_rounded,
+                  label: 'Search results',
+                  value: '${state.filtered.length}',
+                  color: AppColor.primary,
+                ),
+            ],
+          ),
+        ),
+
+        const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+        // ── Content ──────────────────────────────────────────
+        Expanded(
+          child: state.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : state.filtered.isEmpty
+              ? const _EmptyState()
+              : _DesktopGrid(branches: state.filtered),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Desktop Grid ──────────────────────────────────────────────────────────────
+class _DesktopGrid extends StatelessWidget {
+  final List<BranchModel> branches;
+  const _DesktopGrid({required this.branches});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 340,
+          mainAxisExtent:     130,
+          crossAxisSpacing:   16,
+          mainAxisSpacing:    16,
+        ),
+        itemCount: branches.length,
+        itemBuilder: (_, i) => _BranchGridCard(branch: branches[i]),
+      ),
+    );
+  }
+}
+
+// ── Branch Grid Card (Desktop) ────────────────────────────────────────────────
+class _BranchGridCard extends StatelessWidget {
   final BranchModel branch;
-  const _BranchCard({required this.branch});
+  const _BranchGridCard({required this.branch});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BranchReportListScreen(branchId: branch.id),
+        ),
+      ),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color:        Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border:       Border.all(color: const Color(0xFFEEEEEE)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width:  48,
+              height: 48,
+              decoration: BoxDecoration(
+                color:        AppColor.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.store_mall_directory_rounded,
+                  color: AppColor.primary, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment:  MainAxisAlignment.center,
+                children: [
+                  Text(
+                    branch.name,
+                    style: const TextStyle(
+                      fontSize:   15,
+                      fontWeight: FontWeight.w700,
+                      color:      Color(0xFF1A1D23),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColor.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          branch.code,
+                          style: const TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w600,
+                            color:      AppColor.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          branch.address,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColor.textHint),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.arrow_forward_rounded,
+                          size: 13, color: AppColor.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Report dekhein',
+                        style: TextStyle(
+                          fontSize:   12,
+                          color:      AppColor.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Stat Pill ─────────────────────────────────────────────────────────────────
+class _StatPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.color = AppColor.textHint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(
+          '$label: ',
+          style: TextStyle(fontSize: 13, color: AppColor.textHint),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize:   13,
+            fontWeight: FontWeight.w600,
+            color:      color == AppColor.textHint
+                ? const Color(0xFF1A1D23)
+                : color,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Mobile Layout ─────────────────────────────────────────────────────────────
+class _MobileLayout extends StatelessWidget {
+  final BranchState state;
+  final dynamic notifier;
+  final TextEditingController searchCtrl;
+
+  const _MobileLayout({
+    required this.state,
+    required this.notifier,
+    required this.searchCtrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          floating:         true,
+          backgroundColor:  Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation:        0,
+          title: const Text(
+            'Branches',
+            style: TextStyle(
+              fontSize:   20,
+              fontWeight: FontWeight.w800,
+              color:      Color(0xFF1A1D23),
+            ),
+          ),
+          actions: [
+            IconButton(
+              onPressed: notifier.load,
+              icon: const Icon(Icons.refresh_rounded,
+                  color: AppColor.textSecondary),
+              tooltip: 'Refresh',
+            ),
+            const SizedBox(width: 4),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(72),
+            child: Container(
+              color:   Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: _SearchField(
+                controller: searchCtrl,
+                query:      state.searchQuery,
+                onChanged:  notifier.search,
+              ),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(
+              'Kisi branch ko tap karke uska data dekhein',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            ),
+          ),
+        ),
+        if (state.isLoading)
+          const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (state.filtered.isEmpty)
+          const SliverFillRemaining(child: _EmptyState())
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            sliver: SliverList.separated(
+              itemCount:        state.filtered.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (_, i) =>
+                  _BranchListCard(branch: state.filtered[i]),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ── Search Field (shared) ─────────────────────────────────────────────────────
+class _SearchField extends StatelessWidget {
+  final TextEditingController controller;
+  final String query;
+  final ValueChanged<String> onChanged;
+
+  const _SearchField({
+    required this.controller,
+    required this.query,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller:  controller,
+      onChanged:   onChanged,
+      style: const TextStyle(fontSize: 14),
+      cursorHeight: 16,
+      decoration: InputDecoration(
+        hintText: 'Branch dhoondein...',
+        hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
+        prefixIcon: const Icon(Icons.search_rounded,
+            size: 20, color: AppColor.primary),
+        suffixIcon: query.isNotEmpty
+            ? IconButton(
+          icon: const Icon(Icons.clear_rounded,
+              size: 18, color: AppColor.textHint),
+          onPressed: () {
+            controller.clear();
+            onChanged('');
+          },
+        )
+            : null,
+        filled:    true,
+        fillColor: AppColor.grey100,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:   BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:   const BorderSide(color: AppColor.grey200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Branch List Card (Mobile) ─────────────────────────────────────────────────
+class _BranchListCard extends StatelessWidget {
+  final BranchModel branch;
+  const _BranchListCard({required this.branch});
 
   @override
   Widget build(BuildContext context) {
@@ -205,13 +527,13 @@ class _BranchCard extends StatelessWidget {
           padding: const EdgeInsets.only(top: 3),
           child: Text(
             '${branch.code}  •  ${branch.address}',
-            style: const TextStyle(
-                fontSize: 12, color: AppColor.textHint),
+            style: const TextStyle(fontSize: 12, color: AppColor.textHint),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        trailing: const Icon(Icons.chevron_right_rounded, color: AppColor.textHint),
+        trailing: const Icon(Icons.chevron_right_rounded,
+            color: AppColor.textHint),
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
@@ -223,10 +545,7 @@ class _BranchCard extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Empty State
-// ═══════════════════════════════════════════════════════════
-
+// ── Empty State ───────────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -249,8 +568,7 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           'Search change karein',
-          style: TextStyle(
-              fontSize: 13, color: Colors.grey.shade400),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
         ),
       ],
     ),
