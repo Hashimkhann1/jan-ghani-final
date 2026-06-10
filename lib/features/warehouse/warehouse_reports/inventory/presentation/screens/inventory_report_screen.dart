@@ -6,6 +6,7 @@ import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_report_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
 
 // ─────────────────────────────────────────────────────────────
 // MAIN SCREEN
@@ -392,11 +393,14 @@ class _StockHealthPanel extends StatelessWidget {
       ),
       children: [
         _HealthRow(label: 'Good stock', count: good, total: total, color: AppColor.success, icon: Icons.check_circle_outline_rounded),
-        _HealthRow(label: 'Low stock', count: data.lowStockCount, total: total, color: AppColor.warning, icon: Icons.warning_amber_rounded),
-        _HealthRow(label: 'Out of stock', count: data.outOfStockCount, total: total, color: AppColor.error, icon: Icons.remove_shopping_cart_outlined),
-        _HealthRow(label: 'Needs reorder', count: data.needsReorderCount, total: total, color: AppColor.info, icon: Icons.shopping_cart_outlined, isLast: true),
+        _HealthRow(label: 'Low stock', count: data.lowStockCount, total: total, color: AppColor.warning, icon: Icons.warning_amber_rounded,
+            onTap: () => _showStockHealthSheet(context, data.activeProducts, StockFilter.lowStock)),
+        _HealthRow(label: 'Out of stock', count: data.outOfStockCount, total: total, color: AppColor.error, icon: Icons.remove_shopping_cart_outlined,
+            onTap: () => _showStockHealthSheet(context, data.activeProducts, StockFilter.outOfStock)),
+        _HealthRow(label: 'Needs reorder', count: data.needsReorderCount, total: total, color: AppColor.info, icon: Icons.shopping_cart_outlined, isLast: true,
+            onTap: () => _showStockHealthSheet(context, data.activeProducts, StockFilter.needsReorder)),
       ],
-      footerLeft: 'Based on min stock levels',
+      footerLeft: 'Tap a row to see products',
     );
   }
 }
@@ -408,41 +412,49 @@ class _HealthRow extends StatelessWidget {
   final Color color;
   final IconData icon;
   final bool isLast;
+  final VoidCallback? onTap;
 
   const _HealthRow({
     required this.label, required this.count, required this.total,
-    required this.color, required this.icon, this.isLast = false,
+    required this.color, required this.icon, this.isLast = false, this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final pct = total > 0 ? (count / total).clamp(0.0, 1.0) : 0.0;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100))),
-      child: Column(children: [
-        Row(children: [
-          Container(width: 26, height: 26,
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-              alignment: Alignment.center,
-              child: Icon(icon, size: 13, color: color)),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColor.textPrimary))),
-          Text('$count', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-          const SizedBox(width: 4),
-          Text(total > 0 ? '(${(pct * 100).toStringAsFixed(0)}%)' : '',
-              style: const TextStyle(fontSize: 10, color: AppColor.textSecondary)),
-        ]),
-        const SizedBox(height: 7),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: LinearProgressIndicator(
-            value: pct, minHeight: 5,
-            backgroundColor: color.withOpacity(0.1),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100))),
+        child: Column(children: [
+          Row(children: [
+            Container(width: 26, height: 26,
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 13, color: color)),
+            const SizedBox(width: 10),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColor.textPrimary))),
+            Text('$count', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+            const SizedBox(width: 4),
+            Text(total > 0 ? '(${(pct * 100).toStringAsFixed(0)}%)' : '',
+                style: const TextStyle(fontSize: 10, color: AppColor.textSecondary)),
+            if (onTap != null) ...[
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded, size: 17, color: AppColor.grey400),
+            ],
+          ]),
+          const SizedBox(height: 7),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: pct, minHeight: 5,
+              backgroundColor: color.withOpacity(0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
           ),
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 }
@@ -472,10 +484,8 @@ class _StockTransferSection extends ConsumerWidget {
 
     final transfers = state.transfers;
     final totalCost = transfers.fold<double>(0.0, (s, t) => s + t.totalCost);
-    final totalSale = transfers.fold<double>(0.0, (s, t) => s + t.totalSalePrice);
     final totalItems = transfers.fold<int>(0, (s, t) => s + t.totalItems);
     final pendingCount = transfers.where((t) => t.status == 'pending').length;
-    final acceptedCount = transfers.where((t) => t.status == 'accepted').length;
 
     // Store-wise breakdown
     final storeMap = <String, _StoreData>{};
@@ -503,9 +513,6 @@ class _StockTransferSection extends ConsumerWidget {
       );
     });
     final maxCount = monthlyData.map((m) => m.count).fold(0, (a, b) => a > b ? a : b);
-
-    // Recent transfers (last 8)
-    final recent = transfers.take(8).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,142 +567,67 @@ class _StockTransferSection extends ConsumerWidget {
 
         // ── Charts Row ────────────────────────────────────────
         Container(
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppColor.grey200))),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Store-wise bars
-              Expanded(
-                flex: 3,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    border: Border(right: BorderSide(color: AppColor.grey200)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(children: [
-                        Icon(Icons.storefront_outlined, size: 14, color: AppColor.info),
-                        SizedBox(width: 6),
-                        Text('Store-wise transfer value',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-                      ]),
-                      const SizedBox(height: 14),
-                      if (stores.isEmpty)
-                        const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Text('Koi transfer nahi', style: TextStyle(fontSize: 12, color: AppColor.textSecondary))))
-                      else
-                        ...stores.take(6).map((s) => _StoreBar(store: s, maxCost: stores.first.totalCost)),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Monthly trend
-              Expanded(
-                flex: 2,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(children: [
-                        Icon(Icons.bar_chart_rounded, size: 14, color: AppColor.primary),
-                        SizedBox(width: 6),
-                        Text('Monthly trend (transfers)',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-                      ]),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        height: 160,
-                        child: _MonthlyBarChart(data: monthlyData, maxCount: maxCount),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // ── Status row ────────────────────────────────────────
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColor.grey100.withOpacity(0.4),
-            border: Border(bottom: BorderSide(color: AppColor.grey200)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline_rounded, size: 13, color: AppColor.grey500),
-              const SizedBox(width: 6),
-              _StatusPill('Pending', pendingCount, AppColor.warning),
-              const SizedBox(width: 8),
-              _StatusPill('Accepted', acceptedCount, AppColor.success),
-              const SizedBox(width: 8),
-              _StatusPill('Other', transfers.length - pendingCount - acceptedCount, AppColor.grey500),
-              const Spacer(),
-              Text('Sale value: Rs ${totalSale.pkrFormat}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-            ],
-          ),
-        ),
-
-        // ── Recent transfers table ─────────────────────────────
-        Container(
           decoration: BoxDecoration(
             color: AppColor.surface,
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
             border: Border.all(color: AppColor.grey200),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
           ),
           child: ClipRRect(
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
-            child: Column(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Table header
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                  color: AppColor.grey100,
-                  child: const Row(
-                    children: [
-                      Expanded(flex: 2, child: _TblHeader('Transfer #')),
-                      Expanded(flex: 2, child: _TblHeader('Store')),
-                      Expanded(flex: 1, child: _TblHeader('Date')),
-                      Expanded(flex: 1, child: _TblHeader('Items', align: TextAlign.center)),
-                      Expanded(flex: 2, child: _TblHeader('Cost (Rs)', align: TextAlign.right)),
-                      Expanded(flex: 1, child: _TblHeader('Status', align: TextAlign.center)),
-                    ],
+                // Store-wise bars
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      border: Border(right: BorderSide(color: AppColor.grey200)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(children: [
+                          Icon(Icons.storefront_outlined, size: 14, color: AppColor.info),
+                          SizedBox(width: 6),
+                          Text('Store-wise transfer value',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                        ]),
+                        const SizedBox(height: 14),
+                        if (stores.isEmpty)
+                          const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Text('Koi transfer nahi', style: TextStyle(fontSize: 12, color: AppColor.textSecondary))))
+                        else
+                          ...stores.take(6).map((s) => _StoreBar(store: s, maxCost: stores.first.totalCost)),
+                      ],
+                    ),
                   ),
                 ),
 
-                if (recent.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: Text('Koi transfer record nahi',
-                        style: TextStyle(fontSize: 12, color: AppColor.textSecondary))),
-                  )
-                else
-                  ...recent.asMap().entries.map((e) => _TransferRow(
-                    item: e.value,
-                    isLast: e.key == recent.length - 1,
-                  )),
-
-                // Footer
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: AppColor.grey100.withOpacity(0.5),
-                    border: const Border(top: BorderSide(color: AppColor.grey100)),
-                  ),
-                  child: Row(
-                    children: [
-                      Text('Showing ${recent.length} of ${transfers.length} transfers',
-                          style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
-                      const Spacer(),
-                      Text('Total: Rs ${totalCost.pkrFormat}',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-                    ],
+                // Monthly trend
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(children: [
+                          Icon(Icons.bar_chart_rounded, size: 14, color: AppColor.primary),
+                          SizedBox(width: 6),
+                          Text('Monthly trend (transfers)',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                        ]),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 160,
+                          child: _MonthlyBarChart(data: monthlyData, maxCount: maxCount),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -905,103 +837,336 @@ class _MonthlyBarChart extends StatelessWidget {
   }
 }
 
-// Status pill
-class _StatusPill extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-  const _StatusPill(this.label, this.count, this.color);
+// ═════════════════════════════════════════════════════════════
+// STOCK HEALTH DETAIL — BOTTOM SHEET
+// ═════════════════════════════════════════════════════════════
+
+enum StockFilter { all, outOfStock, lowStock, needsReorder }
+
+extension _StockFilterX on StockFilter {
+  String get label {
+    switch (this) {
+      case StockFilter.all:          return 'All';
+      case StockFilter.outOfStock:   return 'Out of Stock';
+      case StockFilter.lowStock:     return 'Low Stock';
+      case StockFilter.needsReorder: return 'Needs Reorder';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case StockFilter.all:          return AppColor.primary;
+      case StockFilter.outOfStock:   return AppColor.error;
+      case StockFilter.lowStock:     return AppColor.warning;
+      case StockFilter.needsReorder: return AppColor.info;
+    }
+  }
+
+  bool matches(ProductModel p) {
+    switch (this) {
+      case StockFilter.all:          return true;
+      case StockFilter.outOfStock:   return p.isTrackStock && p.quantity == 0;
+      case StockFilter.lowStock:     return p.isLowStock;
+      case StockFilter.needsReorder: return p.needsReorder;
+    }
+  }
+}
+
+void _showStockHealthSheet(
+    BuildContext context, List<ProductModel> products, StockFilter initial) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _StockHealthSheet(products: products, initial: initial),
+  );
+}
+
+class _StockHealthSheet extends StatefulWidget {
+  final List<ProductModel> products;
+  final StockFilter initial;
+  const _StockHealthSheet({required this.products, required this.initial});
+
+  @override
+  State<_StockHealthSheet> createState() => _StockHealthSheetState();
+}
+
+class _StockHealthSheetState extends State<_StockHealthSheet> {
+  late StockFilter _filter = widget.initial;
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  static const _filters = [
+    StockFilter.all,
+    StockFilter.outOfStock,
+    StockFilter.lowStock,
+    StockFilter.needsReorder,
+  ];
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  int _count(StockFilter f) => widget.products.where(f.matches).length;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 5, height: 5, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
-        const SizedBox(width: 4),
-        Text('$label: $count', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
-      ]),
+    final q = _query.trim().toLowerCase();
+    final filtered = widget.products.where((p) {
+      if (!_filter.matches(p)) return false;
+      if (q.isEmpty) return true;
+      return p.name.toLowerCase().contains(q) || p.sku.toLowerCase().contains(q);
+    }).toList()
+      ..sort((a, b) => a.quantity.compareTo(b.quantity)); // kam qty pehle
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColor.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // ── Drag handle ─────────────────────────────────
+              Container(
+                margin: const EdgeInsets.only(top: 10, bottom: 4),
+                width: 42, height: 4,
+                decoration: BoxDecoration(
+                  color: AppColor.grey300,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+
+              // ── Header ──────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32, height: 32,
+                      decoration: BoxDecoration(
+                        color: AppColor.success.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.inventory_2_outlined, size: 17, color: AppColor.success),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text('Stock Details',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded, size: 20, color: AppColor.grey600),
+                      splashRadius: 18,
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Search ──────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _query = v),
+                  style: const TextStyle(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Search product name ya SKU...',
+                    hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColor.grey500),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 16, color: AppColor.grey500),
+                            splashRadius: 14,
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              setState(() => _query = '');
+                            },
+                          ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    filled: true,
+                    fillColor: AppColor.surface,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColor.grey200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColor.primary),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── Filter chips ────────────────────────────────
+              SizedBox(
+                height: 34,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _filters.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final f = _filters[i];
+                    final selected = f == _filter;
+                    return GestureDetector(
+                      onTap: () => setState(() => _filter = f),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: selected ? f.color : AppColor.grey100,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: selected ? f.color : AppColor.grey200),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(f.label,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: selected ? AppColor.white : AppColor.grey600)),
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: selected ? AppColor.white.withOpacity(0.25) : AppColor.grey200,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text('${_count(f)}',
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: selected ? AppColor.white : AppColor.grey600)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1, color: AppColor.grey200),
+
+              // ── Product list ────────────────────────────────
+              Expanded(
+                child: filtered.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.inbox_outlined, size: 34, color: AppColor.grey300),
+                            SizedBox(height: 8),
+                            Text('Koi product nahi mila',
+                                style: TextStyle(fontSize: 13, color: AppColor.textHint)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        itemCount: filtered.length,
+                        itemBuilder: (_, i) => _ProductStockRow(product: filtered[i]),
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-// Table header cell
-class _TblHeader extends StatelessWidget {
-  final String text;
-  final TextAlign align;
-  const _TblHeader(this.text, {this.align = TextAlign.left});
+// ── Single product row ──────────────────────────────────────
+class _ProductStockRow extends StatelessWidget {
+  final ProductModel product;
+  const _ProductStockRow({required this.product});
+
+  String _qtyStr(double v) =>
+      v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
   @override
   Widget build(BuildContext context) {
-    return Text(text.toUpperCase(), textAlign: align,
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColor.grey600, letterSpacing: 0.4));
-  }
-}
+    final p = product;
 
-// Transfer table row
-class _TransferRow extends StatelessWidget {
-  final TransferReportItem item;
-  final bool isLast;
-  const _TransferRow({required this.item, this.isLast = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    final date = '${item.assignedAt.day} ${months[item.assignedAt.month - 1]}';
-
-    final statusColor = item.status == 'accepted'
-        ? AppColor.success
-        : item.status == 'pending'
-            ? AppColor.warning
-            : AppColor.grey500;
-    final statusBg = item.status == 'accepted'
-        ? AppColor.successLight
-        : item.status == 'pending'
-            ? AppColor.warningLight
-            : AppColor.grey100;
+    final String badge;
+    final Color color;
+    final Color bg;
+    if (p.isTrackStock && p.quantity == 0) {
+      badge = 'Out';     color = AppColor.error;   bg = AppColor.errorLight;
+    } else if (p.isLowStock) {
+      badge = 'Low';     color = AppColor.warning; bg = AppColor.warningLight;
+    } else if (p.needsReorder) {
+      badge = 'Reorder'; color = AppColor.info;    bg = AppColor.infoLight;
+    } else {
+      badge = 'OK';      color = AppColor.success;  bg = AppColor.successLight;
+    }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100)),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColor.grey100)),
       ),
       child: Row(
         children: [
-          Expanded(flex: 2,
-            child: Text(item.transferNumber,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.primary),
-                overflow: TextOverflow.ellipsis)),
-          Expanded(flex: 2,
-            child: Row(children: [
-              const Icon(Icons.storefront_outlined, size: 12, color: AppColor.info),
-              const SizedBox(width: 4),
-              Expanded(child: Text(item.toStoreName,
-                  style: const TextStyle(fontSize: 11, color: AppColor.textPrimary),
-                  overflow: TextOverflow.ellipsis)),
-            ])),
-          Expanded(flex: 1,
-            child: Text(date,
-                style: const TextStyle(fontSize: 11, color: AppColor.textSecondary))),
-          Expanded(flex: 1,
-            child: Text('${item.totalItems}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.textPrimary))),
-          Expanded(flex: 2,
-            child: Text(item.totalCost.pkrFormat,
-                textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.textPrimary))),
-          Expanded(flex: 1,
-            child: Align(alignment: Alignment.center,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(4)),
-                child: Text(
-                  item.status[0].toUpperCase() + item.status.substring(1),
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: statusColor),
+          // Name + SKU
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(p.name,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text('SKU: ${p.sku}',
+                    style: const TextStyle(fontSize: 10, color: AppColor.textHint),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Qty / Min
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                RichText(
+                  text: TextSpan(children: [
+                    TextSpan(text: _qtyStr(p.quantity),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
+                    TextSpan(text: ' ${p.unitOfMeasure}',
+                        style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+                  ]),
                 ),
-              ),
-            )),
+                const SizedBox(height: 2),
+                Text('Min: ${p.minStockLevel}'
+                    '${p.reorderPoint > 0 ? '  •  Reorder: ${p.reorderPoint}' : ''}',
+                    style: const TextStyle(fontSize: 9, color: AppColor.textSecondary)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Status badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+            child: Text(badge,
+                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color)),
+          ),
         ],
       ),
     );

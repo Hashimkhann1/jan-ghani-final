@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/link_stores_provider.dart';
 import '../widgets/linked_store_row.dart';
 import 'available_stores_screen.dart';
+import '../../store_detail/presentation/screens/store_detail_shell.dart';
 
 class LinkedStoresScreen extends ConsumerWidget {
   final String warehouseId;
@@ -55,39 +56,27 @@ class LinkedStoresScreen extends ConsumerWidget {
             );
           }
 
-          return Column(
-            children: [
-              // Table header
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+          return GridView.builder(
+            padding: const EdgeInsets.all(8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 4,
+              mainAxisSpacing: 4,
+              mainAxisExtent: 240,
+            ),
+            itemCount: stores.length,
+            itemBuilder: (context, index) {
+              return LinkedStoreRow(
+                store: stores[index],
+                index: index,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StoreDetailShell(store: stores[index]),
+                  ),
                 ),
-                color: Colors.grey.shade100,
-                child: const Row(
-                  children: [
-                    Expanded(flex: 2, child: Text('Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    Expanded(flex: 3, child: Text('Store Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    Expanded(flex: 2, child: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    Expanded(flex: 2, child: Text('Manager', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    Expanded(flex: 3, child: Text('Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    Expanded(flex: 2, child: Text('Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                  ],
-                ),
-              ),
-              // Table rows
-              Expanded(
-                child: ListView.builder(
-                  itemCount: stores.length,
-                  itemBuilder: (context, index) {
-                    return LinkedStoreRow(
-                      store: stores[index],
-                      index: index,
-                    );
-                  },
-                ),
-              ),
-            ],
+              );
+            },
           );
         },
       ),

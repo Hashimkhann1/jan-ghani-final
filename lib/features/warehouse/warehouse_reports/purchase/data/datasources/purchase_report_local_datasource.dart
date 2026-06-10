@@ -124,10 +124,30 @@ class PurchaseReportLocalDatasource {
   Future<Connection> get _db => DatabaseService.getConnection();
   String get _wid => AppConfig.warehouseId;
 
+  // ── Date filter helpers ───────────────────────────────────
+  // Codebase convention: column ko ::date cast karke YYYY-MM-DD
+  // string ke saath compare karte hain (timezone/time-of-day safe).
+  static String _dateWhere(String field, DateTime? from, DateTime? to) {
+    final parts = <String>[];
+    if (from != null) parts.add('$field::date >= @from');
+    if (to   != null) parts.add('$field::date <= @to');
+    return parts.isEmpty ? '' : 'AND ${parts.join(' AND ')}';
+  }
+
+  static Map<String, dynamic> _withDateParams(
+      Map<String, dynamic> base, DateTime? from, DateTime? to) {
+    return {
+      ...base,
+      if (from != null) 'from': from.toIso8601String().substring(0, 10),
+      if (to   != null) 'to'  : to.toIso8601String().substring(0, 10),
+    };
+  }
+
   // ── 1. Summary stats ─────────────────────────────────────
-  Future<PurchaseSummaryData> getSummary() async {
-    final conn   = await _db;
-    final result = await conn.execute(
+  Future<PurchaseSummaryData> getSummary({DateTime? from, DateTime? to}) async {
+    final conn     = await _db;
+    final dateCond = _dateWhere('order_date', from, to);
+    final result   = await conn.execute(
       Sql.named('''
         SELECT
           COUNT(*)                                                                           AS total_pos,
@@ -139,8 +159,9 @@ class PurchaseReportLocalDatasource {
           ), 0)                                                                             AS this_month_value
         FROM purchase_orders
         WHERE warehouse_id = @wid AND deleted_at IS NULL
+        $dateCond
       '''),
-      parameters: {'wid': _wid},
+      parameters: _withDateParams({'wid': _wid}, from, to),
     );
 
     final r = result.first.toColumnMap();
@@ -153,17 +174,19 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 2. Status distribution — PieChart ────────────────────
-  Future<List<PoStatusCount>> getStatusDistribution() async {
-    final conn   = await _db;
-    final result = await conn.execute(
+  Future<List<PoStatusCount>> getStatusDistribution({DateTime? from, DateTime? to}) async {
+    final conn     = await _db;
+    final dateCond = _dateWhere('order_date', from, to);
+    final result   = await conn.execute(
       Sql.named('''
         SELECT status, COUNT(*) AS count
         FROM purchase_orders
         WHERE warehouse_id = @wid AND deleted_at IS NULL
+        $dateCond
         GROUP BY status
         ORDER BY count DESC
       '''),
-      parameters: {'wid': _wid},
+      parameters: _withDateParams({'wid': _wid}, from, to),
     );
 
     return result.map((row) {
@@ -176,9 +199,14 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 3. Top suppliers by PO value — BarChart ──────────────
-  Future<List<SupplierPoValue>> getTopSuppliersByValue({int limit = 6}) async {
-    final conn   = await _db;
-    final result = await conn.execute(
+  Future<List<SupplierPoValue>> getTopSuppliersByValue({
+    int limit = 6,
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final conn     = await _db;
+    final dateCond = _dateWhere('po.order_date', from, to);
+    final result   = await conn.execute(
       Sql.named('''
         SELECT
           COALESCE(s.name, 'Unknown') AS supplier_name,
@@ -186,12 +214,13 @@ class PurchaseReportLocalDatasource {
         FROM purchase_orders po
         LEFT JOIN suppliers s ON s.id = po.supplier_id
         WHERE po.warehouse_id = @wid AND po.deleted_at IS NULL
+        $dateCond
         GROUP BY po.supplier_id, s.name
         HAVING COALESCE(SUM(po.total_amount), 0) > 0
         ORDER BY total_value DESC
         LIMIT @limit
       '''),
-      parameters: {'wid': _wid, 'limit': limit},
+      parameters: _withDateParams({'wid': _wid, 'limit': limit}, from, to),
     );
 
     return result.map((row) {
@@ -203,9 +232,22 @@ class PurchaseReportLocalDatasource {
     }).toList();
   }
 
-  // ── 4. Monthly trend — last 6 months — LineChart ─────────
-  Future<List<MonthlyPoData>> getMonthlyTrend() async {
-    final conn   = await _db;
+  // ── 4. Monthly trend — LineChart ─────────────────────────
+  Future<List<MonthlyPoData>> getMonthlyTrend({DateTime? from, DateTime? to}) async {
+    final conn = await _db;
+
+    final String dateCond;
+    final Map<String, dynamic> params = {'wid': _wid};
+
+    if (from != null || to != null) {
+      dateCond = _dateWhere('order_date', from, to);
+      if (from != null) params['from'] = from.toIso8601String().substring(0, 10);
+      if (to   != null) params['to']   = to.toIso8601String().substring(0, 10);
+    } else {
+      // default: last 6 months
+      dateCond = "AND order_date >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'";
+    }
+
     final result = await conn.execute(
       Sql.named('''
         SELECT
@@ -215,11 +257,11 @@ class PurchaseReportLocalDatasource {
         WHERE warehouse_id = @wid
           AND deleted_at IS NULL
           AND status     = 'received'
-          AND order_date >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'
+          $dateCond
         GROUP BY DATE_TRUNC('month', order_date)
         ORDER BY month
       '''),
-      parameters: {'wid': _wid},
+      parameters: params,
     );
 
     return result.map((row) {
@@ -234,9 +276,14 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 5. Supplier completion rate — Progress Bars ───────────
-  Future<List<SupplierCompletionData>> getSupplierCompletion({int limit = 8}) async {
-    final conn   = await _db;
-    final result = await conn.execute(
+  Future<List<SupplierCompletionData>> getSupplierCompletion({
+    int limit = 8,
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final conn     = await _db;
+    final dateCond = _dateWhere('po.order_date', from, to);
+    final result   = await conn.execute(
       Sql.named('''
         SELECT
           COALESCE(s.name, 'Unknown')                                        AS supplier_name,
@@ -248,12 +295,13 @@ class PurchaseReportLocalDatasource {
         LEFT JOIN suppliers s ON s.id = po.supplier_id
         LEFT JOIN purchase_order_items poi ON poi.po_id = po.id
         WHERE po.warehouse_id = @wid AND po.deleted_at IS NULL
+        $dateCond
         GROUP BY po.supplier_id, s.name
         HAVING COUNT(DISTINCT po.id) > 0
         ORDER BY total_pos DESC
         LIMIT @limit
       '''),
-      parameters: {'wid': _wid, 'limit': limit},
+      parameters: _withDateParams({'wid': _wid, 'limit': limit}, from, to),
     );
 
     return result.map((row) {
@@ -269,9 +317,14 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 6. Recent POs — latest 20 ────────────────────────────
-  Future<List<RecentPoEntry>> getRecentPos({int limit = 20}) async {
-    final conn   = await _db;
-    final result = await conn.execute(
+  Future<List<RecentPoEntry>> getRecentPos({
+    int limit = 20,
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final conn     = await _db;
+    final dateCond = _dateWhere('po.order_date', from, to);
+    final result   = await conn.execute(
       Sql.named('''
         SELECT
           po.po_number,
@@ -284,10 +337,11 @@ class PurchaseReportLocalDatasource {
         FROM purchase_orders po
         LEFT JOIN suppliers s ON s.id = po.supplier_id
         WHERE po.warehouse_id = @wid AND po.deleted_at IS NULL
+        $dateCond
         ORDER BY po.created_at DESC
         LIMIT @limit
       '''),
-      parameters: {'wid': _wid, 'limit': limit},
+      parameters: _withDateParams({'wid': _wid, 'limit': limit}, from, to),
     );
 
     return result.map((row) {
@@ -307,9 +361,10 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 7. Pending POs only ───────────────────────────────────
-  Future<List<RecentPoEntry>> getPendingPos() async {
-    final conn   = await _db;
-    final result = await conn.execute(
+  Future<List<RecentPoEntry>> getPendingPos({DateTime? from, DateTime? to}) async {
+    final conn     = await _db;
+    final dateCond = _dateWhere('po.order_date', from, to);
+    final result   = await conn.execute(
       Sql.named('''
         SELECT
           po.po_number,
@@ -324,9 +379,10 @@ class PurchaseReportLocalDatasource {
         WHERE po.warehouse_id = @wid
           AND po.deleted_at IS NULL
           AND po.status IN ('draft', 'ordered', 'partial')
+          $dateCond
         ORDER BY po.order_date ASC
       '''),
-      parameters: {'wid': _wid},
+      parameters: _withDateParams({'wid': _wid}, from, to),
     );
 
     return result.map((row) {

@@ -97,6 +97,12 @@ class RecentLedgerEntry {
 }
 
 // ─────────────────────────────────────────────────────────────
+// BALANCE STATUS FILTER
+// ─────────────────────────────────────────────────────────────
+
+enum BalanceStatusFilter { all, outstanding, clear }
+
+// ─────────────────────────────────────────────────────────────
 // DATASOURCE
 // ─────────────────────────────────────────────────────────────
 
@@ -108,8 +114,38 @@ class SupplierReportLocalDatasource {
   Future<Connection> get _db => DatabaseService.getConnection();
   String get _wid => AppConfig.warehouseId;
 
+  // ── Date filter helpers ───────────────────────────────────
+  // Codebase convention: column ko ::date cast karke YYYY-MM-DD
+  // string ke saath compare karte hain (timezone/time-of-day safe).
+  static String _dateWhere(String field, DateTime? from, DateTime? to) {
+    final parts = <String>[];
+    if (from != null) parts.add('$field::date >= @from');
+    if (to   != null) parts.add('$field::date <= @to');
+    return parts.isEmpty ? '' : 'AND ${parts.join(' AND ')}';
+  }
+
+  static Map<String, dynamic> _withDateParams(
+      Map<String, dynamic> base, DateTime? from, DateTime? to) {
+    return {
+      ...base,
+      if (from != null) 'from': from.toIso8601String().substring(0, 10),
+      if (to   != null) 'to'  : to.toIso8601String().substring(0, 10),
+    };
+  }
+
+  // ── Balance status helper ─────────────────────────────────
+  static String _balanceWhere(BalanceStatusFilter f, {String col = 's.outstanding_balance'}) {
+    switch (f) {
+      case BalanceStatusFilter.outstanding: return 'AND $col > 0';
+      case BalanceStatusFilter.clear:       return 'AND $col = 0';
+      case BalanceStatusFilter.all:         return '';
+    }
+  }
+
   // ── 1. Summary stats ─────────────────────────────────────
-  Future<SupplierSummaryData> getSummary() async {
+  // Note: supplier counts/outstanding LIVE/current state hain (date se
+  // filter nahi hote). Sirf total_purchased date range follow karta hai.
+  Future<SupplierSummaryData> getSummary({DateTime? from, DateTime? to}) async {
     final conn = await _db;
 
     final suppResult = await conn.execute(
@@ -130,13 +166,15 @@ class SupplierReportLocalDatasource {
       parameters: {'wid': _wid},
     );
 
+    final poDateCond = _dateWhere('order_date', from, to);
     final poResult = await conn.execute(
       Sql.named('''
         SELECT COALESCE(SUM(total_amount), 0) AS total_purchased
         FROM purchase_orders
         WHERE warehouse_id = @wid AND deleted_at IS NULL AND status = 'received'
+        $poDateCond
       '''),
-      parameters: {'wid': _wid},
+      parameters: _withDateParams({'wid': _wid}, from, to),
     );
 
     final s = suppResult.first.toColumnMap();
@@ -181,8 +219,13 @@ class SupplierReportLocalDatasource {
   }
 
   // ── 3. Top suppliers by purchase volume — BarChart ───────
-  Future<List<SupplierPurchaseItem>> getTopByPurchase({int limit = 6}) async {
-    final conn = await _db;
+  Future<List<SupplierPurchaseItem>> getTopByPurchase({
+    int limit = 6,
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final conn     = await _db;
+    final dateCond = _dateWhere('po.order_date', from, to);
 
     final result = await conn.execute(
       Sql.named('''
@@ -193,6 +236,7 @@ class SupplierReportLocalDatasource {
           AND po.warehouse_id  = @wid
           AND po.deleted_at    IS NULL
           AND po.status        = 'received'
+          $dateCond
         WHERE s.warehouse_id = @wid
           AND s.deleted_at   IS NULL
           AND s.is_active    = true
@@ -201,7 +245,7 @@ class SupplierReportLocalDatasource {
         ORDER BY total_purchased DESC
         LIMIT @limit
       '''),
-      parameters: {'wid': _wid, 'limit': limit},
+      parameters: _withDateParams({'wid': _wid, 'limit': limit}, from, to),
     );
 
     return result.map((row) {
@@ -213,9 +257,21 @@ class SupplierReportLocalDatasource {
     }).toList();
   }
 
-  // ── 4. Monthly purchase trend — last 6 months — LineChart ─
-  Future<List<MonthlyPurchaseData>> getMonthlyTrend() async {
+  // ── 4. Monthly purchase trend — LineChart ────────────────
+  Future<List<MonthlyPurchaseData>> getMonthlyTrend({DateTime? from, DateTime? to}) async {
     final conn = await _db;
+
+    final String dateCond;
+    final Map<String, dynamic> params = {'wid': _wid};
+
+    if (from != null || to != null) {
+      dateCond = _dateWhere('order_date', from, to);
+      if (from != null) params['from'] = from.toIso8601String().substring(0, 10);
+      if (to   != null) params['to']   = to.toIso8601String().substring(0, 10);
+    } else {
+      // default: last 6 months
+      dateCond = "AND order_date >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'";
+    }
 
     final result = await conn.execute(
       Sql.named('''
@@ -226,11 +282,11 @@ class SupplierReportLocalDatasource {
         WHERE warehouse_id = @wid
           AND deleted_at IS NULL
           AND status     = 'received'
-          AND order_date >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'
+          $dateCond
         GROUP BY DATE_TRUNC('month', order_date)
         ORDER BY month
       '''),
-      parameters: {'wid': _wid},
+      parameters: params,
     );
 
     return result.map((row) {
@@ -245,8 +301,16 @@ class SupplierReportLocalDatasource {
   }
 
   // ── 5. All suppliers list for table ──────────────────────
-  Future<List<SupplierBalanceItem>> getAllSuppliers() async {
-    final conn = await _db;
+  // Date filter → PO aggregation (orders/purchased) pe.
+  // Balance status filter → kaunse supplier rows dikhein.
+  Future<List<SupplierBalanceItem>> getAllSuppliers({
+    DateTime? from,
+    DateTime? to,
+    BalanceStatusFilter balanceStatus = BalanceStatusFilter.all,
+  }) async {
+    final conn        = await _db;
+    final dateCond    = _dateWhere('order_date', from, to);
+    final balanceCond = _balanceWhere(balanceStatus);
 
     final result = await conn.execute(
       Sql.named('''
@@ -265,14 +329,16 @@ class SupplierReportLocalDatasource {
             SUM(total_amount) AS total_purchased
           FROM purchase_orders
           WHERE warehouse_id = @wid AND deleted_at IS NULL AND status = 'received'
+            $dateCond
           GROUP BY supplier_id
         ) po_agg ON po_agg.supplier_id = s.id
         WHERE s.warehouse_id = @wid
           AND s.deleted_at   IS NULL
           AND s.is_active    = true
+          $balanceCond
         ORDER BY s.outstanding_balance DESC
       '''),
-      parameters: {'wid': _wid},
+      parameters: _withDateParams({'wid': _wid}, from, to),
     );
 
     return result.map((row) {
@@ -289,8 +355,13 @@ class SupplierReportLocalDatasource {
   }
 
   // ── 6. Recent ledger entries (last 20) ───────────────────
-  Future<List<RecentLedgerEntry>> getRecentLedger({int limit = 20}) async {
-    final conn = await _db;
+  Future<List<RecentLedgerEntry>> getRecentLedger({
+    int limit = 20,
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final conn     = await _db;
+    final dateCond = _dateWhere('sl.created_at', from, to);
 
     final result = await conn.execute(
       Sql.named('''
@@ -305,10 +376,11 @@ class SupplierReportLocalDatasource {
         FROM supplier_ledger sl
         JOIN suppliers s ON s.id = sl.supplier_id
         WHERE sl.warehouse_id = @wid
+          $dateCond
         ORDER BY sl.created_at DESC
         LIMIT @limit
       '''),
-      parameters: {'wid': _wid, 'limit': limit},
+      parameters: _withDateParams({'wid': _wid, 'limit': limit}, from, to),
     );
 
     return result.map((row) {

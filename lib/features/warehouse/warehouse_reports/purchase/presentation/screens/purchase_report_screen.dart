@@ -41,85 +41,81 @@ Color _statusBg(String status) {
 // MAIN SCREEN
 // ─────────────────────────────────────────────────────────────
 
-class PurchaseReportScreen extends ConsumerWidget {
+class PurchaseReportScreen extends StatelessWidget {
   const PurchaseReportScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColor.background,
+      body: Column(
+        children: [
+          _TopBar(),
+          Expanded(child: _Body()),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// BODY
+// ─────────────────────────────────────────────────────────────
+
+class _Body extends ConsumerWidget {
+  const _Body();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(purchaseReportProvider);
 
     if (state.isLoading) {
-      return const Scaffold(
-        backgroundColor: AppColor.background,
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (state.error != null) {
-      return Scaffold(
-        backgroundColor: AppColor.background,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, color: AppColor.error, size: 36),
-              const SizedBox(height: 12),
-              const Text('Data load nahi hua',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-              const SizedBox(height: 6),
-              Text(state.error!,
-                  style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              GestureDetector(
-                onTap: () => ref.read(purchaseReportProvider.notifier).refresh(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: AppColor.primary, borderRadius: BorderRadius.circular(8)),
-                  child: const Text('Retry',
-                      style: TextStyle(color: AppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
-                ),
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: AppColor.error, size: 36),
+            const SizedBox(height: 12),
+            const Text('Data load nahi hua',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+            const SizedBox(height: 6),
+            Text(state.error!,
+                style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () => ref.read(purchaseReportProvider.notifier).refresh(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(color: AppColor.primary, borderRadius: BorderRadius.circular(8)),
+                child: const Text('Retry',
+                    style: TextStyle(color: AppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColor.background,
-      body: Column(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _TopBar(onRefresh: () => ref.read(purchaseReportProvider.notifier).refresh()),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Summary Cards ─────────────────────────
-                  if (state.summary != null) _SummaryCardsRow(summary: state.summary!),
-                  const SizedBox(height: 16),
-
-                  // ── Pie + Bar charts row ──────────────────
-                  _PieBarRow(state: state),
-                  const SizedBox(height: 16),
-
-                  // ── Line chart — monthly trend ────────────
-                  _MonthlyTrendSection(trend: state.monthlyTrend),
-                  const SizedBox(height: 16),
-
-                  // ── Supplier completion — progress bars ───
-                  _SupplierCompletionSection(data: state.supplierCompletion),
-                  const SizedBox(height: 16),
-
-                  // ── Pending POs ───────────────────────────
-                  _PendingPoSection(entries: state.pendingPos),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
+          if (state.summary != null) _SummaryCardsRow(summary: state.summary!),
+          const SizedBox(height: 16),
+          _PieBarRow(state: state),
+          const SizedBox(height: 16),
+          _MonthlyTrendSection(trend: state.monthlyTrend),
+          const SizedBox(height: 16),
+          _SupplierCompletionSection(data: state.supplierCompletion),
+          const SizedBox(height: 16),
+          _PendingPoSection(entries: state.pendingPos),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -130,14 +126,59 @@ class PurchaseReportScreen extends ConsumerWidget {
 // TOP BAR
 // ─────────────────────────────────────────────────────────────
 
-class _TopBar extends StatelessWidget {
-  final VoidCallback onRefresh;
-  const _TopBar({required this.onRefresh});
+class _TopBar extends ConsumerStatefulWidget {
+  const _TopBar();
+
+  @override
+  ConsumerState<_TopBar> createState() => _TopBarState();
+}
+
+class _TopBarState extends ConsumerState<_TopBar> {
+  Future<void> _showCustomPicker() async {
+    final notifier = ref.read(purchaseReportProvider.notifier);
+    final st       = ref.read(purchaseReportProvider);
+
+    final now        = DateTime.now();
+    final firstDate  = DateTime(2020);
+    final lastDate   = DateTime(now.year, now.month, now.day);
+
+    // initial range ko firstDate..lastDate ke andar clamp karo,
+    // warna picker assert karke crash karta hai (end > lastDate).
+    DateTime clamp(DateTime d) {
+      if (d.isBefore(firstDate)) return firstDate;
+      if (d.isAfter(lastDate))   return lastDate;
+      return d;
+    }
+
+    DateTime start = clamp(st.dateFrom ?? now.subtract(const Duration(days: 30)));
+    DateTime end   = clamp(st.dateTo ?? now);
+    if (start.isAfter(end)) start = end;
+
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate:          firstDate,
+      lastDate:           lastDate,
+      initialDateRange:   DateTimeRange(start: start, end: end),
+      builder: (context, child) => Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColor.primary),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked != null && mounted) {
+      notifier.setCustomRange(picked.start, picked.end);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final state    = ref.watch(purchaseReportProvider);
+    final notifier = ref.read(purchaseReportProvider.notifier);
+
     final now     = DateTime.now();
-    final months  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     final dateStr = '${now.day} ${months[now.month - 1]} ${now.year}';
 
     return Container(
@@ -149,6 +190,7 @@ class _TopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // ── Icon + title ─────────────────────────────────
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
@@ -169,8 +211,27 @@ class _TopBar extends StatelessWidget {
             ],
           ),
           const Spacer(),
+
+          // ── Filter pills ──────────────────────────────────
+          _FilterPill(
+            label:    'Overall',
+            selected: state.filterMode == DateFilterMode.overall,
+            onTap:    notifier.setOverall,
+          ),
+          const SizedBox(width: 6),
+          _FilterPill(
+            label:    'This Month',
+            selected: state.filterMode == DateFilterMode.currentMonth,
+            onTap:    notifier.setCurrentMonth,
+          ),
+          const SizedBox(width: 6),
+          _CustomPill(state: state, onTap: _showCustomPicker),
+
+          const SizedBox(width: 10),
+
+          // ── Refresh button ────────────────────────────────
           GestureDetector(
-            onTap: onRefresh,
+            onTap: notifier.refresh,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
@@ -190,6 +251,86 @@ class _TopBar extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// FILTER PILLS
+// ─────────────────────────────────────────────────────────────
+
+class _FilterPill extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterPill({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color:        selected ? AppColor.primary : AppColor.grey100,
+          borderRadius: BorderRadius.circular(20),
+          border:       Border.all(color: selected ? AppColor.primary : AppColor.grey200),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize:   11,
+            fontWeight: FontWeight.w600,
+            color:      selected ? AppColor.white : AppColor.grey600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomPill extends StatelessWidget {
+  final PurchaseReportState state;
+  final VoidCallback onTap;
+
+  const _CustomPill({required this.state, required this.onTap});
+
+  static const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  String get _label {
+    if (state.filterMode != DateFilterMode.custom ||
+        state.dateFrom == null || state.dateTo == null) {
+      return 'Custom ▾';
+    }
+    final f = state.dateFrom!;
+    final t = state.dateTo!;
+    return '${_months[f.month - 1]} ${f.day} – ${_months[t.month - 1]} ${t.day} ▾';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = state.filterMode == DateFilterMode.custom;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color:        selected ? AppColor.primary : AppColor.grey100,
+          borderRadius: BorderRadius.circular(20),
+          border:       Border.all(color: selected ? AppColor.primary : AppColor.grey200),
+        ),
+        child: Text(
+          _label,
+          style: TextStyle(
+            fontSize:   11,
+            fontWeight: FontWeight.w600,
+            color:      selected ? AppColor.white : AppColor.grey600,
+          ),
+        ),
       ),
     );
   }
