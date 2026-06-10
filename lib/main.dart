@@ -18,6 +18,7 @@ import '../features/branch/authentication/presentation/provider/auth_provider.da
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/widget/sidebar/branch_sidebar_widget.dart';
+import 'features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
 
 
@@ -42,27 +43,23 @@ void main() async{
   //   SyncService().start();
   //   DataBaseService.getConnection();
   // }
-  final prefs = await SharedPreferences.getInstance();
-  print('ACC ID: ${prefs.getString('acc_id')}');
-  final loggedIn = await AccountantSession.isLoggedIn();
 
-  runApp(ProviderScope(child: MyApp(isLoggedIn: loggedIn,)));
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends ConsumerWidget {
-  final bool isLoggedIn;
-  const MyApp({this.isLoggedIn = false,super.key});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context,WidgetRef ref) {
     final auth = ref.watch(authProvider);
+    final user = ref.watch(sessionProvider);
     return ProviderScope(
       child: MaterialApp(
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
-        home:
-        isLoggedIn ? AccountantDashboardScreen() : AccountantLoginScreen()
+        home: user?.id.isEmpty == true ? AccountantDashboardScreen() : AccountantLoginScreen()
         // auth.isLoading ?
         // Scaffold(
         //   body: const CircularProgressIndicator(),

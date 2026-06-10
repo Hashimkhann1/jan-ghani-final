@@ -32,6 +32,7 @@ class CustomerReturnInvoice {
   });
 
   double get totalQuantity => items.fold(0, (s, i) => s + i.quantity);
+  double get totalProfit   => items.fold(0.0, (s, i) => s + i.profit);
   String get customerLabel => customerName ?? 'Walk In';
   String get paymentLabel {
     if (paymentMethods.isEmpty) return '—';
@@ -44,6 +45,8 @@ class CustomerReturnInvoice {
 class CustomerReturnItem {
   final String  productName;
   final String? sku;
+  final double  salePrice;
+  final double  purchasePrice;
   final double  price;
   final double  quantity;
   final double  discount;
@@ -52,11 +55,23 @@ class CustomerReturnItem {
   const CustomerReturnItem({
     required this.productName,
     this.sku,
+    required this.salePrice,
+    required this.purchasePrice,
     required this.price,
     required this.quantity,
     required this.discount,
     required this.totalAmount,
   });
+
+  double get profit           => (salePrice - purchasePrice) * quantity;
+  String get profitLabel      => 'Rs ${profit.toStringAsFixed(0)}';
+  bool   get isProfitPositive => profit >= 0;
+  String get salePriceLabel     => 'Rs ${salePrice.toStringAsFixed(0)}';
+  String get purchasePriceLabel => 'Rs ${purchasePrice.toStringAsFixed(0)}';
+
+  String get qtyLabel => quantity % 1 == 0
+      ? quantity.toInt().toString()
+      : quantity.toStringAsFixed(2);
 }
 
 class CustomerReturnSummary {

@@ -5,88 +5,7 @@ import '../../data/model/customer_return_model.dart';
 import '../../data/model/specific_customer_ledger_model.dart';
 
 // ═════════════════════════════════════════════════════════════
-// 1. VERIFICATION PROVIDER
-// ═════════════════════════════════════════════════════════════
-
-enum VerifyStatus { idle, loading, verified, failed }
-
-class CustomerVerifyState {
-  final VerifyStatus status;
-  final String?      customerName;
-  final double       customerBalance;   // ← naya field
-  final String?      errorMessage;
-
-  const CustomerVerifyState({
-    this.status          = VerifyStatus.idle,
-    this.customerName,
-    this.customerBalance = 0.0,         // ← default 0
-    this.errorMessage,
-  });
-
-  bool get isVerified => status == VerifyStatus.verified;
-  bool get isLoading  => status == VerifyStatus.loading;
-
-  CustomerVerifyState copyWith({
-    VerifyStatus? status,
-    String?       customerName,
-    double?       customerBalance,
-    String?       errorMessage,
-  }) => CustomerVerifyState(
-    status:          status          ?? this.status,
-    customerName:    customerName    ?? this.customerName,
-    customerBalance: customerBalance ?? this.customerBalance,
-    errorMessage:    errorMessage    ?? this.errorMessage,
-  );
-}
-
-class CustomerVerifyNotifier extends StateNotifier<CustomerVerifyState> {
-  final CustomerReportDatasource _ds;
-  final String customerId;
-
-  CustomerVerifyNotifier(this.customerId): _ds = CustomerReportDatasource(), super(const CustomerVerifyState());
-
-  Future<void> verify(String phoneLast4) async {
-    if (phoneLast4.trim().length != 4) {
-      state = state.copyWith(
-        status:       VerifyStatus.failed,
-        errorMessage: 'Please enter exactly 4 digits',
-      );
-      return;
-    }
-
-    state = state.copyWith(status: VerifyStatus.loading);
-
-    final result = await _ds.verifyPhone(
-      customerId: customerId,
-      phoneLast4: phoneLast4,
-    );
-
-    if (result != null) {
-      state = CustomerVerifyState(
-        status:          VerifyStatus.verified,
-        customerName:    result['name'] as String?,
-        customerBalance: result['balance'] as double? ?? 0.0,  // ← store karo
-      );
-    } else {
-      state = CustomerVerifyState(
-        status:       VerifyStatus.failed,
-        errorMessage: 'Incorrect phone number. Please try again.',
-      );
-    }
-  }
-
-  void reset() => state = const CustomerVerifyState();
-}
-
-final customerVerifyProvider = StateNotifierProvider.family<
-    CustomerVerifyNotifier,
-    CustomerVerifyState,
-    String>(
-      (ref, customerId) => CustomerVerifyNotifier(customerId),
-);
-
-// ═════════════════════════════════════════════════════════════
-// 2. INVOICE PROVIDER
+// 1. INVOICE PROVIDER
 // ═════════════════════════════════════════════════════════════
 
 class CustomerReportInvoiceState {
@@ -117,23 +36,25 @@ class CustomerReportInvoiceState {
   }
 
   static DateTime _monthStart() {
+    // Default: 1 saal pehle se — taake purani invoices bhi aayein
     final n = DateTime.now();
-    return DateTime(n.year, n.month, 1);
+    return DateTime(n.year - 1, n.month, n.day);
   }
 
   List<CustomerInvoiceModel> get filtered {
     if (searchQuery.isEmpty) return invoices;
     final q = searchQuery.toLowerCase();
     return invoices.where((inv) {
-      if (inv.invoiceNo.toLowerCase().contains(q))                       return true;
-      if (inv.paymentType.toLowerCase().contains(q))                     return true;
-      if (inv.items.any((i) => i.productName.toLowerCase().contains(q))) return true;
+      if (inv.invoiceNo.toLowerCase().contains(q))                        return true;
+      if (inv.paymentType.toLowerCase().contains(q))                      return true;
+      if (inv.items.any((i) => i.productName.toLowerCase().contains(q)))  return true;
       return false;
     }).toList();
   }
 
   double get totalSale     => filtered.fold(0, (s, i) => s + i.grandTotal);
   double get totalDiscount => filtered.fold(0, (s, i) => s + i.totalDiscount);
+  double get totalProfit   => filtered.fold(0.0, (s, i) => s + i.totalProfit);
   double get cashSale      => filtered
       .where((i) => i.paymentType.contains('cash'))
       .fold(0, (s, i) => s + i.grandTotal);
@@ -144,11 +65,11 @@ class CustomerReportInvoiceState {
 
   CustomerReportInvoiceState copyWith({
     List<CustomerInvoiceModel>? invoices,
-    DateTime?  fromDate,
-    DateTime?  toDate,
-    String?    searchQuery,
-    bool?      isLoading,
-    String?    errorMessage,
+    DateTime? fromDate,
+    DateTime? toDate,
+    String?   searchQuery,
+    bool?     isLoading,
+    String?   errorMessage,
   }) => CustomerReportInvoiceState(
     invoices:     invoices     ?? this.invoices,
     customerId:   customerId,
@@ -215,7 +136,7 @@ final customerReportInvoiceProvider = StateNotifierProvider.family<
 );
 
 // ═════════════════════════════════════════════════════════════
-// 3. RETURN PROVIDER
+// 2. RETURN PROVIDER
 // ═════════════════════════════════════════════════════════════
 
 class CustomerReportReturnState {
@@ -324,7 +245,7 @@ final customerReportReturnProvider = StateNotifierProvider.family<
 );
 
 // ═════════════════════════════════════════════════════════════
-// 4. LEDGER PROVIDER
+// 3. LEDGER PROVIDER
 // ═════════════════════════════════════════════════════════════
 
 class CustomerReportLedgerState {

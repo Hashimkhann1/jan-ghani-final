@@ -32,12 +32,8 @@ class CustomerFullReport {
 class CustomerReportDatasource {
   final _client = Supabase.instance.client;
 
-  // ── Step 1: Verify phone last 4 digits ──────────────────────
-
-  Future<Map<String, dynamic>?> verifyPhone({
-    required String customerId,
-    required String phoneLast4,
-  }) async {
+  // ── Customer Info (no verification needed) ──────────────────
+  Future<Map<String, dynamic>?> getCustomerInfo(String customerId) async {
     try {
       final row = await _client
           .from('customer')
@@ -48,30 +44,24 @@ class CustomerReportDatasource {
 
       if (row == null) return null;
 
-      final phone = row['phone']?.toString() ?? '';
-      if (phone.length < 4) return null;
-
-      final actualLast4 = phone.substring(phone.length - 4);
-      if (actualLast4 != phoneLast4.trim()) return null;
-
       return {
-        'name':    row['name']?.toString() ?? '',
+        'name':    row['name']?.toString()    ?? '',
+        'phone':   row['phone']?.toString()   ?? '',
         'balance': double.tryParse(row['balance']?.toString() ?? '0') ?? 0.0,
       };
     } catch (e) {
-      print('❌ verifyPhone error: $e');
+      print('❌ getCustomerInfo error: $e');
       return null;
     }
   }
 
-  // ── Step 2: Load full report after verification ──────────────
+  // ── Full report ──────────────────────────────────────────────
   Future<CustomerFullReport?> getFullReport({
     required String   customerId,
     required DateTime fromDate,
     required DateTime toDate,
   }) async {
     try {
-      // Customer info
       final customerRow = await _client
           .from('customer')
           .select('name, phone, balance')
@@ -80,7 +70,6 @@ class CustomerReportDatasource {
 
       if (customerRow == null) return null;
 
-      // All three in parallel
       final results = await Future.wait([
         fetchInvoices(customerId: customerId, fromDate: fromDate, toDate: toDate),
         fetchReturns(customerId: customerId, fromDate: fromDate, toDate: toDate),
@@ -89,9 +78,9 @@ class CustomerReportDatasource {
 
       return CustomerFullReport(
         customerId:    customerId,
-        customerName:  customerRow['name']?.toString() ?? '',
+        customerName:  customerRow['name']?.toString()  ?? '',
         customerPhone: customerRow['phone']?.toString(),
-        balance:       _dbl(customerRow['balance']) ?? 0,
+        balance:       _dbl(customerRow['balance'])     ?? 0,
         invoices:      results[0] as List<CustomerInvoiceModel>,
         returns:       results[1] as List<CustomerReturnInvoice>,
         ledger:        results[2] as List<SpecificCustomerLedgerModel>,
@@ -102,7 +91,7 @@ class CustomerReportDatasource {
     }
   }
 
-  // ── Private: Invoices ────────────────────────────────────────
+  // ── Invoices ─────────────────────────────────────────────────
   Future<List<CustomerInvoiceModel>> fetchInvoices({
     required String   customerId,
     required DateTime fromDate,
@@ -110,6 +99,8 @@ class CustomerReportDatasource {
   }) async {
     final fromStr = fromDate.toIso8601String().substring(0, 10);
     final toStr   = toDate.toIso8601String().substring(0, 10);
+
+    print('🔍 fetchInvoices: customerId=$customerId from=$fromStr to=$toStr');
 
     final invoiceResult = await _client
         .from('sale_invoices')
@@ -123,9 +114,15 @@ class CustomerReportDatasource {
         ''')
         .eq('customer_id', customerId)
         .isFilter('deleted_at', null)
-        .gte('invoice_date', fromStr)
-        .lte('invoice_date', toStr)
+    // TODO: date filter — pehle bina filter ke test karo, phir uncomment karo
+    // .gte('invoice_date', fromStr)
+    // .lte('invoice_date', toStr)
         .order('invoice_date', ascending: false);
+
+    print('📦 fetchInvoices result count: ${invoiceResult.length}');
+    if (invoiceResult.isNotEmpty) {
+      print('📄 first invoice: ${invoiceResult.first}');
+    }
 
     if (invoiceResult.isEmpty) return [];
 
@@ -135,7 +132,10 @@ class CustomerReportDatasource {
 
     final itemsResult = await _client
         .from('sale_invoice_items')
-        .select('invoice_id, product_name, sku, price, quantity, discount, total_amount')
+        .select(
+      'invoice_id, product_name, sku, sale_price, purchase_price, '
+          'price, quantity, discount, total_amount',
+    )
         .inFilter('invoice_id', invoiceIds)
         .order('created_at', ascending: true);
 
@@ -156,13 +156,14 @@ class CustomerReportDatasource {
 
       return CustomerInvoiceModel(
         id:            id,
-        invoiceNo:     m['invoice_no']?.toString()  ?? '',
-        invoiceDate:   DateTime.tryParse(m['invoice_date']?.toString() ?? '') ?? DateTime.now(),
+        invoiceNo:     m['invoice_no']?.toString()   ?? '',
+        invoiceDate:   DateTime.tryParse(m['invoice_date']?.toString() ?? '')
+            ?? DateTime.now(),
         paymentType:   payments,
-        status:        m['status']?.toString()       ?? 'completed',
-        totalAmount:   _dbl(m['total_amount'])       ?? 0,
-        totalDiscount: _dbl(m['total_discount'])     ?? 0,
-        grandTotal:    _dbl(m['grand_total'])         ?? 0,
+        status:        m['status']?.toString()        ?? 'completed',
+        totalAmount:   _dbl(m['total_amount'])        ?? 0,
+        totalDiscount: _dbl(m['total_discount'])      ?? 0,
+        grandTotal:    _dbl(m['grand_total'])          ?? 0,
         customerId:    m['customer_id']?.toString(),
         customerName:  (m['customer'] as Map?)?['name']?.toString(),
         counterName:   (m['counter']  as Map?)?['counter_name']?.toString(),
@@ -172,7 +173,7 @@ class CustomerReportDatasource {
     }).toList();
   }
 
-  // ── Private: Returns ─────────────────────────────────────────
+  // ── Returns ──────────────────────────────────────────────────
   Future<List<CustomerReturnInvoice>> fetchReturns({
     required String   customerId,
     required DateTime fromDate,
@@ -189,16 +190,18 @@ class CustomerReportDatasource {
           customer (name),
           sale_return_payments (payment_method, amount),
           sale_return_items (
-            product_name, sku, price,
-            quantity, discount, total_amount
+            product_name, sku, sale_price, purchase_price,
+            price, quantity, discount, total_amount
           )
         ''')
         .eq('customer_id', customerId)
         .eq('status', 'completed')
         .gte('return_date', fromDate.toIso8601String())
-        .lte('return_date',
-        DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59)
-            .toIso8601String())
+        .lte(
+      'return_date',
+      DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59)
+          .toIso8601String(),
+    )
         .order('return_date', ascending: false);
 
     return (result as List)
@@ -212,26 +215,28 @@ class CustomerReportDatasource {
 
       final items = (r['sale_return_items'] as List? ?? [])
           .map((i) => CustomerReturnItem(
-        productName: i['product_name']?.toString() ?? '',
-        sku:         i['sku']?.toString(),
-        price:       _dbl(i['price'])       ?? 0,
-        quantity:    _dbl(i['quantity'])     ?? 0,
-        discount:    _dbl(i['discount'])     ?? 0,
-        totalAmount: _dbl(i['total_amount']) ?? 0,
+        productName:   i['product_name']?.toString()  ?? '',
+        sku:           i['sku']?.toString(),
+        salePrice:     _dbl(i['sale_price'])     ?? 0,
+        purchasePrice: _dbl(i['purchase_price']) ?? 0,
+        price:         _dbl(i['price'])          ?? 0,
+        quantity:      _dbl(i['quantity'])       ?? 0,
+        discount:      _dbl(i['discount'])       ?? 0,
+        totalAmount:   _dbl(i['total_amount'])   ?? 0,
       ))
           .toList();
 
       return CustomerReturnInvoice(
         id:             r['id'].toString(),
-        returnNo:       r['return_no']?.toString()   ?? '',
+        returnNo:       r['return_no']?.toString()    ?? '',
         returnDate:     DateTime.parse(r['return_date'].toString()).toLocal(),
         customerName:   r['customer']?['name']?.toString(),
         customerId:     r['customer_id']?.toString(),
         invoiceId:      r['invoice_id']?.toString(),
-        totalAmount:    _dbl(r['total_amount'])       ?? 0,
-        totalDiscount:  _dbl(r['total_discount'])     ?? 0,
-        grandTotal:     _dbl(r['grand_total'])         ?? 0,
-        status:         r['status']?.toString()        ?? '',
+        totalAmount:    _dbl(r['total_amount'])        ?? 0,
+        totalDiscount:  _dbl(r['total_discount'])      ?? 0,
+        grandTotal:     _dbl(r['grand_total'])          ?? 0,
+        status:         r['status']?.toString()         ?? '',
         returnReason:   r['return_reason']?.toString(),
         refundType:     r['refund_type']?.toString(),
         paymentMethods: methods,
@@ -240,7 +245,7 @@ class CustomerReportDatasource {
     }).toList();
   }
 
-  // ── Private: Ledger ──────────────────────────────────────────
+  // ── Ledger ───────────────────────────────────────────────────
   Future<List<SpecificCustomerLedgerModel>> fetchLedger({
     required String customerId,
   }) async {
@@ -256,9 +261,9 @@ class CustomerReportDatasource {
         .toList();
   }
 
-  // ── Public wrappers for providers ───────────────────────────
+  // ── Public wrappers ──────────────────────────────────────────
   Future<List<CustomerInvoiceModel>> fetchInvoicesPublic({
-    required String customerId,
+    required String   customerId,
     required DateTime fromDate,
     required DateTime toDate,
   }) => fetchInvoices(
@@ -268,7 +273,7 @@ class CustomerReportDatasource {
   );
 
   Future<List<CustomerReturnInvoice>> fetchReturnsPublic({
-    required String customerId,
+    required String   customerId,
     required DateTime fromDate,
     required DateTime toDate,
   }) => fetchReturns(

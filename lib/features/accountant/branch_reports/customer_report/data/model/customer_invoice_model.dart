@@ -1,5 +1,3 @@
-// customer_invoice_model.dart
-
 class CustomerInvoiceModel {
   final String   id;
   final String   invoiceNo;
@@ -34,11 +32,17 @@ class CustomerInvoiceModel {
   String get grandTotalLabel  => 'Rs ${grandTotal.toStringAsFixed(0)}';
   String get totalAmountLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
   String get discountLabel    => 'Rs ${totalDiscount.toStringAsFixed(0)}';
+
+  double get totalProfit =>
+      items.fold(0.0, (sum, item) => sum + item.profit);
+  String get totalProfitLabel => 'Rs ${totalProfit.toStringAsFixed(0)}';
 }
 
 class CustomerInvoiceItemDetail {
   final String  productName;
   final String? sku;
+  final double  salePrice;
+  final double  purchasePrice;
   final double  price;
   final double  quantity;
   final double  discount;
@@ -47,26 +51,36 @@ class CustomerInvoiceItemDetail {
   const CustomerInvoiceItemDetail({
     required this.productName,
     this.sku,
+    required this.salePrice,
+    required this.purchasePrice,
     required this.price,
     required this.quantity,
     required this.discount,
     required this.totalAmount,
   });
 
-  String get priceLabel => 'Rs ${price.toStringAsFixed(0)}';
-  String get totalLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
-  String get qtyLabel   => quantity % 1 == 0
+  String get priceLabel         => 'Rs ${price.toStringAsFixed(0)}';
+  String get salePriceLabel     => 'Rs ${salePrice.toStringAsFixed(0)}';
+  String get purchasePriceLabel => 'Rs ${purchasePrice.toStringAsFixed(0)}';
+  String get totalLabel         => 'Rs ${totalAmount.toStringAsFixed(0)}';
+  double get profit             => (salePrice - purchasePrice) * quantity;
+  String get profitLabel        => 'Rs ${profit.toStringAsFixed(0)}';
+  bool   get isProfitPositive   => profit >= 0;
+
+  String get qtyLabel => quantity % 1 == 0
       ? quantity.toInt().toString()
       : quantity.toStringAsFixed(2);
 
   static CustomerInvoiceItemDetail fromMap(Map<String, dynamic> m) =>
       CustomerInvoiceItemDetail(
-        productName: m['product_name']?.toString() ?? '',
-        sku:         m['sku']?.toString(),
-        price:       _dbl(m['price'])        ?? 0,
-        quantity:    _dbl(m['quantity'])     ?? 0,
-        discount:    _dbl(m['discount'])     ?? 0,
-        totalAmount: _dbl(m['total_amount']) ?? 0,
+        productName:   m['product_name']?.toString()  ?? '',
+        sku:           m['sku']?.toString(),
+        salePrice:     _dbl(m['sale_price'])     ?? 0,
+        purchasePrice: _dbl(m['purchase_price']) ?? 0,
+        price:         _dbl(m['price'])          ?? 0,
+        quantity:      _dbl(m['quantity'])       ?? 0,
+        discount:      _dbl(m['discount'])       ?? 0,
+        totalAmount:   _dbl(m['total_amount'])   ?? 0,
       );
 
   static double? _dbl(dynamic v) {

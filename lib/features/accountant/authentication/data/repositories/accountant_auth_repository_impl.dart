@@ -17,20 +17,21 @@ class AccountantAuthRepositoryImpl implements AccountantAuthRepository {
   Future<AccountantUserEntity?> login({
     required String username,
     required String password,
-  }) async {
-    return remote.login(username: username, password: password);
-  }
+  }) => remote.login(email: username, password: password);
 
   @override
   Future<void> saveSession(AccountantUserEntity user) async {
-    await local.saveUser(
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      phone: user.phone,
-      isActive: user.isActive,
-      createdAt: user.createdAt.toIso8601String(),
-    );
+    await local.saveUser({
+      'id'             : user.id,
+      'full_name'      : user.fullName,
+      'email'          : user.email,
+      'role'           : user.role,
+      'branch_id'      : user.branchId,
+      'warehouse_id'   : user.warehouseId,
+      'customer_token' : user.customerToken,
+      'is_active'      : user.isActive,
+      'created_at'     : user.createdAt.toIso8601String(),
+    });
   }
 
   @override

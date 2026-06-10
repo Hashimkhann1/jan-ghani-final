@@ -9,12 +9,11 @@ import '../../domain/usecases/save_session_usecase.dart';
 import '../notifier/accountant_auth_notifier.dart';
 import '../state/accountant_auth_state.dart';
 
-// ── Supabase client ──────────────────────────────────────────────────────────
+
 final supabaseClientProvider = Provider<SupabaseClient>(
       (ref) => Supabase.instance.client,
 );
 
-// ── Datasources ──────────────────────────────────────────────────────────────
 final remoteDataSourceProvider = Provider<AccountantAuthRemoteDatasource>(
       (ref) => AccountantAuthRemoteDatasourceImpl(
     ref.watch(supabaseClientProvider),
@@ -25,7 +24,6 @@ final localDataSourceProvider = Provider<AccountantAuthLocalDatasource>(
       (ref) => AccountantAuthLocalDatasourceImpl(),
 );
 
-// ── Repository ───────────────────────────────────────────────────────────────
 final accountantAuthRepositoryProvider = Provider<AccountantAuthRepository>(
       (ref) => AccountantAuthRepositoryImpl(
     remote: ref.watch(remoteDataSourceProvider),
@@ -33,7 +31,6 @@ final accountantAuthRepositoryProvider = Provider<AccountantAuthRepository>(
   ),
 );
 
-// ── Use Cases ────────────────────────────────────────────────────────────────
 final loginUseCaseProvider = Provider<LoginAccountantUseCase>(
       (ref) => LoginAccountantUseCase(
     ref.watch(accountantAuthRepositoryProvider),
@@ -46,11 +43,12 @@ final saveSessionUseCaseProvider = Provider<SaveSessionUseCase>(
   ),
 );
 
-// ── Notifier ─────────────────────────────────────────────────────────────────
+// ── Main notifier ─────────────────────────────────────────────────────────────
 final accountantAuthNotifierProvider =
 StateNotifierProvider<AccountantAuthNotifier, AccountantAuthState>(
       (ref) => AccountantAuthNotifier(
     loginUseCase: ref.watch(loginUseCaseProvider),
     saveSessionUseCase: ref.watch(saveSessionUseCaseProvider),
+    ref: ref,
   ),
 );

@@ -1,9 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../domain/entities/accountant_user_entity.dart';
 import '../model/accountant_user_model.dart';
 
 abstract class AccountantAuthRemoteDatasource {
-  Future<AccountantUserModel?> login({
-    required String username,
+  Future<AccountantUserEntity?> login({
+    required String email,
     required String password,
   });
 }
@@ -11,22 +12,22 @@ abstract class AccountantAuthRemoteDatasource {
 class AccountantAuthRemoteDatasourceImpl
     implements AccountantAuthRemoteDatasource {
   final SupabaseClient _client;
-  AccountantAuthRemoteDatasourceImpl(this._client);
+  const AccountantAuthRemoteDatasourceImpl(this._client);
 
   @override
-  Future<AccountantUserModel?> login({
-    required String username,
+  Future<AccountantUserEntity?> login({
+    required String email,
     required String password,
   }) async {
-    final response = await _client
-        .from('accountant_users')
+    final data = await _client
+        .from('users')
         .select()
-        .eq('username', username)
+        .eq('email', email)
         .eq('password', password)
-        .eq('is_active', true)
         .maybeSingle();
 
-    if (response == null) return null;
-    return AccountantUserModel.fromMap(response);
+    if (data == null) return null;
+
+    return AccountantUserModel.fromMap(data);
   }
 }

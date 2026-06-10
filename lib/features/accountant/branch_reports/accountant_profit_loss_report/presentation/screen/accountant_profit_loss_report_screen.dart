@@ -7,6 +7,9 @@ import '../provider/accountant_profit_loss_provider.dart';
 
 String _fmtQty(double q) => q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
 
+/// ── Responsive breakpoint ──
+const double _kWideBreakpoint = 900;
+
 class PnlReportScreen extends ConsumerStatefulWidget {
   const PnlReportScreen({super.key, required this.branchId});
   final String branchId;
@@ -142,46 +145,80 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
           child: Container(height: 1, color: const Color(0xFFE5E7EB)),
         ),
       ),
-      body: Column(children: [
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= _kWideBreakpoint;
 
-        // ── Date Filters ──────────────────────────────────
-        Container(
-          color:   Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Row(children: [
-            Expanded(
-              child: _DateField(
-                label:      'Start Date',
-                controller: _fromCtrl,
-                onTap:      () => _pickDate(context, true),
+          return Column(children: [
+
+            // ── Date Filters ──────────────────────────────────
+            Container(
+              width:   double.infinity,
+              color:   Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: isWide
+                      ? Row(children: [
+                    SizedBox(
+                      width: 240,
+                      child: _DateField(
+                        label:      'Start Date',
+                        controller: _fromCtrl,
+                        onTap:      () => _pickDate(context, true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 240,
+                      child: _DateField(
+                        label:      'End Date',
+                        controller: _toCtrl,
+                        onTap:      () => _pickDate(context, false),
+                      ),
+                    ),
+                    const Spacer(),
+                  ])
+                      : Row(children: [
+                    Expanded(
+                      child: _DateField(
+                        label:      'Start Date',
+                        controller: _fromCtrl,
+                        onTap:      () => _pickDate(context, true),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _DateField(
+                        label:      'End Date',
+                        controller: _toCtrl,
+                        onTap:      () => _pickDate(context, false),
+                      ),
+                    ),
+                  ]),
+                ),
               ),
             ),
-            const SizedBox(width: 10),
+
+            // ── Body ──────────────────────────────────────────
             Expanded(
-              child: _DateField(
-                label:      'End Date',
-                controller: _toCtrl,
-                onTap:      () => _pickDate(context, false),
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.summary == null
+                  ? const _EmptyState()
+                  : _PnlBody(
+                summary: state.summary!,
+                dayFmt:  _dayFmt,
+                timeFmt: _timeFmt,
+                fmtAmt:  _fmt,
+                tabCtrl: _tabCtrl,
+                isWide:  isWide,
               ),
             ),
-          ]),
-        ),
-
-        // ── Body ──────────────────────────────────────────
-        Expanded(
-          child: state.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : state.summary == null
-              ? const _EmptyState()
-              : _PnlBody(
-            summary: state.summary!,
-            dayFmt:  _dayFmt,
-            timeFmt: _timeFmt,
-            fmtAmt:  _fmt,
-            tabCtrl: _tabCtrl,
-          ),
-        ),
-      ]),
+          ]);
+        },
+      ),
     );
   }
 }
@@ -196,6 +233,7 @@ class _PnlBody extends StatelessWidget {
   final DateFormat              timeFmt;
   final String Function(double) fmtAmt;
   final TabController           tabCtrl;
+  final bool                    isWide;
 
   const _PnlBody({
     required this.summary,
@@ -203,10 +241,115 @@ class _PnlBody extends StatelessWidget {
     required this.timeFmt,
     required this.fmtAmt,
     required this.tabCtrl,
+    required this.isWide,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (isWide) return _buildWide(context);
+    return _buildMobile(context);
+  }
+
+  // ── Web / Desktop layout: side-by-side panels ─────────────
+  Widget _buildWide(BuildContext context) {
+    return Column(children: [
+
+      // ── Summary Card (single row on wide) ─────────────
+      Container(
+        width:   double.infinity,
+        color:   Colors.white,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            // ✅ FIX: IntrinsicHeight — stretch ko bounded height deta hai,
+            // warna "BoxConstraints forces an infinite height" error aata hai
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _StatChip(
+                    label: 'Sale Profit',
+                    value: fmtAmt(summary.grossSaleProfit),
+                    color: AppColor.success,
+                    icon:  Icons.trending_up_rounded,
+                  ),
+                  const SizedBox(width: 10),
+                  _StatChip(
+                    label: 'Return Loss',
+                    value: fmtAmt(summary.grossReturnProfit),
+                    color: AppColor.error,
+                    icon:  Icons.trending_down_rounded,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: _NetProfitBanner(
+                      netProfit:     summary.netProfit,
+                      profitMargin:  summary.profitMargin,
+                      totalInvoices: summary.totalInvoices,
+                      totalReturns:  summary.totalReturns,
+                      fmtAmt:        fmtAmt,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+
+      Container(height: 1, color: const Color(0xFFE5E7EB)),
+
+      // ── Side-by-side panels ────────────────────────────
+      Expanded(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(children: [
+                    const _PanelHeader(
+                        title: 'Daily Breakdown',
+                        icon:  Icons.calendar_view_day_rounded),
+                    Expanded(
+                      child: _DailyTab(
+                        daily:  summary.daily,
+                        dayFmt: dayFmt,
+                        fmtAmt: fmtAmt,
+                      ),
+                    ),
+                  ]),
+                ),
+                Container(
+                    width: 1,
+                    color: const Color(0xFFE5E7EB)),
+                Expanded(
+                  child: Column(children: [
+                    const _PanelHeader(
+                        title: 'Invoices',
+                        icon:  Icons.receipt_long_rounded),
+                    Expanded(
+                      child: _InvoicesTab(
+                        invoices: summary.invoices,
+                        timeFmt:  timeFmt,
+                        fmtAmt:   fmtAmt,
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  // ── Mobile layout: tabs (original) ────────────────────────
+  Widget _buildMobile(BuildContext context) {
     return Column(children: [
 
       // ── Summary Card ─────────────────────────────────
@@ -282,6 +425,32 @@ class _PnlBody extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  Panel Header (web side-by-side)
+// ═══════════════════════════════════════════════════════════
+
+class _PanelHeader extends StatelessWidget {
+  final String   title;
+  final IconData icon;
+  const _PanelHeader({required this.title, required this.icon});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width:   double.infinity,
+    color:   Colors.white,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: Row(children: [
+      Icon(icon, size: 16, color: AppColor.primary),
+      const SizedBox(width: 8),
+      Text(title,
+          style: const TextStyle(
+              fontSize:   13,
+              fontWeight: FontWeight.w700,
+              color:      AppColor.textPrimary)),
+    ]),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
 //  Net Profit Banner
 // ═══════════════════════════════════════════════════════════
 
@@ -322,44 +491,52 @@ class _NetProfitBanner extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Icon(
-                isProfit
-                    ? Icons.arrow_upward_rounded
-                    : Icons.arrow_downward_rounded,
-                size: 14, color: color,
-              ),
-              const SizedBox(width: 4),
+          Column(
+            mainAxisAlignment:  MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(
+                  isProfit
+                      ? Icons.arrow_upward_rounded
+                      : Icons.arrow_downward_rounded,
+                  size: 14, color: color,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  isProfit ? 'Net Profit' : 'Net Loss',
+                  style: TextStyle(
+                      fontSize:   12,
+                      fontWeight: FontWeight.w600,
+                      color:      color),
+                ),
+              ]),
+              const SizedBox(height: 4),
               Text(
-                isProfit ? 'Net Profit' : 'Net Loss',
+                fmtAmt(netProfit.abs()),
                 style: TextStyle(
-                    fontSize:   12,
-                    fontWeight: FontWeight.w600,
+                    fontSize:   20,
+                    fontWeight: FontWeight.w900,
                     color:      color),
               ),
-            ]),
-            const SizedBox(height: 4),
-            Text(
-              fmtAmt(netProfit.abs()),
-              style: TextStyle(
-                  fontSize:   20,
-                  fontWeight: FontWeight.w900,
-                  color:      color),
-            ),
-          ]),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            _InfoBadge(
-              label: '${profitMargin.toStringAsFixed(1)}% margin',
-              color: color,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '$totalInvoices invoices  •  $totalReturns returns',
-              style: const TextStyle(
-                  fontSize: 10, color: AppColor.textHint),
-            ),
-          ]),
+            ],
+          ),
+          Column(
+            mainAxisAlignment:  MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _InfoBadge(
+                label: '${profitMargin.toStringAsFixed(1)}% margin',
+                color: color,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$totalInvoices invoices  •  $totalReturns returns',
+                style: const TextStyle(
+                    fontSize: 10, color: AppColor.textHint),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -446,11 +623,15 @@ class _DayCard extends StatelessWidget {
                 const Icon(Icons.add_circle_outline,
                     size: 11, color: AppColor.success),
                 const SizedBox(width: 4),
-                Text('Sale: ${fmtAmt(day.saleProfit)}',
-                    style: const TextStyle(
-                        fontSize:   11,
-                        color:      AppColor.success,
-                        fontWeight: FontWeight.w600)),
+                Flexible(
+                  child: Text('Sale: ${fmtAmt(day.saleProfit)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize:   11,
+                          color:      AppColor.success,
+                          fontWeight: FontWeight.w600)),
+                ),
               ]),
               if (day.returnProfit > 0) ...[
                 const SizedBox(height: 2),
@@ -458,11 +639,15 @@ class _DayCard extends StatelessWidget {
                   const Icon(Icons.remove_circle_outline,
                       size: 11, color: AppColor.error),
                   const SizedBox(width: 4),
-                  Text('Return: ${fmtAmt(day.returnProfit)}',
-                      style: const TextStyle(
-                          fontSize:   11,
-                          color:      AppColor.error,
-                          fontWeight: FontWeight.w600)),
+                  Flexible(
+                    child: Text('Return: ${fmtAmt(day.returnProfit)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize:   11,
+                            color:      AppColor.error,
+                            fontWeight: FontWeight.w600)),
+                  ),
                 ]),
               ],
             ],
@@ -586,29 +771,38 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(children: [
-                          Text(inv.invoiceNo,
-                              style: TextStyle(
-                                  fontSize:   13,
-                                  fontWeight: FontWeight.w700,
-                                  color:      accentColor)),
-                          if (isReturn) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: AppColor.error.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(4),
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(inv.invoiceNo,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize:   13,
+                                        fontWeight: FontWeight.w700,
+                                        color:      accentColor)),
                               ),
-                              child: const Text('Return',
-                                  style: TextStyle(
-                                      fontSize:   9,
-                                      fontWeight: FontWeight.w700,
-                                      color:      AppColor.error)),
-                            ),
-                          ],
-                        ]),
+                              if (isReturn) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: AppColor.error.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text('Return',
+                                      style: TextStyle(
+                                          fontSize:   9,
+                                          fontWeight: FontWeight.w700,
+                                          color:      AppColor.error)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
@@ -696,7 +890,6 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                     ),
                     Expanded(
                       flex: 2,
-                      // ✅ UPDATED: toStringAsFixed(1) — shows 0.1 and 10.0 style
                       child: Text(
                         '(${item.salePrice.toStringAsFixed(1)}'
                             ' - ${item.purchasePrice.toStringAsFixed(1)})'
@@ -708,7 +901,6 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                     ),
                     Expanded(
                       flex: 2,
-                      // ✅ UPDATED: toStringAsFixed(1) for profit amount
                       child: Text(
                         '${iP ? '+' : '-'} Rs ${itemProfit.abs().toStringAsFixed(1)}',
                         textAlign: TextAlign.right,
@@ -790,6 +982,7 @@ class _StatChip extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Column(
+            mainAxisAlignment:  MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(value,
@@ -844,6 +1037,7 @@ class _DateField extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize:       MainAxisSize.min,
     children: [
       Text(label,
           style: const TextStyle(
