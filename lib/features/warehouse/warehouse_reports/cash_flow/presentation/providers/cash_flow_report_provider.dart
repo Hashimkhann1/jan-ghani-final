@@ -2,8 +2,15 @@
 // cash_flow_report_provider.dart
 // =============================================================
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/data/datasources/cash_flow_report_local_datasource.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/data/datasources/cash_flow_report_remote_datasource.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/data/datasources/cash_flow_report_source.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart'
+    show reportsWarehouseIdProvider;
 
 // ─────────────────────────────────────────────────────────────
 // FILTER MODE
@@ -74,7 +81,7 @@ class CashFlowReportState {
 // ─────────────────────────────────────────────────────────────
 
 class CashFlowReportNotifier extends StateNotifier<CashFlowReportState> {
-  final CashFlowReportLocalDatasource _ds;
+  final CashFlowReportSource _ds;
 
   CashFlowReportNotifier(this._ds) : super(const CashFlowReportState()) {
     // Default: current month
@@ -157,7 +164,17 @@ class CashFlowReportNotifier extends StateNotifier<CashFlowReportState> {
 // PROVIDER
 // ─────────────────────────────────────────────────────────────
 
-final cashFlowReportProvider =
-    StateNotifierProvider<CashFlowReportNotifier, CashFlowReportState>((ref) {
-  return CashFlowReportNotifier(CashFlowReportLocalDatasource.instance);
+final cashFlowReportProvider = StateNotifierProvider.autoDispose<
+    CashFlowReportNotifier, CashFlowReportState>((ref) {
+  // Platform ke hisaab se data source:
+  //  • website (kIsWeb)   → Supabase (raw fetch + compute), SELECTED warehouse
+  //  • Windows/Mac/mobile → local postgres (config warehouse), unchanged
+  // autoDispose + watch: selected warehouse badle to rebuild + reload.
+  final CashFlowReportSource source = kIsWeb
+      ? CashFlowReportRemoteDatasource(
+          Supabase.instance.client,
+          ref.watch(reportsWarehouseIdProvider) ?? AppConfig.warehouseId,
+        )
+      : CashFlowReportLocalDatasource.instance;
+  return CashFlowReportNotifier(source);
 });

@@ -206,7 +206,8 @@ class StockTransferSyncService {
           UPDATE public.warehouse_inventory
           SET quantity = quantity - sti.quantity_sent,
               last_movement_at = NOW(),
-              updated_at = NOW()
+              updated_at = NOW(),
+              is_synced = false
           FROM public.stock_transfer_items sti
           JOIN public.stock_transfers st ON st.id = sti.transfer_id
           WHERE sti.transfer_id = @transferId

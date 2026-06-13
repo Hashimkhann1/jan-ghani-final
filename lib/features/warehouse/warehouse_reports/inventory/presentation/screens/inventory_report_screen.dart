@@ -1,9 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
-import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_report_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
@@ -368,12 +368,12 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
 // STOCK HEALTH PANEL
 // ─────────────────────────────────────────────────────────────
 
-class _StockHealthPanel extends StatelessWidget {
+class _StockHealthPanel extends ConsumerWidget {
   final InventoryReportData data;
   const _StockHealthPanel({required this.data});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final total = data.totalActive;
     final good = (total - data.lowStockCount - data.outOfStockCount).clamp(0, total);
 
@@ -394,14 +394,50 @@ class _StockHealthPanel extends StatelessWidget {
       children: [
         _HealthRow(label: 'Good stock', count: good, total: total, color: AppColor.success, icon: Icons.check_circle_outline_rounded),
         _HealthRow(label: 'Low stock', count: data.lowStockCount, total: total, color: AppColor.warning, icon: Icons.warning_amber_rounded,
-            onTap: () => _showStockHealthSheet(context, data.activeProducts, StockFilter.lowStock)),
+            onTap: () => _openStockHealth(context, ref, StockFilter.lowStock)),
         _HealthRow(label: 'Out of stock', count: data.outOfStockCount, total: total, color: AppColor.error, icon: Icons.remove_shopping_cart_outlined,
-            onTap: () => _showStockHealthSheet(context, data.activeProducts, StockFilter.outOfStock)),
+            onTap: () => _openStockHealth(context, ref, StockFilter.outOfStock)),
         _HealthRow(label: 'Needs reorder', count: data.needsReorderCount, total: total, color: AppColor.info, icon: Icons.shopping_cart_outlined, isLast: true,
-            onTap: () => _showStockHealthSheet(context, data.activeProducts, StockFilter.needsReorder)),
+            onTap: () => _openStockHealth(context, ref, StockFilter.needsReorder)),
       ],
       footerLeft: 'Tap a row to see products',
     );
+  }
+
+  // Stock Health row tap → products dikhana.
+  //  • desktop → report ke activeProducts already memory mein (instant)
+  //  • web     → products ON-DEMAND Supabase se (chhota loader, phir sheet)
+  Future<void> _openStockHealth(
+      BuildContext context, WidgetRef ref, StockFilter filter) async {
+    if (!kIsWeb) {
+      _showStockHealthSheet(context, data.activeProducts, filter);
+      return;
+    }
+
+    // Web: agar pehle fetch ho chuke to turant, warna loader ke saath fetch
+    final cached = ref.read(stockHealthProductsProvider);
+    if (cached.hasValue) {
+      _showStockHealthSheet(context, cached.value!, filter);
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final products = await ref.read(stockHealthProductsProvider.future);
+      if (context.mounted) Navigator.of(context).pop(); // loader band
+      if (context.mounted) _showStockHealthSheet(context, products, filter);
+    } catch (_) {
+      if (context.mounted) Navigator.of(context).pop();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Products load nahi hue')),
+        );
+      }
+    }
   }
 }
 
@@ -468,7 +504,8 @@ class _StockTransferSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(transferReportProvider);
+    // Platform-aware: web → Supabase, desktop/mobile → local (provider handle karta hai)
+    final state = ref.watch(inventoryTransfersProvider);
 
     if (state.isLoading) {
       return Container(

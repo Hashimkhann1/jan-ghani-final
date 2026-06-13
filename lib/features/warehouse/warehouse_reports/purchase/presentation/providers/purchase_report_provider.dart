@@ -2,8 +2,15 @@
 // purchase_report_provider.dart
 // =============================================================
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/purchase/data/datasources/purchase_report_local_datasource.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/purchase/data/datasources/purchase_report_remote_datasource.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/purchase/data/datasources/purchase_report_source.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart'
+    show reportsWarehouseIdProvider;
 
 // ─────────────────────────────────────────────────────────────
 // FILTER MODE
@@ -82,7 +89,7 @@ class PurchaseReportState {
 // ─────────────────────────────────────────────────────────────
 
 class PurchaseReportNotifier extends StateNotifier<PurchaseReportState> {
-  final PurchaseReportLocalDatasource _ds;
+  final PurchaseReportSource _ds;
 
   PurchaseReportNotifier(this._ds) : super(const PurchaseReportState()) {
     // Default: current month
@@ -160,7 +167,17 @@ class PurchaseReportNotifier extends StateNotifier<PurchaseReportState> {
 // PROVIDER
 // ─────────────────────────────────────────────────────────────
 
-final purchaseReportProvider =
-    StateNotifierProvider<PurchaseReportNotifier, PurchaseReportState>((ref) {
-  return PurchaseReportNotifier(PurchaseReportLocalDatasource.instance);
+final purchaseReportProvider = StateNotifierProvider.autoDispose<
+    PurchaseReportNotifier, PurchaseReportState>((ref) {
+  // Platform ke hisaab se data source:
+  //  • website (kIsWeb)        → Supabase RPC, SELECTED warehouse id ke saath
+  //  • Windows/Mac/mobile      → local postgres (config warehouse), unchanged
+  // autoDispose + watch: selected warehouse badle to provider rebuild + reload.
+  final PurchaseReportSource source = kIsWeb
+      ? PurchaseReportRemoteDatasource(
+          Supabase.instance.client,
+          ref.watch(reportsWarehouseIdProvider) ?? AppConfig.warehouseId,
+        )
+      : PurchaseReportLocalDatasource.instance;
+  return PurchaseReportNotifier(source);
 });

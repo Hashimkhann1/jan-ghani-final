@@ -1,122 +1,23 @@
 // =============================================================
 // purchase_report_local_datasource.dart
-// Purchase Report ke liye saari DB queries yahan hain
+// Purchase Report ke liye LOCAL postgres queries (Windows/Mac/mobile).
+// Models ab purchase_report_models.dart mein hain (re-exported).
 // =============================================================
 
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
 import 'package:postgres/postgres.dart';
+import 'purchase_report_models.dart';
+import 'purchase_report_source.dart';
+
+// Purane imports (provider/screen) ke liye models yahin se mil jayein
+export 'purchase_report_models.dart';
 
 // ─────────────────────────────────────────────────────────────
-// DATA MODELS
+// DATASOURCE (LOCAL)
 // ─────────────────────────────────────────────────────────────
 
-class PurchaseSummaryData {
-  final int    totalPos;
-  final double totalReceivedValue;
-  final int    pendingCount;
-  final double thisMonthValue;
-
-  const PurchaseSummaryData({
-    required this.totalPos,
-    required this.totalReceivedValue,
-    required this.pendingCount,
-    required this.thisMonthValue,
-  });
-}
-
-class PoStatusCount {
-  final String status;
-  final int    count;
-
-  const PoStatusCount({required this.status, required this.count});
-
-  String get label {
-    switch (status) {
-      case 'received':  return 'Received';
-      case 'ordered':   return 'Ordered';
-      case 'partial':   return 'Partial';
-      case 'draft':     return 'Draft';
-      case 'cancelled': return 'Cancelled';
-      default:          return status;
-    }
-  }
-}
-
-class SupplierPoValue {
-  final String supplierName;
-  final double totalValue;
-
-  const SupplierPoValue({required this.supplierName, required this.totalValue});
-}
-
-class MonthlyPoData {
-  final DateTime month;
-  final double   total;
-
-  const MonthlyPoData({required this.month, required this.total});
-}
-
-class SupplierCompletionData {
-  final String supplierName;
-  final double totalOrdered;
-  final double totalReceived;
-  final int    totalPos;
-  final int    receivedPos;
-
-  const SupplierCompletionData({
-    required this.supplierName,
-    required this.totalOrdered,
-    required this.totalReceived,
-    required this.totalPos,
-    required this.receivedPos,
-  });
-
-  double get completionRate =>
-      totalOrdered == 0 ? 0 : (totalReceived / totalOrdered).clamp(0, 1);
-}
-
-class RecentPoEntry {
-  final String    poNumber;
-  final String?   supplierName;
-  final String    status;
-  final DateTime  orderDate;
-  final DateTime? expectedDate;
-  final double    totalAmount;
-  final double    paidAmount;
-
-  const RecentPoEntry({
-    required this.poNumber,
-    this.supplierName,
-    required this.status,
-    required this.orderDate,
-    this.expectedDate,
-    required this.totalAmount,
-    required this.paidAmount,
-  });
-
-  double get remainingAmount =>
-      (totalAmount - paidAmount).clamp(0, double.infinity);
-
-  bool get isFullyPaid => remainingAmount <= 0;
-
-  String get statusLabel {
-    switch (status) {
-      case 'received':  return 'Received';
-      case 'ordered':   return 'Ordered';
-      case 'partial':   return 'Partial';
-      case 'draft':     return 'Draft';
-      case 'cancelled': return 'Cancelled';
-      default:          return status;
-    }
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// DATASOURCE
-// ─────────────────────────────────────────────────────────────
-
-class PurchaseReportLocalDatasource {
+class PurchaseReportLocalDatasource implements PurchaseReportSource {
   static final PurchaseReportLocalDatasource instance =
       PurchaseReportLocalDatasource._();
   PurchaseReportLocalDatasource._();
@@ -144,6 +45,7 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 1. Summary stats ─────────────────────────────────────
+  @override
   Future<PurchaseSummaryData> getSummary({DateTime? from, DateTime? to}) async {
     final conn     = await _db;
     final dateCond = _dateWhere('order_date', from, to);
@@ -174,6 +76,7 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 2. Status distribution — PieChart ────────────────────
+  @override
   Future<List<PoStatusCount>> getStatusDistribution({DateTime? from, DateTime? to}) async {
     final conn     = await _db;
     final dateCond = _dateWhere('order_date', from, to);
@@ -199,6 +102,7 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 3. Top suppliers by PO value — BarChart ──────────────
+  @override
   Future<List<SupplierPoValue>> getTopSuppliersByValue({
     int limit = 6,
     DateTime? from,
@@ -233,6 +137,7 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 4. Monthly trend — LineChart ─────────────────────────
+  @override
   Future<List<MonthlyPoData>> getMonthlyTrend({DateTime? from, DateTime? to}) async {
     final conn = await _db;
 
@@ -276,6 +181,7 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 5. Supplier completion rate — Progress Bars ───────────
+  @override
   Future<List<SupplierCompletionData>> getSupplierCompletion({
     int limit = 8,
     DateTime? from,
@@ -317,6 +223,7 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 6. Recent POs — latest 20 ────────────────────────────
+  @override
   Future<List<RecentPoEntry>> getRecentPos({
     int limit = 20,
     DateTime? from,
@@ -361,6 +268,7 @@ class PurchaseReportLocalDatasource {
   }
 
   // ── 7. Pending POs only ───────────────────────────────────
+  @override
   Future<List<RecentPoEntry>> getPendingPos({DateTime? from, DateTime? to}) async {
     final conn     = await _db;
     final dateCond = _dateWhere('po.order_date', from, to);

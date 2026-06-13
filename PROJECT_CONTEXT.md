@@ -60,6 +60,11 @@ AppConfig.appMode       // 'warehouse' ya 'store'
 - `v_daily_summary` — today's cash summary
 - `v_warehouse_stock` — stock with available quantity
 
+### Reports — Supabase READ-ONLY objects (Session 3, web support ke liye)
+> Sirf Supabase par (web fetch ke liye). Local schema unchanged. Table/data ko touch nahi karte.
+- **Views:** `warehouse_inventory_summary_v` (per-warehouse: total/low/out/reorder counts + purchase/selling value), `warehouse_inventory_category_v` (per-warehouse, per-category value + count)
+- **RPC functions (7):** `purchase_report_summary`, `purchase_report_status_dist`, `purchase_report_top_suppliers`, `purchase_report_monthly_trend`, `purchase_report_supplier_completion`, `purchase_report_recent_pos`, `purchase_report_pending_pos` — params `(p_wid, p_from, p_to[, p_limit])`, `LANGUAGE sql STABLE`
+
 ---
 
 ## Project Structure
@@ -108,21 +113,34 @@ lib/
     │       ├── presentation/screens/
     │       │   └── warehouse_reports_shell.dart        ← Reports shell (drawer + routing)
     │       ├── inventory/
+    │       │   ├── data/datasources/inventory_report_remote_datasource.dart  ← WEB (Supabase views)
     │       │   └── presentation/
-    │       │       ├── providers/inventory_report_provider.dart
+    │       │       ├── providers/inventory_report_provider.dart   ← kIsWeb branch + reportsWarehouseIdProvider
     │       │       └── screens/inventory_report_screen.dart
     │       ├── supplier/
-    │       │   ├── data/datasources/supplier_report_local_datasource.dart
+    │       │   ├── data/datasources/
+    │       │   │   ├── supplier_report_models.dart            ← models (shared)
+    │       │   │   ├── supplier_report_source.dart            ← interface (local+remote follow)
+    │       │   │   ├── supplier_report_local_datasource.dart  ← local postgres
+    │       │   │   └── supplier_report_remote_datasource.dart ← WEB (raw fetch + Dart compute)
     │       │   └── presentation/
     │       │       ├── providers/supplier_report_provider.dart
     │       │       └── screens/supplier_report_screen.dart
     │       ├── purchase/
-    │       │   ├── data/datasources/purchase_report_local_datasource.dart
+    │       │   ├── data/datasources/
+    │       │   │   ├── purchase_report_models.dart
+    │       │   │   ├── purchase_report_source.dart
+    │       │   │   ├── purchase_report_local_datasource.dart
+    │       │   │   └── purchase_report_remote_datasource.dart ← WEB (Supabase RPC functions)
     │       │   └── presentation/
     │       │       ├── providers/purchase_report_provider.dart
     │       │       └── screens/purchase_report_screen.dart
     │       └── cash_flow/
-    │           ├── data/datasources/cash_flow_report_local_datasource.dart
+    │           ├── data/datasources/
+    │           │   ├── cash_flow_report_models.dart
+    │           │   ├── cash_flow_report_source.dart
+    │           │   ├── cash_flow_report_local_datasource.dart
+    │           │   └── cash_flow_report_remote_datasource.dart ← WEB (raw fetch + Dart compute)
     │           └── presentation/
     │               ├── providers/cash_flow_report_provider.dart
     │               └── screens/cash_flow_report_screen.dart
@@ -210,11 +228,79 @@ AnimatedContainer(
 
 ---
 
+## Reports — Web vs Desktop (Platform-aware Data Sources)
+
+> **Session 3 addition.** Charon reports ab **dono platforms** par chalti hain. Data source `kIsWeb` ke hisaab se switch hota hai — UI/screen bilkul SAME rehta hai, sirf data kahan se aata hai woh badalta hai.
+
+| Platform | Data source | Warehouse ID |
+|---|---|---|
+| **Windows / Mac / mobile** | Local postgres (`DatabaseService`) | `AppConfig.warehouseId` (config.json) — **unchanged** |
+| **Website (`kIsWeb`)** | Supabase | **selected** warehouse (accountant ne jo choose kiya) |
+
+### Architecture (Supplier / Purchase / Cash Flow)
+Har report ke paas ab ek **interface + 2 implementations** hain (clean swap ke liye):
+- `*_report_models.dart` — models alag file (dono datasources + interface share karte hain; local datasource inhe **re-export** karta hai taake provider/screen ke purane imports waise hi chalein)
+- `*_report_source.dart` — abstract interface (`PurchaseReportSource`, `SupplierReportSource`, `CashFlowReportSource`)
+- `*_report_local_datasource.dart` — local postgres, `implements <Source>` — **behaviour bilkul unchanged**
+- `*_report_remote_datasource.dart` — Supabase, `implements <Source>`
+
+Provider platform ke hisaab se source pick karta hai:
+```dart
+final xReportProvider = StateNotifierProvider.autoDispose<XNotifier, XState>((ref) {
+  final XReportSource source = kIsWeb
+      ? XReportRemoteDatasource(Supabase.instance.client,
+          ref.watch(reportsWarehouseIdProvider) ?? AppConfig.warehouseId)
+      : XReportLocalDatasource.instance;
+  return XReportNotifier(source);
+});
+```
+> **Inventory thoda alag hai** — uska koi `Source` interface nahi; provider khud `kIsWeb` par branch karta hai (desktop = `productProvider`, web = Supabase views).
+
+### `reportsWarehouseIdProvider` (web par selected warehouse)
+**Defined in:** `inventory_report_provider.dart` (shared — baaki report providers isko import karte hain)
+```dart
+final reportsWarehouseIdProvider = StateProvider<String?>((ref) => null);
+```
+- **null** → config warehouse (desktop / warehouse app)
+- **value** → selected warehouse id; accountant ke **Reports card** par tap karte hi set hota hai
+- Provider `autoDispose` + `ref.watch(reportsWarehouseIdProvider)` → warehouse badle to rebuild + reload
+
+> **Kyun zaroori:** config.json ka `warehouse_id` LOCAL DB ki warehouse hai. Supabase par data alag warehouse id ke under hota hai → web par config-id se 0 results aate the. Ab selected warehouse use hota hai.
+
+### Per-report web approach
+| Report | Web approach | Supabase objects (READ-ONLY) |
+|---|---|---|
+| **Inventory** | Aggregate **VIEWS** (1396+ products → server-side exact + fast) + Stock-Health drill-down **on-demand** | ✅ `warehouse_inventory_summary_v`, `warehouse_inventory_category_v` |
+| **Purchase** | **RPC functions** (date-filtered aggregates, local SQL ka exact mirror) | ✅ 7 functions: `purchase_report_summary/_status_dist/_top_suppliers/_monthly_trend/_supplier_completion/_recent_pos/_pending_pos` |
+| **Suppliers** | **Raw fetch + Dart compute** (data chhota ~47, future ~600) | ❌ koi DB object nahi |
+| **Cash Flow** | **Raw fetch + Dart compute** (data chhota ~250 txns) | ❌ koi DB object nahi |
+
+> Inventory & Purchase ne DB objects banaye kyunki data bada/aggregate-heavy tha. Suppliers & Cash Flow chhote the → client-side compute, koi view/RPC nahi.
+
+### Accountant se Reports kholna
+**File:** `accountant/accountant_warehouse_dashboard/.../accountant_warehouse_dashboard_screen.dart`
+- Dashboard mein **"Reports" card** — tap par `reportsWarehouseIdProvider = selected warehouseId` set karke `WarehouseReportsShell` kholta hai
+- Shell ke sidebar back-button web par **"Back"** dikhata hai (Dashboard nahi) — `WarehouseReportsShell` ke naye `backLabel` / `backIcon` params se — tap par wapas accountant dashboard par pop
+
+### ⚠️ 1000-row cap (PostgREST)
+Supabase REST ek request mein max **~1000 rows** deta hai. Saare raw-fetch (`suppliers` / `purchase_orders` / `warehouse_cash_transactions` / `warehouse_products`) **`.range()` se paginated** hain (1000-1000 chunks), warna data cut ho jata. Date boundary `created_at::date <= to` ka mirror: `.gte(from-midnight)` + `.lt(to + 1 din)`.
+
+### ⚠️ Supabase objects (schema rule exception)
+Pehle "Supabase schema change nahi karna" rule tha. Reports ke web support ke liye **read-only** objects banaye gaye (table/data ko haath nahi lagaya):
+- 2 views: `warehouse_inventory_summary_v`, `warehouse_inventory_category_v`
+- 7 functions: `purchase_report_*`
+
+---
+
 ## Inventory Report (`inventoryReportProvider` + `InventoryReportScreen`)
 
 **Provider file:** `lib/features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart`
-- `inventoryReportProvider` → `Provider<InventoryReportData>` — `productProvider` se derive hota hai, koi DB call nahi
+- `inventoryReportProvider` → `Provider<InventoryReportData>` — **platform-aware:**
+  - **Desktop:** `productProvider` se derive hota hai, koi DB call nahi (pehle jaisा)
+  - **Web (`kIsWeb`):** `_remoteReportProvider` (FutureProvider) → Supabase aggregate views (`warehouse_inventory_summary_v` + `warehouse_inventory_category_v`) — exact numbers, saari rows fetch nahi hoti
 - Computes: totalActive, lowStockCount, outOfStockCount, needsReorderCount, totalPurchaseValue, totalSellingValue, categoryBreakdown, reorderProducts, activeProducts
+- **Stock-Health drill-down (web):** `stockHealthProductsProvider` — products **on-demand** (user ke tap par) Supabase se fetch hote hain (`getProducts`, paginated)
+- Shared: `reportsWarehouseIdProvider` yahin define hai (baaki report providers import karte hain)
 
 **Screen file:** `lib/features/warehouse/warehouse_reports/inventory/presentation/screens/inventory_report_screen.dart`
 - **4 Summary Cards** — Total products, Inventory value, Reorder needed, Out of stock
@@ -333,10 +419,11 @@ MovementRow(entry, isLast)
 |---|---|---|---|
 | `productProvider` | `warehouse_stock_inventory/presentation/provider/product_provider.dart` | `StateNotifierProvider<ProductNotifier, ProductState>` | All products + stock |
 | `authProvider` | `warehouse/auth/presentation/provider/auth_provider.dart` | StateNotifier | Current user + login/logout |
-| `inventoryReportProvider` | `warehouse_reports/inventory/.../inventory_report_provider.dart` | `Provider<InventoryReportData>` | Derived from productProvider, koi DB call nahi |
-| `supplierReportProvider` | `warehouse_reports/supplier/.../supplier_report_provider.dart` | `StateNotifierProvider<SupplierReportNotifier, SupplierReportState>` | 6 DB queries parallel Future.wait |
-| `purchaseReportProvider` | `warehouse_reports/purchase/.../purchase_report_provider.dart` | `StateNotifierProvider<PurchaseReportNotifier, PurchaseReportState>` | 7 DB queries parallel Future.wait |
-| `cashFlowReportProvider` | `warehouse_reports/cash_flow/.../cash_flow_report_provider.dart` | `StateNotifierProvider<CashFlowReportNotifier, CashFlowReportState>` | 4 DB queries parallel Future.wait |
+| `inventoryReportProvider` | `warehouse_reports/inventory/.../inventory_report_provider.dart` | `Provider<InventoryReportData>` | **Platform-aware:** desktop=productProvider, web=Supabase views |
+| `reportsWarehouseIdProvider` | `warehouse_reports/inventory/.../inventory_report_provider.dart` | `StateProvider<String?>` | Web par reports kis warehouse ka data dikhayein (selected) |
+| `supplierReportProvider` | `warehouse_reports/supplier/.../supplier_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | 6 queries; desktop=local, web=Supabase raw+compute |
+| `purchaseReportProvider` | `warehouse_reports/purchase/.../purchase_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | 7 queries; desktop=local, web=Supabase RPC |
+| `cashFlowReportProvider` | `warehouse_reports/cash_flow/.../cash_flow_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | 5 queries; desktop=local, web=Supabase raw+compute |
 | `transferReportProvider` | `assign_stock/presentation/providers/assign_stock_report_provider.dart` | `StateNotifierProvider<TransferReportNotifier, TransferReportState>` | Stock transfers data |
 | `assignStockProvider` | `assign_stock/presentation/providers/assign_stock_provider.dart` | StateNotifier | Cart state for assigning stock |
 | `warehouseDashboardProvider` | `warehouse_dashboard/presentation/provider/` | StateNotifier | Dashboard data |
@@ -398,7 +485,7 @@ class ProductModel {
 
 ## Rules (Important)
 - **Sirf warehouse par kaam karna** — accountant aur branch features bilkul touch nahi karne
-- **Supabase schema change nahi karna** — sirf read/reference ke liye dekh sakte ho
+- **Supabase tables/data change nahi karna** — sirf read/reference. **Exception (reports web support):** read-only **views** + **RPC functions** banaye gaye hain (`warehouse_inventory_*_v`, `purchase_report_*`) — yeh sirf SELECT karte hain, kisi table/column/data ko touch nahi karte
 - **New reports:** `warehouse_reports_shell.dart` mein `_reports` list mein add karo, `isComingSoon: false` karo aur `screen:` pass karo
 - **`withOpacity()` deprecated hai** — project mein sab jagah use ho raha hai, existing code mein mat change karo, naye code mein bhi same rakho for consistency
 - **`DashStatCard` already `Expanded` return karta hai** — kabhi bhi `Expanded(child: DashStatCard(...))` mat karo, seedha `DashStatCard(...)` use karo `Row` mein
@@ -467,6 +554,19 @@ await conn.execute(
    - Recent Transactions section removed per request
 4. **`warehouse_reports_shell.dart`** — Purchases, Suppliers, Cash Flow `isComingSoon: false`, screens connected
 5. **`warehouse_stock_movements` fix** — `_handleReceivedInventory()` mein INSERT log add kiya (production-safe)
+
+## Session 3 — Kya Kiya (Reports → Web/Supabase support)
+
+> Maqsad: charon reports website par bhi chalein (Supabase se), desktop (Win/Mac) par local DB se — UI same, sirf data source platform ke hisaab se switch.
+
+1. **Platform-aware architecture** — har report ke liye `*_report_models.dart` (shared) + `*_report_source.dart` (interface) + `*_report_local_datasource.dart` (`implements`) + `*_report_remote_datasource.dart` (Supabase). Provider `kIsWeb` par branch (`autoDispose`).
+2. **`reportsWarehouseIdProvider`** (`inventory_report_provider.dart`) — web par accountant ka **selected warehouse** use hota hai (config-id nahi). Accountant dashboard ka **Reports card** ise set karke shell kholta hai.
+3. **Inventory** — 2 Supabase **views** (`warehouse_inventory_summary_v`, `warehouse_inventory_category_v`) summary+category ke liye; Stock-Health drill-down **on-demand** fetch.
+4. **Purchase** — 7 Supabase **RPC functions** (`purchase_report_*`, date-filtered, local SQL ka exact mirror).
+5. **Suppliers + Cash Flow** — **raw fetch + Dart compute** (data chhota; no RPC/view).
+6. **`WarehouseReportsShell`** — naye `backLabel`/`backIcon` params; accountant se kholne par sidebar back button **"Back"** (→ accountant dashboard pop).
+7. **1000-row cap fixes** — saare raw fetch `.range()` se paginated (suppliers/POs/transactions/products); date boundary `gte(from)` + `lt(to+1)`.
+8. **Accountant warehouse dashboard** — web par metrics **card grid** (mobile par rows same); Cash-in-Hand card width capped; "Reports" card added.
 
 ---
 

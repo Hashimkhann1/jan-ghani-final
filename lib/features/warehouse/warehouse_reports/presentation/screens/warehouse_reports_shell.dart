@@ -31,7 +31,17 @@ class _ReportItem {
 
 class WarehouseReportsShell extends StatefulWidget {
   final VoidCallback onBack;
-  const WarehouseReportsShell({super.key, required this.onBack});
+  // Sidebar ke back button ka text + icon. Default warehouse-app jaisा
+  // ('Dashboard'). Accountant/web se khulne par 'Back' pass kiya jata hai.
+  final String backLabel;
+  final IconData backIcon;
+
+  const WarehouseReportsShell({
+    super.key,
+    required this.onBack,
+    this.backLabel = 'Dashboard',
+    this.backIcon = Icons.dashboard_outlined,
+  });
 
   @override
   State<WarehouseReportsShell> createState() =>
@@ -111,6 +121,7 @@ class _WarehouseReportsShellState extends State<WarehouseReportsShell> {
                       onSelect: _selectReport,
                       onClose: _toggleDrawer,
                       onBack: widget.onBack,
+                      backLabel: widget.backLabel,
                     )
                   : _CollapsedRail(
                       reports: _reports,
@@ -118,6 +129,8 @@ class _WarehouseReportsShellState extends State<WarehouseReportsShell> {
                       onSelect: _selectReport,
                       onToggle: _toggleDrawer,
                       onBack: widget.onBack,
+                      backLabel: widget.backLabel,
+                      backIcon: widget.backIcon,
                     ),
             ),
           ),
@@ -147,6 +160,8 @@ class _CollapsedRail extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final VoidCallback onToggle;
   final VoidCallback onBack;
+  final String backLabel;
+  final IconData backIcon;
 
   const _CollapsedRail({
     required this.reports,
@@ -154,6 +169,8 @@ class _CollapsedRail extends StatelessWidget {
     required this.onSelect,
     required this.onToggle,
     required this.onBack,
+    required this.backLabel,
+    required this.backIcon,
   });
 
   @override
@@ -195,11 +212,11 @@ class _CollapsedRail extends StatelessWidget {
 
           const Spacer(),
 
-          // Back to dashboard
+          // Back (Dashboard / accountant dashboard — caller decide karta hai)
           _RailIcon(
-            icon: Icons.dashboard_outlined,
+            icon: backIcon,
             color: AppColor.grey500,
-            tooltip: 'Dashboard',
+            tooltip: backLabel,
             onTap: onBack,
           ),
           const SizedBox(height: 12),
@@ -257,6 +274,7 @@ class _ExpandedDrawer extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final VoidCallback onClose;
   final VoidCallback onBack;
+  final String backLabel;
 
   const _ExpandedDrawer({
     required this.reports,
@@ -264,6 +282,7 @@ class _ExpandedDrawer extends StatelessWidget {
     required this.onSelect,
     required this.onClose,
     required this.onBack,
+    required this.backLabel,
   });
 
   @override
@@ -295,14 +314,14 @@ class _ExpandedDrawer extends StatelessWidget {
                           color: AppColor.grey100,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.arrow_back_ios_rounded,
+                            const Icon(Icons.arrow_back_ios_rounded,
                                 size: 10, color: AppColor.grey600),
-                            SizedBox(width: 3),
-                            Text('Dashboard',
-                                style: TextStyle(
+                            const SizedBox(width: 3),
+                            Text(backLabel,
+                                style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w500,
                                     color: AppColor.grey600)),

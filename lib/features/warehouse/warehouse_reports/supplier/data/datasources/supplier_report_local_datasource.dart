@@ -1,112 +1,23 @@
 // =============================================================
 // supplier_report_local_datasource.dart
-// Supplier Report ke liye saari DB queries yahan hain
+// Supplier Report ke liye LOCAL postgres queries (Windows/Mac/mobile).
+// Models ab supplier_report_models.dart mein hain (re-exported).
 // =============================================================
 
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
 import 'package:postgres/postgres.dart';
+import 'supplier_report_models.dart';
+import 'supplier_report_source.dart';
+
+// Purane imports (provider/screen) ke liye models yahin se mil jayein
+export 'supplier_report_models.dart';
 
 // ─────────────────────────────────────────────────────────────
-// DATA MODELS
+// DATASOURCE (LOCAL)
 // ─────────────────────────────────────────────────────────────
 
-class SupplierSummaryData {
-  final int totalActive;
-  final double totalOutstanding;
-  final int clearCount;
-  final int hasBalanceCount;
-  final double totalPurchased;
-
-  const SupplierSummaryData({
-    required this.totalActive,
-    required this.totalOutstanding,
-    required this.clearCount,
-    required this.hasBalanceCount,
-    required this.totalPurchased,
-  });
-}
-
-class SupplierBalanceItem {
-  final String name;
-  final String? phone;
-  final String? code;
-  final double outstandingBalance;
-  final int totalOrders;
-  final double totalPurchased;
-
-  const SupplierBalanceItem({
-    required this.name,
-    this.phone,
-    this.code,
-    required this.outstandingBalance,
-    required this.totalOrders,
-    required this.totalPurchased,
-  });
-}
-
-class SupplierPurchaseItem {
-  final String name;
-  final double totalPurchased;
-
-  const SupplierPurchaseItem({
-    required this.name,
-    required this.totalPurchased,
-  });
-}
-
-class MonthlyPurchaseData {
-  final DateTime month;
-  final double total;
-
-  const MonthlyPurchaseData({required this.month, required this.total});
-}
-
-class RecentLedgerEntry {
-  final String id;
-  final String supplierName;
-  final String entryType;
-  final double amount;
-  final double balanceAfter;
-  final String? notes;
-  final DateTime createdAt;
-
-  const RecentLedgerEntry({
-    required this.id,
-    required this.supplierName,
-    required this.entryType,
-    required this.amount,
-    required this.balanceAfter,
-    this.notes,
-    required this.createdAt,
-  });
-
-  bool get isCredit => amount < 0;
-  bool get isDebit  => amount > 0;
-
-  String get entryTypeLabel {
-    switch (entryType) {
-      case 'purchase':   return 'Purchase';
-      case 'payment':    return 'Payment';
-      case 'return':     return 'Return';
-      case 'opening':    return 'Opening';
-      case 'adjustment': return 'Adjustment';
-      default:           return entryType;
-    }
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// BALANCE STATUS FILTER
-// ─────────────────────────────────────────────────────────────
-
-enum BalanceStatusFilter { all, outstanding, clear }
-
-// ─────────────────────────────────────────────────────────────
-// DATASOURCE
-// ─────────────────────────────────────────────────────────────
-
-class SupplierReportLocalDatasource {
+class SupplierReportLocalDatasource implements SupplierReportSource {
   static final SupplierReportLocalDatasource instance =
       SupplierReportLocalDatasource._();
   SupplierReportLocalDatasource._();
@@ -145,6 +56,7 @@ class SupplierReportLocalDatasource {
   // ── 1. Summary stats ─────────────────────────────────────
   // Note: supplier counts/outstanding LIVE/current state hain (date se
   // filter nahi hote). Sirf total_purchased date range follow karta hai.
+  @override
   Future<SupplierSummaryData> getSummary({DateTime? from, DateTime? to}) async {
     final conn = await _db;
 
@@ -190,6 +102,7 @@ class SupplierReportLocalDatasource {
   }
 
   // ── 2. Top suppliers by outstanding balance — PieChart ───
+  @override
   Future<List<SupplierBalanceItem>> getTopByBalance({int limit = 6}) async {
     final conn = await _db;
 
@@ -219,6 +132,7 @@ class SupplierReportLocalDatasource {
   }
 
   // ── 3. Top suppliers by purchase volume — BarChart ───────
+  @override
   Future<List<SupplierPurchaseItem>> getTopByPurchase({
     int limit = 6,
     DateTime? from,
@@ -258,6 +172,7 @@ class SupplierReportLocalDatasource {
   }
 
   // ── 4. Monthly purchase trend — LineChart ────────────────
+  @override
   Future<List<MonthlyPurchaseData>> getMonthlyTrend({DateTime? from, DateTime? to}) async {
     final conn = await _db;
 
@@ -303,6 +218,7 @@ class SupplierReportLocalDatasource {
   // ── 5. All suppliers list for table ──────────────────────
   // Date filter → PO aggregation (orders/purchased) pe.
   // Balance status filter → kaunse supplier rows dikhein.
+  @override
   Future<List<SupplierBalanceItem>> getAllSuppliers({
     DateTime? from,
     DateTime? to,
@@ -355,6 +271,7 @@ class SupplierReportLocalDatasource {
   }
 
   // ── 6. Recent ledger entries (last 20) ───────────────────
+  @override
   Future<List<RecentLedgerEntry>> getRecentLedger({
     int limit = 20,
     DateTime? from,

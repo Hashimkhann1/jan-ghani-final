@@ -1,123 +1,23 @@
 // =============================================================
 // cash_flow_report_local_datasource.dart
-// Cash Flow Report ke liye saari DB queries yahan hain
+// Cash Flow Report ke liye LOCAL postgres queries (Windows/Mac/mobile).
+// Models ab cash_flow_report_models.dart mein hain (re-exported).
 // =============================================================
 
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
 import 'package:postgres/postgres.dart';
+import 'cash_flow_report_models.dart';
+import 'cash_flow_report_source.dart';
+
+// Purane imports (provider/screen) ke liye models yahin se mil jayein
+export 'cash_flow_report_models.dart';
 
 // ─────────────────────────────────────────────────────────────
-// DATA MODELS
+// DATASOURCE (LOCAL)
 // ─────────────────────────────────────────────────────────────
 
-class CashFlowSummary {
-  final double cashInHand;      // LIVE current balance (date se nahi badalta)
-  final double periodCashIn;    // selected period ka cash in
-  final double periodCashOut;   // selected period ka cash out
-  final double prevPeriodNet;   // pichle (equal-length) period ka net — % change ke liye
-  final bool   hasPrev;         // prev comparison meaningful hai ya nahi
-
-  const CashFlowSummary({
-    required this.cashInHand,
-    required this.periodCashIn,
-    required this.periodCashOut,
-    this.prevPeriodNet = 0,
-    this.hasPrev       = false,
-  });
-
-  double get periodNet => periodCashIn - periodCashOut;
-
-  // % change vs previous period — null agar compare possible nahi
-  double? get changePct {
-    if (!hasPrev || prevPeriodNet == 0) return null;
-    return (periodNet - prevPeriodNet) / prevPeriodNet.abs() * 100;
-  }
-}
-
-// Monthly data — Triple LineChart + Grouped BarChart + Net Flow BarChart
-class MonthlyCashFlowData {
-  final DateTime month;
-  final double   cashIn;
-  final double   cashOut;
-  final double   endBalance; // last transaction ka cash_in_hand_after
-
-  const MonthlyCashFlowData({
-    required this.month,
-    required this.cashIn,
-    required this.cashOut,
-    required this.endBalance,
-  });
-
-  double get netFlow => cashIn - cashOut;
-}
-
-// Expense breakdown — Donut PieChart
-class ExpenseCategoryData {
-  final String category;
-  final double amount;
-
-  const ExpenseCategoryData({required this.category, required this.amount});
-}
-
-// Transaction type breakdown — Progress Bars
-class TransactionTypeData {
-  final String type;
-  final double amount;
-
-  const TransactionTypeData({required this.type, required this.amount});
-
-  String get label {
-    switch (type) {
-      case 'cash_in':          return 'Cash In';
-      case 'purchase':         return 'Purchase';
-      case 'supplier_payment': return 'Supplier Payment';
-      case 'expense':          return 'Expense';
-      default:                 return type;
-    }
-  }
-
-  bool get isCashIn => type == 'cash_in';
-}
-
-// Single transaction entry — drill-down list ke liye
-class CashTransactionEntry {
-  final String    id;
-  final String    entryType;
-  final double    amount;          // ABS value
-  final double    balanceAfter;
-  final String?   notes;
-  final String?   byName;
-  final DateTime  createdAt;
-
-  const CashTransactionEntry({
-    required this.id,
-    required this.entryType,
-    required this.amount,
-    required this.balanceAfter,
-    this.notes,
-    this.byName,
-    required this.createdAt,
-  });
-
-  bool get isCashIn => entryType == 'cash_in';
-
-  String get typeLabel {
-    switch (entryType) {
-      case 'cash_in':          return 'Cash In';
-      case 'purchase':         return 'Purchase';
-      case 'supplier_payment': return 'Supplier Payment';
-      case 'expense':          return 'Expense';
-      default:                 return entryType;
-    }
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// DATASOURCE
-// ─────────────────────────────────────────────────────────────
-
-class CashFlowReportLocalDatasource {
+class CashFlowReportLocalDatasource implements CashFlowReportSource {
   static final CashFlowReportLocalDatasource instance =
       CashFlowReportLocalDatasource._();
   CashFlowReportLocalDatasource._();
@@ -143,6 +43,7 @@ class CashFlowReportLocalDatasource {
   }
 
   // ── 1. Summary — period in/out + prev period net ─────────
+  @override
   Future<CashFlowSummary> getSummary({
     DateTime? from,
     DateTime? to,
@@ -209,6 +110,7 @@ class CashFlowReportLocalDatasource {
   // ── 2. Monthly cash flow — ALWAYS last 6 months (trend) ──
   // Triple LineChart + Grouped BarChart + Net Flow BarChart sab ye use karega.
   // Note: yeh trend visual hai — date filter se independent rehta hai.
+  @override
   Future<List<MonthlyCashFlowData>> getMonthlyData() async {
     final conn   = await _db;
     final result = await conn.execute(
@@ -258,6 +160,7 @@ class CashFlowReportLocalDatasource {
   }
 
   // ── 3. Expense breakdown — Donut PieChart ────────────────
+  @override
   Future<List<ExpenseCategoryData>> getExpenseBreakdown({
     DateTime? from,
     DateTime? to,
@@ -290,6 +193,7 @@ class CashFlowReportLocalDatasource {
   }
 
   // ── 4. Transaction type breakdown — Progress Bars ─────────
+  @override
   Future<List<TransactionTypeData>> getTypeBreakdown({
     DateTime? from,
     DateTime? to,
@@ -320,6 +224,7 @@ class CashFlowReportLocalDatasource {
   }
 
   // ── 5. Recent transactions — drill-down list ──────────────
+  @override
   Future<List<CashTransactionEntry>> getRecentTransactions({
     DateTime? from,
     DateTime? to,

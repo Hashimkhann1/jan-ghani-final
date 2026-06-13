@@ -2,8 +2,15 @@
 // supplier_report_provider.dart
 // =============================================================
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/supplier/data/datasources/supplier_report_local_datasource.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/supplier/data/datasources/supplier_report_remote_datasource.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/supplier/data/datasources/supplier_report_source.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart'
+    show reportsWarehouseIdProvider;
 
 // ─────────────────────────────────────────────────────────────
 // FILTER MODE
@@ -82,7 +89,7 @@ class SupplierReportState {
 // ─────────────────────────────────────────────────────────────
 
 class SupplierReportNotifier extends StateNotifier<SupplierReportState> {
-  final SupplierReportLocalDatasource _ds;
+  final SupplierReportSource _ds;
 
   SupplierReportNotifier(this._ds) : super(const SupplierReportState()) {
     // Default: current month
@@ -164,7 +171,17 @@ class SupplierReportNotifier extends StateNotifier<SupplierReportState> {
 // PROVIDER
 // ─────────────────────────────────────────────────────────────
 
-final supplierReportProvider =
-    StateNotifierProvider<SupplierReportNotifier, SupplierReportState>((ref) {
-  return SupplierReportNotifier(SupplierReportLocalDatasource.instance);
+final supplierReportProvider = StateNotifierProvider.autoDispose<
+    SupplierReportNotifier, SupplierReportState>((ref) {
+  // Platform ke hisaab se data source:
+  //  • website (kIsWeb)   → Supabase (raw fetch + compute), SELECTED warehouse
+  //  • Windows/Mac/mobile → local postgres (config warehouse), unchanged
+  // autoDispose + watch: selected warehouse badle to rebuild + reload.
+  final SupplierReportSource source = kIsWeb
+      ? SupplierReportRemoteDatasource(
+          Supabase.instance.client,
+          ref.watch(reportsWarehouseIdProvider) ?? AppConfig.warehouseId,
+        )
+      : SupplierReportLocalDatasource.instance;
+  return SupplierReportNotifier(source);
 });
