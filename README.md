@@ -1,20 +1,20 @@
 # Jan Ghani — Flutter POS & Inventory Management System
 
-**Developer (Next One Reading This):** Yeh document tumhe batata hai ke humne kya banaya hai, kaise banaya hai, aur ab tak kya kaam complete ho chuka hai. Shuru se padho.
+**Developer (Next One Reading This):** This document explains what we built, how we built it, and what has been completed so far. Read from the beginning.
 
 ---
 
-## Project Kya Hai?
+## What is this Project?
 
-Jan Ghani ek **Flutter desktop application** hai jo ek wholesale/retail business ke liye bani hai. Is app mein teen alag user types hain aur har ek ka apna alag interface hai:
+Jan Ghani is a **Flutter desktop application** built for a wholesale/retail business. The app has three distinct user types, each with their own separate interface:
 
 | User Type   | App Mode     | Description |
 |-------------|--------------|-------------|
-| **Branch**  | `store`      | Retail branch pe kaam karne wale (owner, manager, cashier, stock user) |
-| **Accountant** | `store`   | Ek hi app — lekin accountant ka alag login aur alag dashboard jahan wo sirf reports dekh sakta hai |
-| **Warehouse** | `warehouse` | Godam wale — stock assign karna aur inventory manage karna |
+| **Branch**  | `store`      | Retail branch staff (owner, manager, cashier, stock user) |
+| **Accountant** | `store`   | Same app — but accountant has a separate login and separate dashboard where they can only view reports |
+| **Warehouse** | `warehouse` | Warehouse staff — assign stock and manage inventory |
 
-App mode `assets/json/config.json` se decide hota hai (`app_mode: "store"` ya `"warehouse"`).
+The app mode is determined from `assets/json/config.json` (`app_mode: "store"` or `"warehouse"`).
 
 ---
 
@@ -24,47 +24,47 @@ App mode `assets/json/config.json` se decide hota hai (`app_mode: "store"` ya `"
 |------------|-----|
 | **Flutter** | UI framework (Desktop — Windows/Mac/Linux + Web) |
 | **Riverpod 2.6** | State Management (StateNotifierProvider + StateNotifier) |
-| **PostgreSQL (local)** | Branch ka main local database |
-| **Supabase** | Cloud database — warehouse aur accountant data yahan se aata hai |
-| **Sync Service** | Local PostgreSQL ↔ Supabase har 120 second mein sync hota hai |
-| **pdf + printing** | Invoice print karne ke liye |
-| **SharedPreferences** | Session save karne ke liye (login persist) |
-| **fl_chart** | Dashboard charts ke liye |
+| **PostgreSQL (local)** | Branch's main local database |
+| **Supabase** | Cloud database — warehouse and accountant data comes from here |
+| **Sync Service** | Local PostgreSQL ↔ Supabase syncs every 120 seconds |
+| **pdf + printing** | For printing invoices |
+| **SharedPreferences** | For saving session (login persist) |
+| **fl_chart** | For dashboard charts |
 
 ---
 
 ## Architecture — Clean Architecture
 
-Humne **Clean Architecture** follow ki hai. Har feature teen layers mein divided hai:
+We have followed **Clean Architecture**. Each feature is divided into three layers:
 
 ```
 feature/
 ├── data/
-│   ├── datasource/      ← Supabase ya PostgreSQL se seedha data fetch
+│   ├── datasource/      ← Directly fetches data from Supabase or PostgreSQL
 │   ├── model/           ← Data classes (fromMap / toMap)
-│   └── repository/      ← Interface ko implement karta hai
+│   └── repository/      ← Implements the interface
 ├── domain/
 │   ├── repository/      ← Abstract interface (contract)
-│   └── usecase/         ← Ek kaam karne wali class (AddCustomerUseCase etc.)
+│   └── usecase/         ← Single-responsibility class (AddCustomerUseCase etc.)
 └── presentation/
     ├── provider/        ← Riverpod StateNotifier + StateNotifierProvider
     ├── screen/          ← UI screens
-    ├── widget/          ← Screen ke andar chhote reusable widgets
-    └── state/           ← State class (sirf accountant feature mein alag hai)
+    ├── widget/          ← Small reusable widgets inside screens
+    └── state/           ← State class (only separate in accountant feature)
 ```
 
-**Note:** Kuch simple features mein domain layer nahi hai — seedha `data → presentation` jata hai. Wahan usecase nahi banaya.
+**Note:** Some simple features do not have a domain layer — they go directly `data → presentation`. No usecase was created there.
 
 ---
 
 ## State Management — Riverpod Pattern
 
-Poore project mein **StateNotifier + StateNotifierProvider** use kiya gaya hai.
+**StateNotifier + StateNotifierProvider** is used throughout the entire project.
 
-### Pattern kuch aisa hai:
+### The pattern looks like this:
 
 ```dart
-// 1. State Class (immutable, copyWith hoti hai)
+// 1. State Class (immutable, has copyWith)
 class CustomerState {
   final List<CustomerModel> customers;
   final bool isLoading;
@@ -75,7 +75,7 @@ class CustomerState {
   CustomerState copyWith({...}) => CustomerState(...);
 }
 
-// 2. Notifier (business logic yahan hoti hai)
+// 2. Notifier (business logic lives here)
 class CustomerNotifier extends StateNotifier<CustomerState> {
   CustomerNotifier() : super(const CustomerState());
 
@@ -90,19 +90,19 @@ final customerProvider =
   );
 ```
 
-### Screen mein use kaise karte hain:
+### How to use in a screen:
 
 ```dart
-// Data read karna
+// Read data
 final state = ref.watch(customerProvider);
 
-// Method call karna
+// Call a method
 ref.read(customerProvider.notifier).loadCustomers();
 ```
 
-### Accountant Authentication ka pattern thoda different hai:
+### Accountant Authentication pattern is slightly different:
 
-Accountant feature mein **usecase + repository + notifier** poora clean architecture implement kiya gaya hai:
+The accountant feature has the full clean architecture implemented — **usecase + repository + notifier**:
 
 ```
 accountant_auth_providers.dart  →  providers (dependency injection)
@@ -116,20 +116,20 @@ accountant_auth_state.dart      →  State class (AuthStatus enum: initial/loadi
 
 ### `lib/features/branch/` — Branch (Store) Feature
 
-Yeh folder branch users (owner, manager, cashier, stock user) ke liye hai.
+This folder is for branch users (owner, manager, cashier, stock user).
 
 ```
 lib/features/branch/
 │
 ├── authentication/
-│   ├── data/datasource/auth_remote_datasource.dart     ← PostgreSQL se login
+│   ├── data/datasource/auth_remote_datasource.dart     ← Login from PostgreSQL
 │   └── presentation/
 │       ├── provider/auth_provider.dart                 ← AuthNotifier (login/logout/session restore)
 │       └── screen/login_screen.dart
 │
 ├── dashboard/
 │   ├── data/
-│   │   ├── datasource/dashboard_datasource.dart        ← Daily stats fetch
+│   │   ├── datasource/dashboard_datasource.dart        ← Fetch daily stats
 │   │   └── model/dashboard_model.dart
 │   └── presentation/
 │       ├── provider/dashboard_provider.dart
@@ -139,7 +139,7 @@ lib/features/branch/
 ├── sale_invoice/                                       ← MAIN FEATURE — POS screen
 │   ├── data/
 │   │   ├── datasource/
-│   │   │   ├── sale_invoice_datasource.dart            ← Invoice save, invoice no generate
+│   │   │   ├── sale_invoice_datasource.dart            ← Save invoice, generate invoice no
 │   │   │   ├── held_invoice_datasource.dart            ← Hold/resume invoices
 │   │   │   └── sale_return_datasource.dart             ← Sale return
 │   │   └── model/
@@ -149,7 +149,7 @@ lib/features/branch/
 │   └── presentation/
 │       ├── provider/
 │       │   ├── sale_invoice_provider.dart              ← SaleInvoiceNotifier (cart + payment logic)
-│       │   ├── held_invoice_provider.dart              ← Hold invoice manage karna
+│       │   ├── held_invoice_provider.dart              ← Manage held invoices
 │       │   ├── sale_return_provider.dart
 │       │   └── cart_nav_provider.dart                  ← Cart panel navigation state
 │       ├── screen/
@@ -164,12 +164,12 @@ lib/features/branch/
 │           ├── held_invoices_sheet.dart
 │           └── ...
 │
-├── branch_stock_inventory/                             ← Branch ka stock
+├── branch_stock_inventory/                             ← Branch stock
 │   ├── data/
 │   │   ├── datasource/branch_stock_remote_datasource.dart
 │   │   └── model/
 │   │       ├── branch_stock_inventory_model.dart       ← Full inventory model
-│   │       └── branch_stock_model.dart                 ← POS mein use hone wala model
+│   │       └── branch_stock_model.dart                 ← Model used in POS
 │   └── presentation/
 │       ├── provider/branch_stock_inventory_provider.dart
 │       └── screen/branch_stock_inventory_screen.dart
@@ -194,11 +194,11 @@ lib/features/branch/
 │           └── customer_verification_screen.dart
 │       └── widget/                                     ← badges, dialogs, filter chips etc.
 │
-├── customer_ledger/                                    ← Customer ka udhar ledger (Clean Architecture)
+├── customer_ledger/                                    ← Customer credit ledger (Clean Architecture)
 │   ├── data/ domain/ presentation/                     ← Same pattern as customer
 │   └── presentation/screen/
-│       ├── all_customer_ledger_screen.dart             ← Poore branch ka ledger
-│       └── counter_customer_ledger_screen.dart         ← Sirf is counter ka ledger
+│       ├── all_customer_ledger_screen.dart             ← Entire branch ledger
+│       └── counter_customer_ledger_screen.dart         ← Only this counter's ledger
 │
 ├── cash_counter/                                       ← Counter-wise cash record
 │   ├── data/
@@ -217,28 +217,28 @@ lib/features/branch/
 │           ├── all_cash_transaction_screen.dart
 │           └── counter_cash_transaction_screen.dart
 │
-├── counter/                                            ← Branch counters manage karna
+├── counter/                                            ← Manage branch counters
 │   └── presentation/widget/                           ← counter_table, add_counter_dialog, etc.
 │
 ├── expense/                                            ← Branch expenses (Clean Architecture)
 │   ├── data/ domian/ presentation/
 │   └── presentation/screen/all_expense_screen.dart
 │
-├── branch_stock_damage/                                ← Damage hone wala stock record
+├── branch_stock_damage/                                ← Record of damaged stock
 │   └── presentation/widget/add_damage_dialog.dart
 │
-├── branch_transcation/                                 ← Branch se warehouse ko cash transfer
+├── branch_transcation/                                 ← Cash transfer from branch to warehouse
 │   └── presentation/screen/branch_transaction_screen.dart
 │   └── presentation/widget/cash_out_dilog.dart
 │
-├── cash_store/                                         ← Store ka overall cash summary
+├── cash_store/                                         ← Overall cash summary of store
 │   └── presentation/screen/store_summary_screen.dart
 │
-├── store_user/                                         ← Branch users manage karna (Clean Architecture)
+├── store_user/                                         ← Manage branch users (Clean Architecture)
 │   ├── domain/usecase/                                 ← add, get, update, delete usecases
 │   └── presentation/screen/user_screen.dart
 │
-├── assign_stock_to_branch/                             ← Warehouse se stock accept karna
+├── assign_stock_to_branch/                             ← Accept stock from warehouse
 │   └── presentation/screen/
 │       ├── branch_transfer_list_screen.dart            ← Pending/accepted transfers
 │       └── stock_transfer_detail_screen.dart
@@ -263,15 +263,15 @@ lib/features/branch/
 
 ### `lib/features/accountant/` — Accountant Feature
 
-Accountant ka apna **alag login system** hai. Wo Supabase se data fetch karta hai — **read-only view** hai, koi edit nahi hota. Accountant branch reports, warehouse data, investments aur suppliers dekh sakta hai.
+The accountant has their own **separate login system**. They fetch data from Supabase — it is a **read-only view**, no editing is allowed. The accountant can view branch reports, warehouse data, investments, and suppliers.
 
 ```
 lib/features/accountant/
 │
-├── authentication/                                     ← POORA Clean Architecture implement hai
+├── authentication/                                     ← FULL Clean Architecture implemented
 │   ├── data/
 │   │   ├── datasources/
-│   │   │   ├── accountant_auth_remote_datasource.dart  ← Supabase se login
+│   │   │   ├── accountant_auth_remote_datasource.dart  ← Login from Supabase
 │   │   │   └── accountant_auth_local_datasource.dart   ← SharedPreferences session
 │   │   ├── model/accountant_user_model.dart
 │   │   └── repositories/accountant_auth_repository_impl.dart
@@ -289,14 +289,14 @@ lib/features/accountant/
 │       │   └── accoutant_session_provider.dart          ← Session state provider
 │       └── screen/login_screen.dart
 │
-├── dashboard/                                          ← Accountant ka main dashboard (Supabase)
+├── dashboard/                                          ← Accountant's main dashboard (Supabase)
 │   ├── data/ domain/ presentation/
 │   └── presentation/screen/dashboard_screen.dart       ← Overall stats
 │
-├── branch_reports/                                     ← BADA SECTION — har branch ki report
+├── branch_reports/                                     ← LARGE SECTION — report for each branch
 │   │
-│   ├── branch_report_list_screen.dart                  ← Branches ki list, select karke report dekho
-│   ├── ai_chatbot_screen.dart                          ← AI chatbot (abhi development mein)
+│   ├── branch_report_list_screen.dart                  ← List of branches, select to view report
+│   ├── ai_chatbot_screen.dart                          ← AI chatbot (currently in development)
 │   │
 │   ├── accountant_branch/                              ← Branch info
 │   │   └── presentation/screen/accountant_branch_screen.dart
@@ -304,58 +304,58 @@ lib/features/accountant/
 │   ├── accountant_dashboard/                           ← Branch-wise dashboard
 │   │   └── presentation/screen/accountant_dashboard_screen.dart
 │   │
-│   ├── accountant_sale_report/                         ← Branch ki sales
+│   ├── accountant_sale_report/                         ← Branch sales
 │   │   └── presentation/screen/accountant_sale_report_screen.dart
 │   │
-│   ├── accountant_sale_return_report/                  ← Branch ki sale returns
+│   ├── accountant_sale_return_report/                  ← Branch sale returns
 │   │   └── presentation/screen/sale_return_report_screen.dart
 │   │
 │   ├── accountant_profit_loss_report/                  ← Profit/Loss report
 │   │   └── presentation/screen/accountant_profit_loss_report_screen.dart
 │   │
-│   ├── accountant_customer/                            ← Branch ke customers
+│   ├── accountant_customer/                            ← Branch customers
 │   │   └── presentation/screen/accountant_customer_report_screen.dart
 │   │
-│   ├── accountant_customer_ledger/                     ← Customer ka udhar ledger
+│   ├── accountant_customer_ledger/                     ← Customer credit ledger
 │   │   └── presentation/screen/accountant_customer_ledger_screen.dart
 │   │
-│   ├── customer_report/                                ← Specific customer ki detail
+│   ├── customer_report/                                ← Specific customer detail
 │   │   ├── data/model/
 │   │   │   ├── customer_invoice_model.dart
 │   │   │   ├── customer_return_model.dart
 │   │   │   └── specific_customer_ledger_model.dart
 │   │   └── presentation/screen/customer_report_screen.dart
 │   │
-│   ├── account_branch_stock_inventory_report/          ← Branch ka stock (read-only)
+│   ├── account_branch_stock_inventory_report/          ← Branch stock (read-only)
 │   │   └── presentation/screen/accountant_branch_stock_inventory_report_screen.dart
 │   │
-│   ├── accountant_branch_summary/                      ← Branch ka cash summary
+│   ├── accountant_branch_summary/                      ← Branch cash summary
 │   │   └── presentation/screen/accountant_branch_summary_report_screen.dart
 │   │
-│   ├── accountant_branch_transaction/                  ← Branch se warehouse cash transfers
+│   ├── accountant_branch_transaction/                  ← Cash transfers from branch to warehouse
 │   │   └── presentation/screen/accountant_branch_transaction_report_screen.dart
 │   │
-│   ├── accountant_category_wise_sale_report/           ← Category ke hisaab se sales
+│   ├── accountant_category_wise_sale_report/           ← Sales by category
 │   │   └── presentaion/screen/category_sale_report_screen.dart   ← (typo: presentaion)
 │   │
 │   └── branch_cash_counter_report/                     ← Counter-wise cash report
 │       └── presentation/screen/branch_cash_counter_screen.dart
 │
-├── accountant_all_orders/                              ← Warehouse ke sare orders (Supabase)
+├── accountant_all_orders/                              ← All warehouse orders (Supabase)
 │   └── presentation/screen/accountant_all_orders_screen.dart
 │
-├── accountant_all_warehouses/                          ← Sare warehouses ki list
+├── accountant_all_warehouses/                          ← List of all warehouses
 │   └── presentation/screen/accountant_all_warehouses_screen.dart
 │
 ├── accountant_warehouse_dashboard/                     ← Warehouse-wise dashboard + net amount
 │   ├── presentation/provider/
 │   │   ├── accountant_warehouse_dashboard_provider.dart
-│   │   └── janghani_net_amount_provider.dart           ← Jan Ghani ka total net amount
+│   │   └── janghani_net_amount_provider.dart           ← Jan Ghani total net amount
 │   └── presentation/
 │       ├── screen/accountant_warehouse_dashboard_screen.dart
 │       └── widget/send_cash_dialog.dart                ← Cash transfer dialog
 │
-├── accountant_warehouse_inventory/                     ← Warehouse ka stock (read-only)
+├── accountant_warehouse_inventory/                     ← Warehouse stock (read-only)
 │   └── presentation/screen/accountant_warehouse_inventory_screen.dart
 │
 ├── accountant_warehouse_finance/                       ← Warehouse finance records
@@ -367,13 +367,13 @@ lib/features/accountant/
 ├── accountant_stock_transfer_record/                   ← Stock transfer records
 │   └── presentation/screen/accountant_stock_transfer_record_screen.dart
 │
-├── investment/                                         ← Investors ka record (Clean Architecture)
+├── investment/                                         ← Investor records (Clean Architecture)
 │   └── presentation/screen/investment_screen.dart
 │
-├── supplier/                                           ← Suppliers aur unke invoices
+├── supplier/                                           ← Suppliers and their invoices
 │   ├── data/model/
 │   │   ├── accountant_supplier_model.dart
-│   │   └── accountant_supplier_detail_models.dart      ← Supplier ki details
+│   │   └── accountant_supplier_detail_models.dart      ← Supplier details
 │   └── presentation/screen/
 │       ├── all_supplier_screen.dart
 │       └── supplier_detail_screen.dart
@@ -389,11 +389,11 @@ lib/features/accountant/
 
 ### Branch (Store Mode)
 
-- **Local PostgreSQL** database pe kaam karta hai (`127.0.0.1:5432`, database: `store_db`)
-- Saari transactions pehle local DB mein save hoti hain
-- Ek background **Sync Service** har 120 second mein local → Supabase sync karta hai
+- Works on a **local PostgreSQL** database (`127.0.0.1:5432`, database: `store_db`)
+- All transactions are first saved in the local DB
+- A background **Sync Service** syncs local → Supabase every 120 seconds
 
-### Sync Tables (dependency order mein):
+### Sync Tables (in dependency order):
 
 ```
 branch → branch_counter → customer → branch_stock_inventory →
@@ -406,35 +406,35 @@ customer_ledger → branch_summary → branch_transaction_to_janghani
 
 ### Accountant / Warehouse
 
-- Seedha **Supabase** se data fetch karta hai (local DB nahi)
-- Read-only access — koi INSERT/UPDATE nahi karta (sirf send_cash aur investment mein write hoti hai)
+- Fetches data directly from **Supabase** (not local DB)
+- Read-only access — no INSERT/UPDATE (only send_cash and investment have write operations)
 
 ---
 
-## Authentication — Teen Alag Systems
+## Authentication — Three Separate Systems
 
 ### 1. Branch Auth (`lib/features/branch/authentication/`)
-- Local PostgreSQL `branch_users` table se login
-- `SharedPreferences` mein session save hoti hai
-- `AuthState` mein: `userId`, `storeId`, `role`, `counterId`, `username`
+- Login from local PostgreSQL `branch_users` table
+- Session saved in `SharedPreferences`
+- `AuthState` contains: `userId`, `storeId`, `role`, `counterId`, `username`
 - Roles: `owner`, `manager`, `cashier`, `stock`
-- `authProvider` (StateNotifierProvider) — poore branch feature mein use hota hai
+- `authProvider` (StateNotifierProvider) — used throughout the branch feature
 
 ### 2. Accountant Auth (`lib/features/accountant/authentication/`)
-- Supabase se login karta hai
-- Poora Clean Architecture: `RemoteDatasource → Repository → UseCase → Notifier`
-- `sessionProvider` mein user session store hota hai
-- `accountantAuthNotifierProvider` — accountant feature mein use hota hai
+- Login from Supabase
+- Full Clean Architecture: `RemoteDatasource → Repository → UseCase → Notifier`
+- User session stored in `sessionProvider`
+- `accountantAuthNotifierProvider` — used throughout the accountant feature
 
 ### 3. Warehouse Auth (`lib/features/warehouse/auth/`)
-- Alag system hai warehouse users ke liye
+- Separate system for warehouse users
 
 ---
 
 ## Important Providers — Quick Reference
 
-| Provider | File | Kaam |
-|----------|------|------|
+| Provider | File | Purpose |
+|----------|------|---------|
 | `authProvider` | `branch/authentication/presentation/provider/auth_provider.dart` | Branch login state + current user info |
 | `saleInvoiceProvider` | `branch/sale_invoice/presentation/provider/sale_invoice_provider.dart` | POS cart, payments, invoice save |
 | `heldInvoicesProvider` | `branch/sale_invoice/presentation/provider/held_invoice_provider.dart` | Hold/resume invoices |
@@ -465,18 +465,18 @@ customer_ledger → branch_summary → branch_transaction_to_janghani
 }
 ```
 
-`app_mode: "store"` → Branch + Accountant interface
+`app_mode: "store"` → Branch + Accountant interface  
 `app_mode: "warehouse"` → Warehouse interface
 
 ---
 
 ## Core Services (`lib/core/service/`)
 
-| Service | Kaam |
-|---------|------|
-| `sync/sync_service.dart` | Local PostgreSQL → Supabase sync (har 120s) |
+| Service | Purpose |
+|---------|---------|
+| `sync/sync_service.dart` | Local PostgreSQL → Supabase sync (every 120s) |
 | `print/print_service.dart` | Invoice print |
-| `print/sale_invoice_printer_service.dart` | Sale invoice ka printer service |
+| `print/sale_invoice_printer_service.dart` | Sale invoice printer service |
 | `stock_assign_services/` | Stock transfer sync |
 | `warehouse_supabase_sync_service/` | Warehouse specific sync |
 
@@ -484,18 +484,18 @@ customer_ledger → branch_summary → branch_transaction_to_janghani
 
 ## Known Issues / Typos in Codebase
 
-Agle developer ke liye — yeh cheezein code mein hain, galti se nahi:
+For the next developer — these things exist in the code, not by mistake but left as-is:
 
-- `accountant/branch_reports/accountant_category_wise_sale_report/presentaion/` — **"presentaion"** (typo, "presentation" hona chahiye tha)
-- `accountant/warehouse_transaction/presentationpresentation/` — **"presentationpresentation"** (double word)
-- `lib/features/branch/expense/domian/` — **"domian"** (typo, "domain" hona chahiye tha)
-- `accoutant_session_provider.dart` — **"accoutant"** (typo, "accountant" hona chahiye tha)
+- `accountant/branch_reports/accountant_category_wise_sale_report/presentaion/` — **"presentaion"** (typo, should be "presentation")
+- `accountant/warehouse_transaction/presentationpresentation/` — **"presentationpresentation"** (duplicate word)
+- `lib/features/branch/expense/domian/` — **"domian"** (typo, should be "domain")
+- `accoutant_session_provider.dart` — **"accoutant"** (typo, should be "accountant")
 
-In folders ko rename mat karna jab tak poori team aware na ho — Flutter imports inhi paths pe hain.
+Do not rename these folders until the entire team is aware — Flutter imports depend on these exact paths.
 
 ---
 
-## Ab Tak Jo Kaam Complete Hua
+## Work Completed So Far
 
 - Branch POS (sale invoice, sale return, hold invoice) — complete
 - Branch stock inventory — complete
@@ -516,11 +516,11 @@ In folders ko rename mat karna jab tak poori team aware na ho — Flutter import
 - Warehouse feature — separate folder, mostly complete
 - Sync service (local ↔ Supabase) — complete
 
-## Abhi Kya Chal Raha Hai / Incomplete
+## Currently In Progress / Incomplete
 
-- `ai_chatbot_screen.dart` — accountant/branch_reports/ mein hai, **abhi development mein hai**
-- Warehouse transaction screen ka folder path mein typo hai, check karna
-- Print service (`sale_invoice_printer_service.dart`) — naya file hai, testing ho rahi hai
+- `ai_chatbot_screen.dart` — located in accountant/branch_reports/, **currently in development**
+- Warehouse transaction screen has a typo in folder path, needs to be checked
+- Print service (`sale_invoice_printer_service.dart`) — new file, testing in progress
 
 ---
 
