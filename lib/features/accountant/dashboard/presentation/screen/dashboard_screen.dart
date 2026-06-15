@@ -86,16 +86,36 @@ class _AccountantDashboardScreenState
     final session = ref.watch(sessionProvider);
 
     // ── Customer token check ───────────────────────────────────
-    // Agar customerToken hai toh customer ka apna report screen dikhao
     final customerToken = session?.customerToken;
     if (customerToken != null && customerToken.isNotEmpty) {
       return _CustomerPortal(customerId: customerToken);
     }
 
-    // ── Normal accountant/owner/manager dashboard ──────────────
     final desktop  = _isDesktop(context);
     final role     = session?.role ?? 'accountant';
     final navItems = _filteredItems(role);
+
+    // ── Manager: directly open BranchScreen, skip index ───────
+    if (role == 'manager') {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5F7),
+        body: desktop
+            ? Row(
+          children: [
+            _Sidebar(
+              selectedIndex: 0,
+              navItems:      navItems,
+              role:          role,
+              onItemTap:     (_) {},
+            ),
+            const Expanded(child: BranchScreen()),
+          ],
+        )
+            : const BranchScreen(),
+      );
+    }
+
+    // ── Normal owner / accountant / warehouse_manager ──────────
     final safeIndex = _selectedIndex < navItems.length ? _selectedIndex : 0;
 
     if (desktop) {
@@ -145,8 +165,7 @@ class _AccountantDashboardScreenState
 }
 
 // ══════════════════════════════════════════════════════════════
-// Customer Portal — sirf apna data
-// 3 tabs: Sales | Returns | Ledger  (Dashboard/Warehouse/Investment nahi)
+// Customer Portal
 // ══════════════════════════════════════════════════════════════
 class _CustomerPortal extends ConsumerStatefulWidget {
   final String customerId;
@@ -187,12 +206,11 @@ class _CustomerPortalState extends ConsumerState<_CustomerPortal> {
       );
     }
 
-    // CustomerReportScreen directly — no verification, no back button needed
     return CustomerReportScreen(
       customerId:      widget.customerId,
       customerName:    _customerName ?? 'Customer',
       customerBalance: _customerBalance,
-      hideAppBarBack:  true,   // back button na dikhao (see note below)
+      hideAppBarBack:  true,
     );
   }
 }
@@ -250,23 +268,33 @@ class _Sidebar extends StatelessWidget {
                     color:        AppColor.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.store_rounded, color: Colors.white, size: 20),
+                  child: const Icon(Icons.store_rounded,
+                      color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Jan Ghani',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColor.textDark)),
+                        style: TextStyle(
+                            fontSize:   15,
+                            fontWeight: FontWeight.w600,
+                            color:      AppColor.textDark)),
                     Container(
-                      margin: const EdgeInsets.only(top: 2),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      margin:  const EdgeInsets.only(top: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(
                         color:        _roleColor(role).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(_roleLabel(role),
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _roleColor(role))),
+                      child: Text(
+                        _roleLabel(role),
+                        style: TextStyle(
+                            fontSize:   10,
+                            fontWeight: FontWeight.w600,
+                            color:      _roleColor(role)),
+                      ),
                     ),
                   ],
                 ),
@@ -277,7 +305,8 @@ class _Sidebar extends StatelessWidget {
           // Nav items
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 16),
               child: Column(
                 children: navItems.asMap().entries.map((entry) {
                   final item = entry.value;
@@ -307,7 +336,8 @@ class _Sidebar extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (_) => const AccountantLoginScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const AccountantLoginScreen()),
                         (_) => false,
                   );
                 }
@@ -322,29 +352,45 @@ class _Sidebar extends StatelessWidget {
 
 // ── Sidebar Item ──────────────────────────────────────────────────────────────
 class _SidebarItem extends StatelessWidget {
-  final IconData icon; final String label; final bool active; final VoidCallback onTap;
-  const _SidebarItem({required this.icon, required this.label, required this.active, required this.onTap});
+  final IconData icon;
+  final String   label;
+  final bool     active;
+  final VoidCallback onTap;
+
+  const _SidebarItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: double.infinity,
+        width:   double.infinity,
         margin:  const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color:        active ? AppColor.primary.withOpacity(0.1) : Colors.transparent,
+          color:        active
+              ? AppColor.primary.withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(children: [
-          Icon(icon, size: 20, color: active ? AppColor.primary : AppColor.textMuted),
+          Icon(icon,
+              size:  20,
+              color: active ? AppColor.primary : AppColor.textMuted),
           const SizedBox(width: 10),
-          Text(label, style: TextStyle(
-            fontSize:   14,
-            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-            color:      active ? AppColor.primary : AppColor.textMuted,
-          )),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize:   14,
+              fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+              color:      active ? AppColor.primary : AppColor.textMuted,
+            ),
+          ),
         ]),
       ),
     );
@@ -357,10 +403,12 @@ class _DashboardBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sessionAsync = ref.watch(accountantSessionDataProvider);
+    final session      = ref.watch(sessionProvider);          // ✅ direct session
     final amountAsync  = ref.watch(janghaniAmountProvider);
     final recentAsync  = ref.watch(recentTransactionsProvider);
     final desktop      = MediaQuery.of(context).size.width >= 800;
+
+    final displayName  = session?.fullName ?? session?.fullName ?? 'User';
 
     return Column(
       children: [
@@ -371,22 +419,30 @@ class _DashboardBody extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Good Morning,', style: TextStyle(fontSize: 13, color: AppColor.textMuted)),
-                sessionAsync.when(
-                  data: (s) => Text(s?['name'] ?? 'Accountant',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColor.textDark)),
-                  loading: () => const SizedBox(width: 120, height: 24, child: _ShimmerBox()),
-                  error:   (_, __) => const Text('Accountant'),
-                ),
-              ]),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Good Morning,',
+                      style: TextStyle(
+                          fontSize: 13, color: AppColor.textMuted)),
+                  Text(
+                    displayName,
+                    style: const TextStyle(
+                      fontSize:   20,
+                      fontWeight: FontWeight.w700,
+                      color:      AppColor.textDark,
+                    ),
+                  ),
+                ],
+              ),
               GestureDetector(
                 onTap: () async {
                   await AccountantSession.clear();
                   if (context.mounted) {
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (_) => const AccountantLoginScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => const AccountantLoginScreen()),
                           (_) => false,
                     );
                   }
@@ -394,7 +450,8 @@ class _DashboardBody extends ConsumerWidget {
                 child: CircleAvatar(
                   radius:          20,
                   backgroundColor: AppColor.primary.withOpacity(0.15),
-                  child: const Icon(Icons.person_rounded, color: AppColor.primary, size: 22),
+                  child: const Icon(Icons.person_rounded,
+                      color: AppColor.primary, size: 22),
                 ),
               ),
             ],
@@ -411,8 +468,12 @@ class _DashboardBody extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.all(desktop ? 28 : 20),
               child: desktop
-                  ? _DesktopContent(amountAsync: amountAsync, recentAsync: recentAsync)
-                  : _MobileContent(amountAsync: amountAsync, recentAsync: recentAsync),
+                  ? _DesktopContent(
+                  amountAsync: amountAsync,
+                  recentAsync: recentAsync)
+                  : _MobileContent(
+                  amountAsync: amountAsync,
+                  recentAsync: recentAsync),
             ),
           ),
         ),
@@ -425,7 +486,10 @@ class _DashboardBody extends ConsumerWidget {
 class _DesktopContent extends StatelessWidget {
   final AsyncValue<JanghaniAmountModel?> amountAsync;
   final AsyncValue<List<RecentTransactionModel>> recentAsync;
-  const _DesktopContent({required this.amountAsync, required this.recentAsync});
+  const _DesktopContent({
+    required this.amountAsync,
+    required this.recentAsync,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -439,21 +503,36 @@ class _DesktopContent extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Row(children: const [
-          Expanded(child: _StatCard(label: 'Total Sale',     icon: Icons.receipt_rounded,         iconColor: AppColor.primary)),
+          Expanded(child: _StatCard(
+              label: 'Total Sale',
+              icon:  Icons.receipt_rounded,
+              iconColor: AppColor.primary)),
           SizedBox(width: 14),
-          Expanded(child: _StatCard(label: 'Cash Received',  icon: Icons.payments_rounded,         iconColor: Color(0xFF1D9E75))),
+          Expanded(child: _StatCard(
+              label: 'Cash Received',
+              icon:  Icons.payments_rounded,
+              iconColor: Color(0xFF1D9E75))),
           SizedBox(width: 14),
-          Expanded(child: _StatCard(label: 'Card Received',  icon: Icons.credit_card_rounded,      iconColor: Color(0xFF378ADD))),
+          Expanded(child: _StatCard(
+              label: 'Card Received',
+              icon:  Icons.credit_card_rounded,
+              iconColor: Color(0xFF378ADD))),
           SizedBox(width: 14),
-          Expanded(child: _StatCard(label: 'Sale Returns',   icon: Icons.keyboard_return_rounded,  iconColor: Color(0xFFE24B4A))),
+          Expanded(child: _StatCard(
+              label: 'Sale Returns',
+              icon:  Icons.keyboard_return_rounded,
+              iconColor: Color(0xFFE24B4A))),
         ]),
         const SizedBox(height: 24),
         IntrinsicHeight(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: _TransactionsPanel(recentAsync: recentAsync)),
-            const SizedBox(width: 20),
-            const Expanded(child: _BranchStatusPanel()),
-          ]),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _TransactionsPanel(recentAsync: recentAsync)),
+              const SizedBox(width: 20),
+              const Expanded(child: _BranchStatusPanel()),
+            ],
+          ),
         ),
       ],
     );
@@ -464,7 +543,10 @@ class _DesktopContent extends StatelessWidget {
 class _MobileContent extends StatelessWidget {
   final AsyncValue<JanghaniAmountModel?> amountAsync;
   final AsyncValue<List<RecentTransactionModel>> recentAsync;
-  const _MobileContent({required this.amountAsync, required this.recentAsync});
+  const _MobileContent({
+    required this.amountAsync,
+    required this.recentAsync,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -485,8 +567,15 @@ class _MobileContent extends StatelessWidget {
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 class _StatCard extends StatelessWidget {
-  final String label; final IconData icon; final Color iconColor;
-  const _StatCard({required this.label, required this.icon, required this.iconColor});
+  final String   label;
+  final IconData icon;
+  final Color    iconColor;
+
+  const _StatCard({
+    required this.label,
+    required this.icon,
+    required this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) => Container(
@@ -496,15 +585,24 @@ class _StatCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       border:       Border.all(color: const Color(0xFFEEEEEE)),
     ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Icon(icon, size: 18, color: iconColor),
-        const SizedBox(width: 6),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: AppColor.textMuted))),
-      ]),
-      const SizedBox(height: 8),
-      const Text('Rs. 0', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColor.textDark)),
-    ]),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 6),
+          Expanded(child: Text(label,
+              style: const TextStyle(
+                  fontSize: 12, color: AppColor.textMuted))),
+        ]),
+        const SizedBox(height: 8),
+        const Text('Rs. 0',
+            style: TextStyle(
+                fontSize:   20,
+                fontWeight: FontWeight.w700,
+                color:      AppColor.textDark)),
+      ],
+    ),
   );
 }
 
@@ -521,26 +619,35 @@ class _TransactionsPanel extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       border:       Border.all(color: const Color(0xFFEEEEEE)),
     ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Transaction History',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textDark)),
-      const SizedBox(height: 16),
-      recentAsync.when(
-        data: (list) => list.isEmpty
-            ? const Center(child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text('Koi transaction nahi mili', style: TextStyle(color: AppColor.textMuted)),
-        ))
-            : Column(children: list.map((tx) => _RecentTile(tx: tx)).toList()),
-        loading: () => Column(
-          children: List.generate(4, (_) => const Padding(
-            padding: EdgeInsets.only(bottom: 10),
-            child:   _ShimmerCard(height: 60),
-          )),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Transaction History',
+            style: TextStyle(
+                fontSize:   15,
+                fontWeight: FontWeight.w700,
+                color:      AppColor.textDark)),
+        const SizedBox(height: 16),
+        recentAsync.when(
+          data: (list) => list.isEmpty
+              ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text('No transactions found',
+                    style: TextStyle(color: AppColor.textMuted)),
+              ))
+              : Column(
+              children: list.map((tx) => _RecentTile(tx: tx)).toList()),
+          loading: () => Column(
+            children: List.generate(4, (_) => const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child:   _ShimmerCard(height: 60),
+            )),
+          ),
+          error: (_, __) => const _ErrorCard(),
         ),
-        error: (_, __) => const _ErrorCard(),
-      ),
-    ]),
+      ],
+    ),
   );
 }
 
@@ -556,12 +663,19 @@ class _BranchStatusPanel extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       border:       Border.all(color: const Color(0xFFEEEEEE)),
     ),
-    child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Branch Status',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textDark)),
-      SizedBox(height: 16),
-      Text('Branch data yahan aayegi...', style: TextStyle(fontSize: 13, color: AppColor.textMuted)),
-    ]),
+    child: const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Branch Status',
+            style: TextStyle(
+                fontSize:   15,
+                fontWeight: FontWeight.w700,
+                color:      AppColor.textDark)),
+        SizedBox(height: 16),
+        Text('Branch data loading...',
+            style: TextStyle(fontSize: 13, color: AppColor.textMuted)),
+      ],
+    ),
   );
 }
 
@@ -580,24 +694,41 @@ class _CashCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    width: double.infinity,
+    width:   double.infinity,
     padding: const EdgeInsets.all(24),
-    decoration: BoxDecoration(color: AppColor.primary, borderRadius: BorderRadius.circular(16)),
+    decoration: BoxDecoration(
+        color:        AppColor.primary,
+        borderRadius: BorderRadius.circular(16)),
     child: Row(children: [
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Cash in Hand', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13)),
-        const SizedBox(height: 6),
-        Text(_fmt(amount?.cashInHand), style: const TextStyle(
-          color: Colors.white, fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -1,
-        )),
-        const SizedBox(height: 6),
-        Row(children: [
-          Icon(Icons.account_balance_wallet_rounded, color: Colors.white.withOpacity(0.6), size: 13),
-          const SizedBox(width: 5),
-          Text('Janghani Net Amount', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-        ]),
-      ])),
-      Icon(Icons.account_balance_wallet_rounded, color: Colors.white.withOpacity(0.15), size: 80),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Cash in Hand',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.8), fontSize: 13)),
+            const SizedBox(height: 6),
+            Text(_fmt(amount?.cashInHand),
+                style: const TextStyle(
+                  color:       Colors.white,
+                  fontSize:    32,
+                  fontWeight:  FontWeight.w700,
+                  letterSpacing: -1,
+                )),
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.account_balance_wallet_rounded,
+                  color: Colors.white.withOpacity(0.6), size: 13),
+              const SizedBox(width: 5),
+              Text('Janghani Net Amount',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.6), fontSize: 12)),
+            ]),
+          ],
+        ),
+      ),
+      Icon(Icons.account_balance_wallet_rounded,
+          color: Colors.white.withOpacity(0.15), size: 80),
     ]),
   );
 }
@@ -607,15 +738,16 @@ class _RecentTile extends StatelessWidget {
   final RecentTransactionModel tx;
   const _RecentTile({required this.tx});
 
-  String _fmt(double val) => 'Rs. ${val.toStringAsFixed(0).replaceAllMapped(
-    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},',
-  )}';
+  String _fmt(double val) =>
+      'Rs. ${val.toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},',
+      )}';
 
   String _formatDate(DateTime dt) {
     final now  = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min pehle';
-    if (diff.inHours   < 24) return '${diff.inHours} ghante pehle';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours   < 24) return '${diff.inHours} hours ago';
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
@@ -625,29 +757,48 @@ class _RecentTile extends StatelessWidget {
     return Container(
       margin:  const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: const Color(0xFFF9F9F9), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color:        const Color(0xFFF9F9F9),
+          borderRadius: BorderRadius.circular(12)),
       child: Row(children: [
         Container(
           width: 38, height: 38,
           decoration: BoxDecoration(
-            color:        isIn ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+            color:        isIn
+                ? const Color(0xFFECFDF5)
+                : const Color(0xFFFEF2F2),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
-            isIn ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+            isIn
+                ? Icons.arrow_downward_rounded
+                : Icons.arrow_upward_rounded,
             color: isIn ? AppColor.cashIn : AppColor.cashOut,
             size: 18,
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(tx.branchName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColor.textDark)),
-          Text(_formatDate(tx.createdAt), style: const TextStyle(fontSize: 11, color: AppColor.textMuted)),
-        ])),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(tx.branchName,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize:   13,
+                      color:      AppColor.textDark)),
+              Text(_formatDate(tx.createdAt),
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColor.textMuted)),
+            ],
+          ),
+        ),
         Text(
           '${isIn ? '+' : '-'} ${_fmt(tx.amount)}',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-              color: isIn ? AppColor.cashIn : AppColor.cashOut),
+          style: TextStyle(
+              fontSize:   13,
+              fontWeight: FontWeight.w700,
+              color:      isIn ? AppColor.cashIn : AppColor.cashOut),
         ),
       ]),
     );
@@ -662,7 +813,9 @@ class _ShimmerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: height,
-    decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(16)),
+    decoration: BoxDecoration(
+        color:        Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(16)),
   );
 }
 
@@ -671,7 +824,9 @@ class _ShimmerBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(6)),
+    decoration: BoxDecoration(
+        color:        Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(6)),
   );
 }
 
@@ -682,12 +837,16 @@ class _ErrorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: const Color(0xFFFFEBEB), borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(
+        color:        const Color(0xFFFFEBEB),
+        borderRadius: BorderRadius.circular(12)),
     child: const Row(children: [
       Icon(Icons.error_outline, color: Colors.red, size: 18),
       SizedBox(width: 8),
-      Expanded(child: Text('Data load nahi hua — pull to refresh karein',
-          style: TextStyle(color: Colors.red, fontSize: 13))),
+      Expanded(
+        child: Text('Data could not load — pull to refresh',
+            style: TextStyle(color: Colors.red, fontSize: 13)),
+      ),
     ]),
   );
 }

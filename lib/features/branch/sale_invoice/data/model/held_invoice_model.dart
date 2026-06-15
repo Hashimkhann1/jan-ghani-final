@@ -1,4 +1,5 @@
 import 'package:jan_ghani_final/features/branch/customer/data/model/customer_model.dart';
+
 import 'sale_invoice_model.dart';
 
 /// ── HeldInvoice ───────────────────────────────────────────────

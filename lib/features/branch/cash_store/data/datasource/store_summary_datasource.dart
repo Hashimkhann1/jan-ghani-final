@@ -1,4 +1,5 @@
 import 'package:postgres/postgres.dart';
+
 import '../../../../../core/service/db/db_service.dart';
 import '../model/store_summary_model.dart';
 

@@ -2,8 +2,9 @@
 // category_remote_datasource.dart
 // =============================================================
 
-import 'package:postgres/postgres.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
+import 'package:postgres/postgres.dart';
+
 import '../model/category_model.dart';
 
 class CategoryRemoteDataSource {

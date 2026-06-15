@@ -21,55 +21,55 @@ class BranchReportListScreen extends StatelessWidget {
     _ReportItem(
       icon:     Icons.dashboard_rounded,
       label:    'Dashboard',
-      subtitle: 'Branch ka overview dekhein',
+      subtitle: 'Overview of branch activities',
       color:    AppColor.primary,
     ),
     _ReportItem(
       icon:     Icons.receipt_long_rounded,
       label:    'Sale Invoice Report',
-      subtitle: 'Saari sale invoices ka record',
+      subtitle: 'All sale invoices record',
       color:    Color(0xFF10B981),
     ),
     _ReportItem(
       icon:     Icons.assignment_return_rounded,
       label:    'Sale Return Report',
-      subtitle: 'Returned items ki detail',
+      subtitle: 'Details of returned items',
       color:    Color(0xFFF59E0B),
     ),
     _ReportItem(
       icon:     Icons.inventory_2_rounded,
       label:    'Inventory Report',
-      subtitle: 'Stock aur items ki list',
+      subtitle: 'Stock and items list',
       color:    Color(0xFF8B5CF6),
     ),
     _ReportItem(
       icon:     Icons.point_of_sale_rounded,
       label:    'Cash Counter Report',
-      subtitle: 'Cash transactions ka hisaab',
+      subtitle: 'Cash transactions record',
       color:    Color(0xFF06B6D4),
     ),
     _ReportItem(
       icon:     Icons.summarize_rounded,
       label:    'Branch Summary Report',
-      subtitle: 'Branch ki mukammal summary',
+      subtitle: 'Complete branch summary',
       color:    Color(0xFFEC4899),
     ),
     _ReportItem(
       icon:     Icons.swap_horiz_rounded,
       label:    'Branch Transaction Report',
-      subtitle: 'Saare transactions ki detail',
+      subtitle: 'Details of all transactions',
       color:    Color(0xFFF97316),
     ),
     _ReportItem(
       icon:     Icons.people_alt_rounded,
       label:    'Customer Report',
-      subtitle: 'Customers ki mukammal list',
+      subtitle: 'Complete customers list',
       color:    Color(0xFF14B8A6),
     ),
     _ReportItem(
       icon:     Icons.menu_book_rounded,
       label:    'Customer Ledger Report',
-      subtitle: 'Customer ka hisaab kitaab',
+      subtitle: 'Customer account details',
       color:    Color(0xFF6366F1),
     ),
     _ReportItem(
@@ -81,7 +81,7 @@ class BranchReportListScreen extends StatelessWidget {
     _ReportItem(
       icon:     Icons.category_rounded,
       label:    'Category Wise Sale Report',
-      subtitle: 'Category wise sale track karein',
+      subtitle: 'Track sales by category',
       color:    Color(0xFFD97706),
     ),
   ];
@@ -229,7 +229,7 @@ class _DesktopLayout extends StatelessWidget {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Kisi report ko click karke detail dekhein',
+                    'Click on any report to view details',
                     style: TextStyle(
                         fontSize: 13, color: AppColor.textHint),
                   ),

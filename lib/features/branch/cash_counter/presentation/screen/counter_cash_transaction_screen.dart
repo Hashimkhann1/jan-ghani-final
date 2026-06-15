@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
+
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/model/cash_transaction_model.dart';
 import '../provider/cash_transaction_provider.dart';
@@ -19,7 +20,6 @@ class CounterCashTransactionScreen extends ConsumerStatefulWidget {
 
 class _CounterCashTransactionScreenState
     extends ConsumerState<CounterCashTransactionScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -31,7 +31,7 @@ class _CounterCashTransactionScreenState
 
   void _openDialog(BuildContext context) async {
     await showDialog(
-      context:            context,
+      context: context,
       barrierDismissible: false,
       builder: (_) => const AddCashTransactionDialog(),
     );
@@ -46,18 +46,20 @@ class _CounterCashTransactionScreenState
     final auth = ref.watch(authProvider);
     final counters = ref.watch(counterProvider).counters;
     final fmt = DateFormat('dd MMM yyyy  hh:mm a');
-    final size = MediaQuery.sizeOf(context);
 
-    // Sirf is counter ki transactions
+    // Sirf is counter ki transactions — aur sirf cash_in
     final transactions = state.allTransactions
         .where((t) => t.counterId == auth.counterId)
+    // .where((t) => t.isCashIn || t.isCashOut) // ← COMMENTED: cash_out hide
+        .where((t) => t.isCashIn) // ← sirf cash_in show ho ga
         .toList();
 
     final counterName = auth.counterId != null
         ? counters
         .where((c) => c.id == auth.counterId)
         .map((c) => c.counterName)
-        .firstOrNull ?? 'Counter'
+        .firstOrNull ??
+        'Counter'
         : 'Counter';
 
     ref.listen<CashTransactionState>(cashTransactionProvider, (prev, next) {
@@ -65,14 +67,16 @@ class _CounterCashTransactionScreenState
           next.errorMessage != prev?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:         Text(next.errorMessage!),
+            content: Text(next.errorMessage!),
             backgroundColor: AppColor.error,
-            behavior:        SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            behavior: SnackBarBehavior.floating,
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             action: SnackBarAction(
-              label:     'OK',
+              label: 'OK',
               textColor: Colors.white,
-              onPressed: () => ref.read(cashTransactionProvider.notifier).clearError(),
+              onPressed: () =>
+                  ref.read(cashTransactionProvider.notifier).clearError(),
             ),
           ),
         );
@@ -81,30 +85,35 @@ class _CounterCashTransactionScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$counterName — Transactions',
+        title: Text('$counterName — Cash In',
             style: const TextStyle(fontWeight: FontWeight.w700)),
         toolbarHeight: 60,
         actions: [
           IconButton(
             onPressed: () => ref.read(cashTransactionProvider.notifier).load(),
-            icon:    const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',
-            style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
+            style: IconButton.styleFrom(
+                foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
           IntrinsicWidth(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: ElevatedButton.icon(
-                onPressed: auth.counterId == null ? null : () => _openDialog(context),
+                onPressed: auth.counterId == null
+                    ? null
+                    : () => _openDialog(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.primary,
                   foregroundColor: Colors.white,
-                  elevation:       0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
-                icon:  const Icon(Icons.swap_horiz_rounded, size: 18),
-                label: const Text('New Transaction',
+                icon: const Icon(Icons.arrow_downward_rounded,
+                    size: 18), // cash in icon
+                label: const Text('Cash In',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
@@ -118,135 +127,161 @@ class _CounterCashTransactionScreenState
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
-            // ── Counter Banner ───────────────────────
+            // ── Counter Banner ──────────────────────────────
             if (auth.counterId == null)
               Container(
-                width:   double.infinity,
+                width: double.infinity,
                 padding: const EdgeInsets.all(14),
-                margin:  const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color:        AppColor.warning.withValues(alpha: 0.08),
+                  color: AppColor.warning.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                       color: AppColor.warning.withValues(alpha: 0.3)),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: AppColor.warning, size: 18),
+                    Icon(Icons.warning_amber_rounded,
+                        color: AppColor.warning, size: 18),
                     SizedBox(width: 10),
                     Text('Aapko koi counter assign nahi',
-                      style: TextStyle(
-                        fontSize:   13,
-                        fontWeight: FontWeight.w600,
-                        color:      AppColor.warning,
-                      ),
-                    ),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColor.warning,
+                        )),
                   ],
                 ),
               ),
 
-            // ── Stat Cards ───────────────────────────
+            // ── Stat Cards ──────────────────────────────────
             Row(
               children: [
                 SummaryCard(
                   title: 'Today Total',
                   value: 'Rs ${state.todayTotal}',
-                  icon:  Icons.account_balance_wallet_outlined,
-                  color: state.todayTotal >= 0 ? AppColor.success : AppColor.error,
+                  icon: Icons.account_balance_wallet_outlined,
+                  color: state.todayTotal >= 0
+                      ? AppColor.success
+                      : AppColor.error,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Cash In',
-                  value: 'Rs ${transactions.where((t) => t.isCashIn).fold(0.0, (s, t) => s + t.cashOutAmount)}',
-                  icon:  Icons.arrow_downward_rounded,
+                  value:
+                  'Rs ${transactions.where((t) => t.isCashIn).fold(0.0, (s, t) => s + t.cashOutAmount)}',
+                  icon: Icons.arrow_downward_rounded,
                   color: AppColor.success,
                 ),
-                const SizedBox(width: 12),
-                SummaryCard(
-                  title: 'Cash Out',
-                  value: 'Rs ${transactions.where((t) => t.isCashOut).fold(0.0, (s, t) => s + t.cashOutAmount)}',
-                  icon:  Icons.arrow_upward_rounded,
-                  color: AppColor.error,
-                ),
+                // ── Cash Out Card — COMMENTED ──────────────
+                // const SizedBox(width: 12),
+                // SummaryCard(
+                //   title: 'Cash Out',
+                //   value: 'Rs ${transactions.where((t) => t.isCashOut).fold(0.0, (s, t) => s + t.cashOutAmount)}',
+                //   icon:  Icons.arrow_upward_rounded,
+                //   color: AppColor.error,
+                // ),
               ],
             ),
 
             const SizedBox(height: 16),
 
-            // ── Table ─────────────────────────────────
+            // ── Table ───────────────────────────────────────
             Expanded(
-              child: transactions.isEmpty ?
-              const _EmptyState() :
-              LayoutBuilder(
+              child: transactions.isEmpty
+                  ? const _EmptyState()
+                  : LayoutBuilder(
                 builder: (context, constraints) {
                   final availableWidth = constraints.maxWidth;
-                  const double minTableWidth = 850;
-                  final tableWidth =
-                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
+                  const double minTableWidth = 750;
+                  final tableWidth = availableWidth > minTableWidth
+                      ? availableWidth
+                      : minTableWidth;
 
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: tableWidth),
+                      constraints:
+                      BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                          headingRowColor: WidgetStateProperty.all(
+                              AppColor.grey100),
+                          dataRowColor: WidgetStateProperty
+                              .resolveWith<Color?>(
                                 (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary.withValues(alpha: 0.05)
+                                ? AppColor.primary
+                                .withValues(alpha: 0.05)
                                 : null,
                           ),
                           dataRowMinHeight: 54,
                           dataRowMaxHeight: 54,
-                          columnSpacing: (tableWidth * 0.04).clamp(16.0, 56.0),
+                          columnSpacing: (tableWidth * 0.04)
+                              .clamp(16.0, 56.0),
                           showCheckboxColumn: false,
                           columns: const [
                             DataColumn(label: Text('Type')),
                             DataColumn(label: Text('Previous')),
                             DataColumn(label: Text('Amount')),
                             DataColumn(label: Text('Remaining')),
-                            DataColumn(label: Text('Description')),
+                            DataColumn(
+                                label: Text(
+                                    'Description')), // user ki note
                             DataColumn(label: Text('Date & Time')),
                           ],
-                          rows: transactions.map((t) => DataRow(
+                          rows: transactions
+                              .map((t) => DataRow(
                             cells: [
-                              DataCell(_TypeBadge(t: t)),
-
-                              DataCell(Text(t.previousAmountLabel,
+                              DataCell(
+                                  _TypeBadge(t: t)),
+                              DataCell(Text(
+                                  t.previousAmountLabel,
                                   style: const TextStyle(
                                       fontSize: 13,
-                                      color: AppColor.textSecondary))),
-
-                              DataCell(Text(t.cashOutAmount.toString(),
+                                      color: AppColor
+                                          .textSecondary))),
+                              DataCell(Text(
+                                  t.cashOutAmount
+                                      .toString(),
                                   style: const TextStyle(
                                       fontSize: 13,
-                                      color: AppColor.textSecondary))),
-
-                              DataCell(Text(t.remainingAmountLabel,
+                                      color: AppColor
+                                          .textSecondary))),
+                              DataCell(Text(
+                                  t.remainingAmountLabel,
                                   style: TextStyle(
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: t.remainingAmount >= 0
-                                          ? AppColor.textPrimary
-                                          : AppColor.error))),
-
+                                      fontWeight:
+                                      FontWeight.w600,
+                                      color: t.remainingAmount >=
+                                          0
+                                          ? AppColor
+                                          .textPrimary
+                                          : AppColor
+                                          .error))),
                               DataCell(SizedBox(
-                                width: 180,
-                                child: Text(t.description ?? '—',
+                                width: 200,
+                                child: Text(
+                                  // description show karo
+                                  // default "Cash In" ya "Cash In — <note>"
+                                    t.description ?? 'Cash In',
                                     style: const TextStyle(
                                         fontSize: 12,
-                                        color: AppColor.textSecondary),
-                                    overflow: TextOverflow.ellipsis,
+                                        color: AppColor
+                                            .textSecondary),
+                                    overflow: TextOverflow
+                                        .ellipsis,
                                     maxLines: 1),
                               )),
-
-                              DataCell(Text(fmt.format(t.createdAt),
+                              DataCell(Text(
+                                  fmt.format(t.createdAt),
                                   style: const TextStyle(
                                       fontSize: 11,
-                                      color: AppColor.textSecondary))),
+                                      color: AppColor
+                                          .textSecondary))),
                             ],
-                          )).toList(),
+                          ))
+                              .toList(),
                         ),
                       ),
                     ),
@@ -261,54 +296,61 @@ class _CounterCashTransactionScreenState
   }
 }
 
+// ── Empty State ────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
+
   @override
   Widget build(BuildContext context) => const Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.swap_horiz_rounded, size: 64, color: AppColor.grey300),
+        Icon(Icons.arrow_downward_rounded,
+            size: 64, color: AppColor.grey300),
         SizedBox(height: 16),
-        Text('Koi transaction nahi',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
+        Text('Koi Cash In nahi',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
                 color: AppColor.textSecondary)),
         SizedBox(height: 6),
-        Text('New Transaction button se add karein',
+        Text('Cash In button se add karein',
             style: TextStyle(fontSize: 13, color: AppColor.textHint)),
       ],
     ),
   );
 }
 
+// ── Type Badge — sirf Cash In dikhega ─────────────────────────
 class _TypeBadge extends StatelessWidget {
   final CashTransactionModel t;
   const _TypeBadge({required this.t});
 
   @override
   Widget build(BuildContext context) {
-    final color = t.isCashIn ? AppColor.success : AppColor.error;
-    final icon  = t.isCashIn
-        ? Icons.arrow_downward_rounded
-        : Icons.arrow_upward_rounded;
+    // Cash out ka color/icon removed — ab sirf cash_in
+    const color = AppColor.success;
+    const icon = Icons.arrow_downward_rounded;
+
+    // if (t.isCashOut) { color = AppColor.error; icon = Icons.arrow_upward_rounded; } // ← COMMENTED
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color:        color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border:       Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 13, color: color),
-          const SizedBox(width: 5),
-          Text(t.typeLabel,
+          SizedBox(width: 5),
+          Text('Cash In',
               style: TextStyle(
-                  fontSize:   11,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color:      color)),
+                  color: color)),
         ],
       ),
     );

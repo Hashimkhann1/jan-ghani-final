@@ -6,8 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
-import '../../../customer/presentation/widget/customer_filter_chip_widget.dart';
+
 import '../../../customer/presentation/widget/customer_action_button_widget.dart';
+import '../../../customer/presentation/widget/customer_filter_chip_widget.dart';
 import '../../data/model/branch_stock_damage_model.dart';
 import '../provider/branch_stock_damage_provider.dart';
 import '../widget/add_damage_dialog.dart';

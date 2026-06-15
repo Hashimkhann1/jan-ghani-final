@@ -6,18 +6,19 @@ import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/features/branch/customer/data/model/customer_model.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/widget/sale_type_dropdown.dart';
+
 import '../../../../../core/color/app_color.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../../data/model/sale_return_model.dart';
 import '../provider/sale_invoice_provider.dart';
 import '../provider/sale_return_provider.dart';
-import '../screen/sale_invoice_screen.dart' show payNowTriggerProvider, posCustomerFocusProvider, customerDropdownKeyProvider, saleTypeFocusProvider;
+import '../screen/payment_dialog.dart';
 import '../screen/return_payment_dialog.dart';
+import '../screen/sale_invoice_screen.dart' show payNowTriggerProvider, posCustomerFocusProvider, customerDropdownKeyProvider, saleTypeFocusProvider;
 import 'cart_row_widget.dart';
 import 'cart_summary_widget.dart';
 import 'cart_table_header_widget.dart';
 import 'disable_text_field_widget.dart';
-import '../screen/payment_dialog.dart';
 
 String _fmtD(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
 

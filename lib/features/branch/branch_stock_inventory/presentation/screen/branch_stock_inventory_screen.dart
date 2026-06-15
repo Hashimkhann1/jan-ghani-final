@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/data/model/branch_stock_model.dart';
+
 import '../../../authentication/presentation/provider/auth_provider.dart';
-import '../../../customer/presentation/widget/customer_filter_chip_widget.dart';
 import '../../../customer/presentation/widget/customer_action_button_widget.dart';
+import '../../../customer/presentation/widget/customer_filter_chip_widget.dart';
 import '../../data/datasource/branch_stock_remote_datasource.dart';
 import '../provider/branch_stock_inventory_provider.dart';
 import '../widget/delete_dilog_widget.dart';

@@ -1,5 +1,5 @@
-import '../repository/i_customer_ledger_repository.dart';
 import '../../data/model/customer_ledger_model.dart';
+import '../repository/i_customer_ledger_repository.dart';
 
 class UpdateLedgerUseCase {
   final ICustomerLedgerRepository _repo;

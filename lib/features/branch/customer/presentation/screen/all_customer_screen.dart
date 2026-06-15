@@ -5,6 +5,7 @@ import 'package:jan_ghani_final/features/branch/authentication/presentation/prov
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/widget/add_customer_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../../core/widget/figure_card_widget.dart';
 import '../../data/model/customer_model.dart';
 import '../widget/customer_action_button_widget.dart';

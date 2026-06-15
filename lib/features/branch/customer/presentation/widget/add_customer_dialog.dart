@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
+
 import '../../data/model/customer_model.dart';
 
 class AddCustomerDialog extends ConsumerStatefulWidget {

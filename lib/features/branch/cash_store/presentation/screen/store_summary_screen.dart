@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
+
 import '../provider/store_summary_provider.dart';
 
 class StoreSummaryScreen extends ConsumerStatefulWidget {

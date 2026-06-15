@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
+import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../provider/cash_transaction_provider.dart';
 
 class AddCashTransactionDialog extends ConsumerStatefulWidget {
@@ -18,8 +19,7 @@ class _AddCashTransactionDialogState
   final _amountCtrl = TextEditingController();
   final _descCtrl   = TextEditingController();
 
-  double get _enteredAmount =>
-      double.tryParse(_amountCtrl.text) ?? 0.0;
+  double get _enteredAmount => double.tryParse(_amountCtrl.text) ?? 0.0;
 
   // ✅ cashCounterProvider se aaj ka correct total
   double _getTodayTotal() {
@@ -44,19 +44,17 @@ class _AddCashTransactionDialogState
   Future<void> _submit(String type) async {
     if (!_formKey.currentState!.validate()) return;
 
-    final previousTotal = _getTodayTotal(); // ← correct total
+    final userId       = ref.read(authProvider).userId; // ← current user id
+    final previousTotal = _getTodayTotal();
 
     await ref.read(cashTransactionProvider.notifier).addTransaction(
       amount:          _enteredAmount,
-      transactionType: type,
       previousTotal:   previousTotal,
-      description:     _descCtrl.text.trim().isEmpty
-          ? null
-          : _descCtrl.text.trim(),
+      userId:          userId,
+      description:     _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
     );
 
-    final hasError =
-        ref.read(cashTransactionProvider).errorMessage != null;
+    final hasError = ref.read(cashTransactionProvider).errorMessage != null;
     if (!hasError && mounted) Navigator.of(context).pop();
   }
 
@@ -66,8 +64,8 @@ class _AddCashTransactionDialogState
     final isSaving = state.isSaving;
 
     // ✅ Watch cashCounterProvider — aaj ka correct total
-    final records    = ref.watch(cashCounterProvider).allRecords;
-    final today      = DateTime.now();
+    final records = ref.watch(cashCounterProvider).allRecords;
+    final today   = DateTime.now();
     final todayTotal = records
         .where((r) =>
     r.counterDate.year  == today.year  &&
@@ -76,12 +74,11 @@ class _AddCashTransactionDialogState
         .firstOrNull
         ?.totalAmount ?? 0.0;
 
-    final cashInRemaining  = todayTotal + _enteredAmount;
-    final cashOutRemaining = todayTotal - _enteredAmount;
+    final cashInRemaining = todayTotal + _enteredAmount;
+    // final cashOutRemaining = todayTotal - _enteredAmount; // ← COMMENTED: cash out
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: 460,
         child: SingleChildScrollView(
@@ -99,12 +96,12 @@ class _AddCashTransactionDialogState
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color:        AppColor.primary.withValues(alpha: 0.1),
+                        color:        AppColor.success.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
-                        Icons.swap_horiz_rounded,
-                        color: AppColor.primary,
+                        Icons.arrow_downward_rounded,
+                        color: AppColor.success,
                         size:  20,
                       ),
                     ),
@@ -112,11 +109,11 @@ class _AddCashTransactionDialogState
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Cash Transaction',
+                        Text('Cash In',
                             style: TextStyle(
                                 fontSize:   16,
                                 fontWeight: FontWeight.w700)),
-                        Text('Cash in ya out record karein',
+                        Text('Counter mein cash record karein',
                             style: TextStyle(
                                 fontSize: 12,
                                 color:    AppColor.textSecondary)),
@@ -199,8 +196,7 @@ class _AddCashTransactionDialogState
                     if (v == null || v.trim().isEmpty)
                       return 'Amount required hai';
                     final p = double.tryParse(v);
-                    if (p == null || p <= 0)
-                      return 'Valid amount dalein';
+                    if (p == null || p <= 0) return 'Valid amount dalein';
                     return null;
                   },
                   decoration: InputDecoration(
@@ -237,30 +233,33 @@ class _AddCashTransactionDialogState
 
                 const SizedBox(height: 12),
 
-                // ── Preview Cards ─────────────────────────
-                if (_amountCtrl.text.isNotEmpty &&
-                    _enteredAmount > 0) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _PreviewCard(
-                          label: 'After Cash In',
-                          value: 'Rs ${cashInRemaining.toStringAsFixed(0)}',
-                          color: AppColor.success,
-                          icon:  Icons.arrow_downward_rounded,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _PreviewCard(
-                          label: 'After Cash Out',
-                          value: 'Rs ${cashOutRemaining.toStringAsFixed(0)}',
-                          color: AppColor.error,
-                          icon:  Icons.arrow_upward_rounded,
-                        ),
-                      ),
-                    ],
+                // ── Preview Card — sirf Cash In ───────────
+                if (_amountCtrl.text.isNotEmpty && _enteredAmount > 0) ...[
+                  // Sirf Cash In preview — Cash Out commented
+                  _PreviewCard(
+                    label: 'After Cash In',
+                    value: 'Rs ${cashInRemaining.toStringAsFixed(0)}',
+                    color: AppColor.success,
+                    icon:  Icons.arrow_downward_rounded,
                   ),
+                  // ── Cash Out Preview COMMENTED ──────────
+                  // Row(
+                  //   children: [
+                  //     Expanded(child: _PreviewCard(
+                  //       label: 'After Cash In',
+                  //       value: 'Rs ${cashInRemaining.toStringAsFixed(0)}',
+                  //       color: AppColor.success,
+                  //       icon:  Icons.arrow_downward_rounded,
+                  //     )),
+                  //     const SizedBox(width: 12),
+                  //     Expanded(child: _PreviewCard(
+                  //       label: 'After Cash Out',
+                  //       value: 'Rs ${cashOutRemaining.toStringAsFixed(0)}',
+                  //       color: AppColor.error,
+                  //       icon:  Icons.arrow_upward_rounded,
+                  //     )),
+                  //   ],
+                  // ),
                   const SizedBox(height: 12),
                 ],
 
@@ -274,7 +273,7 @@ class _AddCashTransactionDialogState
                   style: const TextStyle(
                       fontSize: 14, color: AppColor.textPrimary),
                   decoration: InputDecoration(
-                    hintText:  'e.g. Owner ne nikale, Cash aaya...',
+                    hintText:  'e.g. Opening balance, shift start...',
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 13),
                     filled:    true,
@@ -298,72 +297,52 @@ class _AddCashTransactionDialogState
 
                 const SizedBox(height: 24),
 
-                // ── Cash In / Cash Out Buttons ────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: isSaving
-                            ? null
-                            : () => _submit('cash_in'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.success,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor:
-                          AppColor.success.withValues(alpha: 0.5),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
-                        ),
-                        icon: isSaving
-                            ? const SizedBox(
-                            width:  16,
-                            height: 16,
-                            child:  CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color:       Colors.white))
-                            : const Icon(Icons.arrow_downward_rounded,
-                            size: 18),
-                        label: const Text('Cash In',
-                            style: TextStyle(
-                                fontSize:   14,
-                                fontWeight: FontWeight.w700)),
-                      ),
+                // ── Sirf Cash In Button ───────────────────
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: isSaving ? null : () => _submit('cash_in'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColor.success,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                      AppColor.success.withValues(alpha: 0.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: isSaving
-                            ? null
-                            : () => _submit('cash_out'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.error,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor:
-                          AppColor.error.withValues(alpha: 0.5),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
-                        ),
-                        icon: isSaving
-                            ? const SizedBox(
-                            width:  16,
-                            height: 16,
-                            child:  CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color:       Colors.white))
-                            : const Icon(Icons.arrow_upward_rounded,
-                            size: 18),
-                        label: const Text('Cash Out',
-                            style: TextStyle(
-                                fontSize:   14,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                  ],
+                    icon: isSaving
+                        ? const SizedBox(
+                        width:  16,
+                        height: 16,
+                        child:  CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.arrow_downward_rounded, size: 18),
+                    label: const Text('Cash In',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700)),
+                  ),
                 ),
+
+                // ── Cash Out Button COMMENTED ─────────────
+                // const SizedBox(width: 12),
+                // Expanded(
+                //   child: ElevatedButton.icon(
+                //     onPressed: isSaving ? null : () => _submit('cash_out'),
+                //     style: ElevatedButton.styleFrom(
+                //       backgroundColor: AppColor.error,
+                //       foregroundColor: Colors.white,
+                //       padding: const EdgeInsets.symmetric(vertical: 14),
+                //       shape: RoundedRectangleBorder(
+                //           borderRadius: BorderRadius.circular(10)),
+                //       elevation: 0,
+                //     ),
+                //     icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                //     label: const Text('Cash Out',
+                //         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -389,6 +368,7 @@ class _PreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width:   double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color:        color.withValues(alpha: 0.07),

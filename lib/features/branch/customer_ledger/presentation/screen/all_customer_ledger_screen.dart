@@ -12,52 +12,50 @@ import '../widget/counter_chip_widget.dart';
 import '../widget/customer_call_widget.dart';
 import '../widget/empty_state_widget.dart';
 
-class AllCustomerLedgerScreen extends ConsumerStatefulWidget {
+class AllCustomerLedgerScreen extends ConsumerWidget {
   const AllCustomerLedgerScreen({super.key});
 
-  @override
-  ConsumerState<AllCustomerLedgerScreen> createState() =>
-      _AllCustomerLedgerScreenState();
-}
+  static final _fmt = DateFormat('dd MMM yyyy  hh:mm a');
 
-class _AllCustomerLedgerScreenState
-    extends ConsumerState<AllCustomerLedgerScreen> {
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(customerLedgerProvider.notifier).loadLedgers();
-      ref.read(counterProvider.notifier).loadCounters();
-    });
-  }
-
-  void _confirmDelete(BuildContext context, CustomerLedgerModel ledger) {
+  void _confirmDelete(
+      BuildContext context,
+      WidgetRef ref,
+      CustomerLedgerModel ledger,
+      ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
-        title: const Text('Record Delete Karein?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        title: const Text(
+          'Delete Record?',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
         content: Text(
-            '"${ledger.customerName}" ka record delete karna chahte hain?',
-            style: const TextStyle(fontSize: 13)),
+          'Are you sure you want to delete "${ledger.customerName}"?',
+          style: const TextStyle(fontSize: 13),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColor.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColor.textSecondary),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.error,
-                foregroundColor: Colors.white,
-                elevation:       0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
+              backgroundColor: AppColor.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             onPressed: () {
-              ref.read(customerLedgerProvider.notifier)
+              ref
+                  .read(customerLedgerProvider.notifier)
                   .deleteLedger(ledger.id);
               Navigator.pop(ctx);
             },
@@ -69,28 +67,27 @@ class _AllCustomerLedgerScreenState
   }
 
   @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(customerLedgerProvider);
-    final ledgers = state.filteredLedgers;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state    = ref.watch(customerLedgerProvider);
+    final ledgers  = state.filteredLedgers;
     final counters = ref.watch(counterProvider).counters;
-    final fmt = DateFormat('dd MMM yyyy  hh:mm a');
-    final size = MediaQuery.sizeOf(context);
+    final size     = MediaQuery.sizeOf(context);
 
     ref.listen<CustomerLedgerState>(customerLedgerProvider, (prev, next) {
       if (next.errorMessage != null &&
           next.errorMessage != prev?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:         Text(next.errorMessage!),
+            content: Text(next.errorMessage!),
             backgroundColor: AppColor.error,
-            behavior:        SnackBarBehavior.floating,
+            behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
             action: SnackBarAction(
-              label:     'OK',
+              label: 'OK',
               textColor: Colors.white,
-              onPressed: () =>
-                  ref.read(customerLedgerProvider.notifier).clearError(),
+              onPressed: () => ref.read(customerLedgerProvider.notifier).clearError(),
             ),
           ),
         );
@@ -99,17 +96,20 @@ class _AllCustomerLedgerScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Customer Ledger',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text(
+          'All Customer Ledger',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         toolbarHeight: 60,
         actions: [
           IconButton(
             onPressed: () =>
                 ref.read(customerLedgerProvider.notifier).loadLedgers(),
-            icon:    const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',
             style: IconButton.styleFrom(
-                foregroundColor: AppColor.textSecondary),
+              foregroundColor: AppColor.textSecondary,
+            ),
           ),
           const SizedBox(width: 16),
         ],
@@ -122,20 +122,20 @@ class _AllCustomerLedgerScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Stat Cards ───────────────────────────
+            // Stat Cards
             Row(
               children: [
                 SummaryCard(
                   title: 'Total Records',
                   value: '${ledgers.length}',
-                  icon:  Icons.receipt_long_outlined,
+                  icon: Icons.receipt_long_outlined,
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Total Paid',
                   value: 'Rs ${state.totalPaid.toStringAsFixed(0)}',
-                  icon:  Icons.payments_outlined,
+                  icon: Icons.payments_outlined,
                   color: AppColor.success,
                 ),
               ],
@@ -143,23 +143,35 @@ class _AllCustomerLedgerScreenState
 
             const SizedBox(height: 16),
 
-            // ── Search ────────────────────────────────
+            // Search
             SizedBox(
               width: 280,
               child: TextField(
-                onChanged: ref.read(customerLedgerProvider.notifier).onSearchChanged,
-                style:        const TextStyle(fontSize: 13),
+                onChanged: ref
+                    .read(customerLedgerProvider.notifier)
+                    .onSearchChanged,
+                style: const TextStyle(fontSize: 13),
                 cursorHeight: 14,
                 decoration: InputDecoration(
                   hintText: 'Search by customer...',
-                  hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AppColor.grey400),
-                  filled:    true,
+                  hintStyle: const TextStyle(
+                    color: AppColor.textHint,
+                    fontSize: 13,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AppColor.grey400,
+                  ),
+                  filled: true,
                   fillColor: AppColor.grey100,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide:   BorderSide.none,
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
@@ -167,28 +179,29 @@ class _AllCustomerLedgerScreenState
 
             const SizedBox(height: 16),
 
-            // ── Table ─────────────────────────────────
+            // Table
             Expanded(
-              child: ledgers.isEmpty ?
-              EmptyState(isSearching: state.searchQuery.isNotEmpty) :
-              LayoutBuilder(
+              child: ledgers.isEmpty
+                  ? EmptyState(
+                isSearching: state.searchQuery.isNotEmpty,
+              )
+                  : LayoutBuilder(
                 builder: (context, constraints) {
-                  final availableWidth = constraints.maxWidth;
-                  const double minTableWidth = 950;
                   final tableWidth =
-                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
+                  constraints.maxWidth > 950
+                      ? constraints.maxWidth
+                      : 950.0;
 
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: tableWidth),
+                      constraints:
+                      BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
-                                (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary.withValues(alpha: 0.05)
-                                : null,
+                          headingRowColor:
+                          WidgetStateProperty.all(AppColor.grey100),
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>((s) => s.contains(WidgetState.hovered) ? AppColor.primary.withValues(alpha: 0.05) : null,
                           ),
                           dataRowMinHeight: 52,
                           dataRowMaxHeight: 52,
@@ -205,55 +218,54 @@ class _AllCustomerLedgerScreenState
                             DataColumn(label: Text('Actions')),
                           ],
                           rows: ledgers.map((l) {
-                            final counterName = l.counterId != null
-                                ? counters
-                                .where((c) => c.id == l.counterId)
-                                .map((c) => c.counterName)
-                                .firstOrNull
-                                : null;
+                            final counterName = l.counterId != null ? counters.where((c) =>
+                            c.id == l.counterId).map((c) => c.counterName).firstOrNull : null;
                             return DataRow(
                               cells: [
                                 DataCell(CustomerCell(l: l)),
-
-                                DataCell(CounterChip(counterName: counterName)),
-
+                                DataCell(CounterChip(
+                                  counterName: counterName,
+                                )),
                                 DataCell(AmountBadge(
-                                    amount: l.previousAmount, color: AppColor.grey500)),
-
+                                  amount: l.previousAmount,
+                                  color: AppColor.grey500,
+                                )),
                                 DataCell(AmountBadge(
-                                    amount: l.payAmount, color: AppColor.success)),
-
+                                  amount: l.payAmount,
+                                  color: AppColor.success,
+                                )),
                                 DataCell(AmountBadge(
                                   amount: l.newAmount,
-                                  color: l.newAmount > 0
-                                      ? AppColor.error
-                                      : l.newAmount < 0
-                                      ? AppColor.info
-                                      : AppColor.success,
+                                  color: l.newAmount > 0 ? AppColor.error : l.newAmount < 0 ? AppColor.info : AppColor.success,
                                 )),
-
                                 DataCell(SizedBox(
                                   width: 140,
                                   child: Text(
                                     l.notes ?? '—',
                                     style: const TextStyle(
-                                        fontSize: 12, color: AppColor.textSecondary),
-                                    overflow: TextOverflow.ellipsis,
+                                      fontSize: 12,
+                                      color:
+                                      AppColor.textSecondary,
+                                    ),
+                                    overflow:
+                                    TextOverflow.ellipsis,
                                     maxLines: 1,
                                   ),
                                 )),
-
                                 DataCell(Text(
-                                  fmt.format(l.createdAt),
+                                  _fmt.format(l.createdAt),
                                   style: const TextStyle(
-                                      fontSize: 11, color: AppColor.textSecondary),
+                                    fontSize: 11,
+                                    color: AppColor.textSecondary,
+                                  ),
                                 )),
-
                                 DataCell(CustomerActionButton(
-                                  icon: Icons.delete_outline_rounded,
+                                  icon: Icons
+                                      .delete_outline_rounded,
                                   color: AppColor.error,
                                   tooltip: 'Delete',
-                                  onTap: () => _confirmDelete(context, l),
+                                  onTap: () => _confirmDelete(
+                                      context, ref, l),
                                 )),
                               ],
                             );

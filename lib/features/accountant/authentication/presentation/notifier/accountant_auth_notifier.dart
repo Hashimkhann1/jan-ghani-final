@@ -21,8 +21,8 @@ class AccountantAuthNotifier extends StateNotifier<AccountantAuthState> {
   }) async {
     if (username.isEmpty || password.isEmpty) {
       state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: 'Email aur password zaroor bharo',
+        status:       AuthStatus.error,
+        errorMessage: 'Email and password are required',
       );
       return;
     }
@@ -37,38 +37,35 @@ class AccountantAuthNotifier extends StateNotifier<AccountantAuthState> {
 
       if (user == null) {
         state = state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: 'Email ya password galat hai',
+          status:       AuthStatus.error,
+          errorMessage: 'Invalid email or password',
         );
         return;
       }
 
-      // SharedPreferences mein save karo
       await saveSessionUseCase(user);
-
-      // Riverpod global session mein set karo
-      ref.read(sessionProvider.notifier).setUser(user);
+      await ref.read(sessionProvider.notifier).setUser(user); // ✅ await added
 
       state = state.copyWith(
         status: AuthStatus.success,
-        user: user,
+        user:   user,
       );
     } on Exception catch (e) {
       state = state.copyWith(
-        status: AuthStatus.error,
+        status:       AuthStatus.error,
         errorMessage: e.toString().replaceAll('Exception: ', ''),
       );
     } catch (e) {
       state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: 'Kuch ghalat ho gaya. Dobara koshish karo.',
+        status:       AuthStatus.error,
+        errorMessage: 'Something went wrong. Please try again.',
       );
     }
   }
 
   Future<void> logout() async {
     await saveSessionUseCase.repository.clearSession();
-    ref.read(sessionProvider.notifier).clear();
+    await ref.read(sessionProvider.notifier).clear(); // ✅ await added
     state = const AccountantAuthState();
   }
 

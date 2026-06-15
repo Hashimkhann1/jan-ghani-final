@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../service/sync/sync_service.dart';
 
 /// SYNC STATUS WIDGET — UI mein sync status dikhao

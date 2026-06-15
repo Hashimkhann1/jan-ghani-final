@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../authentication/presentation/provider/auth_provider.dart';
+
 import '../provider/dashboard_provider.dart';
 import '../widget/dashboard_chart_widget.dart';
 import '../widget/low_stock_banner_widget.dart';
 import '../widget/summary_card_row_widget.dart';
 import '../widget/top_list_widget.dart';
-import '../../data/model/dashboard_model.dart';
 import 'low_stock_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {

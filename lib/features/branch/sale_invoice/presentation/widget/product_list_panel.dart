@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../../core/color/app_color.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../branch_stock_inventory/presentation/provider/branch_stock_inventory_provider.dart';

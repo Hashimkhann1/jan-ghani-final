@@ -1,4 +1,4 @@
-import 'package:jan_ghani_final/features/branch/counter/data/model/counter_model.dart';
+
 
 class UserModel {
   final String   id;

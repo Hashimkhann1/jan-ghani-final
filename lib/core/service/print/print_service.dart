@@ -42,6 +42,7 @@ class ThermalPrintService {
     double? previousBalance,
     double? paidAmount,
     double? currentBalance,
+    String? notes,
   }) async {
     final doc = pw.Document();
     final dateFmt = DateFormat('dd/MM/yyyy');
@@ -273,6 +274,19 @@ class ThermalPrintService {
             ),
             pw.SizedBox(height: 4),
             _dashedLine(),
+          ],
+          if (notes != null && notes.isNotEmpty) ...[
+            pw.SizedBox(height: 2),
+            pw.Text(
+              'NOTE:',
+              style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 2),
+            pw.Text(
+              notes,
+              style: const pw.TextStyle(fontSize: 7.5),
+            ),
+            pw.SizedBox(height: 3),
           ],
 
           // ── Footer ─────────────────────────────────────────

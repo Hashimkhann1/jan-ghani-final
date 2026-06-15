@@ -6,18 +6,14 @@ import 'package:jan_ghani_final/features/branch/branch_stock_damage/presentation
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all_customer_screen.dart';
-import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/screen/all_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/screen/counter_customer_ledger_screen.dart';
-import 'package:jan_ghani_final/features/branch/expense/presentation/screen/all_expense_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/csr_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale_return_report_screen.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 import '../../../features/branch/branch_transcation/presentation/screen/branch_transaction_screen.dart';
-import '../../../features/branch/cash_counter/presentation/screen/all_cash_transaction_screen.dart';
 import '../../../features/branch/cash_counter/presentation/screen/cash_counter_screen.dart';
 import '../../../features/branch/cash_counter/presentation/screen/counter_cash_transaction_screen.dart';
-import '../../../features/branch/cash_store/presentation/screen/store_summary_screen.dart';
 import '../../../features/branch/dashboard/presentation/screen/dashboard_screen.dart';
 import '../../../features/branch/reports/presentation/screen/sale_invoice_report_screen.dart';
 import '../../../features/branch/store_user/presentation/screen/user_screen.dart';
@@ -62,7 +58,7 @@ final _cashierItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyC,
   ),
   NavItem(
-    icon: Icons.account_balance_wallet_rounded, label: 'Ledger',
+    icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
     screen: const CounterCustomerLedgerScreen(),
     shortcutKey: LogicalKeyboardKey.keyL,
   ),
@@ -72,9 +68,13 @@ final _cashierItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyX,
   ),
   NavItem(
-    icon: Icons.receipt_long_rounded, label: 'Transactions',
+    icon: Icons.receipt_long_rounded, label: 'Difference',
     screen: const CounterCashTransactionScreen(),
     shortcutKey: LogicalKeyboardKey.keyT,
+  ),
+  NavItem(
+    icon: Icons.local_shipping_rounded, label: 'Branch Assign Balance to Accountant',
+    screen: BranchTransactionScreen(),
   ),
   NavItem(
     icon: Icons.inventory_2_rounded, label: 'Stock',
@@ -127,19 +127,19 @@ final _managerItems = <NavItem>[
     screen: const AllCustomerScreen(),
     shortcutKey: LogicalKeyboardKey.keyC,
   ),
+  // NavItem(
+  //   icon: Icons.money_off_rounded, label: 'Expense',
+  //   screen: const AllExpenseScreen(),
+  //   shortcutKey: LogicalKeyboardKey.keyE,
+  // ),
   NavItem(
-    icon: Icons.money_off_rounded, label: 'Expense',
-    screen: const AllExpenseScreen(),
-    shortcutKey: LogicalKeyboardKey.keyE,
-  ),
-  NavItem(
-    icon: Icons.account_balance_wallet_rounded, label: 'All Ledger',
-    screen: const AllCustomerLedgerScreen(),
+    icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
+    screen: const CounterCustomerLedgerScreen(),
     shortcutKey: LogicalKeyboardKey.keyL,
   ),
   NavItem(
-    icon: Icons.swap_horiz_rounded, label: 'Transactions',
-    screen: const AllCashTransactionScreen(),
+    icon: Icons.receipt_long_rounded, label: 'Difference',
+    screen: const CounterCashTransactionScreen(),
     shortcutKey: LogicalKeyboardKey.keyT,
   ),
   NavItem(
@@ -147,11 +147,11 @@ final _managerItems = <NavItem>[
     screen: const CashCounterScreen(),
     shortcutKey: LogicalKeyboardKey.keyX,
   ),
-  NavItem(
-    icon: Icons.store_rounded, label: 'Store Summary',
-    screen: const StoreSummaryScreen(),
-    shortcutKey: LogicalKeyboardKey.keyM,
-  ),
+  // NavItem(
+  //   icon: Icons.store_rounded, label: 'Store Summary',
+  //   screen: const StoreSummaryScreen(),
+  //   shortcutKey: LogicalKeyboardKey.keyM,
+  // ),
   NavItem(
     icon: Icons.inventory_2_rounded, label: 'Branch Stock',
     screen: const BranchStockInventoryScreen(),

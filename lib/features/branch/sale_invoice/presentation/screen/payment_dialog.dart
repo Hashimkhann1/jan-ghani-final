@@ -1,7 +1,9 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../../core/color/app_color.dart';
 import '../../../../../core/service/print/print_service.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
@@ -56,10 +58,8 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
   double get _totalDue        => _existingBalance + _grandTotal;
 
   double get _cashForInvoice => _cash.clamp(0.0, _grandTotal);
-  double get _cardForInvoice =>
-      _card.clamp(0.0, max(0.0, _grandTotal - _cashForInvoice));
-  double get _creditForInvoice =>
-      (_grandTotal - _cashForInvoice - _cardForInvoice).clamp(0.0, _grandTotal);
+  double get _cardForInvoice => _card.clamp(0.0, max(0.0, _grandTotal - _cashForInvoice));
+  double get _creditForInvoice => (_grandTotal - _cashForInvoice - _cardForInvoice).clamp(0.0, _grandTotal);
 
   double get _extraPayment {
     if (!_hasCustomer) return 0.0;
@@ -74,9 +74,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
   bool get _isReturnMode => _returnAmount > 0.01;
 
   // New balance after payment
-  double get _newBalance =>
-      (_existingBalance + _creditForInvoice - _extraPayment)
-          .clamp(0.0, double.infinity);
+  double get _newBalance => (_existingBalance + _creditForInvoice - _extraPayment).clamp(0.0, double.infinity);
 
   bool get _isValid {
     if (_hasCustomer) return true;
@@ -208,7 +206,8 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
             previousBalance: capturedExistingBalance,
             paidAmount:      capturedTotalPaid,
             currentBalance:  capturedNewBalance,
-            hasCustomer:     capturedHasCustomer,   // ✅ captured
+            hasCustomer:     capturedHasCustomer,
+            notes:           state.notes,
           );
         }
         Navigator.of(context).pop(true);
@@ -236,7 +235,17 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     ));
   }
 
-  Future<void> _print(dynamic state, List<PaymentEntry> payments, {double? returnAmount, double? previousBalance, double? paidAmount, double? currentBalance, bool    hasCustomer = false,}) async {
+  Future<void> _print(
+      dynamic state,
+      List<PaymentEntry> payments,
+      {
+        double? returnAmount,
+        double? previousBalance,
+        double? paidAmount,
+        double? currentBalance,
+        bool hasCustomer = false,
+        String? notes,
+      }) async {
     try {
       final auth = ref.read(authProvider);
 
@@ -273,6 +282,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
         previousBalance: hasCustomer ? previousBalance : null,
         paidAmount:      hasCustomer ? paidAmount      : null,
         currentBalance:  hasCustomer ? currentBalance  : null,
+        notes: notes,
       );
 
       debugPrint('✅ Print successful');

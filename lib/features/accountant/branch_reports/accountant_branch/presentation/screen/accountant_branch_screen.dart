@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../branch/authentication/presentation/provider/auth_provider.dart';
+import '../../../../authentication/presentation/providers/accoutant_session_provider.dart';
 import '../../../branch_report_list_screen.dart';
 import '../../data/model/accountant_branch_model.dart';
 import '../provider/accounttant_branch_provider.dart';
@@ -30,6 +32,11 @@ class _BranchScreenState extends ConsumerState<BranchScreen> {
     final notifier = ref.read(branchProvider.notifier);
     final desktop  = _isDesktop(context);
 
+    final isOwner = ref.watch(authProvider).role == 'owner';
+    final userBranchId = ref.watch(currentBranchIdProvider);
+
+    final visibleBranches = isOwner ? state.filtered : state.filtered.where((b) => b.id == userBranchId).toList();
+
     ref.listen<BranchState>(branchProvider, (_, next) {
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -49,16 +56,27 @@ class _BranchScreenState extends ConsumerState<BranchScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: desktop
-          ? _DesktopLayout(
-        state:    state,
-        notifier: notifier,
+      floatingActionButton: (!desktop && isOwner) ?
+      FloatingActionButton.extended(
+        onPressed: () => showAddBranchDialog(context, notifier),
+        backgroundColor: AppColor.primary,
+        foregroundColor: Colors.white,
+        icon:  const Icon(Icons.add_rounded),
+        label: const Text('Add Branch'),
+      ) :
+      null,
+      body: desktop ?
+      _DesktopLayout(
+        state:      state,
+        notifier:   notifier,
         searchCtrl: _searchCtrl,
-      )
-          : _MobileLayout(
-        state:    state,
-        notifier: notifier,
+        isOwner:    isOwner,
+        branches:   visibleBranches,
+      ) : _MobileLayout(
+        state:      state,
+        notifier:   notifier,
         searchCtrl: _searchCtrl,
+        branches:   visibleBranches,
       ),
     );
   }
@@ -69,11 +87,15 @@ class _DesktopLayout extends StatelessWidget {
   final BranchState state;
   final dynamic notifier;
   final TextEditingController searchCtrl;
+  final bool isOwner;
+  final List<BranchModel> branches;
 
   const _DesktopLayout({
     required this.state,
     required this.notifier,
     required this.searchCtrl,
+    required this.isOwner,
+    required this.branches,
   });
 
   @override
@@ -102,7 +124,7 @@ class _DesktopLayout extends StatelessWidget {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Kisi branch ko tap karke uska data dekhein',
+                    'Click on any report to view details',
                     style: TextStyle(fontSize: 13, color: AppColor.textHint),
                   ),
                 ],
@@ -117,7 +139,6 @@ class _DesktopLayout extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // ✅ SizedBox mein wrap karo — fixed width do
               SizedBox(
                 width: 120,
                 child: OutlinedButton.icon(
@@ -134,6 +155,27 @@ class _DesktopLayout extends StatelessWidget {
                   ),
                 ),
               ),
+              // ✅ Add Branch button — sirf owner ko dikhe
+              if (isOwner) ...[
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 150,
+                  child: ElevatedButton.icon(
+                    onPressed: () => showAddBranchDialog(context, notifier),
+                    icon:  const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Add Branch'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColor.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -149,14 +191,14 @@ class _DesktopLayout extends StatelessWidget {
               _StatPill(
                 icon:  Icons.store_rounded,
                 label: 'Total Branches',
-                value: '${state.filtered.length}',
+                value: '${branches.length}',
               ),
               const SizedBox(width: 16),
               if (state.searchQuery.isNotEmpty)
                 _StatPill(
                   icon:  Icons.search_rounded,
                   label: 'Search results',
-                  value: '${state.filtered.length}',
+                  value: '${branches.length}',
                   color: AppColor.primary,
                 ),
             ],
@@ -169,9 +211,9 @@ class _DesktopLayout extends StatelessWidget {
         Expanded(
           child: state.isLoading
               ? const Center(child: CircularProgressIndicator())
-              : state.filtered.isEmpty
+              : branches.isEmpty
               ? const _EmptyState()
-              : _DesktopGrid(branches: state.filtered),
+              : _DesktopGrid(branches: branches),
         ),
       ],
     );
@@ -289,7 +331,7 @@ class _BranchGridCard extends StatelessWidget {
                           size: 13, color: AppColor.primary),
                       const SizedBox(width: 4),
                       Text(
-                        'Report dekhein',
+                        'Report',
                         style: TextStyle(
                           fontSize:   12,
                           color:      AppColor.primary,
@@ -352,11 +394,13 @@ class _MobileLayout extends StatelessWidget {
   final BranchState state;
   final dynamic notifier;
   final TextEditingController searchCtrl;
+  final List<BranchModel> branches;
 
   const _MobileLayout({
     required this.state,
     required this.notifier,
     required this.searchCtrl,
+    required this.branches,
   });
 
   @override
@@ -402,7 +446,7 @@ class _MobileLayout extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Text(
-              'Kisi branch ko tap karke uska data dekhein',
+              'Click on any report to view details',
               style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
             ),
           ),
@@ -411,16 +455,16 @@ class _MobileLayout extends StatelessWidget {
           const SliverFillRemaining(
             child: Center(child: CircularProgressIndicator()),
           )
-        else if (state.filtered.isEmpty)
+        else if (branches.isEmpty)
           const SliverFillRemaining(child: _EmptyState())
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
             sliver: SliverList.separated(
-              itemCount:        state.filtered.length,
+              itemCount:        branches.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (_, i) =>
-                  _BranchListCard(branch: state.filtered[i]),
+                  _BranchListCard(branch: branches[i]),
             ),
           ),
       ],
@@ -448,7 +492,7 @@ class _SearchField extends StatelessWidget {
       style: const TextStyle(fontSize: 14),
       cursorHeight: 16,
       decoration: InputDecoration(
-        hintText: 'Branch dhoondein...',
+        hintText: 'Search Branch',
         hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
         prefixIcon: const Icon(Icons.search_rounded,
             size: 20, color: AppColor.primary),
@@ -573,4 +617,247 @@ class _EmptyState extends StatelessWidget {
       ],
     ),
   );
+}
+
+// ── Add Branch Dialog ─────────────────────────────────────────────────────────
+void showAddBranchDialog(BuildContext context, dynamic notifier) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _AddBranchDialog(notifier: notifier),
+  );
+}
+
+class _AddBranchDialog extends StatefulWidget {
+  final dynamic notifier;
+  const _AddBranchDialog({required this.notifier});
+
+  @override
+  State<_AddBranchDialog> createState() => _AddBranchDialogState();
+}
+
+class _AddBranchDialogState extends State<_AddBranchDialog> {
+  final _formKey   = GlobalKey<FormState>();
+  final _codeCtrl  = TextEditingController();
+  final _nameCtrl  = TextEditingController();
+  final _addrCtrl  = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _codeCtrl.text = widget.notifier.nextBranchCode();
+  }
+
+  @override
+  void dispose() {
+    _codeCtrl.dispose();
+    _nameCtrl.dispose();
+    _addrCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _saving = true);
+
+    final ok = await widget.notifier.addBranch(
+      code:    _codeCtrl.text,
+      name:    _nameCtrl.text,
+      address: _addrCtrl.text,
+      phone:   _phoneCtrl.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    if (ok) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:         const Text('Branch successfully add ho gayi ✅'),
+        backgroundColor: Colors.green.shade600,
+        behavior:        SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10)),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width:  42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColor.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.add_business_rounded,
+                          color: AppColor.primary),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'New Branch',
+                      style: TextStyle(
+                        fontSize:   18,
+                        fontWeight: FontWeight.w700,
+                        color:      Color(0xFF1A1D23),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: _saving
+                          ? null
+                          : () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded,
+                          color: AppColor.textHint),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                _field(
+                  controller: _codeCtrl,
+                  label: 'Branch Code',
+                  hint:  'e.g. BR-002',
+                  icon:  Icons.qr_code_rounded,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Code zaroori hai'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+
+                _field(
+                  controller: _nameCtrl,
+                  label: 'Branch Name',
+                  hint:  'e.g. Jan Ghani',
+                  icon:  Icons.store_rounded,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Name zaroori hai'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+
+                _field(
+                  controller: _addrCtrl,
+                  label: 'Address',
+                  hint:  'e.g. Mardan Road, Charsadda',
+                  icon:  Icons.location_on_rounded,
+                ),
+                const SizedBox(height: 14),
+
+                _field(
+                  controller: _phoneCtrl,
+                  label: 'Phone',
+                  hint:  'e.g. 03001234567',
+                  icon:  Icons.phone_rounded,
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 24),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _saving
+                            ? null
+                            : () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColor.textSecondary,
+                          side: BorderSide(color: AppColor.grey200),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _saving ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: _saving
+                            ? const SizedBox(
+                          width:  20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                            : const Text('Save Branch'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller:   controller,
+      validator:    validator,
+      keyboardType: keyboardType,
+      enabled:      !_saving,
+      style: const TextStyle(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText:  hint,
+        prefixIcon: Icon(icon, size: 20, color: AppColor.primary),
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:   BorderSide(color: AppColor.grey200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:   BorderSide(color: AppColor.grey200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
 }

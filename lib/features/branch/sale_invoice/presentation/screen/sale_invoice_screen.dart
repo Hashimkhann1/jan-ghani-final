@@ -2,12 +2,13 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../../core/color/app_color.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
 import '../../data/model/sale_invoice_model.dart';
-import '../provider/held_invoice_provider.dart';
 import '../provider/cart_nav_provider.dart';
+import '../provider/held_invoice_provider.dart';
 import '../provider/sale_invoice_provider.dart';
 import '../widget/cart_panel.dart';
 import '../widget/held_invoices_sheet.dart';
@@ -109,8 +110,6 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     );
   }
 
-
-
   @override
   void initState() {
     super.initState();
@@ -132,8 +131,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
     final key  = event.logicalKey;
     final pressed = HardwareKeyboard.instance.logicalKeysPressed;
-    final ctrl = pressed.contains(LogicalKeyboardKey.controlLeft) ||
-        pressed.contains(LogicalKeyboardKey.controlRight);
+    final ctrl = pressed.contains(LogicalKeyboardKey.controlLeft) || pressed.contains(LogicalKeyboardKey.controlRight);
 
     // Ctrl+F / F1 — Search focus
     if (key == LogicalKeyboardKey.f1 ||

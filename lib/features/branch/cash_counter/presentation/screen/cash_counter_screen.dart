@@ -5,6 +5,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
+
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer_ledger/presentation/widget/counter_chip_widget.dart';
 import '../widget/add_cash_registration_dialog.dart';

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/features/branch/dashboard/presentation/provider/dashboard_provider.dart';
 import 'package:uuid/uuid.dart';
+
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../branch_stock_inventory/presentation/provider/branch_stock_inventory_provider.dart';

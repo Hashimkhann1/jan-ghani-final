@@ -1,8 +1,8 @@
 // lib/features/branch/reports/presentation/provider/csr_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../authentication/presentation/provider/auth_provider.dart';
-import '../../../customer/presentation/provider/customer_provider.dart';
 import '../../data/datasource/csr_datasource.dart';
 import '../../data/model/csr_model.dart';
 

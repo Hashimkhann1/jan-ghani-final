@@ -1,10 +1,9 @@
-import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/payment_dialog.dart';
+
 import '../../../../../core/color/app_color.dart';
 import '../provider/sale_invoice_provider.dart';
-import '../screen/sale_invoice_screen.dart' show payNowTriggerProvider;
 
 class CartSummaryWidget extends ConsumerWidget {
   const CartSummaryWidget({super.key});

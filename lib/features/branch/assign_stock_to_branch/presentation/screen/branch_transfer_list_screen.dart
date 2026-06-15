@@ -1,6 +1,7 @@
 // Branch Transfer List Screen — updated with inventory-style summary header
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../data/model/stock_transfer_model.dart';
 import '../provider/stock_transfer_provider.dart';
 import 'stock_transfer_detail_screen.dart';

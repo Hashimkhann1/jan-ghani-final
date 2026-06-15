@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../authentication/presentation/provider/auth_provider.dart';
-import 'cash_counter_provider.dart';
 import '../../data/datasource/cash_transaction_remote_datasource.dart';
 import '../../data/model/cash_transaction_model.dart';
+import 'cash_counter_provider.dart';
 
 class CashTransactionState {
   final List<CashTransactionModel> allTransactions;
@@ -19,13 +20,14 @@ class CashTransactionState {
     this.errorMessage,
   });
 
-  double get totalCashIn  => allTransactions
+  double get totalCashIn => allTransactions
       .where((t) => t.isCashIn)
       .fold(0, (s, t) => s + t.cashOutAmount);
 
-  double get totalCashOut => allTransactions
-      .where((t) => t.isCashOut)
-      .fold(0, (s, t) => s + t.cashOutAmount);
+  // isCashOut COMMENTED — model mein bhi nahi hai
+  // double get totalCashOut => allTransactions
+  //     .where((t) => t.isCashOut)
+  //     .fold(0, (s, t) => s + t.cashOutAmount);
 
   CashTransactionState copyWith({
     List<CashTransactionModel>? allTransactions,
@@ -44,7 +46,7 @@ class CashTransactionState {
 
 class CashTransactionNotifier extends StateNotifier<CashTransactionState> {
   final CashTransactionRemoteDataSource _ds;
-  final Ref    _ref;
+  final Ref _ref;
 
   CashTransactionNotifier(this._ref)
       : _ds = CashTransactionRemoteDataSource(),
@@ -53,14 +55,15 @@ class CashTransactionNotifier extends StateNotifier<CashTransactionState> {
   }
 
   String? get _counterId => _ref.read(authProvider).counterId;
+  String? get _userId    => _ref.read(authProvider).userId; // ← user id
 
-  // ── LOAD — counter specific ───────────────────────────────
+  // ── LOAD ─────────────────────────────────────────────────
   Future<void> load() async {
     state = state.copyWith(isLoading: true);
     try {
-      final String _storeId = _ref.watch(authProvider).storeId;
-      final transactions = await _ds.getAll(_storeId);
-      final todayTotal   = await _ds.getTodayTotal(_storeId, _counterId);
+      final storeId      = _ref.read(authProvider).storeId;
+      final transactions = await _ds.getAll(storeId);
+      final todayTotal   = await _ds.getTodayTotal(storeId, _counterId);
 
       state = state.copyWith(
         allTransactions: transactions,
@@ -68,50 +71,54 @@ class CashTransactionNotifier extends StateNotifier<CashTransactionState> {
         isLoading:       false,
       );
     } catch (e, stack) {
-      print('❌ Load error: $e');
-      print('❌ Stack: $stack');
-      state = state.copyWith(
-          isLoading: false, errorMessage: 'Load error: $e');
+      print('❌ Load error: $e\n$stack');
+      state = state.copyWith(isLoading: false, errorMessage: 'Load error: $e');
     }
   }
 
-  // ── LOAD ALL — store level (owner/manager ke liye) ────────
+  // ── LOAD ALL — store level ────────────────────────────────
   Future<void> loadAll() async {
     state = state.copyWith(isLoading: true);
     try {
-      final String _storeId = _ref.watch(authProvider).storeId;
-      final transactions = await _ds.getAll(_storeId);
+      final storeId      = _ref.read(authProvider).storeId;
+      final transactions = await _ds.getAll(storeId);
       state = state.copyWith(
         allTransactions: transactions,
         isLoading:       false,
       );
     } catch (e, stack) {
-      print('❌ LoadAll error: $e');
-      print('❌ Stack: $stack');
-      state = state.copyWith(
-          isLoading: false, errorMessage: 'Load error: $e');
+      print('❌ LoadAll error: $e\n$stack');
+      state = state.copyWith(isLoading: false, errorMessage: 'Load error: $e');
     }
   }
 
-  // ── ADD TRANSACTION ───────────────────────────────────────
+  // ── ADD TRANSACTION — sirf cash_in ───────────────────────
   Future<void> addTransaction({
-    required double amount,
-    required String transactionType,
-    required double previousTotal,  // ← add
-    String?         description,
+    required double  amount,
+    required double  previousTotal,
+    required String? userId,        // ← NEW: current user id
+    String?          description,
+    // transactionType parameter REMOVED — ab hardcoded 'cash_in'
+    // required String transactionType,
   }) async {
     state = state.copyWith(isSaving: true);
     try {
-      final remainingAmount = transactionType == 'cash_in' ? previousTotal + amount : previousTotal - amount;
-      final String _storeId = _ref.watch(authProvider).storeId;
+      final storeId         = _ref.read(authProvider).storeId;
+      final remainingAmount = previousTotal + amount; // cash_in: add karo
+
+      // cash_out wala case COMMENTED:
+      // final remainingAmount = transactionType == 'cash_in'
+      //     ? previousTotal + amount
+      //     : previousTotal - amount;
 
       final saved = await _ds.add(
-        storeId:         _storeId,
+        storeId:         storeId,
         counterId:       _counterId,
+        userId:          userId,       // ← pass
         previousAmount:  previousTotal,
         cashOutAmount:   amount,
         remainingAmount: remainingAmount,
-        transactionType: transactionType,
+        // transactionType: transactionType, // ← REMOVED: datasource mein hardcoded
         description:     description,
       );
 
@@ -124,10 +131,8 @@ class CashTransactionNotifier extends StateNotifier<CashTransactionState> {
       _ref.read(cashCounterProvider.notifier).loadRecords();
 
     } catch (e, stack) {
-      print('❌ Transaction error: $e');
-      print('❌ Stack: $stack');
-      state = state.copyWith(
-          isSaving: false, errorMessage: e.toString());
+      print('❌ Transaction error: $e\n$stack');
+      state = state.copyWith(isSaving: false, errorMessage: e.toString());
     }
   }
 

@@ -6,12 +6,12 @@ import '../../data/model/counter_model.dart';
 // ── State ─────────────────────────────────────────────────────
 class CounterState {
   final List<CounterModel> counters;
-  final bool    isLoading;
+  final bool isLoading;
   final String? errorMessage;
 
   const CounterState({
-    this.counters     = const [],
-    this.isLoading    = false,
+    this.counters    = const [],
+    this.isLoading   = false,
     this.errorMessage,
   });
 
@@ -19,22 +19,24 @@ class CounterState {
     List<CounterModel>? counters,
     bool?               isLoading,
     String?             errorMessage,
-  }) => CounterState(
-    counters:     counters     ?? this.counters,
-    isLoading:    isLoading    ?? this.isLoading,
-    errorMessage: errorMessage,
-  );
+  }) =>
+      CounterState(
+        counters:     counters  ?? this.counters,
+        isLoading:    isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }
 
 // ── Notifier ──────────────────────────────────────────────────
 class CounterNotifier extends StateNotifier<CounterState> {
-  final CounterRemoteDataSource _ds;
-  final Ref _ref;
-  String get _storeId => _ref.read(authProvider).storeId;
-
-  CounterNotifier(this._ref): _ds = CounterRemoteDataSource(), super(const CounterState()) {
+  CounterNotifier(this._ref) : super(const CounterState()) {
     loadCounters();
   }
+
+  final Ref _ref;
+  final _ds = CounterRemoteDataSource();
+
+  String get _storeId => _ref.read(authProvider).storeId;
 
   Future<void> loadCounters() async {
     state = state.copyWith(isLoading: true);
@@ -65,10 +67,10 @@ class CounterNotifier extends StateNotifier<CounterState> {
     state = state.copyWith(isLoading: true);
     try {
       final fresh = await _ds.update(id, counterName);
-      final list  = state.counters
-          .map((c) => c.id == fresh.id ? fresh : c)
-          .toList();
-      state = state.copyWith(counters: list, isLoading: false);
+      state = state.copyWith(
+        counters:  state.counters.map((c) => c.id == fresh.id ? fresh : c).toList(),
+        isLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(
           isLoading: false, errorMessage: 'Update error: $e');
@@ -79,8 +81,10 @@ class CounterNotifier extends StateNotifier<CounterState> {
     state = state.copyWith(isLoading: true);
     try {
       await _ds.delete(id);
-      final list = state.counters.where((c) => c.id != id).toList();
-      state = state.copyWith(counters: list, isLoading: false);
+      state = state.copyWith(
+        counters:  state.counters.where((c) => c.id != id).toList(),
+        isLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(
           isLoading: false, errorMessage: 'Delete error: $e');
@@ -91,7 +95,4 @@ class CounterNotifier extends StateNotifier<CounterState> {
 }
 
 // ── Provider ──────────────────────────────────────────────────
-final counterProvider =
-StateNotifierProvider<CounterNotifier, CounterState>(
-      (ref) => CounterNotifier(ref),
-);
+final counterProvider = StateNotifierProvider<CounterNotifier, CounterState>((ref) => CounterNotifier(ref),);

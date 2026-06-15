@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+
 import '../../data/model/customer_model.dart';
 
 class CustomerBalanceBadge extends StatelessWidget {

@@ -1,17 +1,18 @@
 import 'package:postgres/postgres.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../../../core/service/db/db_service.dart';
 import '../model/branch_transaction_history_model.dart';
 
 class BranchTransactionDataSource {
 
-  // ── GET branch_summary total_amount ──────────────────────
+  // ── GET branch_cash_counter total_amount ──────────────────────
   Future<double> getBranchTotalAmount(String storeId) async {
     try {
       final conn   = await DataBaseService.getConnection();
       final result = await conn.execute(
         Sql.named('''
-          SELECT total_amount FROM public.branch_summary
+          SELECT total_amount FROM public.branch_cash_counter
           WHERE store_id = @storeId AND counter_date = CURRENT_DATE
           LIMIT 1
         '''),
@@ -29,7 +30,7 @@ class BranchTransactionDataSource {
   }
 
   // ── CASH OUT ──────────────────────────────────────────────
-  // 1. branch_summary se minus karo (local)
+  // 1. branch_cash_counter se minus karo (local)
   // 2. history insert karo is_synced=false (local)
   // 3. Internet ho to Supabase sync karo is_synced=true
   Future<void> cashOut({
@@ -42,13 +43,13 @@ class BranchTransactionDataSource {
   }) async {
     final conn = await DataBaseService.getConnection();
 
-    // 1. branch_summary update (local)
+    // 1. branch_cash_counter update (local)
     await conn.execute(
       Sql.named('''
-        UPDATE public.branch_summary
-        SET total_amount    = total_amount    - @payAmount,
-            total_cash_out  = total_cash_out  + @payAmount,
-            updated_at      = NOW()
+        UPDATE public.branch_cash_counter
+        SET total_amount   = total_amount  - @payAmount,
+            cash_out       = cash_out      + @payAmount,
+            updated_at     = NOW()
         WHERE store_id     = @storeId
           AND counter_date = CURRENT_DATE
       '''),
@@ -136,9 +137,9 @@ class BranchTransactionDataSource {
       await conn.execute(
         Sql.named('''
           UPDATE public.branch_transaction_to_janghani
-          SET is_synced   = true,
+          SET is_synced    = true,
               assign_to_id = @janghaniId::uuid,
-              updated_at  = NOW()
+              updated_at   = NOW()
           WHERE id = @rowId::uuid
         '''),
         parameters: {

@@ -10,6 +10,7 @@ class BranchState {
   final List<BranchModel> filtered;
   final String            searchQuery;
   final bool              isLoading;
+  final bool              isSaving;     // ✅ NEW
   final String?           errorMessage;
 
   const BranchState({
@@ -17,6 +18,7 @@ class BranchState {
     this.filtered     = const [],
     this.searchQuery  = '',
     this.isLoading    = false,
+    this.isSaving     = false,          // ✅ NEW
     this.errorMessage,
   });
 
@@ -25,6 +27,7 @@ class BranchState {
     List<BranchModel>? filtered,
     String?            searchQuery,
     bool?              isLoading,
+    bool?              isSaving,         // ✅ NEW
     Object?            errorMessage = _sentinel,
   }) =>
       BranchState(
@@ -32,6 +35,7 @@ class BranchState {
         filtered:     filtered     ?? this.filtered,
         searchQuery:  searchQuery  ?? this.searchQuery,
         isLoading:    isLoading    ?? this.isLoading,
+        isSaving:     isSaving     ?? this.isSaving,
         errorMessage: errorMessage == _sentinel
             ? this.errorMessage
             : errorMessage as String?,
@@ -65,6 +69,62 @@ class BranchNotifier extends StateNotifier<BranchState> {
     }
   }
 
+  // ── NEW: Add branch ─────────────────────────────────────
+  Future<bool> addBranch({required String code, required String name, required String address, required String phone,}) async {
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final newBranch = await _datasource.createBranch(
+        code:    code.trim(),
+        name:    name.trim(),
+        address: address.trim(),
+        phone:   phone.trim(),
+      );
+
+      final updated = [...state.allBranches, newBranch]
+        ..sort((a, b) =>
+            a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+      state = state.copyWith(
+        allBranches: updated,
+        filtered:    _applySearch(updated, state.searchQuery),
+        isSaving:    false,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isSaving:     false,
+        errorMessage: _friendlyError(e),
+      );
+      return false;
+    }
+  }
+
+  String nextBranchCode() {
+    const prefix = 'BR-';
+    int max = 0;
+
+    for (final b in state.allBranches) {
+      final code = b.code.trim().toUpperCase();
+      if (code.startsWith(prefix)) {
+        final n = int.tryParse(code.substring(prefix.length));
+        if (n != null && n > max) max = n;
+      }
+    }
+
+    final next = max + 1;
+    return '$prefix${next.toString().padLeft(3, '0')}';
+  }
+
+  String _friendlyError(Object e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('duplicate') ||
+        msg.contains('unique') ||
+        msg.contains('23505')) {
+      return 'Yeh branch code pehle se mojood hai. Koi aur code use karein.';
+    }
+    return 'Branch save nahi ho saki: $e';
+  }
+
   void search(String q) {
     state = state.copyWith(
       searchQuery: q,
@@ -87,6 +147,6 @@ class BranchNotifier extends StateNotifier<BranchState> {
 // ── Provider ──────────────────────────────────────────────
 final branchProvider = StateNotifierProvider.autoDispose
 <BranchNotifier, BranchState>((ref) {
-final datasource = BranchDatasource(client: Supabase.instance.client);
-return BranchNotifier(datasource);
+  final datasource = BranchDatasource(client: Supabase.instance.client);
+  return BranchNotifier(datasource);
 });

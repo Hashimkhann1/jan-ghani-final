@@ -2,6 +2,7 @@
 
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/data/model/branch_stock_model.dart';
 import 'package:jan_ghani_final/features/branch/customer/data/model/customer_model.dart';
+
 import 'sale_invoice_model.dart'; // PaymentEntry reuse
 
 // RefundType enum — ab sirf datasource ke liye internally use hoga

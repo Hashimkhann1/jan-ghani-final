@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
+
 import '../../data/model/cash_transaction_model.dart';
 import '../provider/cash_transaction_provider.dart';
 
@@ -93,13 +94,13 @@ class _AllCashTransactionScreenState
                   icon:  Icons.arrow_downward_rounded,
                   color: AppColor.success,
                 ),
-                const SizedBox(width: 12),
-                SummaryCard(
-                  title: 'Total Cash Out',
-                  value: 'Rs ${state.totalCashOut.toStringAsFixed(0)}',
-                  icon:  Icons.arrow_upward_rounded,
-                  color: AppColor.error,
-                ),
+                // const SizedBox(width: 12),
+                // SummaryCard(
+                //   title: 'Total Cash Out',
+                //   value: 'Rs ${state.tot.toStringAsFixed(0)}',
+                //   icon:  Icons.arrow_upward_rounded,
+                //   color: AppColor.error,
+                // ),
               ],
             ),
 
