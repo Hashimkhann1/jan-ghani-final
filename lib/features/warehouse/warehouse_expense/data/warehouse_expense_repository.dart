@@ -152,6 +152,80 @@ class WarehouseExpenseRepository {
   }
 
   // ─────────────────────────────────────────────────────────
+  // 3b. Expense edit karo
+  //    → expenses table update
+  //    → linked cash_transaction ki amount/notes update
+  //    → warehouse_finance.cash_in_hand TRIGGER se auto-recompute
+  //      (fn_update_cash_in_hand poora SUM dobara nikalta hai —
+  //       isliye amount badalne par balance khud sahi ho jata hai)
+  //    expense_date NAHI badalta — original preserve hota hai
+  // ─────────────────────────────────────────────────────────
+  Future<WarehouseExpenseModel> updateExpense({
+    required String id,
+    String?         cashTransactionId,
+    required String expenseHead,
+    required double amount,
+    String?         description,
+    String?         createdBy,
+    String?         createdByName,
+  }) async {
+    final conn = await _db;
+
+    await conn.execute('BEGIN');
+    try {
+      // Step 1: expense row update
+      final result = await conn.execute(
+        Sql.named('''
+          UPDATE warehouse_expenses SET
+            expense_head = @expenseHead,
+            amount       = @amount,
+            description  = @description,
+            updated_at   = NOW(),
+            is_synced    = false
+          WHERE id           = @id
+            AND warehouse_id = @wid
+          RETURNING *
+        '''),
+        parameters: {
+          'id':          id,
+          'wid':         _wid,
+          'expenseHead': expenseHead,
+          'amount':      amount,
+          'description': description,
+        },
+      );
+
+      // Step 2: linked cash_transaction ki amount update karo
+      // Trigger (fn_update_cash_in_hand) cash_in_hand ko poora
+      // SUM se dobara compute karta hai — manual math ki zaroorat nahi
+      if (cashTransactionId != null && cashTransactionId.isNotEmpty) {
+        await conn.execute(
+          Sql.named('''
+            UPDATE warehouse_cash_transactions SET
+              amount    = @amount,
+              notes     = @notes,
+              is_synced = false
+            WHERE id           = @ctId
+              AND warehouse_id = @wid
+          '''),
+          parameters: {
+            'amount': amount,
+            'notes':  '$expenseHead — ${description ?? 'Expense'}',
+            'ctId':   cashTransactionId,
+            'wid':    _wid,
+          },
+        );
+      }
+
+      await conn.execute('COMMIT');
+      return WarehouseExpenseModel.fromMap(result.first.toColumnMap());
+    } catch (e) {
+      await conn.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
   // 4. Soft delete
   // ─────────────────────────────────────────────────────────
   Future<void> deleteExpense(String expenseId) async {

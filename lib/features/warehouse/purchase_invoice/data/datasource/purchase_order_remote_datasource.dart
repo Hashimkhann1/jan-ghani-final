@@ -30,7 +30,7 @@ class PurchaseOrderRemoteDataSource {
         s.phone AS supplier_phone, s.address AS supplier_address,
         s.tax_id AS supplier_tax_id, s.payment_terms AS supplier_payment_terms,
         po.destination_location_id, l.name AS destination_name,
-        po.status, po.order_date, po.expected_date, po.received_date,
+        po.status, po.po_type, po.order_date, po.expected_date, po.received_date,
         po.subtotal, po.discount_amount, po.tax_amount,
         po.total_amount, po.paid_amount, po.notes,
         u.full_name AS created_by_name, po.created_at, po.updated_at
@@ -108,7 +108,7 @@ class PurchaseOrderRemoteDataSource {
           s.phone AS supplier_phone, s.address AS supplier_address,
           s.tax_id AS supplier_tax_id, s.payment_terms AS supplier_payment_terms,
           po.destination_location_id, l.name AS destination_name,
-          po.status, po.order_date, po.expected_date, po.received_date,
+          po.status, po.po_type, po.order_date, po.expected_date, po.received_date,
           po.subtotal, po.discount_amount, po.tax_amount,
           po.total_amount, po.paid_amount, po.notes,
           u.full_name AS created_by_name, po.created_at, po.updated_at
@@ -235,6 +235,198 @@ class PurchaseOrderRemoteDataSource {
       }
 
       // Audit log create pe nahi — sirf update/delete/status_change pe
+      await conn.execute('COMMIT');
+      return (await getById(newPoId))!;
+    } catch (e) {
+      await conn.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
+  // ── CREATE PURCHASE RETURN ────────────────────────────────
+  // Supplier ko goods wapas — normal purchase ka ULTA:
+  //   • purchase_orders row: po_type = 'return', status = 'received'
+  //   • warehouse_inventory: quantity MINUS (stock ghatta hai)
+  //   • warehouse_stock_movements: 'return_out' (goods warehouse se nikle)
+  //   • supplier_ledger: 'return' entry NEGATIVE amount → outstanding kam
+  // Read-only — yeh row baad mein edit/update nahi hoti.
+  // Cash ko haath nahi — sirf supplier balance adjust hota hai.
+  Future<PurchaseOrderModel> createReturn({
+    required String warehouseId,
+    required String poNumber,
+    String? destinationLocationId,
+    String? supplierId,
+    DateTime? expectedDate,
+    double subtotal = 0,
+    double discountAmount = 0,
+    double taxAmount = 0,
+    double totalAmount = 0,
+    String? notes,
+    String? createdBy,
+    String? createdByName,
+    required List<PurchaseOrderItem> items,
+  }) async {
+    final conn = await _db;
+
+    await conn.execute('BEGIN');
+    try {
+      // ── Step 1: PO header insert (po_type = 'return') ─────
+      // Return ek mukammal transaction hai — status 'received'
+      // paid_amount/remaining_amount 0 (cash involve nahi)
+      final poResult = await conn.execute(
+        Sql.named('''
+          INSERT INTO purchase_orders (
+            warehouse_id, po_number, supplier_id,
+            destination_location_id, status, po_type,
+            expected_date, subtotal, discount_amount,
+            tax_amount, total_amount, paid_amount,
+            remaining_amount, notes, created_by, created_by_name
+          ) VALUES (
+            @warehouseId, @poNumber, @supplierId,
+            @destinationLocationId, 'received', 'return',
+            @expectedDate, @subtotal, @discountAmount,
+            @taxAmount, @totalAmount, 0,
+            0, @notes, @createdBy, @createdByName
+          )
+          RETURNING id
+        '''),
+        parameters: {
+          'warehouseId': warehouseId,
+          'poNumber': poNumber,
+          'supplierId': supplierId,
+          'destinationLocationId': destinationLocationId,
+          'expectedDate': expectedDate,
+          'subtotal': subtotal,
+          'discountAmount': discountAmount,
+          'taxAmount': taxAmount,
+          'totalAmount': totalAmount,
+          'notes': notes,
+          'createdBy': createdBy,
+          'createdByName': createdByName,
+        },
+      );
+
+      final newPoId = poResult.first.toColumnMap()['id'].toString();
+
+      // ── Step 2: Items insert ──────────────────────────────
+      for (final item in items) {
+        await conn.execute(
+          Sql.named('''
+            INSERT INTO purchase_order_items (
+              po_id, warehouse_id, product_id, product_name,
+              sku, quantity_ordered, quantity_received,
+              unit_cost, total_cost, sale_price,
+              discount_amount, discount_percent
+            ) VALUES (
+              @poId, @warehouseId, @productId, @productName,
+              @sku, @quantityOrdered, @quantityOrdered,
+              @unitCost, @totalCost, @salePrice,
+              @discountAmount, @discountPercent
+            )
+          '''),
+          parameters: {
+            'poId': newPoId,
+            'warehouseId': warehouseId,
+            'productId': item.productId,
+            'productName': item.productName,
+            'sku': item.sku,
+            'quantityOrdered': item.quantityOrdered,
+            'unitCost': item.unitCost,
+            'totalCost': item.totalCost,
+            'salePrice': item.salePrice,
+            'discountAmount': item.discountAmount,
+            'discountPercent': item.discountPercent,
+          },
+        );
+      }
+
+      // ── Step 3: Inventory MINUS + stock movement ──────────
+      for (final item in items) {
+        if (item.productId == null) continue;
+
+        // Stock ghatao — kabhi 0 se neeche nahi
+        await conn.execute(
+          Sql.named('''
+            UPDATE warehouse_inventory SET
+              quantity         = GREATEST(0, quantity - @qty),
+              last_movement_at = NOW(),
+              updated_at       = NOW(),
+              is_synced        = false
+            WHERE product_id   = @productId
+              AND warehouse_id = @warehouseId
+          '''),
+          parameters: {
+            'warehouseId': warehouseId,
+            'productId': item.productId,
+            'qty': item.quantityOrdered,
+          },
+        );
+
+        // Movement log — return_out (goods warehouse se OUT)
+        await conn.execute(
+          Sql.named('''
+            INSERT INTO warehouse_stock_movements (
+              id,             warehouse_id,   product_id,
+              movement_type,  quantity,        unit_cost,
+              reference_type, reference_id,   notes
+            ) VALUES (
+              @id,            @warehouseId,   @productId,
+              'return_out',   @quantity,      @unitCost,
+              'purchase',     @referenceId,   @notes
+            )
+          '''),
+          parameters: {
+            'id':          const Uuid().v4(),
+            'warehouseId': warehouseId,
+            'productId':   item.productId,
+            'quantity':    item.quantityOrdered,
+            'unitCost':    double.parse(item.unitCost.toStringAsFixed(2)),
+            'referenceId': newPoId,
+            'notes':       'Purchase return — ${item.productName}',
+          },
+        );
+      }
+
+      // ── Step 4: Supplier ledger — 'return' (NEGATIVE) ─────
+      // Trigger outstanding_balance = SUM(amount) karta hai
+      // Return = negative → supplier ko hum kam dene wale
+      if (supplierId != null && supplierId.isNotEmpty && totalAmount > 0) {
+        final balResult = await conn.execute(
+          Sql.named(
+            'SELECT outstanding_balance FROM suppliers WHERE id = @supplierId',
+          ),
+          parameters: {'supplierId': supplierId},
+        );
+        final currentBalance = balResult.isNotEmpty
+            ? _toDouble(balResult.first.toColumnMap()['outstanding_balance'])
+            : 0.0;
+        final newBalance = currentBalance - totalAmount;
+
+        await conn.execute(
+          Sql.named('''
+            INSERT INTO supplier_ledger (
+              warehouse_id, supplier_id, po_id,
+              entry_type, amount, balance_before,
+              balance_after, notes, created_by
+            ) VALUES (
+              @warehouseId, @supplierId, @poId,
+              'return', @amount, @balanceBefore,
+              @balanceAfter, @notes, @createdBy
+            )
+          '''),
+          parameters: {
+            'warehouseId': warehouseId,
+            'supplierId': supplierId,
+            'poId': newPoId,
+            'amount': -totalAmount, // negative — balance kam karega
+            'balanceBefore': currentBalance,
+            'balanceAfter': newBalance,
+            'notes': '$poNumber — purchase return',
+            'createdBy': createdBy,
+          },
+        );
+      }
+
       await conn.execute('COMMIT');
       return (await getById(newPoId))!;
     } catch (e) {
@@ -974,6 +1166,7 @@ class PurchaseOrderRemoteDataSource {
       destinationLocationId: m['destination_location_id'].toString(),
       destinationName: m['destination_name']?.toString(),
       status: m['status'].toString(),
+      poType: m['po_type']?.toString() ?? 'purchase',
       orderDate: m['order_date'] is DateTime
           ? m['order_date'] as DateTime
           : DateTime.parse(m['order_date'].toString()),

@@ -11,6 +11,9 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_expense/domain/ware
 
 
 class AddExpenseDialog extends StatefulWidget {
+  /// Null = New expense mode, set = Edit mode (pre-filled)
+  final WarehouseExpenseModel? existing;
+
   final void Function({
   required String expenseHead,
   required double amount,
@@ -19,7 +22,7 @@ class AddExpenseDialog extends StatefulWidget {
   String?         userName,
   }) onConfirm;
 
-  const AddExpenseDialog({super.key, required this.onConfirm});
+  const AddExpenseDialog({super.key, required this.onConfirm, this.existing});
 
   static void show(BuildContext context, {
     required void Function({
@@ -29,11 +32,15 @@ class AddExpenseDialog extends StatefulWidget {
     String?         userId,
     String?         userName,
     }) onConfirm,
+    WarehouseExpenseModel? existing,
   }) {
     showDialog(
       context:      context,
       barrierColor: Colors.black.withOpacity(0.35),
-      builder:      (_) => AddExpenseDialog(onConfirm: onConfirm),
+      builder:      (_) => AddExpenseDialog(
+        onConfirm: onConfirm,
+        existing:  existing,
+      ),
     );
   }
 
@@ -47,6 +54,23 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   final _notesCtrl   = TextEditingController();
   final _formKey     = GlobalKey<FormState>();
   bool  _isSaving    = false;
+
+  bool get _isEdit => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    // Edit mode: existing values pre-fill karo
+    final ex = widget.existing;
+    if (ex != null) {
+      _headCtrl.text   = ex.expenseHead;
+      // Whole number ho to decimals na dikhao
+      _amountCtrl.text = ex.amount == ex.amount.roundToDouble()
+          ? ex.amount.toStringAsFixed(0)
+          : ex.amount.toString();
+      _notesCtrl.text  = ex.description ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -143,14 +167,17 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('New Expense',
-                            style: TextStyle(
+                        Text(_isEdit ? 'Edit Expense' : 'New Expense',
+                            style: const TextStyle(
                               fontSize:   17,
                               fontWeight: FontWeight.w700,
                               color:      AppColor.textPrimary,
                             )),
-                        Text('Expense ki details bharein',
-                            style: TextStyle(
+                        Text(
+                            _isEdit
+                                ? 'Expense ki details update karein'
+                                : 'Expense ki details bharein',
+                            style: const TextStyle(
                                 fontSize: 11,
                                 color:    AppColor.textSecondary)),
                       ],
@@ -315,8 +342,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2,
                             color: AppColor.white))
-                        : const Text('Save Expense',
-                        style: TextStyle(
+                        : Text(_isEdit ? 'Update Expense' : 'Save Expense',
+                        style: const TextStyle(
                             fontSize:   14,
                             fontWeight: FontWeight.w600)),
                   ),

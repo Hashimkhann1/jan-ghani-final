@@ -180,6 +180,7 @@ class PurchaseOrderNotifier
           destinationLocationId: o.destinationLocationId,
           destinationName:       o.destinationName,
           status:                newStatus,
+          poType:                o.poType,
           orderDate:             o.orderDate,
           expectedDate:          o.expectedDate,
           receivedDate:          newStatus == 'received'

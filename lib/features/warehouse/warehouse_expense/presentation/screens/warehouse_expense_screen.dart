@@ -213,6 +213,27 @@ class _Body extends StatelessWidget {
               onDelete: (id) => ref
                   .read(warehouseExpenseProvider.notifier)
                   .deleteExpense(id),
+              onEdit: (expense) => AddExpenseDialog.show(
+                context,
+                existing: expense,
+                onConfirm: ({
+                  required String expenseHead,
+                  required double amount,
+                  String? description,
+                  String? userId,
+                  String? userName,
+                }) {
+                  ref.read(warehouseExpenseProvider.notifier).updateExpense(
+                        id:                expense.id,
+                        cashTransactionId: expense.cashTransactionId,
+                        expenseHead:       expenseHead,
+                        amount:            amount,
+                        description:       description,
+                        userId:            userId,
+                        userName:          userName,
+                      );
+                },
+              ),
             ),
           ],
         ),
@@ -450,12 +471,14 @@ class _FilterTabs extends StatelessWidget {
 // EXPENSE TABLE
 // ─────────────────────────────────────────────────────────────
 class _ExpenseTable extends StatelessWidget {
-  final List<WarehouseExpenseModel> expenses;
-  final void Function(String)       onDelete;
+  final List<WarehouseExpenseModel>          expenses;
+  final void Function(String)                onDelete;
+  final void Function(WarehouseExpenseModel) onEdit;
 
   const _ExpenseTable({
     required this.expenses,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -509,6 +532,7 @@ class _ExpenseTable extends StatelessWidget {
             const Divider(height: 1, color: AppColor.divider),
             itemBuilder: (_, i) => _ExpenseRow(
               expense:  expenses[i],
+              onEdit:   () => onEdit(expenses[i]),
               onDelete: () => _confirmDelete(
                   context, expenses[i], onDelete),
             ),
@@ -577,10 +601,12 @@ class _HCell extends StatelessWidget {
 
 class _ExpenseRow extends StatelessWidget {
   final WarehouseExpenseModel expense;
+  final VoidCallback          onEdit;
   final VoidCallback          onDelete;
 
   const _ExpenseRow({
     required this.expense,
+    required this.onEdit,
     required this.onDelete,
   });
 
@@ -676,16 +702,19 @@ class _ExpenseRow extends StatelessWidget {
             width: 80,
             child: Row(
               children: [
-                // Edit — future ke liye
-                Container(
-                  width:  32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color:        AppColor.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
+                // Edit
+                GestureDetector(
+                  onTap: onEdit,
+                  child: Container(
+                    width:  32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color:        AppColor.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.edit_outlined,
+                        size: 15, color: AppColor.primary),
                   ),
-                  child: const Icon(Icons.edit_outlined,
-                      size: 15, color: AppColor.primary),
                 ),
                 const SizedBox(width: 8),
                 // Delete

@@ -26,25 +26,30 @@ class PoCartSummaryWidget extends ConsumerWidget {
 
     // ── Validation conditions ──────────────────────────────
     final bool hasItems        = state.cartItems.isNotEmpty;
+    // Return mein sirf purchase price (return cost) chahiye — sale price nahi
     final bool allHavePrice = state.cartItems.isNotEmpty &&
-        state.cartItems.every((i) => i.salePrice > 0 && i.purchasePrice > 0);
+        (isReturn
+            ? state.cartItems.every((i) => i.purchasePrice > 0)
+            : state.cartItems.every((i) => i.salePrice > 0 && i.purchasePrice > 0));
     final bool hasSupplier     = state.selectedSupplier != null;
     final bool hasDeliveryDate = state.deliveryDate != null;
 
-    final hasPriceError = state.hasPriceError;
-    final bool canSave =
-        hasItems && allHavePrice && hasSupplier && hasDeliveryDate && !hasPriceError;
+    // Return ke liye: delivery date aur sale>purchase wali check nahi
+    final hasPriceError = isReturn ? false : state.hasPriceError;
+    final bool canSave = isReturn
+        ? (hasItems && allHavePrice && hasSupplier)
+        : (hasItems && allHavePrice && hasSupplier && hasDeliveryDate && !hasPriceError);
 
     // Missing info counts for warnings
     final int missingPriceCount = state.cartItems
-        .where((i) => i.salePrice <= 0 || i.purchasePrice <= 0)
+        .where((i) => isReturn ? i.purchasePrice <= 0 : (i.salePrice <= 0 || i.purchasePrice <= 0))
         .length;
 
     // ── Which warnings to show ─────────────────────────────
     // Only show warnings when cart has items (otherwise empty cart msg is enough)
     final bool showPriceWarning    = hasItems && !allHavePrice;
     final bool showSupplierWarning = hasItems && !hasSupplier;
-    final bool showDateWarning     = hasItems && !hasDeliveryDate;
+    final bool showDateWarning     = !isReturn && hasItems && !hasDeliveryDate;
 
     return Container(
       decoration: BoxDecoration(

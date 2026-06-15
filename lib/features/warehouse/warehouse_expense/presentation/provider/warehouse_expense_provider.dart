@@ -135,6 +135,50 @@ class WarehouseExpenseNotifier
     }
   }
 
+  // ── Expense edit karo ─────────────────────────────────────
+  Future<void> updateExpense({
+    required String id,
+    String?         cashTransactionId,
+    required String expenseHead,
+    required double amount,
+    String?         description,
+    String?         userId,
+    String?         userName,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _repo.updateExpense(
+        id:                id,
+        cashTransactionId: cashTransactionId,
+        expenseHead:       expenseHead,
+        amount:            amount,
+        description:       description,
+        createdBy:         userId,
+        createdByName:     userName,
+      );
+
+      // List + stats fresh karo (filter/search respect karte hue)
+      final results = await Future.wait([
+        _repo.getAll(
+          filter: state.activeFilter == 'all' ? null : state.activeFilter,
+          search: state.searchQuery.isEmpty ? null : state.searchQuery,
+        ),
+        _repo.getStats(),
+      ]);
+
+      state = state.copyWith(
+        expenses:  results[0] as List<WarehouseExpenseModel>,
+        stats:     results[1] as ExpenseStats,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading:    false,
+        errorMessage: 'Expense update karne mein masla: $e',
+      );
+    }
+  }
+
   // ── Expense delete karo ───────────────────────────────────
   Future<void> deleteExpense(String expenseId) async {
     try {

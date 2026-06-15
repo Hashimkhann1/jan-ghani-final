@@ -234,14 +234,46 @@ class _PoTableRowState extends State<PoTableRow> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(o.poNumber,
-                          style: TextStyle(fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: isCancelled
-                                  ? AppColor.textSecondary
-                                  : AppColor.primary,
-                              decoration: isCancelled
-                                  ? TextDecoration.lineThrough : null)),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(o.poNumber,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isCancelled
+                                        ? AppColor.textSecondary
+                                        : AppColor.primary,
+                                    decoration: isCancelled
+                                        ? TextDecoration.lineThrough : null)),
+                          ),
+                          if (o.isReturn) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColor.errorLight,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                    color: AppColor.error.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.assignment_return_outlined,
+                                      size: 11, color: AppColor.error),
+                                  const SizedBox(width: 3),
+                                  Text('Return',
+                                      style: TextStyle(fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColor.error)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                       Text("${_fmtDate(o.orderDate)} ${_fmtTime(o.createdAt)}",
                           style: TextStyle(fontSize: 11,
                               color: AppColor.textSecondary)),

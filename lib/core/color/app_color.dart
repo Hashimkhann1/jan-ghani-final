@@ -39,6 +39,7 @@ class AppColor {
   static const Color error = Color(0xFFE53935);
   static const Color errorLight = Color(0xFFFFEBEE);
   static const Color warning = Color(0xFFFFC107);
+  static const Color warningDark = Color(0xFFF57C00); // darker orange — text/icon visibility ke liye
   static const Color warningLight = Color(0xFFFFF8E1);
   static const Color info = Color(0xFF2196F3);
   static const Color infoLight = Color(0xFFE3F2FD);

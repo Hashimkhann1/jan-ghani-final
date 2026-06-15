@@ -33,16 +33,16 @@ AppConfig.appMode       // 'warehouse' ya 'store'
 ## Database
 - **Local**: PostgreSQL (direct connection via `postgres` package, `DatabaseService.getConnection()` — async)
 - **Remote**: Supabase (sync service chalti hai background mein)
-- **Schema location**: `/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.7.sql`
+- **Schema location**: `/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.8.sql`
 
 ### Key Tables (Warehouse)
 | Table | Description |
 |---|---|
 | `warehouse_products` | Products (barcode `text[]`, sku, prices, stock levels) |
 | `warehouse_inventory` | Stock quantities per product (qty, reserved_quantity) |
-| `warehouse_stock_movements` | Movement log (purchase_in, transfer_out, return_in, adjustment, opening) |
+| `warehouse_stock_movements` | Movement log (purchase_in, transfer_out, return_in, **return_out**, adjustment, opening) |
 | `warehouse_categories` | Product categories |
-| `purchase_orders` | POs (status: draft/ordered/partial/received/cancelled) |
+| `purchase_orders` | POs (status: draft/ordered/partial/received/cancelled; **`po_type`: purchase/return**) |
 | `purchase_order_items` | PO line items |
 | `suppliers` | Suppliers (outstanding_balance auto-updated via trigger) |
 | `supplier_ledger` | Supplier payment ledger |
@@ -533,6 +533,48 @@ await conn.execute(
 
 ---
 
+## Purchase Return (Purchase Invoice) — Session 4
+
+> **Maqsad:** Purchase Invoice screen mein Type dropdown se **"Purchase Return"** select karke supplier ko goods wapas bhejna. Pehle yeh dropdown sirf cosmetic tha (rang/label badalta tha) — koi business logic nahi tha; save karne par normal purchase ki tarah stock ADD ho jata tha. Ab poora return logic implement hai.
+
+### Behaviour (Purchase ka ULTA)
+| | Purchase | Purchase Return |
+|---|---|---|
+| Stock | `+` (purchase_in) | `-` (`return_out`) — `GREATEST(0, qty - x)` |
+| Supplier balance | `+` (`purchase` ledger) | `-` (`return` ledger, **negative** amount) |
+| Record | `po_type = 'purchase'` | `po_type = 'return'`, `status = 'received'` |
+| Number series | `PO-...` | `PR-...` (alag — collision se bachne ke liye) |
+| Cash | (paid amount flow) | **Koi cash nahi** — sirf supplier balance adjust |
+| Editable? | Haan | **Nahi — read-only** (list mein edit icon hide) |
+
+### Schema changes (v3.7 → v3.8)
+```sql
+-- 1. purchase_orders: po_type column
+ALTER TABLE purchase_orders ADD COLUMN po_type text NOT NULL DEFAULT 'purchase';
+ALTER TABLE purchase_orders ADD CONSTRAINT purchase_orders_po_type_check
+  CHECK (po_type = ANY (ARRAY['purchase','return']));
+-- 2. warehouse_stock_movements: 'return_out' added to movement_type CHECK
+-- 3. supplier_ledger: 'return' confirmed in entry_type CHECK (pehle se tha)
+```
+> ⚠️ **Sync note:** Sync service poori row (`toColumnMap()`) Supabase par upsert karti hai — isliye yeh teen schema changes **local + Supabase dono** par run kiye gaye (warna `po_type` column / `return_out` value par sync/insert fail hoti).
+
+### Files
+| File | Change |
+|---|---|
+| `purchase_invoice/domain/purchase_order_model.dart` | `poType` field + `isReturn` getter; `canEdit`/`canCancel` mein `!isReturn`; `fromMap` mein `po_type` |
+| `purchase_invoice/data/datasource/purchase_order_remote_datasource.dart` | Naya **`createReturn()`** (inventory minus + `return_out` movement + `supplier_ledger` negative `return`, sab ek transaction); `getAll`/`getById`/`_mapToModel` mein `po_type` |
+| `.../provider/purchase_invoice_provider/purchase_invoice_provider.dart` | `saveInvoice()` mein return branch → `_saveReturn()`; `_generateReturnNo()` (`PR-` series); `loadFromExistingOrder()` mein `poType = purchase` safety reset |
+| `.../widgets/purchase_invoice_widgets/po_cart_summary_widget.dart` | Return ke liye `canSave`/validation relax (sale price + delivery date zaroori nahi) |
+| `.../widgets/purchase_order_widgets.dart` | List mein laal **"Return" badge** (PO number ke saath) |
+| `.../provider/purchase_order_provider.dart` | `updateStatus` rebuild mein `poType` preserve |
+
+### Zaroori design points
+- **New PO / Edit PO untouched** — `create()`/`updatePO()` ka core logic bilkul nahi badla. Naya PO `po_type` DB `DEFAULT 'purchase'` se khud bharta hai. `saveInvoice()` ka purchase path **else-branch** mein. Return read-only isliye edit mode hamesha `po_type='purchase'` load karta hai.
+- **`PR-` number alag kyun:** `_saveReturn()` save ke waqt fresh `PR-...` number banata hai — `state.poNumber` (jo purchase ka stale number ho sakta hai) reuse karne se `(warehouse_id, po_number)` unique constraint `23505 duplicate` aata tha.
+- **Note:** Return screen par disabled "PO Number" field abhi `PO-...` dikhata hai, lekin save hone par record `PR-...` se banta hai (cosmetic mismatch only).
+
+---
+
 ## Session 1 — Kya Kiya
 
 1. `assign_stock` search field mein **clear (X) button** add kiya
@@ -568,6 +610,18 @@ await conn.execute(
 7. **1000-row cap fixes** — saare raw fetch `.range()` se paginated (suppliers/POs/transactions/products); date boundary `gte(from)` + `lt(to+1)`.
 8. **Accountant warehouse dashboard** — web par metrics **card grid** (mobile par rows same); Cash-in-Hand card width capped; "Reports" card added.
 
+## Session 4 — Kya Kiya (Purchase Return)
+
+> Maqsad: Purchase Invoice ke "Purchase Return" type ko sirf cosmetic se asli kaam karne wala banaya — supplier ko goods wapas, stock minus, supplier balance kam. New PO / Edit PO ko bilkul touch nahi kiya.
+
+1. **Schema v3.8** — `purchase_orders.po_type` column (purchase/return) + `warehouse_stock_movements` mein `return_out` movement type (local + Supabase dono par run).
+2. **`createReturn()` datasource method** — ek transaction mein: inventory minus (`return_out` movement) + `supplier_ledger` `return` (negative amount → trigger se balance kam). `po_type` `getAll`/`getById`/`_mapToModel` mein add.
+3. **`saveInvoice()` return branch** — `poType == purchaseReturn` par `_saveReturn()` chalta hai; purchase path else-branch mein untouched. Return ke liye `PR-` number series (`_generateReturnNo()`) — duplicate constraint se bachne ke liye.
+4. **Return read-only** — `canEdit`/`canCancel` mein `!isReturn`; list mein laal **"Return" badge**; `loadFromExistingOrder` `poType=purchase` reset.
+5. **Validation relax** — return ke liye sale price + delivery date zaroori nahi (`po_cart_summary_widget` mein `canSave` branch).
+
+> Tafseel: upar **"Purchase Return (Purchase Invoice) — Session 4"** section dekho.
+
 ---
 
 ## Project Path
@@ -577,5 +631,5 @@ await conn.execute(
 
 ## Schema Path
 ```
-/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.7.sql
+/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.8.sql
 ```

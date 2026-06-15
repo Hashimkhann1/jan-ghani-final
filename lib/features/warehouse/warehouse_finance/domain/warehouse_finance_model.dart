@@ -59,6 +59,7 @@ class CashTransactionModel {
   final double   cashInHandAfter;
   final String?  referenceId;
   final String?  notes;
+  final String?  supplierName;     // sirf supplier_payment ke liye (join se)
   final String?  createdBy;
   final String?  createdByName;
   final DateTime createdAt;
@@ -75,6 +76,7 @@ class CashTransactionModel {
     required this.cashInHandAfter,
     this.referenceId,
     this.notes,
+    this.supplierName,
     this.createdBy,
     this.createdByName,
     required this.createdAt,
@@ -93,6 +95,7 @@ class CashTransactionModel {
       cashInHandAfter:  _toDouble(m['cash_in_hand_after']),
       referenceId:      m['reference_id']?.toString(),
       notes:            m['notes']?.toString(),
+      supplierName:     m['supplier_name']?.toString(),
       createdBy:        m['created_by']?.toString(),
       createdByName:    m['created_by_name']?.toString(),
       createdAt:        m['created_at'] is DateTime

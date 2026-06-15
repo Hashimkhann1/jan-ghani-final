@@ -83,8 +83,12 @@ class WarehouseFinanceRepository {
             ct.cash_in_hand_before, ct.cash_in_hand_after,
             ct.reference_id, ct.notes, ct.created_by,
             ct.created_by_name, ct.created_at,
-            ct.sync_id, ct.is_synced, ct.synced_at
+            ct.sync_id, ct.is_synced, ct.synced_at,
+            s.name AS supplier_name
           FROM warehouse_cash_transactions ct
+          LEFT JOIN suppliers s
+            ON s.id = ct.reference_id
+           AND ct.entry_type = 'supplier_payment'
           WHERE ct.warehouse_id = @wid
             AND ct.entry_type   = @entryType
           ORDER BY ct.created_at DESC
@@ -96,8 +100,12 @@ class WarehouseFinanceRepository {
             ct.cash_in_hand_before, ct.cash_in_hand_after,
             ct.reference_id, ct.notes, ct.created_by,
             ct.created_by_name, ct.created_at,
-            ct.sync_id, ct.is_synced, ct.synced_at
+            ct.sync_id, ct.is_synced, ct.synced_at,
+            s.name AS supplier_name
           FROM warehouse_cash_transactions ct
+          LEFT JOIN suppliers s
+            ON s.id = ct.reference_id
+           AND ct.entry_type = 'supplier_payment'
           WHERE ct.warehouse_id = @wid
           ORDER BY ct.created_at DESC
           LIMIT @limit

@@ -158,6 +158,7 @@ class PurchaseOrderModel {
   final String    destinationLocationId;
   final String?   destinationName;       // joined from locations
   final String    status;
+  final String    poType;                // 'purchase' ya 'return'
   final DateTime  orderDate;
   final DateTime? expectedDate;
   final DateTime? receivedDate;
@@ -186,6 +187,7 @@ class PurchaseOrderModel {
     required this.destinationLocationId,
     this.destinationName,
     required this.status,
+    this.poType = 'purchase',
     required this.orderDate,
     this.expectedDate,
     this.receivedDate,
@@ -202,6 +204,9 @@ class PurchaseOrderModel {
   });
 
   // ── Helpers ───────────────────────────────────────────────
+
+  /// Yeh PO ek purchase return hai ya normal purchase
+  bool get isReturn => poType == 'return';
 
   double get remainingAmount =>
       (totalAmount - paidAmount).clamp(0, double.infinity);
@@ -254,11 +259,13 @@ class PurchaseOrderModel {
   }
 
   /// Kya edit ho sakta hai — status ke hisaab se
+  /// Return read-only hai — isReturn true ho to edit nahi
   bool get canEdit =>
-      status == 'draft' || status == 'ordered' || status == 'partial' || status == 'received';
+      !isReturn &&
+      (status == 'draft' || status == 'ordered' || status == 'partial' || status == 'received');
 
   bool get canCancel =>
-      status == 'draft' || status == 'ordered';
+      !isReturn && (status == 'draft' || status == 'ordered');
 
   factory PurchaseOrderModel.fromMap(Map<String, dynamic> map,
       {List<PurchaseOrderItem> items = const []}) {
@@ -276,6 +283,7 @@ class PurchaseOrderModel {
       destinationLocationId:  map['destination_location_id']  as String,
       destinationName:        map['destination_name']         as String?,
       status:                 map['status']                   as String,
+      poType:                 map['po_type'] as String?       ?? 'purchase',
       orderDate:    DateTime.parse(map['order_date']          as String),
       expectedDate: map['expected_date'] != null
           ? DateTime.parse(map['expected_date'] as String) : null,

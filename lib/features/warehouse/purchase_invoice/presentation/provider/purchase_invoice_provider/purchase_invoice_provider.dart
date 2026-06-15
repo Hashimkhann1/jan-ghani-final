@@ -94,6 +94,18 @@ class PurchaseInvoiceNotifier
         '-$epoch$random';
   }
 
+  // Purchase Return ka alag number series — 'PR-' prefix
+  // Purchase PO se kabhi collide nahi karega (unique constraint safe)
+  static String _generateReturnNo() {
+    final now = DateTime.now();
+    final random = Random().nextInt(9999).toString().padLeft(4, '0');
+    final epoch = now.millisecondsSinceEpoch.toString().substring(7);
+    return 'PR-${AppConfig.warehouseCode.substring(3)}-${now.year}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}'
+        '-$epoch$random';
+  }
+
   // ── Edit mode ─────────────────────────────────────────────
   void loadFromExistingOrder(
       PurchaseOrderModel order, List<PoSupplier> availableSuppliers) {
@@ -158,6 +170,7 @@ class PurchaseInvoiceNotifier
       orderDate:        order.orderDate,
       deliveryDate:     order.expectedDate,
       selectedSupplier: matchedSupplier,
+      poType:           PoType.purchase, // edit hamesha normal purchase — return read-only
       invoiceStatus:    invoiceStatus,
       paidAmount:       order.paidAmount,
       cartItems:        cartItems,
@@ -321,6 +334,13 @@ class PurchaseInvoiceNotifier
   Future<String?> saveInvoice() async {
     if (state.cartItems.isEmpty)        return 'Cart khali hai';
     if (state.selectedSupplier == null) return 'Supplier select karo';
+
+    // ── PURCHASE RETURN — bilkul alag path ────────────────────
+    // Niche wala normal-purchase code is branch ke liye nahi chalta
+    if (state.poType == PoType.purchaseReturn) {
+      return _saveReturn();
+    }
+
     if (state.deliveryDate == null)     return 'Delivery date set karo';
     if (!state.cartItems.every((i) => i.salePrice > 0))
       return 'Sab items ki sale price set karo';
@@ -471,6 +491,69 @@ class PurchaseInvoiceNotifier
       return null;
     } catch (e, stack) {
       print('❌ saveInvoice error: $e');
+      print(stack);
+      return e.toString();
+    }
+  }
+
+  // ── SAVE PURCHASE RETURN ──────────────────────────────────
+  // Normal purchase se alag — sale price/delivery date zaroori nahi.
+  // Hamesha naya 'return' record banta hai (edit mode yahan nahi aata).
+  Future<String?> _saveReturn() async {
+    if (state.cartItems.isEmpty)        return 'Cart khali hai';
+    if (state.selectedSupplier == null) return 'Supplier select karo';
+
+    try {
+      final userData = await AuthLocalStorage.loadUser();
+      final userId   = userData?['id']        as String? ?? '';
+      final userName = userData?['full_name'] as String? ?? '';
+
+      // Fresh unique return number — stale state.poNumber reuse nahi karna
+      // (warna purchase PO ke number se duplicate constraint error aata hai)
+      final returnNumber = _generateReturnNo();
+
+      final items = state.cartItems.map((i) {
+        final lineTotal = i.purchasePrice * i.quantity;
+        final discPct   = lineTotal > 0
+            ? (i.discountAmount / lineTotal) * 100
+            : 0.0;
+
+        return PurchaseOrderItem(
+          id:               const Uuid().v4(),
+          poId:             '',
+          tenantId:         AppConfig.warehouseId,
+          productId:        i.product.id,
+          productName:      i.product.name,
+          sku:              i.product.sku,
+          quantityOrdered:  i.quantity,
+          quantityReceived: i.quantity,
+          unitCost:         i.purchasePrice,
+          totalCost:        i.subTotal,
+          salePrice:        i.salePrice,
+          discountAmount:   i.discountAmount,
+          discountPercent:  double.parse(discPct.toStringAsFixed(2)),
+        );
+      }).toList();
+
+      await _ds.createReturn(
+        warehouseId:           AppConfig.warehouseId,
+        poNumber:              returnNumber,
+        destinationLocationId: null,
+        supplierId:            state.selectedSupplier!.id,
+        expectedDate:          state.deliveryDate,
+        subtotal:              state.totalBeforeTax,
+        discountAmount:        state.totalDiscount,
+        taxAmount:             state.totalTax,
+        totalAmount:           state.grandTotal,
+        createdBy:             userId,
+        createdByName:         userName,
+        items:                 items,
+      );
+
+      clearCart();
+      return null;
+    } catch (e, stack) {
+      print('❌ saveReturn error: $e');
       print(stack);
       return e.toString();
     }

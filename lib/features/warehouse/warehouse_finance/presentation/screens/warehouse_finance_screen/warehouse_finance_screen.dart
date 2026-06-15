@@ -553,7 +553,7 @@ class _TRow extends StatelessWidget {
     switch (t) {
       case 'cash_in':          return AppColor.success;
       case 'purchase':         return AppColor.primary;
-      case 'supplier_payment': return AppColor.warning;
+      case 'supplier_payment': return AppColor.warningDark;
       case 'expense':          return AppColor.error;
       default:                 return AppColor.info;
     }
@@ -567,6 +567,20 @@ class _TRow extends StatelessWidget {
       case 'expense':          return Icons.receipt_outlined;
       default:                 return Icons.swap_horiz_rounded;
     }
+  }
+
+  // Notes + supplier name (sirf supplier_payment ke liye)
+  // Note ke baad supplier ka naam — e.g. "Manual Payment — Ahmed Traders"
+  // Agar note mein naam pehle se hai (PO se payment) to dobara nahi lagta
+  static String _notesDisplay(CashTransactionModel tx) {
+    final note = tx.notes?.trim() ?? '';
+    final sup  = tx.supplierName?.trim();
+    if (tx.entryType == 'supplier_payment' && sup != null && sup.isNotEmpty) {
+      if (note.isEmpty) return sup;
+      if (note.toLowerCase().contains(sup.toLowerCase())) return note;
+      return '$note — $sup';
+    }
+    return note.isEmpty ? '—' : note;
   }
 
   @override
@@ -621,11 +635,11 @@ class _TRow extends StatelessWidget {
             ),
           ),
 
-          // ── Notes ────────────────────────────────────
+          // ── Notes (supplier_payment mein supplier name bhi) ──
           Expanded(
             flex: 3,
             child: Text(
-              tx.notes ?? '—',
+              _notesDisplay(tx),
               style: const TextStyle(
                   fontSize: 13, color: AppColor.textPrimary),
               maxLines: 2,
