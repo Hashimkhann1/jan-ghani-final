@@ -5,6 +5,7 @@ import 'package:jan_ghani_final/core/service/session/accountant_session.dart';
 import 'package:jan_ghani_final/features/accountant/investment/presentation/screen/investment_screen.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
 import 'package:jan_ghani_final/features/accountant/accountant_all_warehouses/presentation/screen/accountant_all_warehouses_screen.dart';
+import 'package:jan_ghani_final/features/installment/installment_dashboard/presentation/screen/installment_dashboard_screen.dart';
 
 import '../../../authentication/presentation/providers/accoutant_session_provider.dart';
 import '../../../branch_reports/accountant_branch/presentation/screen/accountant_branch_screen.dart';
@@ -43,7 +44,7 @@ const List<_NavItem> _allNavItems = [
     allowedRoles: ['owner', 'accountant', 'warehouse_manager'],
   ),
   _NavItem(
-    icon: Icons.trending_up_rounded,
+    icon: Icons.calendar_month_sharp,
     label: 'Investment',
     allowedRoles: ['owner', 'accountant'],
   ),

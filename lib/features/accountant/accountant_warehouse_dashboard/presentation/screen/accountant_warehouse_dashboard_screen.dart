@@ -1,6 +1,11 @@
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
 import '../../../accountant_all_orders/presentation/screen/accountant_all_orders_screen.dart';
 import '../../../accountant_cash_transfer/presentation/screen/cash_transfers_screen.dart';
 import '../../../accountant_stock_transfer_record/presentation/screen/accountant_stock_transfer_record_screen.dart';
@@ -13,6 +18,13 @@ import '../../../../warehouse/warehouse_reports/inventory/presentation/providers
 import '../../data/model/accountant_warehouse_dashboard_model.dart';
 import '../provider/accountant_warehouse_dashboard_provider.dart';
 import '../widget/send_cash_dialog.dart';
+
+// Role SharedPreferences (acc_role) se — in-memory sessionProvider app restart par
+// null hota hai (sirf fresh login par set), is liye yahan se reliable role milta hai.
+final _accRoleProvider = FutureProvider<String?>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('acc_role');
+});
 
 // =============================================================
 // Accountant → Warehouse Dashboard
@@ -86,6 +98,11 @@ class _DashboardContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+
+    // Pehle in-memory session, warna SharedPreferences se (restart par session null).
+    final stateRole = ref.watch(currentRoleProvider) ??
+        ref.watch(_accRoleProvider).asData?.value;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -115,6 +132,7 @@ class _DashboardContent extends ConsumerWidget {
             constraints: const BoxConstraints(maxWidth: 460),
             child: _CashCard(
               amount: stats.cashInHand,
+              role: stateRole,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -169,88 +187,95 @@ class _DashboardContent extends ConsumerWidget {
   }
 
   // ── Metric data — dono layouts (rows + grid) isi se bante hain ──────
-  List<_MetricData> _buildMetrics(BuildContext context, WidgetRef ref) => [
-        _MetricData(
-          icon: Icons.people_alt_rounded,
-          iconBg: const Color(0xFFEEF0FF),
-          iconColor: AppColor.primary,
-          title: 'Total Suppliers',
-          value: _num(stats.totalSuppliers),
-          subLabel: 'Outstanding Payable',
-          subValue: _money(stats.totalOutstanding),
-          subValueColor: AppColor.cashOut,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AccountantAllSupplierScreen(warehouseId: warehouseId),
-            ),
+  List<_MetricData> _buildMetrics(BuildContext context, WidgetRef ref) {
+
+    final isMobile = !kIsWeb;
+
+    return [
+
+
+      _MetricData(
+        icon: Icons.people_alt_rounded,
+        iconBg: const Color(0xFFEEF0FF),
+        iconColor: AppColor.primary,
+        title: 'Total Suppliers',
+        value: _num(stats.totalSuppliers),
+        subLabel: 'Outstanding Payable',
+        subValue: _money(stats.totalOutstanding),
+        subValueColor: AppColor.cashOut,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AccountantAllSupplierScreen(warehouseId: warehouseId),
           ),
         ),
-        _MetricData(
-          icon: Icons.inventory_2_rounded,
-          iconBg: const Color(0xFFE9FBF2),
-          iconColor: AppColor.cashIn,
-          title: 'Total Inventory',
-          value: '${_num(stats.totalProducts)} items',
-          subLabel: 'Stock Value',
-          subValue: _money(stats.totalInventoryValue),
-          subValueColor: AppColor.textDark,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AccountantWarehouseInventoryScreen(warehouseId: warehouseId),
-            ),
+      ),
+      _MetricData(
+        icon: Icons.inventory_2_rounded,
+        iconBg: const Color(0xFFE9FBF2),
+        iconColor: AppColor.cashIn,
+        title: 'Total Inventory',
+        value: '${_num(stats.totalProducts)} items',
+        subLabel: 'Stock Value',
+        subValue: _money(stats.totalInventoryValue),
+        subValueColor: AppColor.textDark,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AccountantWarehouseInventoryScreen(warehouseId: warehouseId),
           ),
         ),
-        _MetricData(
-          icon: Icons.receipt_long_rounded,
-          iconBg: const Color(0xFFEDEBFF),
-          iconColor: AppColor.primary,
-          title: 'Total Orders',
-          value: '${_num(stats.totalOrders)} orders',
-          subLabel: 'Orders Value',
-          subValue: _money(stats.totalOrdersValue),
-          subValueColor: AppColor.textDark,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AccountantAllOrdersScreen(warehouseId: warehouseId),
-            ),
+      ),
+      _MetricData(
+        icon: Icons.receipt_long_rounded,
+        iconBg: const Color(0xFFEDEBFF),
+        iconColor: AppColor.primary,
+        title: 'Total Orders',
+        value: '${_num(stats.totalOrders)} orders',
+        subLabel: 'Orders Value',
+        subValue: _money(stats.totalOrdersValue),
+        subValueColor: AppColor.textDark,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AccountantAllOrdersScreen(warehouseId: warehouseId),
           ),
         ),
-        _MetricData(
-          icon: Icons.swap_horiz_rounded,
-          iconBg: const Color(0xFFE5F6FF),
-          iconColor: const Color(0xFF0EA5E9),
-          title: 'Stock Transfers',
-          value: '${_num(stats.totalTransfers)} transfers',
-          subLabel: 'Transfer Value',
-          subValue: _money(stats.totalTransfersValue),
-          subValueColor: AppColor.textDark,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AccountantStockTransferRecordScreen(warehouseId: warehouseId),
-            ),
+      ),
+      _MetricData(
+        icon: Icons.swap_horiz_rounded,
+        iconBg: const Color(0xFFE5F6FF),
+        iconColor: const Color(0xFF0EA5E9),
+        title: 'Stock Transfers',
+        value: '${_num(stats.totalTransfers)} transfers',
+        subLabel: 'Transfer Value',
+        subValue: _money(stats.totalTransfersValue),
+        subValueColor: AppColor.textDark,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AccountantStockTransferRecordScreen(warehouseId: warehouseId),
           ),
         ),
-        _MetricData(
-          icon: Icons.account_balance_wallet_rounded,
-          iconBg: const Color(0xFFEFFCF3),
-          iconColor: AppColor.cashIn,
-          title: 'Cash Transfers',
-          value: '${_num(stats.totalCashTransfers)} transfers',
-          subLabel: 'Accepted Value',
-          subValue: _money(stats.totalCashTransfersValue),
-          subValueColor: AppColor.textDark,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AccountantCashTransfersScreen(warehouseId: warehouseId),
-            ),
+      ),
+      _MetricData(
+        icon: Icons.account_balance_wallet_rounded,
+        iconBg: const Color(0xFFEFFCF3),
+        iconColor: AppColor.cashIn,
+        title: 'Cash Transfers',
+        value: '${_num(stats.totalCashTransfers)} transfers',
+        subLabel: 'Accepted Value',
+        subValue: _money(stats.totalCashTransfersValue),
+        subValueColor: AppColor.textDark,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AccountantCashTransfersScreen(warehouseId: warehouseId),
           ),
         ),
-        // ── Reports (nav card) — destination abhi pending ──
+      ),
+      // ── Reports (nav card) — destination abhi pending ──
+      if(!isMobile)
         _MetricData(
           icon: Icons.assessment_outlined,
           iconBg: const Color(0xFFF3EEFF),
@@ -284,7 +309,8 @@ class _DashboardContent extends ConsumerWidget {
             );
           },
         ),
-      ];
+    ];
+  }
 
   String _num(int v) => v.toString().replaceAllMapped(
         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -304,7 +330,8 @@ class _DashboardContent extends ConsumerWidget {
 class _CashCard extends StatelessWidget {
   final double amount;
   final VoidCallback? onTap;
-  const _CashCard({required this.amount, this.onTap});
+  final String? role;
+  const _CashCard({required this.amount, this.onTap, this.role});
 
   String _money(double v) {
     final neg = v < 0;
@@ -369,8 +396,8 @@ class _CashCard extends StatelessWidget {
               ),
 
               const SizedBox(width: 4),
-              // ── Send Cash button (abhi placeholder) ───────────────────────
-              Align(
+              // ── Send Cash button — sirf 'accountant' role ko dikhe ─────────
+              role != "accountant" ? const SizedBox() : Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
                   onTap: () {

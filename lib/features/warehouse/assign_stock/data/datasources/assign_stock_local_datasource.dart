@@ -123,12 +123,12 @@ class AssignStockLocalDatasource {
     return 'TRF-$dateStr-$shortUuid';
   }
 
-// Stock check
+// Stock check — reserve-aware: available = quantity − reserved_quantity
   Future<bool> hasEnoughStock(
       String productId, String warehouseId, double qty) async {
     final result = await db.execute(
       Sql.named('''
-    SELECT quantity FROM public.warehouse_inventory
+    SELECT quantity, reserved_quantity FROM public.warehouse_inventory
     WHERE product_id = @productId
     AND warehouse_id = @warehouseId
   '''),
@@ -139,18 +139,155 @@ class AssignStockLocalDatasource {
     );
     if (result.isEmpty) return false;
 
-    final quantityValue = result.first.toColumnMap()['quantity'];
-    double available;
+    final map = result.first.toColumnMap();
+    final available =
+        _safeGetDouble(map, 'quantity') - _safeGetDouble(map, 'reserved_quantity');
 
-    if (quantityValue is String) {
-      available = double.tryParse(quantityValue) ?? 0.0;
-    } else if (quantityValue is num) {
-      available = quantityValue.toDouble();
-    } else {
-      available = 0.0;
-    }
+    // Available stock = physical quantity − already reserved (pending transfers)
+    return available >= qty; // ✅ exact qty check on AVAILABLE (not just > 0)
+  }
 
-    return available > 0; // ✅ YAHI BADLA — was: available >= qty
+  /// Transfer ko atomically create karta hai + stock reserve karta hai.
+  ///
+  /// Ek hi DB transaction mein:
+  ///  1. Har item ki inventory row ko `FOR UPDATE` se LOCK + available
+  ///     (quantity − reserved_quantity) check. Kam ho to throw (kuch save nahi hota).
+  ///  2. stock_transfers insert.
+  ///  3. stock_transfer_items insert.
+  ///  4. `reserved_quantity += quantity_sent` (is_synced=false → Supabase par auto-sync).
+  ///
+  /// Physical `quantity` yahan touch NAHI hoti — woh sirf accept hone par
+  /// (sync service mein) kam hoti hai. Isse ek hi stock do transfers mein
+  /// double-assign nahi ho sakta (FOR UPDATE lock + available check).
+  Future<void> insertTransferWithReservation({
+    required String id,
+    required String warehouseId,
+    required String transferNumber,
+    required String toStoreId,
+    required String toStoreName,
+    required String? assignedById,
+    required String? assignedByName,
+    required String? notes,
+    required int totalItems,
+    required double totalCost,
+    required double totalSalePrice,
+    required List<AssignStockCartItem> items,
+  }) async {
+    await db.runTx((tx) async {
+      // 1. Validate + lock each product's inventory row
+      for (final item in items) {
+        final res = await tx.execute(
+          Sql.named('''
+            SELECT quantity, reserved_quantity
+            FROM public.warehouse_inventory
+            WHERE product_id = @productId
+              AND warehouse_id = @warehouseId
+            FOR UPDATE
+          '''),
+          parameters: {
+            'productId': item.productId,
+            'warehouseId': warehouseId,
+          },
+        );
+
+        double available = 0.0;
+        if (res.isNotEmpty) {
+          final m = res.first.toColumnMap();
+          available =
+              _safeGetDouble(m, 'quantity') - _safeGetDouble(m, 'reserved_quantity');
+        }
+
+        if (available < item.quantity) {
+          throw Exception(
+            '${item.productName}: sirf ${available.toStringAsFixed(0)} '
+            '${item.unitOfMeasure} available hai, '
+            'lekin ${item.quantity.toStringAsFixed(0)} bhejne ki koshish ki ja rahi hai.',
+          );
+        }
+      }
+
+      // 2. Insert transfer
+      await tx.execute(
+        Sql.named('''
+        INSERT INTO public.stock_transfers (
+          id, warehouse_id, transfer_number,
+          to_store_id, to_store_name,
+          status, assigned_by_id, assigned_by_name,
+          notes, total_items, total_cost, total_sale_price,
+          created_at, updated_at
+        ) VALUES (
+          @id, @warehouseId, @transferNumber,
+          @toStoreId, @toStoreName,
+          'pending', @assignedById, @assignedByName,
+          @notes, @totalItems, @totalCost, @totalSalePrice,
+          NOW(), NOW()
+        )
+      '''),
+        parameters: {
+          'id': id,
+          'warehouseId': warehouseId,
+          'transferNumber': transferNumber,
+          'toStoreId': toStoreId,
+          'toStoreName': toStoreName,
+          'assignedById': assignedById,
+          'assignedByName': assignedByName,
+          'notes': notes,
+          'totalItems': totalItems,
+          'totalCost': totalCost,
+          'totalSalePrice': totalSalePrice,
+        },
+      );
+
+      // 3. Insert items
+      for (final item in items) {
+        final updatedItem = item.copyWith(transferNumber: transferNumber);
+        final map = updatedItem.toLocalMap(id, warehouseId);
+
+        await tx.execute(
+          Sql.named('''
+          INSERT INTO public.stock_transfer_items (
+            id, transfer_id, warehouse_id,
+            product_id, inventory_id, product_name,
+            sku, barcode, description, category_id,
+            unit_of_measure, quantity_requested, quantity_sent, transfer_number,
+            purchase_price, sale_price, wholesale_price,
+            tax_rate, tax_amount, discount_amount,
+            min_stock_level, max_stock_level, reorder_point,
+            is_active, total_cost
+          ) VALUES (
+            @id, @transfer_id, @warehouse_id,
+            @product_id, @inventory_id, @product_name,
+            @sku, @barcode, @description, @category_id,
+            @unit_of_measure, @quantity_requested, @quantity_sent, @transfer_number,
+            @purchase_price, @sale_price, @wholesale_price,
+            @tax_rate, @tax_amount, @discount_amount,
+            @min_stock_level, @max_stock_level, @reorder_point,
+            @is_active, @total_cost
+          )
+        '''),
+          parameters: map,
+        );
+      }
+
+      // 4. Reserve stock (quantity untouched; reserved barhao → available kam)
+      for (final item in items) {
+        await tx.execute(
+          Sql.named('''
+            UPDATE public.warehouse_inventory
+            SET reserved_quantity = reserved_quantity + @qty,
+                updated_at = NOW(),
+                is_synced = false
+            WHERE product_id = @productId
+              AND warehouse_id = @warehouseId
+          '''),
+          parameters: {
+            'qty': item.quantity,
+            'productId': item.productId,
+            'warehouseId': warehouseId,
+          },
+        );
+      }
+    });
   }
 
 

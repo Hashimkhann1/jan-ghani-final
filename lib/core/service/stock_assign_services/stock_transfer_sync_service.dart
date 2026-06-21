@@ -72,6 +72,9 @@ class StockTransferSyncService {
             transferId: transferId,
             newStatus: newStatus,
           );
+        } else if (newStatus == 'rejected') {
+          print('[SyncService] ↩️ Rejected! Releasing reservation...');
+          await _syncRejectedTransfer(transferId: transferId);
         }
       },
     )
@@ -141,11 +144,11 @@ class StockTransferSyncService {
           .from('stock_transfers')
           .select('id, status')
           .eq('warehouse_id', warehouseId)
-          .eq('status', 'accepted')
+          .inFilter('status', ['accepted', 'rejected'])
           .inFilter('id', localPendingIds);
 
       if (supabaseResult.isEmpty) {
-        print('[SyncService] ✅ No missed accepted transfers found.');
+        print('[SyncService] ✅ No missed accepted/rejected transfers found.');
         return;
       }
 
@@ -153,11 +156,16 @@ class StockTransferSyncService {
 
       for (final transfer in supabaseResult) {
         final transferId = transfer['id'] as String;
-        print('[SyncService] Syncing missed transfer: $transferId');
-        await _syncAcceptedTransfer(
-          transferId: transferId,
-          newStatus: 'accepted',
-        );
+        final st = transfer['status'] as String?;
+        print('[SyncService] Syncing missed transfer: $transferId ($st)');
+        if (st == 'accepted') {
+          await _syncAcceptedTransfer(
+            transferId: transferId,
+            newStatus: 'accepted',
+          );
+        } else if (st == 'rejected') {
+          await _syncRejectedTransfer(transferId: transferId);
+        }
       }
 
       print('[SyncService] 🎉 All missed transfers synced!');
@@ -190,25 +198,37 @@ class StockTransferSyncService {
         }
       }
 
-      print('[SyncService] Step1: updating local status...');
-      await _db.execute(
+      // Step1: status ko ATOMICALLY pending→accepted karo. Sirf tabhi aage
+      // badho jab yeh update ne sach mein ek row badli (yaani pehle pending tha).
+      // Isse missed-sync + realtime dono ek saath chalein to bhi deduction
+      // ek hi baar hota hai (double-deduction / race se bachao).
+      print('[SyncService] Step1: updating local status (guarded)...');
+      final statusUpd = await _db.execute(
         Sql.named('''
           UPDATE public.stock_transfers
           SET status = @status, updated_at = NOW()
-          WHERE id = @transferId
+          WHERE id = @transferId AND status = 'pending'
+          RETURNING id
         '''),
         parameters: {'status': newStatus, 'transferId': transferId},
       );
+      if (statusUpd.isEmpty) {
+        print('[SyncService] ⏭️ Transfer $transferId pending nahi raha (already processed), skipping.');
+        return;
+      }
       print('[SyncService] ✅ Step1 done');
 
-      print('[SyncService] Step2: deducting inventory...');
+      // Step2: physical quantity kam karo (GREATEST se 0 par cap — kabhi minus nahi)
+      // aur is transfer ki reservation release karo (reserved_quantity kam).
+      print('[SyncService] Step2: deducting inventory + releasing reservation...');
       await _db.execute(
         Sql.named('''
           UPDATE public.warehouse_inventory
-          SET quantity = quantity - sti.quantity_sent,
-              last_movement_at = NOW(),
-              updated_at = NOW(),
-              is_synced = false
+          SET quantity          = GREATEST(0, quantity - sti.quantity_sent),
+              reserved_quantity = GREATEST(0, reserved_quantity - sti.quantity_sent),
+              last_movement_at  = NOW(),
+              updated_at        = NOW(),
+              is_synced         = false
           FROM public.stock_transfer_items sti
           JOIN public.stock_transfers st ON st.id = sti.transfer_id
           WHERE sti.transfer_id = @transferId
@@ -245,6 +265,51 @@ class StockTransferSyncService {
       print('[SyncService] 🎉 Transfer $transferId FULLY SYNCED!');
     } catch (e, stack) {
       print('[SyncService] ❌ SYNC FAILED: $e');
+      print('[SyncService] Stack: $stack');
+    }
+  }
+
+  /// Transfer reject hone par: SIRF reservation release karo
+  /// (`reserved_quantity` kam). Physical `quantity` ko haath nahi lagate —
+  /// kyunki create par sirf reserve hua tha, deduct nahi.
+  ///
+  /// `WHERE status = 'pending'` guard ki wajah se yeh idempotent hai:
+  ///  - agar transfer pehle hi accept ho chuka (reservation already released) → kuch nahi.
+  ///  - agar pehle hi reject ho chuka → dobara release nahi hoti.
+  Future<void> _syncRejectedTransfer({required String transferId}) async {
+    try {
+      print('[SyncService] Reject: guarded status update...');
+      final statusUpd = await _db.execute(
+        Sql.named('''
+          UPDATE public.stock_transfers
+          SET status = 'rejected', updated_at = NOW()
+          WHERE id = @transferId AND status = 'pending'
+          RETURNING id
+        '''),
+        parameters: {'transferId': transferId},
+      );
+      if (statusUpd.isEmpty) {
+        print('[SyncService] ⏭️ Transfer $transferId pending nahi raha, reservation release skip.');
+        return;
+      }
+
+      await _db.execute(
+        Sql.named('''
+          UPDATE public.warehouse_inventory
+          SET reserved_quantity = GREATEST(0, reserved_quantity - sti.quantity_sent),
+              updated_at        = NOW(),
+              is_synced         = false
+          FROM public.stock_transfer_items sti
+          JOIN public.stock_transfers st ON st.id = sti.transfer_id
+          WHERE sti.transfer_id = @transferId
+            AND warehouse_inventory.product_id = sti.product_id
+            AND warehouse_inventory.warehouse_id = st.warehouse_id
+        '''),
+        parameters: {'transferId': transferId},
+      );
+      print('[SyncService] ✅ Transfer $transferId rejected — reservation released.');
+    } catch (e, stack) {
+      print('[SyncService] ❌ REJECT SYNC FAILED: $e');
       print('[SyncService] Stack: $stack');
     }
   }

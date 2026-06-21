@@ -43,7 +43,25 @@ class AssignStockRepository {
     final totalCost = items.fold(0.0, (sum, i) => sum + i.totalCost);
     final totalSalePrice = items.fold(0.0, (sum, i) => sum + i.totalSalePrice);
 
-    // Pehle Supabase mein save karo
+    // 1) PEHLE local: validate + insert + reserve — sab ek transaction mein.
+    //    Stock kam ho to yahan throw hoga aur Supabase par kuch save nahi hoga.
+    await local.insertTransferWithReservation(
+      id: id,
+      warehouseId: warehouseId,
+      transferNumber: transferNumber,
+      toStoreId: toStoreId,
+      toStoreName: toStoreName,
+      assignedById: assignedById,
+      assignedByName: assignedByName,
+      notes: notes,
+      totalItems: items.length,
+      totalCost: totalCost,
+      totalSalePrice: totalSalePrice,
+      items: items,
+    );
+
+    // 2) PHIR Supabase mein mirror karo (store ko turant dikhane ke liye).
+    //    Reserved inventory background sync (is_synced=false) se khud push hoti hai.
     await remote.insertTransfer(
       id: id,
       warehouseId: warehouseId,
@@ -59,28 +77,6 @@ class AssignStockRepository {
     );
 
     await remote.insertTransferItems(
-      transferId: id,
-      warehouseId: warehouseId,
-      transferNumber: transferNumber, // Pass transferNumber
-      items: items,
-    );
-
-    // Phir local mein save karo
-    await local.insertTransfer(
-      id: id,
-      warehouseId: warehouseId,
-      transferNumber: transferNumber,
-      toStoreId: toStoreId,
-      toStoreName: toStoreName,
-      assignedById: assignedById,
-      assignedByName: assignedByName,
-      notes: notes,
-      totalItems: items.length,
-      totalCost: totalCost,
-      totalSalePrice: totalSalePrice,
-    );
-
-    await local.insertTransferItems(
       transferId: id,
       warehouseId: warehouseId,
       transferNumber: transferNumber, // Pass transferNumber

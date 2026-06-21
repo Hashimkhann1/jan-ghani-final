@@ -123,7 +123,7 @@ class AssignStockCartItem {
       maxStockLevel: p.maxStockLevel,
       reorderPoint: p.reorderPoint,
       isActive: p.isActive,
-      availableStock: p.quantity,
+      availableStock: p.availableQty, // quantity − reserved (pending transfers count)
       transferNumber: null,
     );
   }

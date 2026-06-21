@@ -575,6 +575,53 @@ ALTER TABLE purchase_orders ADD CONSTRAINT purchase_orders_po_type_check
 
 ---
 
+## Stock Transfer — Reserve-on-Create Model (Session 5) ⭐
+
+> **Maqsad:** Stock assign (warehouse → store) karte waqt product ka stock **minus (negative)** ja raha tha. Is poore flow ko reservation-based bana diya taake stock kabhi galat tareeqe se minus na ho.
+
+### Pehle masla kya tha (root cause)
+- Transfer **create** par stock na minus hota tha na reserve hota tha — deduction sirf store ke **accept** karne par hoti thi (`StockTransferSyncService`).
+- Oversell ka akela check UI button par tha, jo ek **purane snapshot** (`availableStock = p.quantity` add-to-cart ke waqt) par chalta tha.
+- Nateeja **double-assign:** ek hi product ko do alag pending transfers mein daal diya jata (dono ko stale stock 40 dikhta), dono accept hone par `40 − 40 − 40 = −40`.
+- Accept par deduction mein `GREATEST(0,…)` guard bhi nahi tha → DB khulle-aam negative chala jata. (Koi DB trigger stock ko touch nahi karta — pura logic Dart code mein hai.)
+
+### Naya model: Reserve on create
+DB mein `warehouse_inventory` ke do columns istemal hote hain:
+- `quantity` = **physical stock** (godam mein asal maal). Sirf **accept** par kam hota hai.
+- `reserved_quantity` = pending transfers ke liye **lock** kiya hua stock.
+- **Available (assign karne layak) = `quantity − reserved_quantity`** → `ProductModel.availableQty`.
+
+| Event | `quantity` | `reserved_quantity` | available (qty − res) |
+|---|---|---|---|
+| Stock 40 | 40 | 0 | 40 |
+| **Create** transfer (40) | 40 *(same)* | 0 → **40** | **0** (doosra transfer block) |
+| **Accept** (store) | 40 → **0** | 40 → **0** | 0 |
+| **Reject** (store) | 40 *(same)* | 40 → **0** | **40 wapas** |
+
+- **Create par:** validate + reserve **ek hi DB transaction** mein, har item ki inventory row `FOR UPDATE` se lock. Available kam ho to **throw** (kuch save nahi hota). `quantity` ko haath nahi lagta, sirf `reserved_quantity += quantity_sent`.
+- **Accept par:** `quantity = GREATEST(0, quantity − sent)` **aur** `reserved_quantity = GREATEST(0, reserved_quantity − sent)`. Status update atomic (`WHERE status='pending' RETURNING id`) → double-sync/race se sirf ek baar deduct.
+- **Reject par:** sirf `reserved_quantity = GREATEST(0, reserved_quantity − sent)` release (quantity untouched), idempotent.
+- Reserved inventory **background sync** (`is_synced=false`) se Supabase par khud chala jata hai — alag se remote update nahi karte.
+
+### Files (Session 5)
+| File | Change |
+|---|---|
+| `assign_stock/data/datasources/assign_stock_local_datasource.dart` | `hasEnoughStock` → `(quantity − reserved) >= qty`; naya **`insertTransferWithReservation()`** (validate `FOR UPDATE` + insert transfer/items + reserve, sab `db.runTx` mein) |
+| `assign_stock/data/repositories/assign_stock_repository.dart` | Order badla: **pehle local** atomic (validate+insert+reserve), **phir** Supabase mirror |
+| `assign_stock/data/models/assign_stock_item_model.dart` | `fromProduct`: `availableStock = p.availableQty` (pehle `p.quantity`) |
+| `core/service/stock_assign_services/stock_transfer_sync_service.dart` | Accept: `GREATEST(0,…)` + reserved release + atomic status race-guard; naya **`_syncRejectedTransfer()`**; missed-sync ab `accepted` + `rejected` dono handle karta hai |
+| `assign_stock/presentation/widgets/assign_stock_product_list_panel.dart` | Left product list ab `p.availableQty` dikhata hai (cart "Max" + Inventory screen ke saath consistent) |
+
+### Display consistency
+Teeno jagah ab **`availableQty` (reserve-aware)** dikhati hain: Assign left list, Assign cart "Max", Stock Inventory screen.
+
+### ⚠️ Abhi bhi dhyan dene wali baatein
+- **Manual product edit/add** (`stock_inventory_dialog` → `product_remote_datasource` `SET quantity = @quantity`) par **koi 0-floor nahi** — user negative type kare to minus set ho sakta hai. (Transfer/return flows ab safe hain.)
+- **DB par `CHECK (quantity >= 0)` constraint NAHI lagaya** — kyunki mojooda minus data (jaise −40) us constraint ko violate karega. Yeh constraint **purane minus data ki cleanup ke baad** lagana chahiye.
+- Agar product minus mein ho to UI us minus value ko hi dikhata hai (0 par floor nahi karta).
+
+---
+
 ## Session 1 — Kya Kiya
 
 1. `assign_stock` search field mein **clear (X) button** add kiya
@@ -621,6 +668,17 @@ ALTER TABLE purchase_orders ADD CONSTRAINT purchase_orders_po_type_check
 5. **Validation relax** — return ke liye sale price + delivery date zaroori nahi (`po_cart_summary_widget` mein `canSave` branch).
 
 > Tafseel: upar **"Purchase Return (Purchase Invoice) — Session 4"** section dekho.
+
+## Session 5 — Kya Kiya (Stock Transfer Negative-Stock Fix)
+
+> Maqsad: Stock assign par product minus chala jata tha (double-assign). Reservation-based model laga kar jad se theek kiya.
+
+1. **Reserve-on-create** — transfer banate hi `reserved_quantity` lock hoti hai (`quantity` untouched), validate + reserve ek hi `runTx` transaction mein `FOR UPDATE` lock ke saath → double-assign rok diya.
+2. **Accept** par `GREATEST(0,…)` deduction + reserved release + atomic status race-guard (double-sync safe).
+3. **Reject** par reservation release (`_syncRejectedTransfer`), missed-sync ab accepted+rejected dono handle karta hai.
+4. **Display consistency** — Assign left list ab `availableQty` (cart "Max" + Inventory screen ke saath match).
+
+> Tafseel: upar **"Stock Transfer — Reserve-on-Create Model (Session 5)"** section dekho.
 
 ---
 

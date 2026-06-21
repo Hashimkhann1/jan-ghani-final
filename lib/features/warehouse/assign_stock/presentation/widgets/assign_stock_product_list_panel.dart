@@ -31,7 +31,9 @@ class _AssignStockProductListPanelState
 
     final allProducts = productState.allProducts
         .where((p) => p.isActive && p.deletedAt == null)
-        .toList();
+        .toList()
+      // Sab se aakhir mein edit hua product (updated_at) top par
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
     final query = state.searchQuery.toLowerCase();
     final filtered = query.isEmpty
@@ -161,7 +163,7 @@ class _ProductItemState extends State<_ProductItem>
   @override
   Widget build(BuildContext context) {
     final p = widget.product;
-    final inStock = p.quantity > 0;
+    final inStock = p.availableQty > 0; // reserve-aware (quantity − reserved)
 
     return GestureDetector(
       onDoubleTap: () {
@@ -213,7 +215,7 @@ class _ProductItemState extends State<_ProductItem>
                     color: AppColor.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text('${p.quantity.toStringAsFixed(2)} ${p.unitOfMeasure}',
+                  child: Text('${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -230,7 +232,7 @@ class _ProductItemState extends State<_ProductItem>
                   ),
                   child: Text(
                     inStock
-                        ? '${p.quantity.toStringAsFixed(2)} ${p.unitOfMeasure}'
+                        ? '${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}'
                         : 'Out',
                     style: TextStyle(
                         fontSize: 12,

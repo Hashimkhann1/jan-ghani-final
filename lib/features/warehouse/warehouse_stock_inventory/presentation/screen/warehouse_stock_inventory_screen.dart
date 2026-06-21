@@ -153,7 +153,6 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
 }
 
 // ── Product Table ─────────────────────────────────────────────
-// ── Product Table ─────────────────────────────────────────────
 class _ProductTable extends StatelessWidget {
   final List<ProductModel>         products;
   final ValueChanged<ProductModel> onEdit;
