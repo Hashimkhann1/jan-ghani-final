@@ -84,19 +84,18 @@ class _AccountantDashboardScreenState
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(sessionProvider);
+    // ✅ FIXED: .user se access karo
+    final user = ref.watch(currentUserProvider);
 
-    // ── Customer token check ───────────────────────────────────
-    final customerToken = session?.customerToken;
+    final customerToken = user?.customerToken;
     if (customerToken != null && customerToken.isNotEmpty) {
       return _CustomerPortal(customerId: customerToken);
     }
 
     final desktop  = _isDesktop(context);
-    final role     = session?.role ?? 'accountant';
+    final role     = user?.role ?? 'accountant';
     final navItems = _filteredItems(role);
 
-    // ── Manager: directly open BranchScreen, skip index ───────
     if (role == 'manager') {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F5F7),
@@ -116,7 +115,6 @@ class _AccountantDashboardScreenState
       );
     }
 
-    // ── Normal owner / accountant / warehouse_manager ──────────
     final safeIndex = _selectedIndex < navItems.length ? _selectedIndex : 0;
 
     if (desktop) {
@@ -255,7 +253,6 @@ class _Sidebar extends StatelessWidget {
       color: Colors.white,
       child: Column(
         children: [
-          // Brand
           Container(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
             decoration: const BoxDecoration(
@@ -303,11 +300,9 @@ class _Sidebar extends StatelessWidget {
             ),
           ),
 
-          // Nav items
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               child: Column(
                 children: navItems.asMap().entries.map((entry) {
                   final item = entry.value;
@@ -322,7 +317,6 @@ class _Sidebar extends StatelessWidget {
             ),
           ),
 
-          // Logout
           Container(
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
@@ -404,19 +398,20 @@ class _DashboardBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session      = ref.watch(sessionProvider);          // ✅ direct session
-    final amountAsync  = ref.watch(janghaniAmountProvider);
-    final recentAsync  = ref.watch(recentTransactionsProvider);
-    final desktop      = MediaQuery.of(context).size.width >= 800;
+    // ✅ FIXED: currentUserProvider use karo
+    final user        = ref.watch(currentUserProvider);
+    final amountAsync = ref.watch(janghaniAmountProvider);
+    final recentAsync = ref.watch(recentTransactionsProvider);
+    final desktop     = MediaQuery.of(context).size.width >= 800;
 
-    final displayName  = session?.fullName ?? session?.fullName ?? 'User';
+    final displayName = user?.fullName ?? 'User';
 
     return Column(
       children: [
-        // Top bar
         Container(
           color:   Colors.white,
-          padding: EdgeInsets.symmetric(horizontal: desktop ? 28 : 20, vertical: 14),
+          padding: EdgeInsets.symmetric(
+              horizontal: desktop ? 28 : 20, vertical: 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -711,9 +706,9 @@ class _CashCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(_fmt(amount?.cashInHand),
                 style: const TextStyle(
-                  color:       Colors.white,
-                  fontSize:    32,
-                  fontWeight:  FontWeight.w700,
+                  color:         Colors.white,
+                  fontSize:      32,
+                  fontWeight:    FontWeight.w700,
                   letterSpacing: -1,
                 )),
             const SizedBox(height: 6),
@@ -817,17 +812,6 @@ class _ShimmerCard extends StatelessWidget {
     decoration: BoxDecoration(
         color:        Colors.grey.shade200,
         borderRadius: BorderRadius.circular(16)),
-  );
-}
-
-class _ShimmerBox extends StatelessWidget {
-  const _ShimmerBox();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-        color:        Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(6)),
   );
 }
 

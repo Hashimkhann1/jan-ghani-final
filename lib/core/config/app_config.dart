@@ -1,6 +1,8 @@
 import 'dart:convert';
-
 import 'package:flutter/services.dart';
+
+enum AppEnvironment { development, production }
+
 
 class AppConfig {
   static late Map<String, dynamic> _config;
@@ -24,4 +26,24 @@ class AppConfig {
 
   static bool get isWarehouse => appMode == 'warehouse';
   static bool get isStore     => appMode == 'store';
+
+
+
+  static const String _env = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: 'development',
+  );
+
+  static AppEnvironment get environment =>
+      _env == 'production' ? AppEnvironment.production : AppEnvironment.development;
+
+  static bool get isProduction => environment == AppEnvironment.production;
+  static bool get isDevelopment => environment == AppEnvironment.development;
+
+  // Supabase
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  // App Name
+  static String get appName => isProduction ? 'Jan Ghani' : 'Jan Ghani (Dev)';
 }

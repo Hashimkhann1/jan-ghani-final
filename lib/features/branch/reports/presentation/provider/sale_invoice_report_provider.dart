@@ -9,8 +9,8 @@ class SaleInvoiceListState {
   final List<SaleInvoiceListModel> allInvoices;
   final List<CashierModel>         cashiers;
   final String?                    selectedCashierId;
-  final String?                    selectedCustomerId;   // ← NEW
-  final String?                    selectedCustomerName; // ← NEW
+  final String?                    selectedCustomerId;
+  final String?                    selectedCustomerName;
   final DateTime fromDate;
   final DateTime toDate;
   final String   searchQuery;
@@ -23,8 +23,8 @@ class SaleInvoiceListState {
     this.allInvoices           = const [],
     this.cashiers              = const [],
     this.selectedCashierId,
-    this.selectedCustomerId,    // ← NEW
-    this.selectedCustomerName,  // ← NEW
+    this.selectedCustomerId,
+    this.selectedCustomerName,
     DateTime? fromDate,
     DateTime? toDate,
     this.searchQuery           = '',
@@ -32,24 +32,27 @@ class SaleInvoiceListState {
     this.isCashiersLoading     = false,
     this.errorMessage,
     this.counterId,
-  })  : fromDate = fromDate ?? _today(),
-        toDate   = toDate   ?? _today();
+  })  : fromDate = fromDate ?? _todayStart(),
+        toDate   = toDate   ?? _todayEnd();
 
-  static DateTime _today() {
+  static DateTime _todayStart() {
     final n = DateTime.now();
-    return DateTime(n.year, n.month, n.day);
+    return DateTime(n.year, n.month, n.day, 0, 0, 0);
+  }
+
+  static DateTime _todayEnd() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day, 23, 59, 59);
   }
 
   // ── Filtered Invoices ─────────────────────────────────────
   List<SaleInvoiceListModel> get filteredInvoices {
     var list = allInvoices;
 
-    // Customer filter
     if (selectedCustomerId != null) {
       list = list.where((inv) => inv.customerId == selectedCustomerId).toList();
     }
 
-    // Search filter
     if (searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
       list = list.where((inv) {
@@ -70,21 +73,15 @@ class SaleInvoiceListState {
   double get totalDiscount => filteredInvoices.fold(0, (s, i) => s + i.totalDiscount);
   int    get totalCount    => filteredInvoices.length;
 
-  // Customer-specific stats
-  bool   get isCustomerSelected  => selectedCustomerId != null;
-
-  double get customerTotalSale   => filteredInvoices.fold(0, (s, i) => s + i.grandTotal);
-
-  double get customerCashSale    => filteredInvoices
+  bool   get isCustomerSelected    => selectedCustomerId != null;
+  double get customerTotalSale     => filteredInvoices.fold(0, (s, i) => s + i.grandTotal);
+  double get customerCashSale      => filteredInvoices
       .where((i) => i.paymentType.contains('cash'))
       .fold(0, (s, i) => s + i.grandTotal);
-
-  double get customerCreditSale  => filteredInvoices
+  double get customerCreditSale    => filteredInvoices
       .where((i) => i.paymentType.contains('credit'))
       .fold(0, (s, i) => s + i.grandTotal);
-
   double get customerTotalDiscount => filteredInvoices.fold(0, (s, i) => s + i.totalDiscount);
-
   int    get customerInvoiceCount  => filteredInvoices.length;
 
   // ── CopyWith ──────────────────────────────────────────────
@@ -92,11 +89,11 @@ class SaleInvoiceListState {
     List<SaleInvoiceListModel>? allInvoices,
     List<CashierModel>?         cashiers,
     String?                     selectedCashierId,
-    bool                        clearSelectedCashier   = false,
+    bool                        clearSelectedCashier      = false,
     String?                     selectedCustomerId,
-    bool                        clearSelectedCustomer  = false,  // ← NEW
+    bool                        clearSelectedCustomer     = false,
     String?                     selectedCustomerName,
-    bool                        clearSelectedCustomerName = false, // ← NEW
+    bool                        clearSelectedCustomerName = false,
     DateTime?                   fromDate,
     DateTime?                   toDate,
     String?                     searchQuery,
@@ -183,8 +180,10 @@ class SaleInvoiceListNotifier extends StateNotifier<SaleInvoiceListState> {
   }
 
   void setToday() {
-    final today = SaleInvoiceListState._today();
-    setDateRange(today, today);
+    setDateRange(
+      SaleInvoiceListState._todayStart(),
+      SaleInvoiceListState._todayEnd(),
+    );
   }
 
   void setCounter(String? counterId) {
@@ -201,7 +200,6 @@ class SaleInvoiceListNotifier extends StateNotifier<SaleInvoiceListState> {
     load();
   }
 
-  // ── Customer Filter ────────────────────────────────────────
   void selectCustomer(String? customerId, String? customerName) {
     if (customerId == null) {
       state = state.copyWith(

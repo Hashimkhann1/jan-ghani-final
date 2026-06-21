@@ -11,8 +11,11 @@ class SaleInvoiceListModel {
   final String?  customerName;
   final String?  counterName;
   final String?  cashierName;
-  final String?  notes;                          // ← ADD
-  final List<SaleInvoiceItemDetail> items;
+  final String?  notes;
+  final List<SaleInvoiceItemDetail>    items;
+  final List<SaleInvoicePaymentDetail> payments;
+  final double?  previousBalance;
+  final double?  currentBalance;
 
   const SaleInvoiceListModel({
     required this.id,
@@ -27,11 +30,13 @@ class SaleInvoiceListModel {
     this.customerName,
     this.counterName,
     this.cashierName,
-    this.notes,                                  // ← ADD
+    this.notes,
     required this.items,
+    this.payments = const [],
+    this.previousBalance,
+    this.currentBalance,
   });
 
-  // baaki sab same rahega...
   String get grandTotalLabel  => 'Rs ${grandTotal.toStringAsFixed(0)}';
   String get totalAmountLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
   String get discountLabel    => 'Rs ${totalDiscount.toStringAsFixed(0)}';
@@ -58,6 +63,7 @@ class SaleInvoiceListModel {
   bool operator ==(Object other) =>
       identical(this, other) ||
           other is SaleInvoiceListModel && id == other.id;
+
   @override
   int get hashCode => id.hashCode;
 }
@@ -96,6 +102,29 @@ class SaleInvoiceItemDetail {
         quantity:      _dbl(m['quantity'])       ?? 0,
         discount:      _dbl(m['discount'])       ?? 0,
         totalAmount:   _dbl(m['total_amount'])   ?? 0,
+      );
+
+  static double? _dbl(dynamic v) {
+    if (v == null) return null;
+    if (v is num)  return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+}
+
+// ── Payment detail (method + amount) ─────────────────────────
+class SaleInvoicePaymentDetail {
+  final String method;
+  final double amount;
+
+  const SaleInvoicePaymentDetail({
+    required this.method,
+    required this.amount,
+  });
+
+  static SaleInvoicePaymentDetail fromMap(Map<String, dynamic> m) =>
+      SaleInvoicePaymentDetail(
+        method: m['payment_method']?.toString() ?? 'cash',
+        amount: _dbl(m['amount']) ?? 0,
       );
 
   static double? _dbl(dynamic v) {

@@ -4,6 +4,20 @@ import '../../../../../core/service/db/db_service.dart';
 import '../../../store_user/data/model/user_model.dart';
 
 class AuthRemoteDataSource {
+
+  Future<bool> hasBranchData() async {
+    try {
+      final conn = await DataBaseService.getConnection();
+      final result = await conn.execute(
+        Sql.named('SELECT COUNT(*) as cnt FROM public.branch LIMIT 1'),
+      );
+      final count = result.first.toColumnMap()['cnt'];
+      return (count as int? ?? 0) > 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<UserModel?> login(String username, String password) async {
     final conn = await DataBaseService.getConnection();
 

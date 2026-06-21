@@ -9,14 +9,17 @@ class AuthState {
   final bool       isLoading;
   final String?    errorMessage;
   final bool       isLoggedIn;
+  final bool?      hasBranch;      // ✅ NEW — null = still checking
 
   const AuthState({
     this.user,
     this.isLoading    = false,
     this.errorMessage,
     this.isLoggedIn   = false,
+    this.hasBranch,               // ✅ NEW
   });
 
+  // ... getters same rahenge ...
   String  get userId    => user?.id        ?? '';
   String  get storeId   => user?.storeId   ?? '';
   String  get role      => user?.role      ?? '';
@@ -34,13 +37,16 @@ class AuthState {
     bool?      isLoading,
     String?    errorMessage,
     bool?      isLoggedIn,
+    bool?      hasBranch,         // ✅ NEW
   }) => AuthState(
     user:         user         ?? this.user,
     isLoading:    isLoading    ?? this.isLoading,
     errorMessage: errorMessage,
     isLoggedIn:   isLoggedIn   ?? this.isLoggedIn,
+    hasBranch:    hasBranch    ?? this.hasBranch,
   );
 }
+
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRemoteDataSource _ds;
@@ -49,18 +55,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _restoreSession();
   }
 
-  // ── RESTORE SESSION ───────────────────────────────────────
   Future<void> _restoreSession() async {
     state = state.copyWith(isLoading: true);
     try {
+      // ✅ Pehle branch check karo
+      final branchExists = await _ds.hasBranchData();
+
+      if (!branchExists) {
+        state = state.copyWith(
+          isLoading: false,
+          hasBranch: false,
+        );
+        return;
+      }
+
+      // Branch hai — session check karo
       final loggedIn = await SessionService.isLoggedIn();
       if (!loggedIn) {
-        state = state.copyWith(isLoading: false);
+        state = state.copyWith(isLoading: false, hasBranch: true);
         return;
       }
 
       final session = await SessionService.getSession();
-
       final user = UserModel(
         id:           session['user_id']   ?? '',
         storeId:      session['store_id']  ?? '',
@@ -78,9 +94,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user:       user,
         isLoggedIn: true,
         isLoading:  false,
+        hasBranch:  true,           // ✅
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(isLoading: false, hasBranch: false);
     }
   }
 
@@ -123,8 +140,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // ── LOGOUT ────────────────────────────────────────────────
   Future<void> logout() async {
-    await SessionService.clearSession(); // ✅ Session clear
-    state = const AuthState();
+    await SessionService.clearSession();
+    state = AuthState(hasBranch: state.hasBranch);
   }
 
   void clearError() => state = state.copyWith(errorMessage: null);

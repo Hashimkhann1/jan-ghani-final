@@ -2,8 +2,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/accountant_user_entity.dart';
 
-class SessionNotifier extends StateNotifier<AccountantUserEntity?> {
-  SessionNotifier() : super(null) {
+// ── Session State ─────────────────────────────────────────
+class SessionState {
+  final AccountantUserEntity? user;
+  final bool isRestoring; // ✅ SharedPrefs se restore ho raha hai?
+
+  const SessionState({
+    this.user,
+    this.isRestoring = true, // default: true (app start pe)
+  });
+
+  SessionState copyWith({
+    AccountantUserEntity? user,
+    bool clearUser = false,
+    bool? isRestoring,
+  }) =>
+      SessionState(
+        user:        clearUser ? null : user ?? this.user,
+        isRestoring: isRestoring ?? this.isRestoring,
+      );
+}
+
+// ── Notifier ──────────────────────────────────────────────
+class SessionNotifier extends StateNotifier<SessionState> {
+  SessionNotifier() : super(const SessionState(isRestoring: true)) {
     _restoreSession();
   }
 
@@ -20,25 +42,37 @@ class SessionNotifier extends StateNotifier<AccountantUserEntity?> {
   Future<void> _restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
     final id = prefs.getString(_kId);
-    if (id == null || id.isEmpty) return;
 
-    state = AccountantUserEntity(
-      id:            id,
-      fullName:      prefs.getString(_kFullName)      ?? '',
-      email:         prefs.getString(_kEmail)         ?? '',
-      role:          prefs.getString(_kRole)          ?? '',
-      branchId:      prefs.getString(_kBranchId),
-      warehouseId:   prefs.getString(_kWarehouseId),
-      customerToken: prefs.getString(_kCustomerToken),
-      isActive:      prefs.getBool(_kIsActive)        ?? true,
-      createdAt:     DateTime.tryParse(
-          prefs.getString(_kCreatedAt) ?? '') ??
-          DateTime.now(),
+    if (id == null || id.isEmpty) {
+      // Koi session nahi — restore done, user null
+      state = state.copyWith(isRestoring: false, clearUser: true);
+      return;
+    }
+
+    final branchIdRaw = prefs.getString(_kBranchId);
+
+    state = state.copyWith(
+      isRestoring: false,
+      user: AccountantUserEntity(
+        id:            id,
+        fullName:      prefs.getString(_kFullName)      ?? '',
+        email:         prefs.getString(_kEmail)         ?? '',
+        role:          prefs.getString(_kRole)          ?? '',
+        branchId:      (branchIdRaw == null || branchIdRaw.isEmpty)
+            ? null
+            : branchIdRaw, // ✅ empty string → null
+        warehouseId:   prefs.getString(_kWarehouseId),
+        customerToken: prefs.getString(_kCustomerToken),
+        isActive:      prefs.getBool(_kIsActive)        ?? true,
+        createdAt:     DateTime.tryParse(
+            prefs.getString(_kCreatedAt) ?? '') ??
+            DateTime.now(),
+      ),
     );
   }
 
   Future<void> setUser(AccountantUserEntity user) async {
-    state = user;
+    state = state.copyWith(user: user);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kId,            user.id);
     await prefs.setString(_kFullName,      user.fullName);
@@ -52,7 +86,7 @@ class SessionNotifier extends StateNotifier<AccountantUserEntity?> {
   }
 
   Future<void> clear() async {
-    state = null;
+    state = state.copyWith(clearUser: true, isRestoring: false);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kId);
     await prefs.remove(_kFullName);
@@ -64,25 +98,31 @@ class SessionNotifier extends StateNotifier<AccountantUserEntity?> {
     await prefs.remove(_kIsActive);
     await prefs.remove(_kCreatedAt);
   }
-
-  String? get role          => state?.role;
-  String? get branchId      => state?.branchId;
-  bool    get isLoggedIn    => state != null;
 }
 
+// ── Providers ─────────────────────────────────────────────
 final sessionProvider =
-StateNotifierProvider<SessionNotifier, AccountantUserEntity?>(
+StateNotifierProvider<SessionNotifier, SessionState>(
       (ref) => SessionNotifier(),
 );
 
+// Convenience providers
+final currentUserProvider = Provider<AccountantUserEntity?>(
+      (ref) => ref.watch(sessionProvider).user,
+);
+
 final currentRoleProvider = Provider<String?>(
-      (ref) => ref.watch(sessionProvider)?.role,
+      (ref) => ref.watch(sessionProvider).user?.role,
 );
 
 final currentBranchIdProvider = Provider<String?>(
-      (ref) => ref.watch(sessionProvider)?.branchId,
+      (ref) => ref.watch(sessionProvider).user?.branchId,
+);
+
+final isRestoringSessionProvider = Provider<bool>(
+      (ref) => ref.watch(sessionProvider).isRestoring,
 );
 
 final isLoggedInProvider = Provider<bool>(
-      (ref) => ref.watch(sessionProvider) != null,
+      (ref) => ref.watch(sessionProvider).user != null,
 );

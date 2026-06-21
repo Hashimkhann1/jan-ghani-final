@@ -3,14 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/datasource/accountant_branch_datasource.dart';
 import '../../data/model/accountant_branch_model.dart';
 
-
 // ── State ─────────────────────────────────────────────────
 class BranchState {
   final List<BranchModel> allBranches;
   final List<BranchModel> filtered;
   final String            searchQuery;
   final bool              isLoading;
-  final bool              isSaving;     // ✅ NEW
+  final bool              isSaving;
   final String?           errorMessage;
 
   const BranchState({
@@ -18,7 +17,7 @@ class BranchState {
     this.filtered     = const [],
     this.searchQuery  = '',
     this.isLoading    = false,
-    this.isSaving     = false,          // ✅ NEW
+    this.isSaving     = false,
     this.errorMessage,
   });
 
@@ -27,7 +26,7 @@ class BranchState {
     List<BranchModel>? filtered,
     String?            searchQuery,
     bool?              isLoading,
-    bool?              isSaving,         // ✅ NEW
+    bool?              isSaving,
     Object?            errorMessage = _sentinel,
   }) =>
       BranchState(
@@ -69,15 +68,28 @@ class BranchNotifier extends StateNotifier<BranchState> {
     }
   }
 
-  // ── NEW: Add branch ─────────────────────────────────────
-  Future<bool> addBranch({required String code, required String name, required String address, required String phone,}) async {
+  Future<bool> addBranch({
+    required String code,
+    required String name,
+    required String address,
+    required String phone,
+    // ✅ Manager fields
+    required String managerUsername,
+    required String managerPassword,
+    required String managerFullName,
+    required String managerPhone,
+  }) async {
     state = state.copyWith(isSaving: true, errorMessage: null);
     try {
       final newBranch = await _datasource.createBranch(
-        code:    code.trim(),
-        name:    name.trim(),
-        address: address.trim(),
-        phone:   phone.trim(),
+        code:            code.trim(),
+        name:            name.trim(),
+        address:         address.trim(),
+        phone:           phone.trim(),
+        managerUsername: managerUsername,
+        managerPassword: managerPassword,
+        managerFullName: managerFullName,
+        managerPhone:    managerPhone,
       );
 
       final updated = [...state.allBranches, newBranch]
@@ -120,7 +132,7 @@ class BranchNotifier extends StateNotifier<BranchState> {
     if (msg.contains('duplicate') ||
         msg.contains('unique') ||
         msg.contains('23505')) {
-      return 'Yeh branch code pehle se mojood hai. Koi aur code use karein.';
+      return 'Yeh branch code ya username pehle se mojood hai.';
     }
     return 'Branch save nahi ho saki: $e';
   }
@@ -137,16 +149,18 @@ class BranchNotifier extends StateNotifier<BranchState> {
   List<BranchModel> _applySearch(List<BranchModel> all, String q) {
     if (q.isEmpty) return all;
     final lower = q.toLowerCase();
-    return all.where((b) =>
+    return all
+        .where((b) =>
     b.name.toLowerCase().contains(lower) ||
         b.code.toLowerCase().contains(lower) ||
-        b.address.toLowerCase().contains(lower)).toList();
+        b.address.toLowerCase().contains(lower))
+        .toList();
   }
 }
 
 // ── Provider ──────────────────────────────────────────────
-final branchProvider = StateNotifierProvider.autoDispose
-<BranchNotifier, BranchState>((ref) {
+final branchProvider =
+StateNotifierProvider.autoDispose<BranchNotifier, BranchState>((ref) {
   final datasource = BranchDatasource(client: Supabase.instance.client);
   return BranchNotifier(datasource);
 });

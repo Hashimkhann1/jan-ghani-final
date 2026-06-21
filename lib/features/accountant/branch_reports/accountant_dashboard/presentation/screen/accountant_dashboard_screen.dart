@@ -23,10 +23,7 @@ class _AccountantBranchDashboardScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(accountantBranchDashboardProvider(widget.branchId)
-          .notifier)
-          .setToday();
+      ref.read(accountantBranchDashboardProvider(widget.branchId).notifier).setToday();
     });
   }
 

@@ -32,10 +32,21 @@ class _BranchScreenState extends ConsumerState<BranchScreen> {
     final notifier = ref.read(branchProvider.notifier);
     final desktop  = _isDesktop(context);
 
-    final isOwner = ref.watch(authProvider).role == 'owner';
+    final isOwner      = ref.watch(sessionProvider).user!.role == 'owner';
+    print("Rolw"+ isOwner.toString());
+    final isRestoring  = ref.watch(isRestoringSessionProvider);
     final userBranchId = ref.watch(currentBranchIdProvider);
 
-    final visibleBranches = isOwner ? state.filtered : state.filtered.where((b) => b.id == userBranchId).toList();
+    if (isRestoring) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F6FA),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final visibleBranches = userBranchId == null
+        ? state.filtered
+        : state.filtered.where((b) => b.id == userBranchId).toList();
 
     ref.listen<BranchState>(branchProvider, (_, next) {
       if (next.errorMessage != null) {
@@ -56,23 +67,24 @@ class _BranchScreenState extends ConsumerState<BranchScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      floatingActionButton: (!desktop && isOwner) ?
-      FloatingActionButton.extended(
+      floatingActionButton: (!desktop && isOwner)
+          ? FloatingActionButton.extended(
         onPressed: () => showAddBranchDialog(context, notifier),
         backgroundColor: AppColor.primary,
         foregroundColor: Colors.white,
         icon:  const Icon(Icons.add_rounded),
         label: const Text('Add Branch'),
-      ) :
-      null,
-      body: desktop ?
-      _DesktopLayout(
+      )
+          : null,
+      body: desktop
+          ? _DesktopLayout(
         state:      state,
         notifier:   notifier,
         searchCtrl: _searchCtrl,
         isOwner:    isOwner,
         branches:   visibleBranches,
-      ) : _MobileLayout(
+      )
+          : _MobileLayout(
         state:      state,
         notifier:   notifier,
         searchCtrl: _searchCtrl,
@@ -155,7 +167,6 @@ class _DesktopLayout extends StatelessWidget {
                   ),
                 ),
               ),
-              // ✅ Add Branch button — sirf owner ko dikhe
               if (isOwner) ...[
                 const SizedBox(width: 12),
                 SizedBox(
@@ -372,7 +383,7 @@ class _StatPill extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           '$label: ',
-          style: TextStyle(fontSize: 13, color: AppColor.textHint),
+          style: const TextStyle(fontSize: 13, color: AppColor.textHint),
         ),
         Text(
           value,
@@ -463,8 +474,7 @@ class _MobileLayout extends StatelessWidget {
             sliver: SliverList.separated(
               itemCount:        branches.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (_, i) =>
-                  _BranchListCard(branch: branches[i]),
+              itemBuilder: (_, i) => _BranchListCard(branch: branches[i]),
             ),
           ),
       ],
@@ -472,7 +482,7 @@ class _MobileLayout extends StatelessWidget {
   }
 }
 
-// ── Search Field (shared) ─────────────────────────────────────────────────────
+// ── Search Field ──────────────────────────────────────────────────────────────
 class _SearchField extends StatelessWidget {
   final TextEditingController controller;
   final String query;
@@ -487,8 +497,8 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller:  controller,
-      onChanged:   onChanged,
+      controller: controller,
+      onChanged:  onChanged,
       style: const TextStyle(fontSize: 14),
       cursorHeight: 16,
       decoration: InputDecoration(
@@ -602,7 +612,7 @@ class _EmptyState extends StatelessWidget {
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text(
-          'Koi branch nahi mili',
+          'No branches found',
           style: TextStyle(
             fontSize:   16,
             fontWeight: FontWeight.w600,
@@ -611,7 +621,7 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Search change karein',
+          'Try changing your search',
           style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
         ),
       ],
@@ -622,7 +632,7 @@ class _EmptyState extends StatelessWidget {
 // ── Add Branch Dialog ─────────────────────────────────────────────────────────
 void showAddBranchDialog(BuildContext context, dynamic notifier) {
   showDialog(
-    context: context,
+    context:            context,
     barrierDismissible: false,
     builder: (_) => _AddBranchDialog(notifier: notifier),
   );
@@ -637,13 +647,22 @@ class _AddBranchDialog extends StatefulWidget {
 }
 
 class _AddBranchDialogState extends State<_AddBranchDialog> {
-  final _formKey   = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
+
+  // Branch fields
   final _codeCtrl  = TextEditingController();
   final _nameCtrl  = TextEditingController();
   final _addrCtrl  = TextEditingController();
   final _phoneCtrl = TextEditingController();
 
-  bool _saving = false;
+  // ✅ Manager fields
+  final _mgUserCtrl  = TextEditingController();
+  final _mgPassCtrl  = TextEditingController();
+  final _mgNameCtrl  = TextEditingController();
+  final _mgPhoneCtrl = TextEditingController();
+
+  bool _saving      = false;
+  bool _obscurePass = true;
 
   @override
   void initState() {
@@ -657,6 +676,10 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
     _nameCtrl.dispose();
     _addrCtrl.dispose();
     _phoneCtrl.dispose();
+    _mgUserCtrl.dispose();
+    _mgPassCtrl.dispose();
+    _mgNameCtrl.dispose();
+    _mgPhoneCtrl.dispose();
     super.dispose();
   }
 
@@ -666,10 +689,14 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
     setState(() => _saving = true);
 
     final ok = await widget.notifier.addBranch(
-      code:    _codeCtrl.text,
-      name:    _nameCtrl.text,
-      address: _addrCtrl.text,
-      phone:   _phoneCtrl.text,
+      code:            _codeCtrl.text,
+      name:            _nameCtrl.text,
+      address:         _addrCtrl.text,
+      phone:           _phoneCtrl.text,
+      managerUsername: _mgUserCtrl.text.trim(),
+      managerPassword: _mgPassCtrl.text.trim(),
+      managerFullName: _mgNameCtrl.text.trim(),
+      managerPhone:    _mgPhoneCtrl.text.trim(),
     );
 
     if (!mounted) return;
@@ -678,7 +705,7 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
     if (ok) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:         const Text('Branch successfully add ho gayi ✅'),
+        content: const Text('Branch aur manager successfully add ho gaye ✅'),
         backgroundColor: Colors.green.shade600,
         behavior:        SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -690,18 +717,18 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
-        child: Padding(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize:      MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Header ──────────────────────────────────
                 Row(
                   children: [
                     Container(
@@ -725,37 +752,39 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                     ),
                     const Spacer(),
                     IconButton(
-                      onPressed: _saving
-                          ? null
-                          : () => Navigator.pop(context),
+                      onPressed: _saving ? null : () => Navigator.pop(context),
                       icon: const Icon(Icons.close_rounded,
                           color: AppColor.textHint),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+
+                // ── Branch Info Section ──────────────────────
+                _sectionLabel('Branch Information', Icons.store_rounded),
+                const SizedBox(height: 12),
 
                 _field(
                   controller: _codeCtrl,
                   label: 'Branch Code',
-                  hint:  'e.g. BR-002',
+                  hint:  'e.g. BR-003',
                   icon:  Icons.qr_code_rounded,
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? 'Code zaroori hai'
                       : null,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
                 _field(
                   controller: _nameCtrl,
                   label: 'Branch Name',
-                  hint:  'e.g. Jan Ghani',
+                  hint:  'e.g. Jan Ghani 3',
                   icon:  Icons.store_rounded,
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? 'Name zaroori hai'
                       : null,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
                 _field(
                   controller: _addrCtrl,
@@ -763,27 +792,105 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                   hint:  'e.g. Mardan Road, Charsadda',
                   icon:  Icons.location_on_rounded,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
                 _field(
                   controller: _phoneCtrl,
-                  label: 'Phone',
+                  label: 'Branch Phone',
                   hint:  'e.g. 03001234567',
                   icon:  Icons.phone_rounded,
                   keyboardType: TextInputType.phone,
                 ),
+                const SizedBox(height: 20),
+
+                // ── Manager Info Section ─────────────────────
+                _sectionLabel('Store Manager Account', Icons.person_rounded),
+                const SizedBox(height: 12),
+
+                _field(
+                  controller: _mgNameCtrl,
+                  label: 'Manager Full Name',
+                  hint:  'e.g. Muhammad Ali',
+                  icon:  Icons.badge_rounded,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Manager ka naam zaroori hai'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+
+                _field(
+                  controller: _mgUserCtrl,
+                  label: 'Username',
+                  hint:  'e.g. ali_manager',
+                  icon:  Icons.alternate_email_rounded,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Username zaroori hai'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+
+                // Password field (with toggle)
+                TextFormField(
+                  controller:    _mgPassCtrl,
+                  obscureText:   _obscurePass,
+                  enabled:       !_saving,
+                  style: const TextStyle(fontSize: 14),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Password zaroori hai'
+                      : null,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    hintText:  'e.g. 12345',
+                    prefixIcon: const Icon(Icons.lock_rounded,
+                        size: 20, color: AppColor.primary),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePass
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        size:  20,
+                        color: AppColor.textHint,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePass = !_obscurePass),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:   const BorderSide(color: AppColor.grey200),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:   const BorderSide(color: AppColor.grey200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                          color: AppColor.primary, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                _field(
+                  controller: _mgPhoneCtrl,
+                  label: 'Manager Phone',
+                  hint:  'e.g. 03001234567',
+                  icon:  Icons.phone_android_rounded,
+                  keyboardType: TextInputType.phone,
+                ),
                 const SizedBox(height: 24),
 
+                // ── Buttons ──────────────────────────────────
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: _saving
-                            ? null
-                            : () => Navigator.pop(context),
+                        onPressed: _saving ? null : () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColor.textSecondary,
-                          side: BorderSide(color: AppColor.grey200),
+                          side: const BorderSide(color: AppColor.grey200),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
@@ -809,7 +916,7 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color:       Colors.white,
                           ),
                         )
                             : const Text('Save Branch'),
@@ -822,6 +929,25 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _sectionLabel(String label, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColor.primary),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize:   13,
+            fontWeight: FontWeight.w700,
+            color:      AppColor.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Expanded(child: Divider(color: Color(0xFFEEEEEE))),
+      ],
     );
   }
 
@@ -847,11 +973,11 @@ class _AddBranchDialogState extends State<_AddBranchDialog> {
             horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:   BorderSide(color: AppColor.grey200),
+          borderSide:   const BorderSide(color: AppColor.grey200),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:   BorderSide(color: AppColor.grey200),
+          borderSide:   const BorderSide(color: AppColor.grey200),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),

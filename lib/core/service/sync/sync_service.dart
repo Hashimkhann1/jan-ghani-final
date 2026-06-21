@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:postgres/postgres.dart';
 import 'package:supabase/supabase.dart';
 
@@ -17,8 +18,8 @@ class SyncConfig {
   static const String dbPassword = 'shahab';
 
   // ── Supabase ──────────────────────────────────────────────
-  static const String supabaseUrl = 'https://kjjtqfruxhjcxwvxwffz.supabase.co';
-  static const String supabaseKey = 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS';
+  static const String supabaseUrl = "https://kjjtqfruxhjcxwvxwffz.supabase.co";
+  static const String supabaseKey = "sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS";
 
   // ── Sync interval (seconds) ───────────────────────────────
   static const int syncIntervalSeconds = 120;

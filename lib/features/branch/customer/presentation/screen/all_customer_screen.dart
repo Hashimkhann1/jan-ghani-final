@@ -14,8 +14,16 @@ import '../widget/customer_filter_chip_widget.dart';
 import '../widget/customer_status_badge_widget.dart';
 import '../widget/customer_type_badge_widget.dart';
 
-class AllCustomerScreen extends ConsumerWidget {
+class AllCustomerScreen extends ConsumerStatefulWidget {
   const AllCustomerScreen({super.key});
+
+  @override
+  ConsumerState<AllCustomerScreen> createState() => _AllCustomerScreenState();
+}
+
+class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
 
   void _openDialog(BuildContext context, {CustomerModel? customer}) {
     showDialog(
@@ -93,10 +101,53 @@ class AllCustomerScreen extends ConsumerWidget {
     }
   }
 
+  // ── Sorting ──────────────────────────────────────
+  int _compare<T extends Comparable>(T a, T b) {
+    return _sortAscending ? a.compareTo(b) : b.compareTo(a);
+  }
+
+  List<CustomerModel> _sortedCustomers(List<CustomerModel> customers) {
+    if (_sortColumnIndex == null) return customers;
+
+    final sorted = List<CustomerModel>.from(customers);
+
+    sorted.sort((a, b) {
+      switch (_sortColumnIndex) {
+        case 0: // Code
+          return _compare(a.code, b.code);
+        case 1: // Name
+          return _compare(a.name.toLowerCase(), b.name.toLowerCase());
+        case 2: // Phone
+          return _compare(a.phone, b.phone);
+        case 3: // Address
+          return _compare((a.address ?? '').toLowerCase(), (b.address ?? '').toLowerCase());
+        case 4: // Type
+          return _compare(a.customerType.toString(), b.customerType.toString());
+        case 5: // Credit Limit
+          return _compare(a.creditLimitLabel, b.creditLimitLabel);
+        case 6: // Balance
+          return _compare(a.balance, b.balance);
+        case 7: // Status
+          return _compare(a.isActive ? 1 : 0, b.isActive ? 1 : 0);
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }
+
+  void _onSort(int columnIndex, bool ascending) {
+    setState(() {
+      _sortColumnIndex = columnIndex;
+      _sortAscending = ascending;
+    });
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final state     = ref.watch(customerProvider);
-    final customers = state.filteredCustomers;
+    final customers = _sortedCustomers(state.filteredCustomers);
     final auth      = ref.watch(authProvider);
 
     ref.listen<CustomerState>(customerProvider, (prev, next) {
@@ -305,16 +356,42 @@ class AllCustomerScreen extends ConsumerWidget {
                           dataRowMaxHeight: 52,
                           columnSpacing: (tableWidth * 0.025).clamp(16.0, 48.0),
                           showCheckboxColumn: false,
-                          columns: const [
-                            DataColumn(label: Text('#')),
-                            DataColumn(label: Text('Customer')),
-                            DataColumn(label: Text('Phone')),
-                            DataColumn(label: Text('Address')),
-                            DataColumn(label: Text('Type')),
-                            DataColumn(label: Text('Credit Limit')),
-                            DataColumn(label: Text('Balance')),
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('Actions')),
+                          sortColumnIndex: _sortColumnIndex,
+                          sortAscending: _sortAscending,
+                          columns: [
+                            DataColumn(
+                              label: const Text('#'),
+                              onSort: _onSort,
+                            ),
+                            DataColumn(
+                              label: const Text('Customer'),
+                              onSort: _onSort,
+                            ),
+                            DataColumn(
+                              label: const Text('Phone'),
+                              onSort: _onSort,
+                            ),
+                            DataColumn(
+                              label: const Text('Address'),
+                              onSort: _onSort,
+                            ),
+                            DataColumn(
+                              label: const Text('Type'),
+                              onSort: _onSort,
+                            ),
+                            DataColumn(
+                              label: const Text('Credit Limit'),
+                              onSort: _onSort,
+                            ),
+                            DataColumn(
+                              label: const Text('Balance'),
+                              onSort: _onSort,
+                            ),
+                            DataColumn(
+                              label: const Text('Status'),
+                              onSort: _onSort,
+                            ),
+                            const DataColumn(label: Text('Actions')),
                           ],
                           rows: List.generate(customers.length, (i) {
                             final c = customers[i];

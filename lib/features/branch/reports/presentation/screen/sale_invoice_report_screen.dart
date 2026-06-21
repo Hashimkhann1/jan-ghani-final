@@ -7,25 +7,31 @@ import 'package:jan_ghani_final/features/branch/authentication/presentation/prov
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/reports/data/model/sale_invoice_report_model.dart';
 
-import '../../../../../core/service/print/sale_invoice_printer_service.dart';
+import '../../../../../core/service/print/print_service.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
+import '../../../sale_invoice/data/model/sale_invoice_model.dart';
 import '../provider/sale_invoice_report_provider.dart';
 
 class SaleInvoiceListScreen extends ConsumerStatefulWidget {
   const SaleInvoiceListScreen({super.key});
 
   @override
-  ConsumerState<SaleInvoiceListScreen> createState() => _SaleInvoiceListScreenState();
+  ConsumerState<SaleInvoiceListScreen> createState() =>
+      _SaleInvoiceListScreenState();
 }
 
 class _SaleInvoiceListScreenState
     extends ConsumerState<SaleInvoiceListScreen> {
-  final _searchCtrl    = TextEditingController();
-  final _startDateCtrl = TextEditingController();
-  final _endDateCtrl   = TextEditingController();
-  final _dateFmt       = DateFormat('dd MMM yyyy');
-  final _timeFmt       = DateFormat('hh:mm a');
-  final _inputFmt      = DateFormat('dd/MM/yyyy');
+  final _searchCtrl     = TextEditingController();
+  final _startDateCtrl  = TextEditingController();
+  final _endDateCtrl    = TextEditingController();
+  final _startTimeCtrl  = TextEditingController();
+  final _endTimeCtrl    = TextEditingController();
+  final _dateFmt        = DateFormat('dd MMM yyyy');
+  final _timeFmt        = DateFormat('hh:mm a');
+  final _inputFmt       = DateFormat('dd/MM/yyyy');
+  final _inputTimeFmt   = DateFormat('hh:mm a');
 
   @override
   void initState() {
@@ -40,6 +46,8 @@ class _SaleInvoiceListScreenState
     final state = ref.read(saleInvoiceListProvider);
     _startDateCtrl.text = _inputFmt.format(state.fromDate);
     _endDateCtrl.text   = _inputFmt.format(state.toDate);
+    _startTimeCtrl.text = _inputTimeFmt.format(state.fromDate);
+    _endTimeCtrl.text   = _inputTimeFmt.format(state.toDate);
   }
 
   @override
@@ -47,10 +55,14 @@ class _SaleInvoiceListScreenState
     _searchCtrl.dispose();
     _startDateCtrl.dispose();
     _endDateCtrl.dispose();
+    _startTimeCtrl.dispose();
+    _endTimeCtrl.dispose();
     super.dispose();
   }
 
-  Future<DateTime?> _pickDate(BuildContext context, DateTime initial) async {
+  // ── Date Picker ───────────────────────────────────────────
+  Future<DateTime?> _pickDate(
+      BuildContext context, DateTime initial) async {
     return showDatePicker(
       context:     context,
       initialDate: initial,
@@ -68,13 +80,36 @@ class _SaleInvoiceListScreenState
     );
   }
 
+  // ── Time Picker ───────────────────────────────────────────
+  Future<TimeOfDay?> _pickTime(
+      BuildContext context, DateTime initial) async {
+    return showTimePicker(
+      context:     context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary:   AppColor.primary,
+            onPrimary: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+  }
+
+  // ── Date Tap Handlers ─────────────────────────────────────
   Future<void> _onStartDateTap() async {
     final state  = ref.read(saleInvoiceListProvider);
     final picked = await _pickDate(context, state.fromDate);
     if (picked != null) {
-      _startDateCtrl.text = _inputFmt.format(picked);
+      final newDate = DateTime(
+        picked.year, picked.month, picked.day,
+        state.fromDate.hour, state.fromDate.minute, state.fromDate.second,
+      );
+      _startDateCtrl.text = _inputFmt.format(newDate);
       ref.read(saleInvoiceListProvider.notifier)
-          .setDateRange(picked, state.toDate);
+          .setDateRange(newDate, state.toDate);
     }
   }
 
@@ -82,12 +117,46 @@ class _SaleInvoiceListScreenState
     final state  = ref.read(saleInvoiceListProvider);
     final picked = await _pickDate(context, state.toDate);
     if (picked != null) {
-      _endDateCtrl.text = _inputFmt.format(picked);
+      final newDate = DateTime(
+        picked.year, picked.month, picked.day,
+        state.toDate.hour, state.toDate.minute, state.toDate.second,
+      );
+      _endDateCtrl.text = _inputFmt.format(newDate);
       ref.read(saleInvoiceListProvider.notifier)
-          .setDateRange(state.fromDate, picked);
+          .setDateRange(state.fromDate, newDate);
     }
   }
 
+  // ── Time Tap Handlers ─────────────────────────────────────
+  Future<void> _onStartTimeTap() async {
+    final state  = ref.read(saleInvoiceListProvider);
+    final picked = await _pickTime(context, state.fromDate);
+    if (picked != null) {
+      final newDate = DateTime(
+        state.fromDate.year, state.fromDate.month, state.fromDate.day,
+        picked.hour, picked.minute, 0,
+      );
+      _startTimeCtrl.text = _inputTimeFmt.format(newDate);
+      ref.read(saleInvoiceListProvider.notifier)
+          .setDateRange(newDate, state.toDate);
+    }
+  }
+
+  Future<void> _onEndTimeTap() async {
+    final state  = ref.read(saleInvoiceListProvider);
+    final picked = await _pickTime(context, state.toDate);
+    if (picked != null) {
+      final newDate = DateTime(
+        state.toDate.year, state.toDate.month, state.toDate.day,
+        picked.hour, picked.minute, 59,
+      );
+      _endTimeCtrl.text = _inputTimeFmt.format(newDate);
+      ref.read(saleInvoiceListProvider.notifier)
+          .setDateRange(state.fromDate, newDate);
+    }
+  }
+
+  // ── Date Field Widget ─────────────────────────────────────
   Widget _dateField({
     required String                label,
     required TextEditingController ctrl,
@@ -108,6 +177,47 @@ class _SaleInvoiceListScreenState
                 labelStyle: const TextStyle(
                     fontSize: 11, color: AppColor.textSecondary),
                 prefixIcon: const Icon(Icons.calendar_today_rounded,
+                    size: 15, color: AppColor.primary),
+                filled:    true,
+                fillColor: AppColor.grey100,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:   BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                      color: AppColor.primary, width: 1.2),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+  // ── Time Field Widget ─────────────────────────────────────
+  Widget _timeField({
+    required String                label,
+    required TextEditingController ctrl,
+    required VoidCallback          onTap,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: AbsorbPointer(
+          child: SizedBox(
+            width: 120,
+            child: TextField(
+              controller: ctrl,
+              readOnly:   true,
+              style: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                labelText:  label,
+                labelStyle: const TextStyle(
+                    fontSize: 11, color: AppColor.textSecondary),
+                prefixIcon: const Icon(Icons.access_time_rounded,
                     size: 15, color: AppColor.primary),
                 filled:    true,
                 fillColor: AppColor.grey100,
@@ -187,6 +297,8 @@ class _SaleInvoiceListScreenState
       }
       _startDateCtrl.text = _inputFmt.format(next.fromDate);
       _endDateCtrl.text   = _inputFmt.format(next.toDate);
+      _startTimeCtrl.text = _inputTimeFmt.format(next.fromDate);
+      _endTimeCtrl.text   = _inputTimeFmt.format(next.toDate);
     });
 
     return Scaffold(
@@ -217,7 +329,7 @@ class _SaleInvoiceListScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Stat Cards ─────────────────────────────────
+            // ── Stat Cards ──────────────────────────────
             if (state.isCustomerSelected) ...[
               _CustomerStatsBanner(state: state),
             ] else ...[
@@ -249,13 +361,13 @@ class _SaleInvoiceListScreenState
 
             const SizedBox(height: 16),
 
-            // ── Filters ────────────────────────────────────
+            // ── Filters ─────────────────────────────────
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
 
-                  // ── Search ────────────────────────────────
+                  // ── Search ───────────────────────────
                   SizedBox(
                     width: 220,
                     child: TextField(
@@ -279,7 +391,8 @@ class _SaleInvoiceListScreenState
                           onPressed: () {
                             _searchCtrl.clear();
                             ref
-                                .read(saleInvoiceListProvider.notifier)
+                                .read(saleInvoiceListProvider
+                                .notifier)
                                 .onSearchChanged('');
                           },
                         )
@@ -297,7 +410,7 @@ class _SaleInvoiceListScreenState
                   ),
                   const SizedBox(width: 12),
 
-                  // ── Customer Searchable Dropdown ───────────
+                  // ── Customer Dropdown ─────────────────
                   AppSearchableDropdown<String?>(
                     hint:         'All Customers',
                     prefixIcon:   Icons.person_search_outlined,
@@ -317,15 +430,15 @@ class _SaleInvoiceListScreenState
                   ),
                   const SizedBox(width: 12),
 
-                  // ── Manager: Cashier Searchable Dropdown ───
+                  // ── Cashier Dropdown (Manager only) ───
                   if (auth.isManager) ...[
                     state.isCashiersLoading
                         ? const SizedBox(
-                      width: 42,
+                      width:  42,
                       height: 42,
                       child: Center(
                         child: SizedBox(
-                          width: 18,
+                          width:  18,
                           height: 18,
                           child: CircularProgressIndicator(
                               strokeWidth: 2),
@@ -345,7 +458,7 @@ class _SaleInvoiceListScreenState
                     const SizedBox(width: 12),
                   ],
 
-                  // ── Today Button ───────────────────────────
+                  // ── Today Button ──────────────────────
                   IntrinsicWidth(
                     child: OutlinedButton.icon(
                       onPressed: () => ref
@@ -366,12 +479,19 @@ class _SaleInvoiceListScreenState
                   ),
                   const SizedBox(width: 12),
 
-                  // ── Start Date ─────────────────────────────
+                  // ── Start Date + Time ─────────────────
                   _dateField(
                     label: 'Start Date',
                     ctrl:  _startDateCtrl,
                     onTap: _onStartDateTap,
                   ),
+                  const SizedBox(width: 6),
+                  _timeField(
+                    label: 'Start Time',
+                    ctrl:  _startTimeCtrl,
+                    onTap: _onStartTimeTap,
+                  ),
+
                   const SizedBox(width: 8),
                   const Text('—',
                       style: TextStyle(
@@ -379,11 +499,17 @@ class _SaleInvoiceListScreenState
                           fontWeight: FontWeight.w600)),
                   const SizedBox(width: 8),
 
-                  // ── End Date ───────────────────────────────
+                  // ── End Date + Time ───────────────────
                   _dateField(
                     label: 'End Date',
                     ctrl:  _endDateCtrl,
                     onTap: _onEndDateTap,
+                  ),
+                  const SizedBox(width: 6),
+                  _timeField(
+                    label: 'End Time',
+                    ctrl:  _endTimeCtrl,
+                    onTap: _onEndTimeTap,
                   ),
                 ],
               ),
@@ -391,7 +517,7 @@ class _SaleInvoiceListScreenState
 
             const SizedBox(height: 16),
 
-            // ── Invoice List ───────────────────────────────
+            // ── Invoice List ─────────────────────────────
             Expanded(
               child: invoices.isEmpty
                   ? _EmptyState(
@@ -399,14 +525,15 @@ class _SaleInvoiceListScreenState
                       state.isCustomerSelected)
                   : ListView.separated(
                 itemCount:        invoices.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, __) =>
+                const SizedBox(height: 12),
                 itemBuilder: (context, index) => _InvoiceCard(
                   inv:       invoices[index],
                   dateFmt:   _dateFmt,
                   timeFmt:   _timeFmt,
                   isManager: auth.isManager,
                   storeName: 'Jan Ghani',
-                )
+                ),
               ),
             ),
           ],
@@ -495,31 +622,21 @@ class _CustomerStatsBanner extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════
-// Invoice Card  –  Header with Print Button
+// Invoice Card
 // ══════════════════════════════════════════════════════════════
-//
-// Replace your existing _InvoiceCard class with this one.
-// Make sure to add the import at the top of sale_invoice_list_screen.dart:
-//
-//   import 'package:jan_ghani_final/core/services/sale_invoice_print_service.dart';
-//
-// Also add storeName to your _InvoiceCard constructor (get it from
-// authProvider: auth.storeName  or however your app exposes it).
-// ──────────────────────────────────────────────────────────────
-
-class _InvoiceCard extends StatefulWidget {          // <-- changed to StatefulWidget
+class _InvoiceCard extends StatefulWidget {
   final SaleInvoiceListModel inv;
   final DateFormat dateFmt;
   final DateFormat timeFmt;
   final bool isManager;
-  final String storeName;                            // <-- NEW
+  final String storeName;
 
   const _InvoiceCard({
     required this.inv,
     required this.dateFmt,
     required this.timeFmt,
     required this.isManager,
-    required this.storeName,                         // <-- NEW
+    required this.storeName,
   });
 
   @override
@@ -533,10 +650,89 @@ class _InvoiceCardState extends State<_InvoiceCard> {
     if (_isPrinting) return;
     setState(() => _isPrinting = true);
     try {
-      await SaleInvoicePrintService.printInvoice(
-        storeName: widget.storeName,
-        invoice:   widget.inv,
+      final inv         = widget.inv;
+      final hasCustomer = inv.customerId != null;
+
+      // ── Report items (flat) -> CartItem (printer ke liye) ──
+      final cartItems = inv.items.map((item) {
+        final product = BranchStockModel(
+          id:               '',
+          storeId:          '',
+          productId:        '',
+          sku:              item.sku ?? '',
+          barcode:          null,
+          name:             item.productName,
+          unitOfMeasure:    'pcs',
+          costPrice:        item.purchasePrice,
+          sellingPrice:     item.salePrice,
+          taxRate:          0,
+          discount:         0,
+          minStockLevel:    0,
+          maxStockLevel:    0,
+          reorderPoint:     0,
+          isActive:         true,
+          isTrackStock:     true,
+          quantity:         0,
+          reservedQuantity: 0,
+          updatedAt:        DateTime.now(),
+        );
+        return CartItem(
+          cartId:         '${inv.id}_${item.productName}_${item.sku ?? ''}',
+          product:        product,
+          quantity:       item.quantity,
+          salePrice:      item.salePrice,
+          taxAmount:      0,
+          discountAmount: item.discount,
+        );
+      }).toList();
+
+      // ── Report payments -> PaymentEntry ─────────────────────
+      final payments = inv.payments
+          .map((p) => PaymentEntry(method: p.method, amount: p.amount))
+          .toList();
+
+      // ── Cash + Card portion actually paid (for PAY AMOUNT line) ──
+      final paidAmount = payments
+          .where((p) => p.method.toLowerCase() != 'credit')
+          .fold(0.0, (s, p) => s + p.amount);
+
+      debugPrint('═══════════════ PRINT DEBUG (Report) ═══════════════');
+      debugPrint('🧾 Invoice   : ${inv.invoiceNo}');
+      debugPrint('👤 Customer  : ${inv.customerName ?? 'WALK IN'}');
+      debugPrint('💵 GrandTotal: ${inv.grandTotal}');
+      debugPrint('👨‍💼 Cashier   : ${inv.cashierName ?? 'Unknown'}');
+      debugPrint('─── Payments ───────────────────────────────');
+      for (final p in payments) {
+        debugPrint('   💳 ${p.method.toUpperCase()}: ${p.amount}');
+      }
+      debugPrint('─── Captured Values ────────────────────────');
+      debugPrint('   📊 hasCustomer   : $hasCustomer');
+      debugPrint('   📉 prevBalance   : ${inv.previousBalance}');
+      debugPrint('   💸 paidAmount    : $paidAmount');
+      debugPrint('   📈 currentBalance: ${inv.currentBalance}');
+      debugPrint('═══════════════════════════════════════════');
+
+      await ThermalPrintService.printSaleInvoice(
+        storeName:       widget.storeName,
+        invoiceNo:       inv.invoiceNo,
+        date:            inv.invoiceDate,
+        customerName:    inv.customerName,
+        customerId:      inv.customerId,
+        items:           cartItems,
+        totalAmount:     inv.totalAmount,
+        totalDiscount:   inv.totalDiscount,
+        grandTotal:      inv.grandTotal,
+        payments:        payments,
+        cashierName:     inv.cashierName ?? 'Unknown',
+        previousBalance: hasCustomer ? inv.previousBalance : null,
+        paidAmount:      hasCustomer ? paidAmount           : null,
+        currentBalance:  hasCustomer ? inv.currentBalance   : null,
+        notes:           inv.notes,
       );
+
+      debugPrint('✅ Print successful');
+    } catch (e) {
+      debugPrint('❌ Print error: $e');
     } finally {
       if (mounted) setState(() => _isPrinting = false);
     }
@@ -565,9 +761,10 @@ class _InvoiceCardState extends State<_InvoiceCard> {
       ),
       child: Column(
         children: [
-          // ── Header ────────────────────────────────────────
+          // ── Header ──────────────────────────────────────
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppColor.primary.withValues(alpha: 0.04),
               borderRadius: const BorderRadius.vertical(
@@ -599,15 +796,16 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                             color:      AppColor.textPrimary)),
                     Text(timeFmt.format(inv.invoiceDate),
                         style: const TextStyle(
-                            fontSize: 11, color: AppColor.textSecondary)),
+                            fontSize: 11,
+                            color:    AppColor.textSecondary)),
                   ],
                 ),
                 const SizedBox(width: 8),
 
-                // ── PRINT BUTTON ──────────────────────────
+                // ── Print Button ─────────────────────────
                 _isPrinting
                     ? const SizedBox(
-                  width: 32,
+                  width:  32,
                   height: 32,
                   child: Center(
                     child: SizedBox(
@@ -629,7 +827,8 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withValues(alpha: 0.08),
+                        color: AppColor.primary
+                            .withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                             color: AppColor.primary
@@ -647,7 +846,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
             ),
           ),
 
-          // ── Customer + Payment ────────────────────────────
+          // ── Customer + Payment ───────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 10),
@@ -657,7 +856,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                     size: 13, color: AppColor.textSecondary),
                 const SizedBox(width: 5),
                 Text(
-                  (inv.customerName) ?? 'Walk In',
+                  inv.customerName ?? 'Walk In',
                   style: TextStyle(
                       fontSize:   12,
                       fontWeight: FontWeight.w600,
@@ -682,33 +881,39 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                   const SizedBox(width: 6),
                   const Text('Counter: ',
                       style: TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary)),
+                          fontSize: 12,
+                          color:    AppColor.textSecondary)),
                   _CounterChip(name: inv.counterName as String),
                 ],
               ),
             ),
+
           if (inv.notes != null && inv.notes.toString().trim().isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 4),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.note_outlined, size: 13, color: AppColor.textSecondary),
+                  const Icon(Icons.note_outlined,
+                      size: 13, color: AppColor.textSecondary),
                   const SizedBox(width: 5),
                   const Text('Note: ',
                       style: TextStyle(
-                          fontSize: 12,
+                          fontSize:   12,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textSecondary)),
+                          color:      AppColor.textSecondary)),
                   Expanded(
                     child: Text(
                       inv.notes.toString(),
-                      style: const TextStyle(fontSize: 12, color: AppColor.textPrimary),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColor.textPrimary),
                     ),
                   ),
                 ],
               ),
             ),
+
           if (widget.isManager && inv.cashierName != null)
             Padding(
               padding: const EdgeInsets.only(
@@ -720,14 +925,16 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                   const SizedBox(width: 6),
                   const Text('Cashier: ',
                       style: TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary)),
+                          fontSize: 12,
+                          color:    AppColor.textSecondary)),
                   _CashierChip(name: inv.cashierName as String),
                 ],
               ),
             ),
+
           const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
-          // ── Product Table ─────────────────────────────────
+          // ── Product Table ────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -870,7 +1077,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                   valueColor: AppColor.textPrimary,
                 ),
 
-                if ((inv.totalDiscount) > 0) ...[
+                if (inv.totalDiscount > 0) ...[
                   const SizedBox(height: 4),
                   _TotalRow(
                     label:      'Discount',
@@ -929,10 +1136,11 @@ class _TotalRow extends StatelessWidget {
   final String label;
   final String value;
   final Color  valueColor;
-  const _TotalRow(
-      {required this.label,
-        required this.value,
-        required this.valueColor});
+  const _TotalRow({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) => Row(
@@ -963,7 +1171,7 @@ class _CounterChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
-      color: AppColor.primary.withValues(alpha: 0.08),
+      color:        AppColor.primary.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Row(
@@ -990,13 +1198,14 @@ class _CashierChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
-      color: AppColor.info.withValues(alpha: 0.08),
+      color:        AppColor.info.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.badge_outlined, size: 11, color: AppColor.info),
+        const Icon(Icons.badge_outlined,
+            size: 11, color: AppColor.info),
         const SizedBox(width: 4),
         Text(name,
             style: const TextStyle(
@@ -1012,29 +1221,26 @@ class _PaymentBadge extends StatelessWidget {
   final String type;
   const _PaymentBadge({required this.type});
 
-  Color get _color =>
-      const {
-        'cash':   AppColor.success,
-        'card':   AppColor.info,
-        'credit': AppColor.warning,
-      }[type] ??
-          AppColor.grey400;
+  Color get _color => const {
+    'cash':   AppColor.success,
+    'card':   AppColor.info,
+    'credit': AppColor.warning,
+  }[type] ??
+      AppColor.grey400;
 
-  IconData get _icon =>
-      const {
-        'cash':   Icons.payments_outlined,
-        'card':   Icons.credit_card_outlined,
-        'credit': Icons.person_outline_rounded,
-      }[type] ??
-          Icons.help_outline;
+  IconData get _icon => const {
+    'cash':   Icons.payments_outlined,
+    'card':   Icons.credit_card_outlined,
+    'credit': Icons.person_outline_rounded,
+  }[type] ??
+      Icons.help_outline;
 
-  String get _label =>
-      const {
-        'cash':   'Cash',
-        'card':   'Card',
-        'credit': 'Credit',
-      }[type] ??
-          type;
+  String get _label => const {
+    'cash':   'Cash',
+    'card':   'Card',
+    'credit': 'Credit',
+  }[type] ??
+      type;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1063,29 +1269,26 @@ class _StatusBadge extends StatelessWidget {
   final String status;
   const _StatusBadge({required this.status});
 
-  Color get _color =>
-      const {
-        'completed': AppColor.success,
-        'cancelled': AppColor.error,
-        'returned':  AppColor.warning,
-      }[status] ??
-          AppColor.grey400;
+  Color get _color => const {
+    'completed': AppColor.success,
+    'cancelled': AppColor.error,
+    'returned':  AppColor.warning,
+  }[status] ??
+      AppColor.grey400;
 
-  IconData get _icon =>
-      const {
-        'completed': Icons.check_circle_outline_rounded,
-        'cancelled': Icons.cancel_outlined,
-        'returned':  Icons.assignment_return_outlined,
-      }[status] ??
-          Icons.help_outline;
+  IconData get _icon => const {
+    'completed': Icons.check_circle_outline_rounded,
+    'cancelled': Icons.cancel_outlined,
+    'returned':  Icons.assignment_return_outlined,
+  }[status] ??
+      Icons.help_outline;
 
-  String get _label =>
-      const {
-        'completed': 'Completed',
-        'cancelled': 'Cancelled',
-        'returned':  'Returned',
-      }[status] ??
-          status;
+  String get _label => const {
+    'completed': 'Completed',
+    'cancelled': 'Cancelled',
+    'returned':  'Returned',
+  }[status] ??
+      status;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1138,7 +1341,8 @@ class _EmptyState extends StatelessWidget {
           isSearching
               ? 'Filter change karein'
               : 'Sales karne ke baad yahan dikhega',
-          style: const TextStyle(fontSize: 13, color: AppColor.textHint),
+          style: const TextStyle(
+              fontSize: 13, color: AppColor.textHint),
         ),
       ],
     ),

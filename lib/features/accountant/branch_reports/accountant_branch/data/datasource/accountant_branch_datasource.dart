@@ -20,19 +20,27 @@ class BranchDatasource {
         .toList();
   }
 
-  // ── NEW: Create branch ──────────────────────────────────
+  /// Branch + us ka default manager user ek saath banata hai
   Future<BranchModel> createBranch({
     required String code,
     required String name,
     required String address,
     required String phone,
+    // Manager user fields
+    required String managerUsername,
+    required String managerPassword,
+    required String managerFullName,
+    required String managerPhone,
   }) async {
-    final now = DateTime.now().toUtc().toIso8601String();
+    final now      = DateTime.now().toUtc().toIso8601String();
+    final branchId = const Uuid().v4();
+    final userId   = const Uuid().v4();
 
+    // 1️⃣ Branch insert
     final row = await _client
         .from('branch')
         .insert({
-      'id':         const Uuid().v4(),
+      'id':         branchId,
       'code':       code,
       'name':       name,
       'address':    address,
@@ -43,6 +51,21 @@ class BranchDatasource {
     })
         .select('id, code, name, address, phone, is_active, created_at')
         .single();
+
+    // 2️⃣ Branch user insert (store_manager)
+    await _client.from('branch_users').insert({
+      'id':            userId,
+      'store_id':      branchId,
+      'username':      managerUsername.trim(),
+      'password_hash': managerPassword.trim(),
+      'full_name':     managerFullName.trim(),
+      'phone':         managerPhone.trim(),
+      'role':          'store_manager',
+      'is_active':     true,
+      'counter_id':    null,
+      'created_at':    now,
+      'updated_at':    now,
+    });
 
     return BranchModel.fromMap(row);
   }

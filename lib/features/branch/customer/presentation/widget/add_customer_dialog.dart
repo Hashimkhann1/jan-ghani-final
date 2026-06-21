@@ -234,7 +234,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                         controller: _balance,
                         hint: '0',
                         keyboardType: TextInputType.number,
-                        isNumber: true,
+                        isNumber: false,
                       ),
                     ),
                   ],
