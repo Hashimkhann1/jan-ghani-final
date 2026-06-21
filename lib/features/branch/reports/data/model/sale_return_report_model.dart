@@ -13,7 +13,11 @@ class SaleReturnModel {
   final String?  cashierName;
   final String?  returnReason;
   final String?  invoiceId;
-  final List<SaleReturnItemDetail> items;
+  final List<SaleReturnItemDetail>    items;
+  final List<SaleReturnPaymentDetail> payments;
+  final double?  previousBalance;
+  final double?  currentBalance;
+  final double?  payAmount;
 
   const SaleReturnModel({
     required this.id,
@@ -31,6 +35,10 @@ class SaleReturnModel {
     this.returnReason,
     this.invoiceId,
     required this.items,
+    this.payments        = const [],
+    this.previousBalance,
+    this.currentBalance,
+    this.payAmount,
   });
 
   String get grandTotalLabel  => 'Rs ${grandTotal.toStringAsFixed(0)}';
@@ -58,16 +66,18 @@ class SaleReturnModel {
   bool operator ==(Object other) =>
       identical(this, other) ||
           other is SaleReturnModel && id == other.id;
+
   @override
   int get hashCode => id.hashCode;
 }
 
+// ── Item Detail ───────────────────────────────────────────────
 class SaleReturnItemDetail {
   final String  productName;
   final String? sku;
   final String? barcode;
-  final double  salePrice;      // ← price ki jagah
-  final double  purchasePrice;  // ← naya
+  final double  salePrice;
+  final double  purchasePrice;
   final double  quantity;
   final double  discount;
   final double  subtotal;
@@ -102,6 +112,29 @@ class SaleReturnItemDetail {
         discount:      _dbl(m['discount'])       ?? 0,
         subtotal:      _dbl(m['subtotal'])       ?? 0,
         totalAmount:   _dbl(m['total_amount'])   ?? 0,
+      );
+
+  static double? _dbl(dynamic v) {
+    if (v == null) return null;
+    if (v is num)  return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+}
+
+// ── Payment Detail ────────────────────────────────────────────
+class SaleReturnPaymentDetail {
+  final String method;
+  final double amount;
+
+  const SaleReturnPaymentDetail({
+    required this.method,
+    required this.amount,
+  });
+
+  static SaleReturnPaymentDetail fromMap(Map<String, dynamic> m) =>
+      SaleReturnPaymentDetail(
+        method: m['payment_method']?.toString() ?? 'cash',
+        amount: _dbl(m['amount']) ?? 0,
       );
 
   static double? _dbl(dynamic v) {

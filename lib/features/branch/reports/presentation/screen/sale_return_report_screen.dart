@@ -788,7 +788,18 @@ class _ReturnCard extends StatelessWidget {
                 ],
 
                 const SizedBox(height: 10),
-
+                if (ret.customerId != null &&
+                    (ret.previousBalance != null || ret.currentBalance != null)) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _CustomerReturnBalanceSection(
+                      previousBalance: ret.previousBalance,
+                      currentBalance:  ret.currentBalance,
+                      refundType:      ret.refundType,
+                      grandTotal:      ret.grandTotal,
+                    ),
+                  ),
+                ],
                 // Grand total row
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -1011,6 +1022,156 @@ class _EmptyReturnState extends StatelessWidget {
           style: const TextStyle(
               fontSize: 13, color: AppColor.textHint),
         ),
+      ],
+    ),
+  );
+}
+
+class _CustomerReturnBalanceSection extends StatelessWidget {
+  final double? previousBalance;
+  final double? currentBalance;
+  final String  refundType;
+  final double  grandTotal;
+
+  const _CustomerReturnBalanceSection({
+    required this.previousBalance,
+    required this.currentBalance,
+    required this.refundType,
+    required this.grandTotal,
+  });
+
+  // Return mein credit refund = customer ka balance kam hota hai
+  // Cash/Card refund = balance pe asar nahi
+  bool get _isCreditRefund =>
+      refundType.toLowerCase().contains('credit');
+
+  @override
+  Widget build(BuildContext context) {
+    final prevBal   = previousBalance ?? 0.0;
+    final currBal   = currentBalance  ?? 0.0;
+    final isInDebt  = currBal > 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+            color: AppColor.error.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          // ── Header ──────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColor.error.withValues(alpha: 0.06),
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(10)),
+              border: Border(
+                bottom: BorderSide(
+                    color: AppColor.error.withValues(alpha: 0.15)),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.account_balance_wallet_outlined,
+                    size: 14, color: AppColor.error),
+                SizedBox(width: 6),
+                Text('Customer account balance',
+                    style: TextStyle(
+                        fontSize:   11,
+                        fontWeight: FontWeight.w600,
+                        color:      AppColor.error)),
+              ],
+            ),
+          ),
+
+          // ── Three Columns ────────────────────────────────
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                // Previous Balance
+                Expanded(
+                  child: _ReturnBalanceCell(
+                    label:       'Previous balance',
+                    value:       'Rs ${prevBal.toStringAsFixed(0)}',
+                    valueColor:  AppColor.textSecondary,
+                    showDivider: true,
+                  ),
+                ),
+                // Refund Effect
+                Expanded(
+                  child: _ReturnBalanceCell(
+                    label: _isCreditRefund
+                        ? 'Credit adjusted'
+                        : 'Cash refunded',
+                    value: _isCreditRefund
+                        ? '− Rs ${grandTotal.toStringAsFixed(0)}'
+                        : 'Rs ${grandTotal.toStringAsFixed(0)}',
+                    valueColor: _isCreditRefund
+                        ? AppColor.success
+                        : AppColor.info,
+                    showDivider: true,
+                  ),
+                ),
+                // New Balance
+                Expanded(
+                  child: _ReturnBalanceCell(
+                    label:       'New balance',
+                    value:       'Rs ${currBal.toStringAsFixed(0)}',
+                    valueColor:  isInDebt
+                        ? AppColor.error
+                        : AppColor.success,
+                    showDivider: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReturnBalanceCell extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color  valueColor;
+  final bool   showDivider;
+
+  const _ReturnBalanceCell({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+    required this.showDivider,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(
+        horizontal: 10, vertical: 10),
+    decoration: BoxDecoration(
+      border: showDivider
+          ? const Border(
+          right: BorderSide(color: Color(0xFFEEEEEE)))
+          : null,
+    ),
+    child: Column(
+      children: [
+        Text(label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize:      10,
+                color:         AppColor.textSecondary,
+                letterSpacing: 0.2)),
+        const SizedBox(height: 4),
+        Text(value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize:   13,
+                fontWeight: FontWeight.w600,
+                color:      valueColor)),
       ],
     ),
   );

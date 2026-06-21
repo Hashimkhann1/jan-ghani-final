@@ -16,6 +16,7 @@ class SaleInvoiceListModel {
   final List<SaleInvoicePaymentDetail> payments;
   final double?  previousBalance;
   final double?  currentBalance;
+  final double?  payAmount;
 
   const SaleInvoiceListModel({
     required this.id,
@@ -35,6 +36,7 @@ class SaleInvoiceListModel {
     this.payments = const [],
     this.previousBalance,
     this.currentBalance,
+    this.payAmount,
   });
 
   String get grandTotalLabel  => 'Rs ${grandTotal.toStringAsFixed(0)}';

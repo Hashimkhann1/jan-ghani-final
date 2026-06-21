@@ -1,3 +1,125 @@
+// import 'package:postgres/postgres.dart';
+//
+// import '../../../../../core/service/db/db_service.dart';
+// import '../model/sale_invoice_model.dart';
+// import '../model/sale_return_model.dart';
+//
+// class SaleReturnDatasource {
+//
+//   Future<String> generateReturnNo(String storeId) async {
+//     final conn = await DataBaseService.getConnection();
+//     final result = await conn.execute(
+//       Sql.named('SELECT fn_next_return_number(@storeId::uuid)'),
+//       parameters: {'storeId': storeId},
+//     );
+//     return result.first.toColumnMap().values.first.toString();
+//   }
+//
+//   Future<String> saveReturn({
+//     required String               storeId,
+//     required String               counterId,
+//     required String               userId,
+//     String?                       customerId,
+//     required String               returnNo,
+//     required String               refundType,
+//     required double               totalAmount,
+//     required double               totalDiscount,
+//     required double               grandTotal,
+//     required List<ReturnCartItem> items,
+//     required List<PaymentEntry>   payments,
+//   }) async {
+//     final conn = await DataBaseService.getConnection();
+//     late String returnId;
+//
+//     await conn.runTx((tx) async {
+//
+//       // 1. Insert sale_return header
+//       final result = await tx.execute(
+//         Sql.named('''
+//           INSERT INTO public.sale_returns (
+//             store_id, counter_id, user_id, customer_id,
+//             return_no, refund_type,
+//             total_amount, total_discount, grand_total, status
+//           ) VALUES (
+//             @storeId::uuid, @counterId::uuid, @userId::uuid,
+//             ${customerId != null ? '@customerId::uuid' : 'NULL'},
+//             @returnNo, @refundType,
+//             @totalAmount, @totalDiscount, @grandTotal, 'completed'
+//           )
+//           RETURNING id
+//         '''),
+//         parameters: {
+//           'storeId':       storeId,
+//           'counterId':     counterId,
+//           'userId':        userId,
+//           if (customerId != null) 'customerId': customerId,
+//           'returnNo':      returnNo,
+//           'refundType':    refundType,
+//           'totalAmount':   totalAmount,
+//           'totalDiscount': totalDiscount,
+//           'grandTotal':    grandTotal,
+//         },
+//       );
+//
+//       returnId = result.first.toColumnMap()['id'].toString();
+//
+//       // 2. Insert items
+//       for (final item in items) {
+//         await tx.execute(
+//           Sql.named('''
+//             INSERT INTO public.sale_return_items (
+//               return_id, product_id, product_name,
+//               sku, barcode, sale_price, purchase_price, quantity,
+//               subtotal, discount, total_amount
+//             ) VALUES (
+//               @returnId::uuid, @productId::uuid, @productName,
+//               @sku, @barcode, @salePrice, @purchasePrice, @quantity,
+//               @subtotal, @discount, @totalAmount
+//             )
+//           '''),
+//           parameters: {
+//             'returnId':      returnId,
+//             'productId':     item.product.productId,
+//             'productName':   item.product.name,
+//             'sku':           item.product.sku,
+//             'barcode':       item.product.barcode,
+//             'salePrice':     item.returnPrice,
+//             'purchasePrice': item.product.costPrice,
+//             'quantity':      item.quantity,
+//             'subtotal':      item.returnPrice * item.quantity,
+//             'discount':      item.discountAmount,
+//             'totalAmount':   item.subTotal,
+//           },
+//         );
+//       }
+//
+//       // 3. Payments insert
+//       for (final payment in payments) {
+//         if (payment.amount <= 0) continue;
+//         await tx.execute(
+//           Sql.named('''
+//             INSERT INTO public.sale_return_payments (
+//               return_id, store_id, counter_id, payment_method, amount
+//             ) VALUES (
+//               @returnId::uuid, @storeId::uuid, @counterId::uuid,
+//               @method, @amount
+//             )
+//           '''),
+//           parameters: {
+//             'returnId':  returnId,
+//             'storeId':   storeId,
+//             'counterId': counterId,
+//             'method':    payment.method,
+//             'amount':    payment.amount,
+//           },
+//         );
+//       }
+//     });
+//
+//     return returnId;
+//   }
+// }
+
 import 'package:postgres/postgres.dart';
 
 import '../../../../../core/service/db/db_service.dart';
@@ -27,6 +149,9 @@ class SaleReturnDatasource {
     required double               grandTotal,
     required List<ReturnCartItem> items,
     required List<PaymentEntry>   payments,
+    double?                       previousAmount,
+    double?                       newAmount,
+    double?                       payAmount,
   }) async {
     final conn = await DataBaseService.getConnection();
     late String returnId;
@@ -39,12 +164,16 @@ class SaleReturnDatasource {
           INSERT INTO public.sale_returns (
             store_id, counter_id, user_id, customer_id,
             return_no, refund_type,
-            total_amount, total_discount, grand_total, status
+            total_amount, total_discount, grand_total, status,
+            previous_amount, new_amount, pay_amount
           ) VALUES (
             @storeId::uuid, @counterId::uuid, @userId::uuid,
             ${customerId != null ? '@customerId::uuid' : 'NULL'},
             @returnNo, @refundType,
-            @totalAmount, @totalDiscount, @grandTotal, 'completed'
+            @totalAmount, @totalDiscount, @grandTotal, 'completed',
+            ${previousAmount != null ? '@previousAmount' : 'NULL'},
+            ${newAmount      != null ? '@newAmount'      : 'NULL'},
+            ${payAmount      != null ? '@payAmount'      : 'NULL'}
           )
           RETURNING id
         '''),
@@ -58,6 +187,9 @@ class SaleReturnDatasource {
           'totalAmount':   totalAmount,
           'totalDiscount': totalDiscount,
           'grandTotal':    grandTotal,
+          if (previousAmount != null) 'previousAmount': previousAmount,
+          if (newAmount      != null) 'newAmount':      newAmount,
+          if (payAmount      != null) 'payAmount':      payAmount,
         },
       );
 

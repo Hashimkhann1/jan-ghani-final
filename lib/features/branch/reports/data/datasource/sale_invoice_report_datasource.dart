@@ -69,6 +69,9 @@ class SaleInvoiceListDatasource {
           si.grand_total,
           si.notes,
           si.customer_id,
+          si.previous_amount,
+          si.new_amount,
+          si.pay_amount,
           c.name          AS customer_name,
           co.counter_name AS counter_name,
           u.full_name     AS cashier_name,
@@ -88,6 +91,7 @@ class SaleInvoiceListDatasource {
           si.id, si.invoice_no, si.invoice_date,
           si.status, si.total_amount, si.total_discount,
           si.grand_total, si.notes, si.customer_id,
+          si.previous_amount, si.new_amount, si.pay_amount,
           c.name, co.counter_name, u.full_name
         ORDER BY si.invoice_date DESC
       '''),
@@ -166,16 +170,16 @@ class SaleInvoiceListDatasource {
       }));
     }
 
-    // ── Previous / Current Balance (customer credit ledger) ─
-    // Running balance = cumulative sum of 'credit' payment entries
-    // for that customer, ordered by invoice date — across ALL of
-    // that customer's invoices (not just the selected date range),
-    // so the balance is accurate at the point of this invoice.
-    //
-    // NOTE: this only accounts for sale_invoices credit amounts.
-    // If balance also changes via a separate customer ledger
-    // payments table or sale returns, share that schema so it can
-    // be folded into this calculation.
+    // ── FALLBACK: Previous/Current Balance for OLD invoices ──
+    // Sirf un invoices ke liye chahiye jin ka previous_amount
+    // column abhi NULL hai (is feature se pehle ki invoices).
+    // Naye invoices already si.previous_amount/new_amount se
+    // direct mil jate hain — yeh sirf fallback hai.
+    final needsFallback = invoiceResult.any((r) {
+      final m = r.toColumnMap();
+      return m['customer_id'] != null && m['previous_amount'] == null;
+    });
+
     final customerIds = invoiceResult
         .map((r) => r.toColumnMap()['customer_id'])
         .where((id) => id != null)
@@ -185,28 +189,53 @@ class SaleInvoiceListDatasource {
 
     final Map<String, _BalanceInfo> balanceMap = {};
 
-    if (customerIds.isNotEmpty) {
+    if (needsFallback && customerIds.isNotEmpty) {
       final balanceResult = await conn.execute(
         Sql.named('''
+          WITH invoice_events AS (
+            SELECT
+              si.id                      AS invoice_id,
+              si.customer_id             AS customer_id,
+              si.invoice_date            AS event_time,
+              si.created_at              AS event_created_at,
+              COALESCE(credit.amount, 0) AS delta
+            FROM public.sale_invoices si
+            LEFT JOIN (
+              SELECT invoice_id, SUM(amount) AS amount
+              FROM public.sale_invoice_payments
+              WHERE payment_method = 'credit'
+              GROUP BY invoice_id
+            ) credit ON credit.invoice_id = si.id
+            WHERE si.store_id     = @storeId::uuid
+              AND si.customer_id  = ANY(@customerIds::uuid[])
+              AND si.deleted_at IS NULL
+          ),
+          ledger_events AS (
+            SELECT
+              NULL::uuid       AS invoice_id,
+              cl.customer_id   AS customer_id,
+              cl.created_at    AS event_time,
+              cl.created_at    AS event_created_at,
+              -cl.pay_amount   AS delta
+            FROM public.customer_ledger cl
+            WHERE cl.store_id    = @storeId::uuid
+              AND cl.customer_id = ANY(@customerIds::uuid[])
+              AND cl.deleted_at IS NULL
+          ),
+          all_events AS (
+            SELECT * FROM invoice_events
+            UNION ALL
+            SELECT * FROM ledger_events
+          )
           SELECT
-            si.id AS invoice_id,
-            COALESCE(credit.amount, 0) AS credit_amount,
-            SUM(COALESCE(credit.amount, 0)) OVER (
-              PARTITION BY si.customer_id
-              ORDER BY si.invoice_date, si.created_at
+            invoice_id, delta,
+            SUM(delta) OVER (
+              PARTITION BY customer_id
+              ORDER BY event_time, event_created_at
               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
             ) AS running_balance
-          FROM public.sale_invoices si
-          LEFT JOIN (
-            SELECT invoice_id, SUM(amount) AS amount
-            FROM public.sale_invoice_payments
-            WHERE payment_method = 'credit'
-            GROUP BY invoice_id
-          ) credit ON credit.invoice_id = si.id
-          WHERE si.store_id     = @storeId::uuid
-            AND si.customer_id  = ANY(@customerIds::uuid[])
-            AND si.deleted_at IS NULL
-          ORDER BY si.customer_id, si.invoice_date, si.created_at
+          FROM all_events
+          WHERE invoice_id IS NOT NULL
         '''),
         parameters: {
           'storeId':     storeId,
@@ -217,11 +246,11 @@ class SaleInvoiceListDatasource {
       for (final row in balanceResult) {
         final m              = row.toColumnMap();
         final invId          = m['invoice_id'].toString();
-        final creditAmount   = _dbl(m['credit_amount'])   ?? 0;
+        final delta          = _dbl(m['delta'])           ?? 0;
         final runningBalance = _dbl(m['running_balance']) ?? 0;
         balanceMap[invId] = _BalanceInfo(
-          runningBalance - creditAmount, // previousBalance
-          runningBalance,                // currentBalance
+          runningBalance - delta, // previousBalance
+          runningBalance,         // currentBalance
         );
       }
     }
@@ -229,7 +258,12 @@ class SaleInvoiceListDatasource {
     return invoiceResult.map((row) {
       final m  = row.toColumnMap();
       final id = m['id'].toString();
-      final balance = balanceMap[id];
+
+      // ── Prefer stored snapshot, fallback to computed ──────
+      final storedPrevious = _dbl(m['previous_amount']);
+      final storedNew      = _dbl(m['new_amount']);
+      final fallback       = balanceMap[id];
+
       return SaleInvoiceListModel(
         id:            id,
         invoiceNo:     m['invoice_no']?.toString()   ?? '',
@@ -248,8 +282,9 @@ class SaleInvoiceListDatasource {
         notes:         m['notes']?.toString(),
         items:           itemsMap[id]    ?? [],
         payments:        paymentsMap[id] ?? [],
-        previousBalance: balance?.previousBalance,
-        currentBalance:  balance?.currentBalance,
+        previousBalance: storedPrevious ?? fallback?.previousBalance,
+        currentBalance:  storedNew      ?? fallback?.currentBalance,
+        payAmount:       _dbl(m['pay_amount']),
       );
     }).toList();
   }

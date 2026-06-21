@@ -9,6 +9,7 @@ import 'package:jan_ghani_final/features/branch/reports/data/model/sale_invoice_
 
 import '../../../../../core/service/print/print_service.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
+// TODO: confirm this import path matches your project's BranchStockModel location
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../sale_invoice/data/model/sale_invoice_model.dart';
 import '../provider/sale_invoice_report_provider.dart';
@@ -687,30 +688,55 @@ class _InvoiceCardState extends State<_InvoiceCard> {
       }).toList();
 
       // ── Report payments -> PaymentEntry ─────────────────────
-      final payments = inv.payments
-          .map((p) => PaymentEntry(method: p.method, amount: p.amount))
-          .toList();
+      final payments = inv.payments.map((p) => PaymentEntry(method: p.method, amount: p.amount)).toList();
 
-      // ── Cash + Card portion actually paid (for PAY AMOUNT line) ──
-      final paidAmount = payments
-          .where((p) => p.method.toLowerCase() != 'credit')
-          .fold(0.0, (s, p) => s + p.amount);
+      // ── Derived values (same logic ThermalPrintService uses) ──
+      final isCreditSale = payments.any((p) => p.method.toLowerCase() == 'credit' && p.amount > 0.01,
+      );
+      final creditAmount = payments.where((p) => p.method.toLowerCase() == 'credit').fold(0.0, (s, p) => s + p.amount);
 
-      debugPrint('═══════════════ PRINT DEBUG (Report) ═══════════════');
-      debugPrint('🧾 Invoice   : ${inv.invoiceNo}');
-      debugPrint('👤 Customer  : ${inv.customerName ?? 'WALK IN'}');
-      debugPrint('💵 GrandTotal: ${inv.grandTotal}');
-      debugPrint('👨‍💼 Cashier   : ${inv.cashierName ?? 'Unknown'}');
-      debugPrint('─── Payments ───────────────────────────────');
-      for (final p in payments) {
-        debugPrint('   💳 ${p.method.toUpperCase()}: ${p.amount}');
+      // ── Paid amount: stored si.pay_amount ko prefer karo,
+      //    purani invoices ke liye payments se calculate karo ──
+      final paidAmount = inv.payAmount ?? payments.where((p) => p.method.toLowerCase() != 'credit').fold<double>(0.0, (s, p) => s + p.amount);
+      // ════════════════════════════════════════════════════════
+      // FULL DEBUG LOG (no physical printer needed to verify)
+      // ════════════════════════════════════════════════════════
+      debugPrint('╔══════════════════════════════════════════════════╗');
+      debugPrint('║        SALE INVOICE PRINT DEBUG (REPORT)          ║');
+      debugPrint('╚══════════════════════════════════════════════════╝');
+      debugPrint('Invoice No     : ${inv.invoiceNo}');
+      debugPrint('Invoice Date   : ${inv.invoiceDate}');
+      debugPrint('Status         : ${inv.status}');
+      debugPrint('Customer       : ${inv.customerName ?? "WALK IN"}');
+      debugPrint('Customer ID    : ${inv.customerId ?? "-"}');
+      debugPrint('Cashier        : ${inv.cashierName ?? "Unknown"}');
+      debugPrint('Counter        : ${inv.counterName ?? "-"}');
+      debugPrint('Notes          : ${inv.notes ?? "-"}');
+      debugPrint('──────────────── ITEMS (${inv.items.length}) ────────────────');
+      for (final item in inv.items) {
+        debugPrint(
+          '  ${item.productName.padRight(22)} '
+              'qty=${item.quantity}  rate=${item.salePrice}  '
+              'dis=${item.discount}  amt=${item.totalAmount}',
+        );
       }
-      debugPrint('─── Captured Values ────────────────────────');
-      debugPrint('   📊 hasCustomer   : $hasCustomer');
-      debugPrint('   📉 prevBalance   : ${inv.previousBalance}');
-      debugPrint('   💸 paidAmount    : $paidAmount');
-      debugPrint('   📈 currentBalance: ${inv.currentBalance}');
-      debugPrint('═══════════════════════════════════════════');
+      debugPrint('──────────────── TOTALS ────────────────');
+      debugPrint('Sub Total      : ${inv.totalAmount}');
+      debugPrint('Total Discount : ${inv.totalDiscount}');
+      debugPrint('Grand Total    : ${inv.grandTotal}');
+      debugPrint('──────────────── PAYMENTS (${payments.length}) ────────────────');
+      for (final p in payments) {
+        debugPrint('  ${p.method.toUpperCase().padRight(8)} : ${p.amount}');
+      }
+      debugPrint('isCreditSale   : $isCreditSale');
+      debugPrint('──────────────── CUSTOMER LEDGER ────────────────');
+      debugPrint('hasCustomer    : $hasCustomer');
+      debugPrint('Previous Bal   : ${inv.previousBalance ?? "-"}');
+      debugPrint('Credit Amount  : $creditAmount');
+      debugPrint('Stored PayAmt  : ${inv.payAmount ?? "- (fallback used)"}');
+      debugPrint('Paid Amount    : $paidAmount');
+      debugPrint('Current Bal    : ${inv.currentBalance ?? "-"}');
+      debugPrint('══════════════════════════════════════════════════');
 
       await ThermalPrintService.printSaleInvoice(
         storeName:       widget.storeName,
@@ -732,7 +758,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
 
       debugPrint('✅ Print successful');
     } catch (e) {
-      debugPrint('❌ Print error: $e');
+      debugPrint('❌ Print error (no printer connected? — log above is still valid): $e');
     } finally {
       if (mounted) setState(() => _isPrinting = false);
     }
@@ -1087,7 +1113,17 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                 ],
 
                 const SizedBox(height: 10),
-
+                if (inv.customerId != null &&
+                    (inv.previousBalance != null || inv.currentBalance != null)) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    child: _CustomerBalanceSection(
+                      previousBalance: inv.previousBalance,
+                      currentBalance:  inv.currentBalance,
+                      payments:        inv.payments,
+                    ),
+                  ),
+                ],
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
@@ -1344,6 +1380,152 @@ class _EmptyState extends StatelessWidget {
           style: const TextStyle(
               fontSize: 13, color: AppColor.textHint),
         ),
+      ],
+    ),
+  );
+}
+
+
+class _CustomerBalanceSection extends StatelessWidget {
+  final double? previousBalance;
+  final double? currentBalance;
+  final List<SaleInvoicePaymentDetail> payments;
+
+  const _CustomerBalanceSection({
+    required this.previousBalance,
+    required this.currentBalance,
+    required this.payments,
+  });
+
+  double get _creditAmount => payments
+      .where((p) => p.method.toLowerCase() == 'credit')
+      .fold(0.0, (s, p) => s + p.amount);
+
+  @override
+  Widget build(BuildContext context) {
+    final prevBal    = previousBalance ?? 0.0;
+    final currBal    = currentBalance  ?? 0.0;
+    final creditAmt  = _creditAmount;
+    final isInDebt   = currBal > 0;
+
+    return Container(
+      margin:      const EdgeInsets.only(bottom: 12),
+      decoration:  BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+            color: AppColor.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          // ── Header ──────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColor.primary.withValues(alpha: 0.06),
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(10)),
+              border: Border(
+                bottom: BorderSide(
+                    color: AppColor.primary.withValues(alpha: 0.15)),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.account_balance_wallet_outlined,
+                    size: 14, color: AppColor.primary),
+                SizedBox(width: 6),
+                Text('Customer account balance',
+                    style: TextStyle(
+                        fontSize:   11,
+                        fontWeight: FontWeight.w600,
+                        color:      AppColor.primary)),
+              ],
+            ),
+          ),
+
+          // ── Three columns ────────────────────────────────
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                // Previous Balance
+                Expanded(
+                  child: _BalanceCell(
+                    label: 'Previous balance',
+                    value: 'Rs ${prevBal.toStringAsFixed(0)}',
+                    valueColor: AppColor.textSecondary,
+                    showDivider: true,
+                  ),
+                ),
+                // Credit Added
+                Expanded(
+                  child: _BalanceCell(
+                    label: 'This invoice credit',
+                    value: creditAmt > 0
+                        ? '+ Rs ${creditAmt.toStringAsFixed(0)}'
+                        : '—',
+                    valueColor: AppColor.info,
+                    showDivider: true,
+                  ),
+                ),
+                // New Balance
+                Expanded(
+                  child: _BalanceCell(
+                    label: 'New balance',
+                    value: 'Rs ${currBal.toStringAsFixed(0)}',
+                    valueColor: isInDebt
+                        ? AppColor.error
+                        : AppColor.success,
+                    showDivider: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BalanceCell extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color  valueColor;
+  final bool   showDivider;
+
+  const _BalanceCell({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+    required this.showDivider,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(
+        horizontal: 10, vertical: 10),
+    decoration: BoxDecoration(
+      border: showDivider
+          ? const Border(
+          right: BorderSide(color: Color(0xFFEEEEEE)))
+          : null,
+    ),
+    child: Column(
+      children: [
+        Text(label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 10,
+                color:    AppColor.textSecondary,
+                letterSpacing: 0.2)),
+        const SizedBox(height: 4),
+        Text(value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize:   13,
+                fontWeight: FontWeight.w600,
+                color:      valueColor)),
       ],
     ),
   );
