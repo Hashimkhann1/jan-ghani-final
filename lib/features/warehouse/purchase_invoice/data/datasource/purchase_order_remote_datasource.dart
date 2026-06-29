@@ -774,6 +774,51 @@ class PurchaseOrderRemoteDataSource {
             },
           );
         }
+      } else if (alreadyReceived &&
+          supplierId != null &&
+          supplierId.isNotEmpty) {
+        // ── Already-received PO edit: ledger/balance reconcile ──
+        // Pehle yeh case ledger/balance ko bilkul update nahi karta tha →
+        // supplier balance purane amount par atka reh jata tha.
+        //
+        // Fix: existing 'purchase' ledger row ka amount ko PO ke naye
+        // remaining ke barabar SET karo (delete+insert NAHI — taake same id
+        // Supabase par upsert ho, koi orphan/duplicate nahi). Har edit par
+        // chalta hai, is liye purane out-of-sync POs bhi save karte hi
+        // khud-ba-khud durust ho jate hain (self-heal). Trigger
+        // fn_update_supplier_balance khud outstanding_balance = SUM(amount)
+        // recompute kar dega → koi double-count nahi.
+        await conn.execute(
+          Sql.named('''
+            UPDATE supplier_ledger
+            SET amount    = @amount,
+                is_synced = false
+            WHERE po_id      = @poId
+              AND entry_type = 'purchase'
+          '''),
+          parameters: {
+            'amount': remainingAmount,
+            'poId': poId,
+          },
+        );
+
+        // balance_after column ko naye outstanding se refresh (trigger upar
+        // chal chuka, ab suppliers.outstanding_balance updated hai).
+        await conn.execute(
+          Sql.named('''
+            UPDATE supplier_ledger sl
+            SET balance_after = s.outstanding_balance,
+                is_synced     = false
+            FROM suppliers s
+            WHERE sl.po_id      = @poId
+              AND sl.entry_type = 'purchase'
+              AND s.id          = @supplierId
+          '''),
+          parameters: {
+            'poId': poId,
+            'supplierId': supplierId,
+          },
+        );
       }
 
       // ── Step 5: AUDIT LOG — 'updated' ────────────────────

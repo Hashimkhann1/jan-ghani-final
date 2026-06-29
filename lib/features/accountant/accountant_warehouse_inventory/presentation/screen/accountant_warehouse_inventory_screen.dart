@@ -23,46 +23,213 @@ class AccountantWarehouseInventoryScreen extends ConsumerStatefulWidget {
 class _AccountantWarehouseInventoryScreenState
     extends ConsumerState<AccountantWarehouseInventoryScreen> {
   String _query = '';
+  bool _searchOpen = false;
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  // Stock filter — default 'in' (In Stock)
+  String _stockFilter = 'in'; // all | in | out | low
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _openSearch() => setState(() => _searchOpen = true);
+
+  void _closeSearch() => setState(() {
+        _searchOpen = false;
+        _searchCtrl.clear();
+        _query = '';
+      });
+
+  // Stock buckets (mutually exclusive)
+  //   in  → quantity > minStockLevel       (healthy)
+  //   low → 0 < quantity <= minStockLevel   (reorder)
+  //   out → quantity <= 0                    (khatam)
+  bool _matchesStock(AccountantInventoryModel p) {
+    switch (_stockFilter) {
+      case 'in':  return p.quantity > p.minStockLevel;
+      case 'low': return p.quantity > 0 && p.quantity <= p.minStockLevel;
+      case 'out': return p.quantity <= 0;
+      default:    return true; // all
+    }
+  }
+
+  Widget _chip(String label, String value) {
+    final selected = _stockFilter == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _stockFilter = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? AppColor.primary : AppColor.grey100,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : AppColor.textMuted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final inventoryAsync = ref.watch(accInventoryProvider(widget.warehouseId));
 
+    // Total inventory value — poori inventory (filter/search se independent)
+    final allItems = inventoryAsync.value ?? const <AccountantInventoryModel>[];
+    final totalInventoryValue =
+        allItems.fold<double>(0, (s, p) => s + p.stockValue);
+
     return Scaffold(
       backgroundColor: AppColor.background,
       appBar: AppBar(
-        title: const Text(
-          'Warehouse Inventory',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColor.textDark,
-          ),
-        ),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColor.textDark),
+        // Search open ho to back arrow search band kare (route pop nahi)
+        leading: _searchOpen
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: _closeSearch,
+              )
+            : null,
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _searchOpen
+              ? TextField(
+                  key: const ValueKey('search'),
+                  controller: _searchCtrl,
+                  autofocus: true,
+                  onChanged: (v) =>
+                      setState(() => _query = v.trim().toLowerCase()),
+                  style: const TextStyle(
+                      fontSize: 15, color: AppColor.textDark),
+                  decoration: const InputDecoration(
+                    hintText: 'Product dhoondein...',
+                    hintStyle: TextStyle(color: AppColor.textMuted),
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                  ),
+                )
+              : const Text(
+                  'Warehouse Inventory',
+                  key: ValueKey('title'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColor.textDark,
+                  ),
+                ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+                _searchOpen ? Icons.close_rounded : Icons.search_rounded),
+            onPressed: _searchOpen ? _closeSearch : _openSearch,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // ── Search ────────────────────────────────────────
+            // ── Total Inventory Value (poori inventory) ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color:        Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color:      Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset:     const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width:  44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color:        const Color(0xFFE9FBF2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.inventory_2_rounded,
+                          color: AppColor.cashIn, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Total Inventory Value',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColor.textMuted),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            _fmtRs(totalInventoryValue),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                              color: AppColor.textDark,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color:        AppColor.primary.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${allItems.length} items',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColor.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Stock filter chips (default: In Stock) ──
+            // (Search ab AppBar mein expandable hai)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: TextField(
-                onChanged: (v) =>
-                    setState(() => _query = v.trim().toLowerCase()),
-                decoration: InputDecoration(
-                  hintText: 'Product dhoondein...',
-                  prefixIcon: const Icon(Icons.search_rounded,
-                      color: AppColor.textMuted),
-                  filled: true,
-                  fillColor: AppColor.grey100,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _chip('All', 'all'),
+                    _chip('In Stock', 'in'),
+                    _chip('Out of Stock', 'out'),
+                    _chip('Low Stock', 'low'),
+                  ],
                 ),
               ),
             ),
@@ -75,13 +242,13 @@ class _AccountantWarehouseInventoryScreenState
                     ref.invalidate(accInventoryProvider(widget.warehouseId)),
                 child: inventoryAsync.when(
                   data: (all) {
-                    final list = _query.isEmpty
-                        ? all
-                        : all
-                            .where((p) =>
-                                p.name.toLowerCase().contains(_query) ||
-                                (p.sku ?? '').toLowerCase().contains(_query))
-                            .toList();
+                    // Pehle stock filter, phir search query
+                    final list = all.where((p) {
+                      if (!_matchesStock(p)) return false;
+                      if (_query.isEmpty) return true;
+                      return p.name.toLowerCase().contains(_query) ||
+                          (p.sku ?? '').toLowerCase().contains(_query);
+                    }).toList();
 
                     if (list.isEmpty) {
                       return ListView(
@@ -181,9 +348,9 @@ class _InventoryCard extends StatelessWidget {
           ),
           title: Text(
             item.name,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w700,
-              fontSize: 15,
+              fontSize: MediaQuery.of(context).size.width < 600 ? 13 : 15,
               color: AppColor.textDark,
             ),
           ),
@@ -315,6 +482,16 @@ class _InventoryCard extends StatelessWidget {
       ],
     );
   }
+}
+
+// Rs. formatting (thousands separator)
+String _fmtRs(double v) {
+  final neg = v < 0;
+  final s = v.abs().toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+  return '${neg ? '- ' : ''}Rs. $s';
 }
 
 // ── Shimmer ───────────────────────────────────────────────────────────────────

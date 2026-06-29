@@ -74,7 +74,8 @@ class ProductState {
       if (status == 'active'    && !p.isActive)   return false;
       if (status == 'inactive'  &&  p.isActive)   return false;
       if (status == 'low_stock' && !p.isLowStock) return false;
-      if (status == 'out_stock' && p.quantity > 0) return false;
+      if (status == 'out_stock' && !p.isOutOfStock) return false;
+      if (status == 'in_stock'  &&  p.quantity <= 0) return false;
       if (category != 'all' && p.categoryId != category)    return false;
       if (query.isNotEmpty) {
         final q = query.toLowerCase();
@@ -177,8 +178,65 @@ class ProductNotifier extends StateNotifier<ProductState> {
           allProducts: [...state.allProducts, saved], isLoading: false);
     } catch (e) {
       state = state.copyWith(
-          isLoading: false, errorMessage: 'Add karne mein masla: $e');
+          isLoading: false,
+          errorMessage: await _friendlyError(e, 'Add', barcodes: barcodes));
     }
+  }
+
+  // Postgres ki ugly DB error ko aam user ke samajhne layak message banata hai.
+  // Khaas tor par duplicate barcode (products_warehouse_id_barcode_key / 23505)
+  // ko pakad kar saaf message deta hai — saath us product ka NAAM bhi jis par
+  // yeh barcode pehle se hai.
+  //
+  // RELIABLE tareeqa: error string parse karne ke bajaye, jo barcodes add/update
+  // ho rahe the unhi ko DB mein check karte hain — pehla jo clash kare uska
+  // product naam dikha dete hain. (Regex sirf aakhri fallback.)
+  Future<String> _friendlyError(
+    Object e,
+    String action, {
+    List<String> barcodes = const [],
+    String? excludeId,
+  }) async {
+    final s   = e.toString();
+    final low = s.toLowerCase();
+
+    final isDuplicateBarcode =
+        low.contains('products_warehouse_id_barcode_key') ||
+            (low.contains('23505') && low.contains('barcode'));
+
+    if (isDuplicateBarcode) {
+      // 1) Actual barcodes me se konsa pehle se kisi product par hai?
+      for (final bc in barcodes) {
+        final code = bc.trim();
+        if (code.isEmpty) continue;
+        try {
+          final owner =
+              await _ds.productNameByBarcode(code, _wid, excludeId: excludeId);
+          if (owner != null && owner.isNotEmpty) {
+            return 'Barcode "$code" pehle se "$owner" par mojood hai. '
+                'Please alag barcode use karein.';
+          }
+        } catch (_) {
+          // is barcode ka lookup fail — agla try karo
+        }
+      }
+
+      // 2) Fallback: error string se barcode nikaal kar (naam ke baghair)
+      final bc = _extractDuplicateBarcode(s);
+      final bcPart =
+          (bc != null && bc.isNotEmpty) ? 'Barcode "$bc"' : 'Yeh barcode';
+      return '$bcPart pehle se kisi aur product par mojood hai. '
+          'Please alag barcode use karein.';
+    }
+    return '$action karne mein masla: $e';
+  }
+
+  // Error detail se duplicate barcode value nikalta hai, e.g.
+  // "Key (warehouse_id, barcode)=(<uuid>, f) already exists" → "f".
+  String? _extractDuplicateBarcode(String err) {
+    final m = RegExp(r'=\([^,]+,\s*([^)]*)\)\s*already exists')
+        .firstMatch(err);
+    return m?.group(1)?.trim();
   }
 
   // ── Update ────────────────────────────────────────────────
@@ -209,7 +267,9 @@ class ProductNotifier extends StateNotifier<ProductState> {
       state = state.copyWith(allProducts: list, isLoading: false);
     } catch (e) {
       state = state.copyWith(
-          isLoading: false, errorMessage: 'Update karne mein masla: $e');
+          isLoading: false,
+          errorMessage: await _friendlyError(e, 'Update',
+              barcodes: updated.barcodes, excludeId: updated.id));
     }
   }
 

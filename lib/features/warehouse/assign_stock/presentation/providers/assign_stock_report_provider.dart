@@ -260,9 +260,20 @@ class TransferReportNotifier extends StateNotifier<TransferReportState> {
     transfers: const [],
     filteredTransfers: const [],
     linkedStores: const [],
-    filter: const TransferReportFilter(),
+    // Default: pichlay 7 din ke transfers. User from/to date se badal sakta hai.
+    filter: _initialFilter(),
   )) {
     _init();
+  }
+
+  // Default filter — aaj se pichlay 7 din (last week).
+  static TransferReportFilter _initialFilter() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return TransferReportFilter(
+      fromDate: today.subtract(const Duration(days: 7)),
+      toDate: today,
+    );
   }
 
   Future<void> _init() async {
@@ -313,9 +324,11 @@ class TransferReportNotifier extends StateNotifier<TransferReportState> {
 
     state = state.copyWith(
       transfers: transfers,
-      filteredTransfers: transfers,
       isLoading: false,
     );
+    // Active filter (default = last week) dobara apply karo taake refresh par
+    // bhi date range qaim rahe aur default last-week view dikhe.
+    _applyFilter(state.filter);
   }
 
   void applyFilters({
@@ -376,10 +389,8 @@ class TransferReportNotifier extends StateNotifier<TransferReportState> {
   }
 
   void resetFilters() {
-    state = state.copyWith(
-      filter: const TransferReportFilter(),
-      filteredTransfers: state.transfers,
-    );
+    // Reset = wapas default last-week view par (poora all-time nahi).
+    _applyFilter(_initialFilter());
   }
 
   // ─── Detail Dialog ──────────────────────────────────────────────────────────

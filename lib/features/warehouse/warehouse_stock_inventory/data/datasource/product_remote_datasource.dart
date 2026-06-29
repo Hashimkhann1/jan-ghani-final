@@ -134,6 +134,31 @@ class ProductRemoteDataSource {
       },
     );
 
+    // ── Opening stock movement ─────────────────────────────────
+    // Ledger complete rakhne ke liye: product ki starting stock ab
+    // warehouse_stock_movements mein log hoti hai (pehle gayab thi).
+    if (initialQty != 0) {
+      await conn.execute(
+        Sql.named('''
+          INSERT INTO warehouse_stock_movements (
+            warehouse_id, product_id, movement_type, quantity,
+            unit_cost, reference_type, notes, created_by
+          ) VALUES (
+            @warehouseId, @productId, 'opening', @quantity,
+            @unitCost, 'adjustment', @notes, @createdBy
+          )
+        '''),
+        parameters: {
+          'warehouseId': product.warehouseId,
+          'productId':   newId,
+          'quantity':    initialQty,
+          'unitCost':    product.purchasePrice,
+          'notes':       'Initial stock — product create',
+          'createdBy':   userId,
+        },
+      );
+    }
+
     await _insertAuditLog(
       conn: conn, productId: newId, userId: userId, userName: userName,
       changeType: 'create', oldData: null,
@@ -168,6 +193,32 @@ class ProductRemoteDataSource {
         'warehouseId': newProduct.warehouseId,
       },
     );
+
+    // ── Adjustment movement ────────────────────────────────────
+    // Manual stock edit ab ledger mein track hota hai. quantity = diff
+    // (signed) — kam karne par negative. (0-floor nahi: negative allow.)
+    final qtyDiff = newQty - oldProduct.quantity;
+    if (qtyDiff != 0) {
+      await conn.execute(
+        Sql.named('''
+          INSERT INTO warehouse_stock_movements (
+            warehouse_id, product_id, movement_type, quantity,
+            unit_cost, reference_type, notes, created_by
+          ) VALUES (
+            @warehouseId, @productId, 'adjustment', @quantity,
+            @unitCost, 'adjustment', @notes, @createdBy
+          )
+        '''),
+        parameters: {
+          'warehouseId': newProduct.warehouseId,
+          'productId':   newProduct.id,
+          'quantity':    qtyDiff,
+          'unitCost':    newProduct.purchasePrice,
+          'notes':       'Manual stock edit — ${oldProduct.quantity} → $newQty',
+          'createdBy':   userId,
+        },
+      );
+    }
 
     await conn.execute(
       Sql.named('''
@@ -281,6 +332,29 @@ class ProductRemoteDataSource {
       },
     );
     return result.isNotEmpty;
+  }
+
+  // ── BARCODE → PRODUCT NAME (duplicate par konsa product hai) ──
+  Future<String?> productNameByBarcode(
+      String barcode, String warehouseId, {String? excludeId}) async {
+    final conn = await _db;
+    final result = await conn.execute(
+      Sql.named('''
+        SELECT name FROM warehouse_products
+        WHERE @barcode = ANY(barcode)
+          AND warehouse_id = @warehouseId
+          AND deleted_at IS NULL
+          ${excludeId != null ? 'AND id != @excludeId' : ''}
+        LIMIT 1
+      '''),
+      parameters: {
+        'barcode': barcode,
+        'warehouseId': warehouseId,
+        if (excludeId != null) 'excludeId': excludeId,
+      },
+    );
+    if (result.isEmpty) return null;
+    return result.first.toColumnMap()['name'] as String?;
   }
 
   // ── GET AUDIT LOG ─────────────────────────────────────────

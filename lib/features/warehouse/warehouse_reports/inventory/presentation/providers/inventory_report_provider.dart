@@ -73,7 +73,7 @@ InventoryReportData _computeReport(List<ProductModel> allProducts) {
 
   final lowStockCount = active.where((p) => p.isLowStock).length;
   final outOfStockCount =
-      active.where((p) => p.isTrackStock && p.quantity == 0).length;
+      active.where((p) => p.isTrackStock && p.isOutOfStock).length;
 
   // Reorder wale products — sabse urgent (quantity/reorderPoint ratio kam) upar
   final reorderProducts = active.where((p) => p.needsReorder).toList()

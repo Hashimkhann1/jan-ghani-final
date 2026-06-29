@@ -149,12 +149,19 @@ class ProductModel {
   }
 
   // ── Business Logic ────────────────────────────────────────
-  bool get isLowStock => isTrackStock && quantity <= minStockLevel;
+  // NOTE: Stock status ab AVAILABLE (quantity − reserved) par based hai,
+  // physical quantity par nahi. Reserved (pending transfers ke liye lock)
+  // maal effectively assign/sell ke liye dastyab nahi — isliye low/out/reorder
+  // sab availableQty dekhte hain. Yeh Stock column (jo available dikhata hai)
+  // ke sath consistent hai.
+  bool get isOutOfStock => availableQty <= 0;
 
-  // ✅ FIX: reorderPoint=0 ka matlab hai "no reorder needed"
-  // Sirf tab reorder chahiye jab reorderPoint > 0 aur quantity us se kam ho
+  bool get isLowStock => isTrackStock && availableQty <= minStockLevel;
+
+  // ✅ reorderPoint=0 ka matlab hai "no reorder needed"
+  // Sirf tab reorder chahiye jab reorderPoint > 0 aur available us se kam ho
   bool get needsReorder =>
-      isTrackStock && reorderPoint > 0 && quantity <= reorderPoint;
+      isTrackStock && reorderPoint > 0 && availableQty <= reorderPoint;
 
   // ── Postgres text[] → Dart List<String> ──────────────────
   static List<String> _toBarcodeList(dynamic v) {

@@ -560,24 +560,60 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                         if (context.mounted) {
                           Navigator.of(context).pop();
                           if (success) {
+                            // Offline save hua to alag (info) message —
+                            // transfer local mein safe hai, internet aate hi
+                            // background sync store tak push kar degi.
+                            final offline = ref
+                                .read(assignStockProvider)
+                                .lastSaveOffline;
+                            // Desktop ke liye chhota card, screen ke
+                            // right-bottom par (full-width nahi).
+                            final screenW =
+                                MediaQuery.of(context).size.width;
+                            const cardW = 380.0;
+                            final leftMargin =
+                                (screenW - cardW - 24)
+                                    .clamp(16.0, double.infinity);
                             ScaffoldMessenger.of(context)
                                 .showSnackBar(
                               SnackBar(
                                 content: Row(
-                                  children: const [
-                                    Icon(Icons.check_circle,
+                                  children: [
+                                    Icon(
+                                        offline
+                                            ? Icons.cloud_off_rounded
+                                            : Icons.check_circle,
                                         color: Colors.white,
-                                        size: 16),
-                                    SizedBox(width: 8),
-                                    Text('Stock assign ho gaya!'),
+                                        size: 20),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        offline
+                                            ? 'Internet nahi — transfer save ho gayi. '
+                                                'Internet aate hi store ko sync ho jayegi.'
+                                            : 'Stock assign ho gaya!',
+                                        style: const TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
-                                backgroundColor: AppColor.success,
+                                backgroundColor: offline
+                                    ? AppColor.info
+                                    : AppColor.success,
                                 behavior: SnackBarBehavior.floating,
+                                duration: Duration(
+                                    seconds: offline ? 5 : 3),
                                 shape: RoundedRectangleBorder(
                                     borderRadius:
                                     BorderRadius.circular(8)),
-                                margin: const EdgeInsets.all(16),
+                                margin: EdgeInsets.only(
+                                  left: leftMargin,
+                                  right: 24,
+                                  bottom: 24,
+                                ),
                               ),
                             );
                           }

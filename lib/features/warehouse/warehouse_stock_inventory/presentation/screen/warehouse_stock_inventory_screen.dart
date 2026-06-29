@@ -24,11 +24,22 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
 
     ref.listen<ProductState>(productProvider, (_, next) {
       if (next.errorMessage != null) {
+        // Desktop ke liye chhota card, screen ke right side par (full-width nahi).
+        final screenW = MediaQuery.of(context).size.width;
+        const cardW = 420.0;
+        final leftMargin = (screenW - cardW - 24).clamp(16.0, double.infinity);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:         Text(next.errorMessage!),
+            content: Text(
+              next.errorMessage!,
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white),
+            ),
             backgroundColor: const Color(0xFFEF4444),
             behavior:        SnackBarBehavior.floating,
+            margin: EdgeInsets.only(left: leftMargin, right: 24, bottom: 24),
             action: SnackBarAction(
               label:     'OK',
               textColor: Colors.white,
@@ -83,7 +94,7 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
                 SummaryCard(title: "Total Products", value: "${state.totalCount}", icon: Icons.inventory_2_rounded, color: const Color(0xFF6366F1)),
                 SummaryCard(title: "Active", value: "${state.activeCount}", icon: Icons.check_circle_outline_rounded, color: const Color(0xFF10B981)),
                 SummaryCard(title: "Low Stock", value: "${state.lowStockCount}", icon: Icons.warning_amber_rounded, color: const Color(0xFFF59E0B)),
-                SummaryCard(title: "Out of Stock", value: "${products.where((p) => p.quantity <= 0).length}", icon: Icons.remove_shopping_cart_rounded, color: const Color(0xFFEF4444)),
+                SummaryCard(title: "Out of Stock", value: "${products.where((p) => p.isOutOfStock).length}", icon: Icons.remove_shopping_cart_rounded, color: const Color(0xFFEF4444)),
               ],
             ),
             16.hBox,
@@ -107,6 +118,17 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
                           .toList(),
                       selectedCategoryId: state.filterCategory,
                       onChanged: notifier.onFilterCategoryChanged,
+                    ),
+                    const SizedBox(width: 8),
+                    // ── In Stock button (quantity > 0) ───────────
+                    _StockFilterBtn(
+                      label:    'In Stock',
+                      icon:     Icons.inventory_2_rounded,
+                      value:    'in_stock',
+                      selected: state.filterStatus == 'in_stock',
+                      color:    const Color(0xFF10B981),
+                      onTap:    () => notifier.onFilterStatusChanged(
+                          state.filterStatus == 'in_stock' ? 'all' : 'in_stock'),
                     ),
                     const SizedBox(width: 8),
                     // ── Low Stock button ─────────────────────────
@@ -245,7 +267,7 @@ class _ProductTable extends StatelessWidget {
               child: ListView.builder(
                 // ✅ Sirf visible rows build hongi (~15-20), 2000 nahi
                 itemCount: products.length,
-                itemExtent: 52, // ✅ Fixed height — scroll calculation fast hoti hai
+                itemExtent: 58, // ✅ Fixed height (reserved sub-label ke liye thoda zyada)
                 itemBuilder: (context, index) {
                   return RepaintBoundary( // ✅ Ek row ka repaint doosri ko affect nahi karega
                     child: _ProductRow(
@@ -407,17 +429,39 @@ class _ProductRow extends StatelessWidget {
             ),
             Expanded(
               flex: flex('Stock'),
-              child: Text(
-                '${p.availableQty} ${p.unitOfMeasure}',
-                // '${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: p.isLowStock
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFF1A1D23),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment:  MainAxisAlignment.center,
+                mainAxisSize:       MainAxisSize.min,
+                children: [
+                  // Physical quantity (godam ka asal maal)
+                  Text(
+                    '${_fmt(p.quantity)} ${p.unitOfMeasure}',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height:   1.15,
+                      fontWeight: FontWeight.w600,
+                      color: p.isLowStock
+                          ? const Color(0xFFEF4444)
+                          : const Color(0xFF1A1D23),
+                    ),
+                  ),
+                  // Reserved ho to available + reserved sub-label
+                  if (p.reservedQty > 0)
+                    Text(
+                      '${_fmt(p.availableQty)} free · ${_fmt(p.reservedQty)} reserved',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        height:   1.1,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(width: 6),
@@ -428,15 +472,15 @@ class _ProductRow extends StatelessWidget {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: ChipWidget(
-                    label: p.quantity <= 0
+                    label: p.isOutOfStock
                         ? 'Out of Stock'
                         : p.isLowStock ? 'Low Stock' : 'In Stock',
-                    bg: p.quantity <= 0
+                    bg: p.isOutOfStock
                         ? const Color(0xFFFEE2E2)
                         : p.isLowStock
                         ? const Color(0xFFFEF3C7)
                         : const Color(0xFFD1FAE5),
-                    textColor: p.quantity <= 0
+                    textColor: p.isOutOfStock
                         ? const Color(0xFFEF4444)
                         : p.isLowStock
                         ? const Color(0xFFF59E0B)

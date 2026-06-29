@@ -27,12 +27,111 @@ class _AccountantWarehouseFinanceScreenState
     extends ConsumerState<AccountantWarehouseFinanceScreen> {
   String _filter = 'all'; // all | cash_in | expense | supplier_payment | purchase
 
+  // Default: last 1 week (aaj se 7 din pehle → aaj tak)
+  late DateTime _fromDate;
+  late DateTime _toDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _toDate   = DateTime(now.year, now.month, now.day);
+    _fromDate = _toDate.subtract(const Duration(days: 7));
+  }
+
+  // Transaction ki date selected range mein hai? (inclusive, pura "to" din shamil)
+  bool _inRange(DateTime d) {
+    final from = DateTime(_fromDate.year, _fromDate.month, _fromDate.day);
+    final to   = DateTime(_toDate.year, _toDate.month, _toDate.day, 23, 59, 59);
+    return !d.isBefore(from) && !d.isAfter(to);
+  }
+
+  String _fmtDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  // Single range picker — start + end aik saath
+  Future<void> _pickRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context:          context,
+      initialDateRange: DateTimeRange(start: _fromDate, end: _toDate),
+      firstDate:        DateTime(2020),
+      lastDate:         DateTime(now.year, now.month, now.day), // aaj tak
+      helpText:         'Select range',
+      saveText:         'Save',
+    );
+    if (picked != null) {
+      setState(() {
+        _fromDate = picked.start;
+        _toDate   = picked.end;
+      });
+    }
+  }
+
+  // Date range field — tap par range picker. Mobile + website dono par fit.
+  Widget _rangeField() {
+    return InkWell(
+      onTap:        _pickRange,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color:        AppColor.grey100,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.date_range_rounded,
+                size: 18, color: AppColor.textMuted),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Date range',
+                    style: TextStyle(fontSize: 10, color: AppColor.textMuted),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    '${_fmtDate(_fromDate)}  –  ${_fmtDate(_toDate)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                size: 20, color: AppColor.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final summaryAsync =
         ref.watch(accFinanceSummaryProvider(widget.warehouseId));
     final txAsync =
         ref.watch(accFinanceTransactionsProvider(widget.warehouseId));
+
+    // Selected range ki transactions — cards ke 3 totals + list dono isi se
+    final allTx = txAsync.value ?? const <AccCashTransactionModel>[];
+    final dateFiltered = allTx.where((t) => _inRange(t.createdAt)).toList();
+
+    double sumWhere(bool Function(AccCashTransactionModel) test) =>
+        dateFiltered.where(test).fold(0.0, (s, t) => s + t.amount.abs());
+
+    final rangeCashIn  = sumWhere((t) => t.entryType == 'cash_in');
+    final rangeExpense = sumWhere((t) => t.entryType == 'expense');
+    final rangeCashOut = sumWhere((t) => !t.isCashIn); // purchase + supplier + expense
 
     return Scaffold(
       backgroundColor: AppColor.background,
@@ -59,19 +158,27 @@ class _AccountantWarehouseFinanceScreenState
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              // ── Summary ───────────────────────────────────
+              // ── Summary (4 cards) ─────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: summaryAsync.when(
-                    data: (s) => _SummarySection(
-                      summary: s,
-                      warehouseName: widget.warehouseName,
-                    ),
-                    loading: () => const _SummaryShimmer(),
-                    error: (e, _) => const _ErrorBox(
-                        msg: 'Finance summary load nahi hui'),
-                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: txAsync.isLoading
+                      ? const _SummaryShimmer()
+                      : _SummarySection(
+                          cashInHand:    summaryAsync.value?.cashInHand ?? 0,
+                          totalCashIn:   rangeCashIn,
+                          totalExpense:  rangeExpense,
+                          totalCashOut:  rangeCashOut,
+                          warehouseName: widget.warehouseName,
+                        ),
+                ),
+              ),
+
+              // ── Date range filter (cards ke neeche) — default last week ──
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: _rangeField(),
                 ),
               ),
 
@@ -112,9 +219,12 @@ class _AccountantWarehouseFinanceScreenState
               // ── Transactions list ─────────────────────────
               txAsync.when(
                 data: (all) {
-                  final list = _filter == 'all'
-                      ? all
-                      : all.where((t) => t.entryType == _filter).toList();
+                  // Pehle date range, phir entry-type chip filter
+                  final list = all.where((t) {
+                    if (!_inRange(t.createdAt)) return false;
+                    if (_filter == 'all') return true;
+                    return t.entryType == _filter;
+                  }).toList();
 
                   if (list.isEmpty) {
                     return const SliverToBoxAdapter(
@@ -194,11 +304,20 @@ class _AccountantWarehouseFinanceScreenState
   }
 }
 
-// ── Summary Section ───────────────────────────────────────────────────────────
+// ── Summary Section (4 compact cards, no icons) ───────────────────────────────
 class _SummarySection extends StatelessWidget {
-  final AccFinanceSummary summary;
+  final double cashInHand;
+  final double totalCashIn;
+  final double totalExpense;
+  final double totalCashOut;
   final String warehouseName;
-  const _SummarySection({required this.summary, required this.warehouseName});
+  const _SummarySection({
+    required this.cashInHand,
+    required this.totalCashIn,
+    required this.totalExpense,
+    required this.totalCashOut,
+    required this.warehouseName,
+  });
 
   String _money(double v) {
     final neg = v < 0;
@@ -214,80 +333,52 @@ class _SummarySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Cash in Hand (highlight)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF6C63FF), Color(0xFF9D97FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColor.primary.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.account_balance_wallet_rounded,
-                      color: Colors.white70, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Cash in Hand',
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.85), fontSize: 13),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _money(summary.cashInHand),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -1,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                warehouseName,
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
-          ),
+        // Warehouse name (chhota label)
+        Text(
+          warehouseName,
+          style: const TextStyle(fontSize: 12, color: AppColor.textMuted),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
-        // Expenses + Cash Out
+        // Row 1 — Cash in Hand | Total Cash In
         Row(
           children: [
             Expanded(
               child: _StatCard(
-                icon: Icons.receipt_long_rounded,
-                iconColor: AppColor.cashOut,
-                iconBg: const Color(0xFFFEF2F2),
-                label: 'Total Expenses',
-                value: _money(summary.totalExpense),
+                label: 'Cash in Hand',
+                value: _money(cashInHand),
+                valueColor:
+                    cashInHand < 0 ? AppColor.cashOut : AppColor.textDark,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
-                icon: Icons.arrow_upward_rounded,
-                iconColor: const Color(0xFFF59E0B),
-                iconBg: const Color(0xFFFFF4E5),
+                label: 'Total Cash In',
+                value: _money(totalCashIn),
+                valueColor: AppColor.cashIn,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Row 2 — Total Expenses | Total Cash Out
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'Total Expenses',
+                value: _money(totalExpense),
+                valueColor: AppColor.cashOut,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
                 label: 'Total Cash Out',
-                value: _money(summary.totalCashOut),
+                value: _money(totalCashOut),
+                valueColor: const Color(0xFFF59E0B),
               ),
             ),
           ],
@@ -297,25 +388,22 @@ class _SummarySection extends StatelessWidget {
   }
 }
 
+// Compact stat card — bina icon (kam height)
 class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBg;
   final String label;
   final String value;
+  final Color? valueColor;
 
   const _StatCard({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBg,
     required this.label,
     required this.value,
+    this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -329,28 +417,23 @@ class _StatCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(height: 10),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12, color: AppColor.textMuted),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 17,
               fontWeight: FontWeight.w700,
-              color: AppColor.textDark,
+              color: valueColor ?? AppColor.textDark,
             ),
           ),
         ],
@@ -501,14 +584,20 @@ class _SummaryShimmer extends StatelessWidget {
   const _SummaryShimmer();
   @override
   Widget build(BuildContext context) => Column(
-        children: [
-          const _ShimmerBox(height: 130, radius: 20),
-          const SizedBox(height: 12),
+        children: const [
           Row(
-            children: const [
-              Expanded(child: _ShimmerBox(height: 96)),
+            children: [
+              Expanded(child: _ShimmerBox(height: 70, radius: 16)),
               SizedBox(width: 12),
-              Expanded(child: _ShimmerBox(height: 96)),
+              Expanded(child: _ShimmerBox(height: 70, radius: 16)),
+            ],
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _ShimmerBox(height: 70, radius: 16)),
+              SizedBox(width: 12),
+              Expanded(child: _ShimmerBox(height: 70, radius: 16)),
             ],
           ),
         ],

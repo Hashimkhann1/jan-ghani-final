@@ -61,7 +61,8 @@ class WarehouseSupabaseSyncService {
     'supplier_ledger',
 
     // ── Level 7: purchase_orders pe dependent ──
-    'purchase_order_items',
+    // 'purchase_order_items',  ← generic upsert NAHI. Dedicated
+    //   "_syncPurchaseOrderItemsReplace" se sync hota hai (duplicate fix).
 
     // ── Level 8: stock transfers ──
     'stock_transfers',
@@ -118,6 +119,12 @@ class WarehouseSupabaseSyncService {
       for (final table in _allTables) {
         total += await _syncByIsSynced(conn, table);
       }
+
+      // Step 1b: purchase_order_items — "replace per PO" (duplicate fix)
+      // Generic upsert delete nahi karti, is liye PO edit par purane items
+      // Supabase par orphan reh kar duplicate bante the. Yeh method har
+      // affected PO ke remote items pehle delete karke local se replace karta hai.
+      total += await _syncPurchaseOrderItemsReplace(conn);
 
       // Step 2: warehouse_finance dedicated sync
       // Trigger (fn_update_cash_in_hand) is_synced = false set karta hai
@@ -248,6 +255,83 @@ class WarehouseSupabaseSyncService {
       return rows.length;
     } catch (e) {
       print('[WarehouseSync]   ❌ suppliers dedicated sync: $e');
+      return 0;
+    }
+  }
+
+  // ── DEDICATED: purchase_order_items "replace per PO" ─────
+  // PO edit par items DELETE + naye id se INSERT hote hain. Generic sync
+  // sirf upsert karti hai (Supabase se delete NAHI), is liye purane items
+  // orphan reh kar web par DUPLICATE bante the. Yahan har affected PO ke
+  // remote items pehle delete karke local ke POORE set se replace karte hain
+  // → Supabase = local ka exact mirror.
+  //
+  // Offline-safe: yeh edit ke waqt nahi, SYNC ke waqt chalta hai (jab internet
+  // ho). Offline edit local mein bach jaata hai (is_synced=false); internet
+  // aate hi yeh method us PO ko Supabase par khud-ba-khud durust kar deta hai.
+  // Per-PO atomic hai (poora set delete+upsert), is liye 500-limit ya partial
+  // batch ka koi masla nahi.
+  Future<int> _syncPurchaseOrderItemsReplace(Connection conn) async {
+    try {
+      // 1. Kaunse POs ke items badle (un-synced) hain
+      final poRes = await conn.execute(
+        Sql.named('''
+          SELECT DISTINCT po_id FROM public.purchase_order_items
+          WHERE is_synced = false
+          LIMIT 100
+        '''),
+      );
+      if (poRes.isEmpty) return 0;
+
+      final poIds = poRes
+          .map((r) => r.toColumnMap()['po_id']?.toString())
+          .whereType<String>()
+          .toList();
+
+      int synced = 0;
+      for (final poId in poIds) {
+        // 2. Us PO ke SAARE local items (poora set)
+        final itemRes = await conn.execute(
+          Sql.named(
+            'SELECT * FROM public.purchase_order_items WHERE po_id = @poId',
+          ),
+          parameters: {'poId': poId},
+        );
+        final rows = itemRes.map((r) => _serialize(r.toColumnMap())).toList();
+        final ids  = itemRes
+            .map((r) => r.toColumnMap()['id'].toString())
+            .toList();
+
+        // 3. Supabase se us PO ke purane items delete (orphan hatao)
+        await _supabase
+            .from('purchase_order_items')
+            .delete()
+            .eq('po_id', poId);
+
+        // 4. Local ka poora set upsert (remote = local exact mirror)
+        if (rows.isNotEmpty) {
+          await _batchUpsert('purchase_order_items', rows);
+        }
+
+        // 5. Sirf inhi items ko synced mark karo (id se — concurrent edit safe)
+        if (ids.isNotEmpty) {
+          final placeholders =
+              List.generate(ids.length, (i) => '\$${i + 1}').join(', ');
+          await conn.execute(
+            'UPDATE public.purchase_order_items '
+                'SET is_synced = true, synced_at = NOW() '
+                'WHERE id IN ($placeholders)',
+            parameters: ids,
+          );
+        }
+
+        synced += rows.length;
+      }
+
+      print('[WarehouseSync]   🧾 purchase_order_items (replace per PO): $synced');
+      return synced;
+    } catch (e) {
+      print('[WarehouseSync]   ❌ purchase_order_items replace sync: $e');
       return 0;
     }
   }

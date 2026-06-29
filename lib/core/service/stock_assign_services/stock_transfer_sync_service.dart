@@ -218,13 +218,16 @@ class StockTransferSyncService {
       }
       print('[SyncService] ✅ Step1 done');
 
-      // Step2: physical quantity kam karo (GREATEST se 0 par cap — kabhi minus nahi)
-      // aur is transfer ki reservation release karo (reserved_quantity kam).
+      // Step2: physical quantity kam karo aur reservation release karo.
+      // quantity ab 0 par floor NAHI hoti — agar transfer available se zyada
+      // ho to stock asal minus mein jata hai (deficit visible + movements se
+      // reconcile). reserved_quantity phir bhi 0 par capped (negative reserve
+      // ka koi matlab nahi).
       print('[SyncService] Step2: deducting inventory + releasing reservation...');
       await _db.execute(
         Sql.named('''
           UPDATE public.warehouse_inventory
-          SET quantity          = GREATEST(0, quantity - sti.quantity_sent),
+          SET quantity          = quantity - sti.quantity_sent,
               reserved_quantity = GREATEST(0, reserved_quantity - sti.quantity_sent),
               last_movement_at  = NOW(),
               updated_at        = NOW(),

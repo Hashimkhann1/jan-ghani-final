@@ -23,49 +23,255 @@ class AccountantStockTransferRecordScreen extends ConsumerStatefulWidget {
 class _AccountantStockTransferRecordScreenState
     extends ConsumerState<AccountantStockTransferRecordScreen> {
   String _query = '';
+  bool _searchOpen = false;
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  // Default: last 1 week (aaj se 7 din pehle → aaj tak)
+  late DateTime _fromDate;
+  late DateTime _toDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _toDate   = DateTime(now.year, now.month, now.day);
+    _fromDate = _toDate.subtract(const Duration(days: 7));
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _openSearch() => setState(() => _searchOpen = true);
+
+  void _closeSearch() => setState(() {
+        _searchOpen = false;
+        _searchCtrl.clear();
+        _query = '';
+      });
+
+  // Transfer ki date selected range mein hai? (inclusive, pura "to" din shamil)
+  bool _inRange(DateTime d) {
+    final from = DateTime(_fromDate.year, _fromDate.month, _fromDate.day);
+    final to   = DateTime(_toDate.year, _toDate.month, _toDate.day, 23, 59, 59);
+    return !d.isBefore(from) && !d.isAfter(to);
+  }
+
+  String _fmtDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  // Single range picker — start + end aik saath
+  Future<void> _pickRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context:          context,
+      initialDateRange: DateTimeRange(start: _fromDate, end: _toDate),
+      firstDate:        DateTime(2020),
+      lastDate:         DateTime(now.year, now.month, now.day), // aaj tak
+      helpText:         'Select range',
+      saveText:         'Save',
+    );
+    if (picked != null) {
+      setState(() {
+        _fromDate = picked.start;
+        _toDate   = picked.end;
+      });
+    }
+  }
+
+  // Date range field — tap par range picker. Mobile + website dono par fit.
+  Widget _rangeField() {
+    return InkWell(
+      onTap:        _pickRange,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color:        AppColor.grey100,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.date_range_rounded,
+                size: 18, color: AppColor.textMuted),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Date range',
+                    style: TextStyle(fontSize: 10, color: AppColor.textMuted),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    '${_fmtDate(_fromDate)}  –  ${_fmtDate(_toDate)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.textDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                size: 20, color: AppColor.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final transfersAsync =
         ref.watch(accAllTransfersProvider(widget.warehouseId));
 
+    // Selected date range ke transfers ka total value + count (search se independent)
+    final rangeTransfers = (transfersAsync.value ?? const <AccTransferModel>[])
+        .where((t) => _inRange(t.createdAt))
+        .toList();
+    final totalValue =
+        rangeTransfers.fold<double>(0, (s, t) => s + t.totalCost);
+
     return Scaffold(
       backgroundColor: AppColor.background,
       appBar: AppBar(
-        title: const Text(
-          'Stock Transfers',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColor.textDark,
-          ),
-        ),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColor.textDark),
+        // Search open ho to back arrow search band kare (route pop nahi)
+        leading: _searchOpen
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: _closeSearch,
+              )
+            : null,
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _searchOpen
+              ? TextField(
+                  key: const ValueKey('search'),
+                  controller: _searchCtrl,
+                  autofocus: true,
+                  onChanged: (v) =>
+                      setState(() => _query = v.trim().toLowerCase()),
+                  style: const TextStyle(
+                      fontSize: 15, color: AppColor.textDark),
+                  decoration: const InputDecoration(
+                    hintText: 'Transfer no. ya store dhoondein...',
+                    hintStyle: TextStyle(color: AppColor.textMuted),
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                  ),
+                )
+              : const Text(
+                  'Stock Transfers',
+                  key: ValueKey('title'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColor.textDark,
+                  ),
+                ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+                _searchOpen ? Icons.close_rounded : Icons.search_rounded),
+            onPressed: _searchOpen ? _closeSearch : _openSearch,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // ── Search ────────────────────────────────────────
+            // ── Total Transfer Value (selected dates ke hisaab se) ──
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: TextField(
-                onChanged: (v) =>
-                    setState(() => _query = v.trim().toLowerCase()),
-                decoration: InputDecoration(
-                  hintText: 'Transfer no. ya store dhoondein...',
-                  prefixIcon: const Icon(Icons.search_rounded,
-                      color: AppColor.textMuted),
-                  filled: true,
-                  fillColor: AppColor.grey100,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color:        Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color:      Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset:     const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width:  44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color:        AppColor.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.swap_horiz_rounded,
+                          color: AppColor.primary, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Total Transfer Value',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColor.textMuted),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            _fmtRs(totalValue),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                              color: AppColor.textDark,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color:        AppColor.primary.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${rangeTransfers.length} transfers',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColor.primary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
+
+            // ── Date range filter — default last 1 week ──
+            // (Search ab AppBar mein expandable hai)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: _rangeField(),
             ),
 
             // ── List ──────────────────────────────────────────
@@ -76,17 +282,15 @@ class _AccountantStockTransferRecordScreenState
                     ref.invalidate(accAllTransfersProvider(widget.warehouseId)),
                 child: transfersAsync.when(
                   data: (all) {
-                    final list = _query.isEmpty
-                        ? all
-                        : all
-                            .where((t) =>
-                                t.transferNumber
-                                    .toLowerCase()
-                                    .contains(_query) ||
-                                t.toStoreName
-                                    .toLowerCase()
-                                    .contains(_query))
-                            .toList();
+                    // Pehle date range, phir search query
+                    final list = all.where((t) {
+                      if (!_inRange(t.createdAt)) return false;
+                      if (_query.isEmpty) return true;
+                      return t.transferNumber
+                              .toLowerCase()
+                              .contains(_query) ||
+                          t.toStoreName.toLowerCase().contains(_query);
+                    }).toList();
 
                     if (list.isEmpty) {
                       return ListView(
@@ -455,6 +659,16 @@ class _TransferItemsList extends ConsumerWidget {
       ),
     );
   }
+}
+
+// Rs. formatting (thousands separator)
+String _fmtRs(double v) {
+  final neg = v < 0;
+  final s = v.abs().toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+  return '${neg ? '- ' : ''}Rs. $s';
 }
 
 // ── Shimmer ───────────────────────────────────────────────────────────────────

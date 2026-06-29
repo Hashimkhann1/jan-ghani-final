@@ -176,7 +176,9 @@ class AssignStockNotifier extends StateNotifier<AssignStockState> {
 
     state = state.copyWith(isSaving: true, clearError: true);
     try {
-      await _repo.assignStock(
+      // syncedNow = true → online (Supabase par bhi ho gaya)
+      // syncedNow = false → offline (local saved, sync baad mein push karegi)
+      final syncedNow = await _repo.assignStock(
         warehouseId: _warehouseId,
         transferNumber: state.transferNumber,
         toStoreId: state.selectedStoreId!,
@@ -195,11 +197,24 @@ class AssignStockNotifier extends StateNotifier<AssignStockState> {
         transferNumber: newNumber,
         clearStore: true,
         isSaving: false,
+        lastSaveOffline: !syncedNow,
       );
       return true;
     } catch (e) {
+      // Duplicate transfer_number (Postgres 23505) — yeh ID DB mein
+      // pehle se mojood hai. Raw DB error ke bajaye human-friendly message.
+      final raw = e.toString().toLowerCase();
+      final isDuplicateTransferNo = raw.contains('23505') ||
+          raw.contains('stock_transfers_transfer_number_key') ||
+          (raw.contains('duplicate') && raw.contains('transfer_number'));
+
       state = state.copyWith(
-          isSaving: false, errorMessage: e.toString());
+        isSaving: false,
+        errorMessage: isDuplicateTransferNo
+            ? 'Yeh transfer ID database mein pehle se mojood hai. '
+                'Please app ko restart karein aur dobara koshish karein.'
+            : e.toString(),
+      );
       return false;
     }
   }

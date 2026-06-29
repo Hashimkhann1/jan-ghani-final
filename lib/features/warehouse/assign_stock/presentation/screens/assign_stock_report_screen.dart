@@ -385,11 +385,32 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
                           child: Text('All Stores',
                               style: TextStyle(fontSize: 13)),
                         ),
-                        ...stores.map((s) => DropdownMenuItem<String?>(
-                          value: s['store_id'] as String,
-                          child: Text(s['store_name'] as String,
-                              style: const TextStyle(fontSize: 13)),
-                        )),
+                        ...stores.map((s) {
+                          final code = s['store_code']?.toString();
+                          return DropdownMenuItem<String?>(
+                            value: s['store_id'] as String,
+                            child: RichText(
+                              overflow: TextOverflow.ellipsis,
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: s['store_name'] as String,
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        color: AppColor.textPrimary),
+                                  ),
+                                  if (code != null && code.isNotEmpty)
+                                    TextSpan(
+                                      text: '  ·  $code',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColor.textSecondary),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),

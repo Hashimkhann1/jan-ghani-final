@@ -902,7 +902,7 @@ extension _StockFilterX on StockFilter {
   bool matches(ProductModel p) {
     switch (this) {
       case StockFilter.all:          return true;
-      case StockFilter.outOfStock:   return p.isTrackStock && p.quantity == 0;
+      case StockFilter.outOfStock:   return p.isTrackStock && p.isOutOfStock;
       case StockFilter.lowStock:     return p.isLowStock;
       case StockFilter.needsReorder: return p.needsReorder;
     }
@@ -1141,7 +1141,7 @@ class _ProductStockRow extends StatelessWidget {
     final String badge;
     final Color color;
     final Color bg;
-    if (p.isTrackStock && p.quantity == 0) {
+    if (p.isTrackStock && p.isOutOfStock) {
       badge = 'Out';     color = AppColor.error;   bg = AppColor.errorLight;
     } else if (p.isLowStock) {
       badge = 'Low';     color = AppColor.warning; bg = AppColor.warningLight;

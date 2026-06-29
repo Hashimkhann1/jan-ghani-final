@@ -21,48 +21,117 @@ class AccountantAllSupplierScreen extends ConsumerStatefulWidget {
 class _AccountantAllSupplierScreenState
     extends ConsumerState<AccountantAllSupplierScreen> {
   String _query = '';
+  bool _searchOpen = false;
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _openSearch() => setState(() => _searchOpen = true);
+
+  void _closeSearch() => setState(() {
+        _searchOpen = false;
+        _searchCtrl.clear();
+        _query = '';
+      });
 
   @override
   Widget build(BuildContext context) {
     final suppliersAsync = ref.watch(accSuppliersProvider(widget.warehouseId));
 
+    // ── Summary totals (data aate hi update; loading par 0) ──────────
+    final suppliers      = suppliersAsync.value ?? const <AccountantSupplierModel>[];
+    final totalSuppliers = suppliers.length;
+    final totalDues      = suppliers
+        .where((s) => s.hasDue)
+        .fold<double>(0, (sum, s) => sum + s.outstandingBalance);
+
     return Scaffold(
       backgroundColor: AppColor.background,
       appBar: AppBar(
-        title: const Text(
-          'Suppliers',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColor.textDark,
-          ),
-        ),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColor.textDark),
+        // Search open ho to back arrow search band kare (route pop nahi)
+        leading: _searchOpen
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: _closeSearch,
+              )
+            : null,
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _searchOpen
+              ? TextField(
+                  key: const ValueKey('search'),
+                  controller: _searchCtrl,
+                  autofocus: true,
+                  onChanged: (v) =>
+                      setState(() => _query = v.trim().toLowerCase()),
+                  style: const TextStyle(
+                      fontSize: 15, color: AppColor.textDark),
+                  decoration: const InputDecoration(
+                    hintText: 'Supplier dhoondein...',
+                    hintStyle: TextStyle(color: AppColor.textMuted),
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                  ),
+                )
+              : const Text(
+                  'Suppliers',
+                  key: ValueKey('title'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColor.textDark,
+                  ),
+                ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+                _searchOpen ? Icons.close_rounded : Icons.search_rounded),
+            onPressed: _searchOpen ? _closeSearch : _openSearch,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // ── Search ────────────────────────────────────────
+            // ── Summary cards (Total Suppliers + Total Dues) ──
+            // Row mein do barabar cards — mobile (IPA/APP) aur website dono par fit.
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: TextField(
-                onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
-                decoration: InputDecoration(
-                  hintText: 'Supplier dhoondein...',
-                  prefixIcon:
-                      const Icon(Icons.search_rounded, color: AppColor.textMuted),
-                  filled: true,
-                  fillColor: AppColor.grey100,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      icon:      Icons.people_alt_rounded,
+                      iconBg:    const Color(0xFFEEF0FF),
+                      iconColor: AppColor.primary,
+                      label:     'Total Suppliers',
+                      value:     '$totalSuppliers',
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      icon:      Icons.account_balance_wallet_rounded,
+                      iconBg:    const Color(0xFFFDECEC),
+                      iconColor: AppColor.cashOut,
+                      label:     'Total Dues',
+                      value:     _fmtRs(totalDues),
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            // (Search ab AppBar mein expandable hai)
+            const SizedBox(height: 12),
 
             // ── List ──────────────────────────────────────────
             Expanded(
@@ -248,6 +317,94 @@ class _SupplierTile extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Summary Stat Card ─────────────────────────────────────────────────────────
+// Mobile + website dono par kaam karta hai (parent Expanded width deta hai).
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color    iconBg;
+  final Color    iconColor;
+  final String   label;
+  final String   value;
+
+  const _StatCard({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColor.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColor.textDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Rs. formatting (thousands separator) — _SupplierTile._money jaisa hi.
+String _fmtRs(double v) {
+  final neg = v < 0;
+  final s = v.abs().toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+  return '${neg ? '- ' : ''}Rs. $s';
 }
 
 // ── Shimmer ───────────────────────────────────────────────────────────────────

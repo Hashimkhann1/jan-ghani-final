@@ -1,6 +1,4 @@
 
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -116,8 +114,8 @@ class _DashboardContent extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           warehouseName,
-          style: const TextStyle(
-            fontSize: 22,
+          style: TextStyle(
+            fontSize: MediaQuery.of(context).size.width < 600 ? 18 : 22,
             fontWeight: FontWeight.w700,
             color: AppColor.textDark,
           ),
@@ -151,8 +149,8 @@ class _DashboardContent extends ConsumerWidget {
         // ── Metrics: mobile = full-width rows (same), web = card grid ──
         LayoutBuilder(
           builder: (context, c) {
-            final metrics = _buildMetrics(context, ref);
             final isWide  = c.maxWidth >= 720;
+            final metrics = _buildMetrics(context, ref, isWide);
 
             // Mobile — UI bilkul pehle jaisa (rows)
             if (!isWide) {
@@ -187,9 +185,9 @@ class _DashboardContent extends ConsumerWidget {
   }
 
   // ── Metric data — dono layouts (rows + grid) isi se bante hain ──────
-  List<_MetricData> _buildMetrics(BuildContext context, WidgetRef ref) {
-
-    final isMobile = !kIsWeb;
+  // isWide = screen width >= 720 (full website). Reports card sirf isi par
+  // dikhta hai — mobile-size screen (app ya chhota browser) par chhupa rehta hai.
+  List<_MetricData> _buildMetrics(BuildContext context, WidgetRef ref, bool isWide) {
 
     return [
 
@@ -274,8 +272,8 @@ class _DashboardContent extends ConsumerWidget {
           ),
         ),
       ),
-      // ── Reports (nav card) — destination abhi pending ──
-      if(!isMobile)
+      // ── Reports (nav card) — sirf full website (wide screen) par ──
+      if(isWide)
         _MetricData(
           icon: Icons.assessment_outlined,
           iconBg: const Color(0xFFF3EEFF),
@@ -548,7 +546,7 @@ class _MetricCard extends StatelessWidget {
                   Text(
                     value,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColor.textDark,
                     ),

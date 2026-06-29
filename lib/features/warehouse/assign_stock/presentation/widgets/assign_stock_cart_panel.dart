@@ -138,14 +138,14 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
                       children: [
                         Text(store.storeName,
                             style: const TextStyle(
-                                fontSize: 13,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w500)),
                         SizedBox(width: 30,),
                         Text(store.storeCode,
                             style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              color: AppColor.textSecondary
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              color: Colors.green
                             )),
                       ],
                     ),

@@ -14,6 +14,9 @@ class AssignStockState {
   final bool isLoading;
   final bool isSaving;
   final String? errorMessage;
+  // true = transfer local mein save hui par internet na hone ki wajah se
+  // Supabase par turant nahi gayi (background sync internet aate hi push karegi).
+  final bool lastSaveOffline;
 
   const AssignStockState({
     required this.transferNumber,
@@ -29,6 +32,7 @@ class AssignStockState {
     this.isLoading = false,
     this.isSaving = false,
     this.errorMessage,
+    this.lastSaveOffline = false,
   });
 
   int get totalItems => cartItems.length;
@@ -59,6 +63,7 @@ class AssignStockState {
     bool? isLoading,
     bool? isSaving,
     String? errorMessage,
+    bool? lastSaveOffline,
     bool clearStore = false,
     bool clearError = false,
   }) {
@@ -78,6 +83,7 @@ class AssignStockState {
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      lastSaveOffline: lastSaveOffline ?? this.lastSaveOffline,
     );
   }
 }
