@@ -79,10 +79,7 @@
 import 'dart:io' if (dart.library.html) 'package:jan_ghani_final/core/stub/io_stub.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
-import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/theme/light_theme.dart';
-import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
 import 'package:jan_ghani_final/features/branch/backup/presentation/screen/branch_backup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
@@ -95,6 +92,7 @@ import 'core/widget/sidebar/branch_sidebar_widget.dart';
 import 'features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
 import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
+import 'features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart';
 
 
 final supabase = Supabase.instance.client;
@@ -136,8 +134,9 @@ class MyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: LightTheme.theme,
       home:
+      InventoryCountingScreen(),
       // session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
-      _resolveHome(session, auth),
+      // _resolveHome(session, auth),
     );
   }
 

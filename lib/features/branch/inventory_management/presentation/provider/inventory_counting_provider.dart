@@ -1,0 +1,136 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/datasource/inventory_counting_datasource.dart';
+import '../../data/model/inventory_countting_model.dart';
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
+class InventoryCountingState {
+  final List<InventoryProductModel> products;
+  final int countedCount;
+  final bool isLoading;
+  final bool allCounted;
+  final String? errorMessage;
+
+  const InventoryCountingState({
+    this.products = const [],
+    this.countedCount = 0,
+    this.isLoading = false,
+    this.allCounted = false,
+    this.errorMessage,
+  });
+
+  InventoryCountingState copyWith({
+    List<InventoryProductModel>? products,
+    int? countedCount,
+    bool? isLoading,
+    bool? allCounted,
+    String? errorMessage,
+  }) {
+    return InventoryCountingState(
+      products: products ?? this.products,
+      countedCount: countedCount ?? this.countedCount,
+      isLoading: isLoading ?? this.isLoading,
+      allCounted: allCounted ?? this.allCounted,
+      errorMessage: errorMessage,
+    );
+  }
+}
+
+// ─── Notifier ─────────────────────────────────────────────────────────────────
+
+class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
+  final InventoryCountingRemoteDatasource _datasource;
+  final String storeId;
+
+  final List<String> _globalCountedIds = [];
+
+  InventoryCountingNotifier({
+    required InventoryCountingRemoteDatasource datasource,
+    required this.storeId,
+  })  : _datasource = datasource,
+        super(const InventoryCountingState()) {
+    loadPage();
+  }
+
+  Future<void> loadPage() async {
+    state = state.copyWith(isLoading: true, allCounted: false, errorMessage: null);
+
+    try {
+      final supabaseCountedIds = await _datasource.fetchCountedProductIds();
+
+      final allExcluded = {
+        ...supabaseCountedIds,
+        ..._globalCountedIds,
+      }.toList();
+
+      final products = await _datasource.fetchProducts(
+        storeId: storeId,
+        excludeProductIds: allExcluded,
+      );
+
+      state = state.copyWith(
+        products: products,
+        countedCount: 0,
+        isLoading: false,
+        allCounted: products.isEmpty,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  /// Returns true if save successful, false if error
+  Future<bool> submitCounting({
+    required InventoryProductModel product,
+    required double countingStock,
+  }) async {
+    try {
+      final model = InventoryCountingModel(
+        productId: product.productId,
+        productStock: product.currentStock,
+        countingStock: countingStock,
+        updatedAt: product.updatedAt,
+      );
+
+      await _datasource.saveInventoryCounting(model);
+
+      _globalCountedIds.add(product.productId);
+
+      final updatedProducts = state.products
+          .where((p) => p.productId != product.productId)
+          .toList();
+
+      final newCountedCount = state.countedCount + 1;
+      final allCounted = newCountedCount >= 50 || updatedProducts.isEmpty;
+
+      state = state.copyWith(
+        products: updatedProducts,
+        countedCount: newCountedCount,
+        allCounted: allCounted,
+      );
+
+      // 50 complete — auto next page
+      if (allCounted && updatedProducts.isNotEmpty) {
+        await loadPage();
+      }
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+      return false;
+    }
+  }
+}
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+final inventoryCountingProvider = StateNotifierProvider.autoDispose
+    .family<InventoryCountingNotifier, InventoryCountingState, String>(
+      (ref, storeId) => InventoryCountingNotifier(
+    datasource: InventoryCountingRemoteDatasource(),
+    storeId: storeId,
+  ),
+);
