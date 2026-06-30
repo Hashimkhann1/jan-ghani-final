@@ -42,8 +42,6 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
   final InventoryCountingRemoteDatasource _datasource;
   final String storeId;
 
-  final List<String> _globalCountedIds = [];
-
   InventoryCountingNotifier({
     required InventoryCountingRemoteDatasource datasource,
     required this.storeId,
@@ -52,25 +50,31 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
     loadPage();
   }
 
+  String get _todayDate {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
   Future<void> loadPage() async {
-    state = state.copyWith(isLoading: true, allCounted: false, errorMessage: null);
+    state = state.copyWith(
+      isLoading: true,
+      allCounted: false,
+      errorMessage: null,
+    );
 
     try {
-      final supabaseCountedIds = await _datasource.fetchCountedProductIds();
-
-      final allExcluded = {
-        ...supabaseCountedIds,
-        ..._globalCountedIds,
-      }.toList();
+      // DB se aaj ke counted IDs aur actual count dono lo
+      final countedIds = await _datasource.fetchCountedProductIds();
+      final todayCount = await _datasource.fetchTodayCountedCount();
 
       final products = await _datasource.fetchProducts(
         storeId: storeId,
-        excludeProductIds: allExcluded,
+        excludeProductIds: countedIds,
       );
 
       state = state.copyWith(
         products: products,
-        countedCount: 0,
+        countedCount: todayCount, // ← memory nahi, DB se actual count
         isLoading: false,
         allCounted: products.isEmpty,
       );
@@ -93,29 +97,23 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
         productStock: product.currentStock,
         countingStock: countingStock,
         updatedAt: product.updatedAt,
+        countedDate: _todayDate, // ← aaj ki date
       );
 
       await _datasource.saveInventoryCounting(model);
-
-      _globalCountedIds.add(product.productId);
 
       final updatedProducts = state.products
           .where((p) => p.productId != product.productId)
           .toList();
 
       final newCountedCount = state.countedCount + 1;
-      final allCounted = newCountedCount >= 50 || updatedProducts.isEmpty;
+      final allCounted = updatedProducts.isEmpty;
 
       state = state.copyWith(
         products: updatedProducts,
         countedCount: newCountedCount,
         allCounted: allCounted,
       );
-
-      // 50 complete — auto next page
-      if (allCounted && updatedProducts.isNotEmpty) {
-        await loadPage();
-      }
 
       return true;
     } catch (e) {

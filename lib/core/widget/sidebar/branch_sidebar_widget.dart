@@ -7,7 +7,6 @@ import 'package:jan_ghani_final/features/branch/branch_stock_damage/presentation
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all_customer_screen.dart';
-import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/screen/counter_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/csr_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale_return_report_screen.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
@@ -15,6 +14,7 @@ import '../../../features/branch/assign_stock_to_branch/presentation/screen/bran
 import '../../../features/branch/branch_transcation/presentation/screen/branch_transaction_screen.dart';
 import '../../../features/branch/cash_counter/presentation/screen/cash_counter_screen.dart';
 import '../../../features/branch/cash_counter/presentation/screen/counter_cash_transaction_screen.dart';
+import '../../../features/branch/customer_ledger/presentation/screen/all_customer_ledger_screen.dart';
 import '../../../features/branch/dashboard/presentation/screen/dashboard_screen.dart';
 import '../../../features/branch/reports/presentation/screen/sale_invoice_report_screen.dart';
 import '../../../features/branch/store_user/presentation/screen/user_screen.dart';

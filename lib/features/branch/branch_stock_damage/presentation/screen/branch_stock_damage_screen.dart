@@ -124,7 +124,10 @@ class _BranchStockDamageScreenState
               ),
               const SizedBox(width: 12),
               SummaryCard(
-                title: 'Total Loss Value',
+                // ✅ Filter lagi ho to label se clear ho jata hai ke ye filtered loss hai
+                title: state.hasDateFilter || state.filterStatus != 'all'
+                    ? 'Loss (Filtered)'
+                    : 'Total Loss Value',
                 value: 'Rs ${state.totalLossValue.toStringAsFixed(0)}',
                 icon:  Icons.trending_down_rounded,
                 color: AppColor.error,
@@ -145,7 +148,7 @@ class _BranchStockDamageScreenState
 
             const SizedBox(height: 16),
 
-            // ── Search + Filters ──────────────────────────────────
+            // ── Search + Filters + Date Range ─────────────────────
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(children: [
@@ -194,10 +197,57 @@ class _BranchStockDamageScreenState
                   child: CustomerFilterChip(
                     label:         f.$2,
                     value:         f.$1,
-                    selectedValue: state.filterStatus,
+                    selectedValue: state.hasDateFilter ? '' : state.filterStatus,
                     onTap:         notifier.onFilterChanged,
                   ),
                 )),
+                const SizedBox(width: 12),
+
+                // ── From Date ────────────────────────────────────
+                _DateFilterField(
+                  label:    'From',
+                  date:     state.fromDate,
+                  onTap:    () async {
+                    final picked = await showDatePicker(
+                      context:     context,
+                      initialDate: state.fromDate ?? DateTime.now(),
+                      firstDate:   DateTime(2020),
+                      lastDate:    DateTime.now(),
+                    );
+                    if (picked != null) notifier.setFromDate(picked);
+                  },
+                  onClear: () => notifier.setFromDate(null),
+                ),
+                const SizedBox(width: 8),
+
+                // ── To Date ──────────────────────────────────────
+                _DateFilterField(
+                  label:    'To',
+                  date:     state.toDate,
+                  onTap:    () async {
+                    final picked = await showDatePicker(
+                      context:     context,
+                      initialDate: state.toDate ?? DateTime.now(),
+                      firstDate:   DateTime(2020),
+                      lastDate:    DateTime.now(),
+                    );
+                    if (picked != null) notifier.setToDate(picked);
+                  },
+                  onClear: () => notifier.setToDate(null),
+                ),
+
+                if (state.hasDateFilter) ...[
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: notifier.clearDateFilter,
+                    icon:  const Icon(Icons.close_rounded, size: 16),
+                    label: const Text('Clear Date Filter'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColor.error,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                  ),
+                ],
               ]),
             ),
 
@@ -211,12 +261,67 @@ class _BranchStockDamageScreenState
                   ? const Center(child: CircularProgressIndicator())
                   : state.rows.isEmpty
                   ? _EmptyState(
-                isSearching: state.searchQuery.isNotEmpty,
+                isSearching: state.searchQuery.isNotEmpty || state.hasDateFilter,
                 onAdd:       _openAddDialog,
               )
                   : _DamageTable(rows: state.rows),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DATE FILTER FIELD
+// ═══════════════════════════════════════════════════════════════════
+class _DateFilterField extends StatelessWidget {
+  final String        label;
+  final DateTime?     date;
+  final VoidCallback  onTap;
+  final VoidCallback  onClear;
+
+  const _DateFilterField({
+    required this.label,
+    required this.date,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt  = DateFormat('dd MMM yyyy');
+    final text = date != null ? fmt.format(date!) : label;
+
+    return SizedBox(
+      width: 160,
+      child: TextField(
+        readOnly:    true,
+        controller:  TextEditingController(text: text),
+        onTap:       onTap,
+        style:       const TextStyle(fontSize: 13),
+        cursorHeight: 14,
+        decoration: InputDecoration(
+          hintText: label,
+          hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
+          prefixIcon: const Icon(Icons.calendar_today_outlined,
+              size: 16, color: AppColor.grey400),
+          suffixIcon: date != null
+              ? IconButton(
+            icon: const Icon(Icons.close_rounded,
+                size: 16, color: AppColor.grey400),
+            onPressed: onClear,
+          )
+              : null,
+          filled:    true,
+          fillColor: AppColor.grey100,
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12, vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:   BorderSide.none,
+          ),
         ),
       ),
     );
@@ -604,7 +709,7 @@ class _EmptyState extends StatelessWidget {
       const SizedBox(height: 6),
       Text(
           isSearching
-              ? 'Search query change karein'
+              ? 'Search ya date filter change karein'
               : 'Pehla damage record add karein',
           style: const TextStyle(fontSize: 13, color: AppColor.textHint)),
       if (!isSearching) ...[
@@ -616,10 +721,8 @@ class _EmptyState extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.error,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-            padding: const EdgeInsets.symmetric(
-                horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           ),
         ),
       ],

@@ -30,9 +30,6 @@ class BranchTransactionDataSource {
   }
 
   // ── CASH OUT ──────────────────────────────────────────────
-  // 1. branch_cash_counter se minus karo (local)
-  // 2. history insert karo is_synced=false (local)
-  // 3. Internet ho to Supabase sync karo is_synced=true
   Future<void> cashOut({
     required String branchId,
     required String assignById,
@@ -116,7 +113,6 @@ class BranchTransactionDataSource {
     final conn = await DataBaseService.getConnection();
 
     try {
-      // Supabase se janghani fetch + update
       final res = await Supabase.instance.client
           .from('janghani_net_amount')
           .select('id, cash_in_hand')
@@ -133,7 +129,6 @@ class BranchTransactionDataSource {
           .update({'cash_in_hand': newCash})
           .eq('id', janghaniId);
 
-      // Local row is_synced = true update
       await conn.execute(
         Sql.named('''
           UPDATE public.branch_transaction_to_janghani
@@ -155,17 +150,36 @@ class BranchTransactionDataSource {
     }
   }
 
-  // ── GET history ───────────────────────────────────────────
+  // ── GET history (with optional date range filter) ─────────
   Future<List<BranchTransactionHistoryModel>> getHistory(
-      String branchId) async {
-    final conn   = await DataBaseService.getConnection();
+      String branchId, {
+        DateTime? startDate,
+        DateTime? endDate,
+      }) async {
+    final conn = await DataBaseService.getConnection();
+
+    final params = <String, dynamic>{'branchId': branchId};
+
+    String dateFilter = '';
+    if (startDate != null && endDate != null) {
+      // endDate ko din ke end tak include karne ke liye +1 day, < use kiya
+      final startOnly = DateTime(startDate.year, startDate.month, startDate.day);
+      final endOnly   = DateTime(endDate.year, endDate.month, endDate.day)
+          .add(const Duration(days: 1));
+
+      dateFilter = 'AND created_at >= @startDate AND created_at < @endDate';
+      params['startDate'] = startOnly.toIso8601String();
+      params['endDate']   = endOnly.toIso8601String();
+    }
+
     final result = await conn.execute(
       Sql.named('''
         SELECT * FROM public.branch_transaction_to_janghani
         WHERE branch_id = @branchId::uuid
+        $dateFilter
         ORDER BY created_at DESC
       '''),
-      parameters: {'branchId': branchId},
+      parameters: params,
     );
     return result
         .map((r) => BranchTransactionHistoryModel.fromMap(_toMap(r)))

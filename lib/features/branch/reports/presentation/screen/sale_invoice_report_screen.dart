@@ -6,10 +6,8 @@ import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/reports/data/model/sale_invoice_report_model.dart';
-
 import '../../../../../core/service/print/print_service.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
-// TODO: confirm this import path matches your project's BranchStockModel location
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../sale_invoice/data/model/sale_invoice_model.dart';
 import '../provider/sale_invoice_report_provider.dart';
@@ -940,7 +938,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
               ),
             ),
 
-          if (widget.isManager && inv.cashierName != null)
+          if (inv.cashierName != null)
             Padding(
               padding: const EdgeInsets.only(
                   left: 16, right: 16, bottom: 10),
@@ -949,7 +947,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                   const Icon(Icons.badge_outlined,
                       size: 13, color: AppColor.textSecondary),
                   const SizedBox(width: 6),
-                  const Text('Cashier: ',
+                  const Text('Added By: ',
                       style: TextStyle(
                           fontSize: 12,
                           color:    AppColor.textSecondary)),

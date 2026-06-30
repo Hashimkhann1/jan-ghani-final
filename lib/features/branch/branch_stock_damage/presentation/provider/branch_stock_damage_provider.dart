@@ -20,6 +20,8 @@ class BranchStockDamageState {
   final bool    isMutating;
   final String  searchQuery;
   final String  filterStatus;
+  final DateTime? fromDate;
+  final DateTime? toDate;
   final String? errorMessage;
   final String? successMessage;
   final int     totalRecords;
@@ -35,6 +37,8 @@ class BranchStockDamageState {
     this.isMutating      = false,
     this.searchQuery     = '',
     this.filterStatus    = 'all',
+    this.fromDate,
+    this.toDate,
     this.errorMessage,
     this.successMessage,
     this.totalRecords    = 0,
@@ -48,6 +52,7 @@ class BranchStockDamageState {
   bool get hasNext     => currentPage < totalPages - 1;
   int  get fromRow     => totalCount == 0 ? 0 : currentPage * pageSize + 1;
   int  get toRow       => (fromRow + rows.length - 1).clamp(0, totalCount);
+  bool get hasDateFilter => fromDate != null || toDate != null;
 
   BranchStockDamageState copyWith({
     List<BranchStockDamageModel>? rows,
@@ -58,6 +63,10 @@ class BranchStockDamageState {
     bool?   isMutating,
     String? searchQuery,
     String? filterStatus,
+    DateTime? fromDate,
+    DateTime? toDate,
+    bool    clearFromDate = false,
+    bool    clearToDate   = false,
     String? errorMessage,
     String? successMessage,
     int?    totalRecords,
@@ -72,6 +81,8 @@ class BranchStockDamageState {
     isMutating:      isMutating      ?? this.isMutating,
     searchQuery:     searchQuery     ?? this.searchQuery,
     filterStatus:    filterStatus    ?? this.filterStatus,
+    fromDate:        clearFromDate ? null : (fromDate ?? this.fromDate),
+    toDate:          clearToDate   ? null : (toDate   ?? this.toDate),
     errorMessage:    errorMessage,
     successMessage:  successMessage,
     totalRecords:    totalRecords    ?? this.totalRecords,
@@ -103,8 +114,16 @@ class BranchStockDamageNotifier extends StateNotifier<BranchStockDamageState> {
           pageSize:     state.pageSize,
           search:       state.searchQuery,
           filterStatus: state.filterStatus,
+          fromDate:     state.fromDate,
+          toDate:       state.toDate,
         ),
-        _ds.getStats(_storeId),
+        _ds.getStats(
+          storeId:      _storeId,
+          search:       state.searchQuery,
+          filterStatus: state.filterStatus,
+          fromDate:     state.fromDate,
+          toDate:       state.toDate,
+        ),
       ]);
 
       final paged = results[0] as ({List<BranchStockDamageModel> rows, int totalCount});
@@ -146,14 +165,12 @@ class BranchStockDamageNotifier extends StateNotifier<BranchStockDamageState> {
 
       _ref.read(branchStockProvider.notifier).load();
 
+      // ✅ Filters lagi ho sakti hain, isliye list/stats safest reload se sync karein
+      await _load();
+
       state = state.copyWith(
-        rows:            [record, ...state.rows],
-        totalCount:      state.totalCount + 1,
-        totalRecords:    state.totalRecords + 1,
-        totalQtyDamaged: state.totalQtyDamaged + stockDamage,
-        totalLossValue:  state.totalLossValue + (purchasePrice * stockDamage),
-        isMutating:      false,
-        successMessage:  '$productName damage record add ho gaya',
+        isMutating:     false,
+        successMessage: '$productName damage record add ho gaya',
       );
       return true;
     } catch (e) {
@@ -231,7 +248,43 @@ class BranchStockDamageNotifier extends StateNotifier<BranchStockDamageState> {
   }
 
   void onFilterChanged(String f) {
-    state = state.copyWith(filterStatus: f, currentPage: 0);
+    // ✅ Quick filter chip select karne par custom date range clear ho jayega
+    state = state.copyWith(
+      filterStatus:  f,
+      currentPage:   0,
+      clearFromDate: true,
+      clearToDate:   true,
+    );
+    _load();
+  }
+
+  // ── DATE RANGE FILTER ────────────────────────────────────────
+  void setFromDate(DateTime? date) {
+    state = state.copyWith(
+      fromDate:     date,
+      clearFromDate: date == null,
+      filterStatus: 'all',
+      currentPage:  0,
+    );
+    _load();
+  }
+
+  void setToDate(DateTime? date) {
+    state = state.copyWith(
+      toDate:       date,
+      clearToDate:  date == null,
+      filterStatus: 'all',
+      currentPage:  0,
+    );
+    _load();
+  }
+
+  void clearDateFilter() {
+    state = state.copyWith(
+      clearFromDate: true,
+      clearToDate:   true,
+      currentPage:   0,
+    );
     _load();
   }
 
@@ -240,7 +293,13 @@ class BranchStockDamageNotifier extends StateNotifier<BranchStockDamageState> {
 
   Future<void> _reloadStats() async {
     try {
-      final stats = await _ds.getStats(_storeId);
+      final stats = await _ds.getStats(
+        storeId:      _storeId,
+        search:       state.searchQuery,
+        filterStatus: state.filterStatus,
+        fromDate:     state.fromDate,
+        toDate:       state.toDate,
+      );
       state = state.copyWith(
         totalRecords:    stats['total_records']     as int,
         totalQtyDamaged: stats['total_qty_damaged'] as double,

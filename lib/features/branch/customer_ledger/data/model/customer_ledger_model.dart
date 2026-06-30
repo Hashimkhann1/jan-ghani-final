@@ -4,6 +4,8 @@ class CustomerLedgerModel {
   final String   customerId;
   final String   customerName;
   final String?  counterId;
+  final String?  userId;
+  final String?  userFullName;   // ← new
   final double   previousAmount;
   final double   payAmount;
   final double   newAmount;
@@ -18,6 +20,8 @@ class CustomerLedgerModel {
     required this.customerId,
     required this.customerName,
     this.counterId,
+    this.userId,
+    this.userFullName,           // ← new
     required this.previousAmount,
     required this.payAmount,
     required this.newAmount,
@@ -31,22 +35,15 @@ class CustomerLedgerModel {
   String get payAmountLabel      => 'Rs ${payAmount.toString()}';
   String get newAmountLabel      => 'Rs ${newAmount.toString()}';
 
-  /// Flexible converter jo int aur double dono ko double ma convert kara
   static double _toDouble(dynamic value) {
     if (value == null) return 0.0;
-
     if (value is double) return value;
     if (value is int) return value.toDouble();
-
-    // String ko parse kara
     if (value is String) {
       final parsed = double.tryParse(value);
       return parsed ?? 0.0;
     }
-
-    // Agar num type ho
     if (value is num) return value.toDouble();
-
     return 0.0;
   }
 
@@ -57,6 +54,8 @@ class CustomerLedgerModel {
       customerId:     _str(map['customer_id'])     ?? '',
       customerName:   _str(map['customer_name'])   ?? '',
       counterId:      _str(map['counter_id']),
+      userId:         _str(map['user_id']),
+      userFullName:   _str(map['user_full_name']),   // ← new
       previousAmount: _toDouble(map['previous_amount']),
       payAmount:      _toDouble(map['pay_amount']),
       newAmount:      _toDouble(map['new_amount']),
@@ -72,6 +71,7 @@ class CustomerLedgerModel {
     'customer_id':    customerId,
     'customer_name':  customerName,
     'counter_id':     counterId,
+    'user_id':        userId,
     'previous_amount': previousAmount,
     'pay_amount':     payAmount,
     'new_amount':     newAmount,

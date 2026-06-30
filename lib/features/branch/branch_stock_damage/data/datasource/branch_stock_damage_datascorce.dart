@@ -13,6 +13,8 @@ class BranchStockDamageDataSource {
     required int    pageSize,
     String          search       = '',
     String          filterStatus = 'all',
+    DateTime?       fromDate,
+    DateTime?       toDate,
   }) async {
     final conn       = await DataBaseService.getConnection();
     final conditions = <String>['store_id = @storeId'];
@@ -22,7 +24,18 @@ class BranchStockDamageDataSource {
       conditions.add("LOWER(product_name) LIKE @search");
       params['search'] = '%${search.trim().toLowerCase()}%';
     }
-    if (filterStatus == 'today') {
+
+    if (fromDate != null || toDate != null) {
+      // ✅ Custom date range overrides the quick filter chips
+      if (fromDate != null) {
+        conditions.add("DATE(created_at) >= @fromDate");
+        params['fromDate'] = DateTime(fromDate.year, fromDate.month, fromDate.day);
+      }
+      if (toDate != null) {
+        conditions.add("DATE(created_at) <= @toDate");
+        params['toDate'] = DateTime(toDate.year, toDate.month, toDate.day);
+      }
+    } else if (filterStatus == 'today') {
       conditions.add("DATE(created_at) = CURRENT_DATE");
     } else if (filterStatus == 'this_week') {
       conditions.add("created_at >= DATE_TRUNC('week', CURRENT_DATE)");
@@ -60,8 +73,42 @@ class BranchStockDamageDataSource {
     );
   }
 
-  Future<Map<String, dynamic>> getStats(String storeId) async {
-    final conn   = await DataBaseService.getConnection();
+  /// ✅ Stats ab same filters (search / filterStatus / date range) follow karti hain
+  Future<Map<String, dynamic>> getStats({
+    required String storeId,
+    String          search       = '',
+    String          filterStatus = 'all',
+    DateTime?       fromDate,
+    DateTime?       toDate,
+  }) async {
+    final conn        = await DataBaseService.getConnection();
+    final conditions  = <String>['store_id = @storeId'];
+    final params      = <String, dynamic>{'storeId': storeId};
+
+    if (search.trim().isNotEmpty) {
+      conditions.add("LOWER(product_name) LIKE @search");
+      params['search'] = '%${search.trim().toLowerCase()}%';
+    }
+
+    if (fromDate != null || toDate != null) {
+      if (fromDate != null) {
+        conditions.add("DATE(created_at) >= @fromDate");
+        params['fromDate'] = DateTime(fromDate.year, fromDate.month, fromDate.day);
+      }
+      if (toDate != null) {
+        conditions.add("DATE(created_at) <= @toDate");
+        params['toDate'] = DateTime(toDate.year, toDate.month, toDate.day);
+      }
+    } else if (filterStatus == 'today') {
+      conditions.add("DATE(created_at) = CURRENT_DATE");
+    } else if (filterStatus == 'this_week') {
+      conditions.add("created_at >= DATE_TRUNC('week', CURRENT_DATE)");
+    } else if (filterStatus == 'this_month') {
+      conditions.add("created_at >= DATE_TRUNC('month', CURRENT_DATE)");
+    }
+
+    final where = conditions.join(' AND ');
+
     final result = await conn.execute(
       Sql.named('''
         SELECT
@@ -69,9 +116,9 @@ class BranchStockDamageDataSource {
           COALESCE(SUM(stock_damage), 0)                   AS total_qty_damaged,
           COALESCE(SUM(stock_damage * purchase_price), 0)  AS total_loss_value
         FROM public.branch_stock_damage
-        WHERE store_id = @storeId
+        WHERE $where
       '''),
-      parameters: {'storeId': storeId},
+      parameters: params,
     );
     final m = result.first.toColumnMap();
     return {

@@ -74,9 +74,8 @@
 //   }
 // }
 
-
-
 import 'dart:io' if (dart.library.html) 'package:jan_ghani_final/core/stub/io_stub.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/theme/light_theme.dart';
@@ -90,10 +89,9 @@ import 'core/service/db/db_service.dart';
 import 'core/service/sync/sync_service.dart';
 import 'core/widget/sidebar/branch_sidebar_widget.dart';
 import 'features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
+import 'features/accountant/authentication/presentation/screen/login_screen.dart';
 import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
-import 'features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart';
-
 
 final supabase = Supabase.instance.client;
 
@@ -113,9 +111,11 @@ void main() async{
   await SharedPreferences.getInstance();
 
   await StoreConfig.load();
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    SyncService().start();
-    DataBaseService.getConnection();
+  if (!kIsWeb) {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      SyncService().start();
+      DataBaseService.getConnection();
+    }
   }
 
   runApp(ProviderScope(child: MyApp()));
@@ -132,9 +132,10 @@ class MyApp extends ConsumerWidget {
       title: 'Jan Ghani',
       debugShowCheckedModeBanner: false,
       theme: LightTheme.theme,
-      home: InventoryCountingScreen(),
+      home:
+      // InventoryCountingScreen(),
       // session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
-      // _resolveHome(session, auth),
+      _resolveHome(session, auth),
     );
   }
 

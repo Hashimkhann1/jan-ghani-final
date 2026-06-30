@@ -140,7 +140,6 @@ class SaleInvoiceListNotifier extends StateNotifier<SaleInvoiceListState> {
 
   String get _storeId   => _ref.read(authProvider).storeId;
   bool   get _isManager => _ref.read(authProvider).user?.role == 'store_manager';
-  String get _userId    => _ref.read(authProvider).user?.id ?? '';
 
   Future<void> _init() async {
     if (_isManager) await _loadCashiers();
@@ -157,16 +156,17 @@ class SaleInvoiceListNotifier extends StateNotifier<SaleInvoiceListState> {
     }
   }
 
+  // ── Ab Manager aur Cashier dono ko ALL invoices dikhengi.
+  //    selectedCashierId sirf manual filter dropdown ke liye hai.
   Future<void> load() async {
     state = state.copyWith(isLoading: true);
     try {
-      final userId   = _isManager ? state.selectedCashierId : _userId;
       final invoices = await _ds.getAll(
         storeId:   _storeId,
         fromDate:  state.fromDate,
         toDate:    state.toDate,
         counterId: state.counterId,
-        userId:    userId,
+        userId:    state.selectedCashierId,
       );
       state = state.copyWith(allInvoices: invoices, isLoading: false);
     } catch (e) {
@@ -226,5 +226,5 @@ StateNotifierProvider<SaleInvoiceListNotifier, SaleInvoiceListState>(
 
 final saleInvoiceByCounterProvider = StateNotifierProvider.family
 <SaleInvoiceListNotifier, SaleInvoiceListState, String>(
-(ref, counterId) => SaleInvoiceListNotifier(ref, counterId: counterId),
+      (ref, counterId) => SaleInvoiceListNotifier(ref, counterId: counterId),
 );

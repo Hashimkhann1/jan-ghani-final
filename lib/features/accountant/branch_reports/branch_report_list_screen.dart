@@ -12,6 +12,7 @@ import 'accountant_sale_report/presentation/screen/accountant_sale_report_screen
 import 'accountant_sale_return_report/presentation/screen/sale_return_report_screen.dart';
 import 'ai_chatbot_screen.dart';
 import 'branch_cash_counter_report/presentation/screen/branch_cash_counter_screen.dart';
+import 'inventory_counting/presentation/screen/inventory_counting_report_screen.dart';
 
 class BranchReportListScreen extends StatelessWidget {
   const BranchReportListScreen({super.key, required this.branchId});
@@ -50,8 +51,8 @@ class BranchReportListScreen extends StatelessWidget {
     ),
     _ReportItem(
       icon:     Icons.summarize_rounded,
-      label:    'Branch Summary Report',
-      subtitle: 'Complete branch summary',
+      label:    'Branch Inventory Counting Report',
+      subtitle: 'Complete Branch Inventory Counting Report',
       color:    Color(0xFFEC4899),
     ),
     _ReportItem(
@@ -95,23 +96,18 @@ class BranchReportListScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: desktop
-          ? _DesktopLayout(
+      body: desktop ? _DesktopLayout(
         reports:  _reports,
         branchId: branchId,
         onTap:    (i) => _onTap(context, i),
-      )
-          : _MobileLayout(
+      ) :
+      _MobileLayout(
         reports:  _reports,
         branchId: branchId,
         onTap:    (i) => _onTap(context, i),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => AIBusinessChatbotScreen()),
-        ),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AIBusinessChatbotScreen()),),
         backgroundColor: AppColor.primary,
         child: const Icon(Icons.support_agent, color: Colors.white),
       ),
@@ -147,7 +143,9 @@ class BranchReportListScreen extends StatelessWidget {
         break;
       case 5:
         Navigator.push(context, MaterialPageRoute(
-          builder: (_) => BranchSummaryReportScreen(branchId: branchId),
+          builder: (_) => InventoryCountingReportScreen(
+            storeId: branchId,
+          ),
         ));
         break;
       case 6:

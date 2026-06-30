@@ -20,7 +20,7 @@ class InventoryCountingScreen extends ConsumerWidget {
           children: [
             const Text('Inventory Counting'),
             Text(
-              'Counted: ${state.countedCount} / 50',
+              'counted: ${state.countedCount}',
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
             ),
           ],

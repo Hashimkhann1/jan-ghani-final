@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
-
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/presentation/provider/customer_provider.dart';
 import '../../data/model/customer_ledger_model.dart';
@@ -15,32 +14,57 @@ class CustomerLedgerState {
   final String searchQuery;
   final bool isLoading;
   final String? errorMessage;
+  final DateTime? fromDate;
+  final DateTime? toDate;
 
   const CustomerLedgerState({
     this.allLedgers = const [],
     this.searchQuery = '',
     this.isLoading = false,
     this.errorMessage,
+    this.fromDate,
+    this.toDate,
   });
 
   List<CustomerLedgerModel> get filteredLedgers {
-    if (searchQuery.isEmpty) return allLedgers;
-    final q = searchQuery.toLowerCase();
-    return allLedgers.where((l) => l.customerName.toLowerCase().contains(q) || (l.notes?.toLowerCase().contains(q) ?? false),).toList();
+    var list = allLedgers;
+
+    if (fromDate != null) {
+      final start = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
+      list = list.where((l) => !l.createdAt.isBefore(start)).toList();
+    }
+
+    if (toDate != null) {
+      final end = DateTime(toDate!.year, toDate!.month, toDate!.day, 23, 59, 59);
+      list = list.where((l) => !l.createdAt.isAfter(end)).toList();
+    }
+
+    if (searchQuery.isNotEmpty) {
+      final q = searchQuery.toLowerCase();
+      list = list.where((l) => l.customerName.toLowerCase().contains(q) || (l.notes?.toLowerCase().contains(q) ?? false)).toList();
+    }
+
+    return list;
   }
 
-  double get totalPaid => allLedgers.fold(0, (sum, l) => sum + l.payAmount);
+  double get totalPaid => filteredLedgers.fold(0, (sum, l) => sum + l.payAmount);
 
   CustomerLedgerState copyWith({
     List<CustomerLedgerModel>? allLedgers,
     String? searchQuery,
     bool? isLoading,
     String? errorMessage,
+    DateTime? fromDate,
+    DateTime? toDate,
+    bool clearFromDate = false,
+    bool clearToDate = false,
   }) => CustomerLedgerState(
     allLedgers: allLedgers ?? this.allLedgers,
     searchQuery: searchQuery ?? this.searchQuery,
     isLoading: isLoading ?? this.isLoading,
     errorMessage: errorMessage,
+    fromDate: clearFromDate ? null : (fromDate ?? this.fromDate),
+    toDate: clearToDate ? null : (toDate ?? this.toDate),
   );
 }
 
@@ -73,6 +97,7 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
     }
   }
 
+  // customer_ledger_provider.dart (sirf addLedger method change)
   Future<void> addLedger({
     required String customerId,
     required String customerName,
@@ -83,14 +108,18 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
   }) async {
     state = state.copyWith(isLoading: true);
     try {
-      final counterId = _ref.read(authProvider).counterId;
-      final _storeId = _ref.read(authProvider).storeId;
+      final auth = _ref.read(authProvider);
+      final counterId = auth.counterId;
+      final userId = auth.user?.id;        // ← cashier/manager id
+      final _storeId = auth.storeId;
+
       final saved = await _add(CustomerLedgerModel(
         id:             '',
         storeId:        _storeId,
         customerId:     customerId,
         customerName:   customerName,
-        counterId:      counterId,   // ← automatically assign
+        counterId:      counterId,
+        userId:         userId,           // ← new
         previousAmount: previousAmount,
         payAmount:      payAmount,
         newAmount:      newAmount,
@@ -104,7 +133,6 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
         isLoading:  false,
       );
 
-      // Customer balance bhi reload karo
       _ref.read(customerProvider.notifier).loadCustomers();
       _ref.read(cashCounterProvider.notifier).loadRecords();
     } catch (e) {
@@ -154,6 +182,22 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
 
   void onSearchChanged(String q) => state = state.copyWith(searchQuery: q);
   void clearError()              => state = state.copyWith(errorMessage: null);
+
+  void setFromDate(DateTime? date) {
+    state = date == null
+        ? state.copyWith(clearFromDate: true)
+        : state.copyWith(fromDate: date);
+  }
+
+  void setToDate(DateTime? date) {
+    state = date == null
+        ? state.copyWith(clearToDate: true)
+        : state.copyWith(toDate: date);
+  }
+
+  void clearDateFilter() {
+    state = state.copyWith(clearFromDate: true, clearToDate: true);
+  }
 }
 
 final customerLedgerProvider =

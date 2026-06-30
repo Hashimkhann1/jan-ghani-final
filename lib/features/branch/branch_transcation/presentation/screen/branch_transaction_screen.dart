@@ -15,6 +15,10 @@ class BranchTransactionScreen extends ConsumerStatefulWidget {
 
 class _BranchTransactionScreenState
     extends ConsumerState<BranchTransactionScreen> {
+  final TextEditingController _startDateCtrl = TextEditingController();
+  final TextEditingController _endDateCtrl   = TextEditingController();
+  final DateFormat _dateOnly = DateFormat('dd MMM yyyy');
+
   @override
   void initState() {
     super.initState();
@@ -23,12 +27,63 @@ class _BranchTransactionScreenState
     );
   }
 
+  @override
+  void dispose() {
+    _startDateCtrl.dispose();
+    _endDateCtrl.dispose();
+    super.dispose();
+  }
+
   void _openCashOutDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const CashOutDialog(),
     );
+  }
+
+  Future<void> _pickStartDate() async {
+    final state  = ref.read(branchTransactionProvider);
+    final picked = await showDatePicker(
+      context:     context,
+      initialDate: state.startDate ?? DateTime.now(),
+      firstDate:   DateTime(2020),
+      lastDate:    DateTime.now(),
+    );
+    if (picked == null) return;
+
+    final currentEnd = state.endDate ?? picked;
+    final newEnd = currentEnd.isBefore(picked) ? picked : currentEnd;
+
+    _startDateCtrl.text = _dateOnly.format(picked);
+    _endDateCtrl.text   = _dateOnly.format(newEnd);
+
+    ref.read(branchTransactionProvider.notifier).setDateRange(picked, newEnd);
+  }
+
+  Future<void> _pickEndDate() async {
+    final state  = ref.read(branchTransactionProvider);
+    final picked = await showDatePicker(
+      context:     context,
+      initialDate: state.endDate ?? DateTime.now(),
+      firstDate:   state.startDate ?? DateTime(2020),
+      lastDate:    DateTime.now(),
+    );
+    if (picked == null) return;
+
+    final currentStart = state.startDate ?? picked;
+    final newStart = currentStart.isAfter(picked) ? picked : currentStart;
+
+    _startDateCtrl.text = _dateOnly.format(newStart);
+    _endDateCtrl.text   = _dateOnly.format(picked);
+
+    ref.read(branchTransactionProvider.notifier).setDateRange(newStart, picked);
+  }
+
+  void _clearDates() {
+    _startDateCtrl.clear();
+    _endDateCtrl.clear();
+    ref.read(branchTransactionProvider.notifier).clearDateRange();
   }
 
   @override
@@ -96,8 +151,97 @@ class _BranchTransactionScreenState
 
             // ── Summary Card ────────────────────────
             _SummaryCard(
-              totalAmount: state.totalAmount,
-              cashInHand:  state.cashInHand,
+              totalAmount:    state.totalAmount,
+              cashInHand:     state.cashInHand,
+              totalPayAmount: state.history.fold(
+                  0.0, (sum, t) => sum + t.payAmount),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Date Range Filter (TextFields) ──────
+            Card(
+              elevation: 1,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                child: LayoutBuilder(
+                  builder: (ctx, constraints) {
+                    final isWide = constraints.maxWidth > 600;
+
+                    final startField = TextField(
+                      controller: _startDateCtrl,
+                      readOnly:   true,
+                      onTap:      _pickStartDate,
+                      decoration: InputDecoration(
+                        labelText: 'Start Date',
+                        hintText:  'dd MMM yyyy',
+                        isDense:   true,
+                        prefixIcon: const Icon(
+                            Icons.calendar_today_outlined, size: 18),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                      ),
+                      style: const TextStyle(fontSize: 13),
+                    );
+
+                    final endField = TextField(
+                      controller: _endDateCtrl,
+                      readOnly:   true,
+                      onTap:      _pickEndDate,
+                      decoration: InputDecoration(
+                        labelText: 'End Date',
+                        hintText:  'dd MMM yyyy',
+                        isDense:   true,
+                        prefixIcon: const Icon(
+                            Icons.calendar_today_outlined, size: 18),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                      ),
+                      style: const TextStyle(fontSize: 13),
+                    );
+
+                    final clearBtn = IconButton(
+                      tooltip: 'Clear filter',
+                      onPressed: (state.startDate != null ||
+                          state.endDate != null)
+                          ? _clearDates
+                          : null,
+                      icon: const Icon(Icons.close_rounded),
+                    );
+
+                    if (isWide) {
+                      return Row(
+                        children: [
+                          Expanded(child: startField),
+                          const SizedBox(width: 12),
+                          Expanded(child: endField),
+                          clearBtn,
+                        ],
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: startField),
+                            clearBtn,
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        endField,
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
 
             const SizedBox(height: 16),
@@ -197,7 +341,6 @@ class _BranchTransactionScreenState
 
                               return DataRow(cells: [
 
-                                // Type
                                 DataCell(Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 5),
@@ -227,7 +370,6 @@ class _BranchTransactionScreenState
                                   ),
                                 )),
 
-                                // Before
                                 DataCell(Text(
                                   'Rs ${t.beforeAmount.toStringAsFixed(2)}',
                                   style: const TextStyle(
@@ -235,7 +377,6 @@ class _BranchTransactionScreenState
                                       color: Colors.black54),
                                 )),
 
-                                // Pay
                                 DataCell(Text(
                                   'Rs ${t.payAmount.toStringAsFixed(2)}',
                                   style: const TextStyle(
@@ -243,7 +384,6 @@ class _BranchTransactionScreenState
                                       fontWeight: FontWeight.w600),
                                 )),
 
-                                // After
                                 DataCell(Text(
                                   'Rs ${t.afterAmount.toStringAsFixed(2)}',
                                   style: TextStyle(
@@ -254,7 +394,6 @@ class _BranchTransactionScreenState
                                           : Colors.red),
                                 )),
 
-                                // By
                                 DataCell(Text(
                                   t.assignByName,
                                   style: const TextStyle(
@@ -262,7 +401,6 @@ class _BranchTransactionScreenState
                                       color: Colors.black54),
                                 )),
 
-                                // Date
                                 DataCell(Text(
                                   fmt.format(t.createdAt),
                                   style: const TextStyle(
@@ -270,10 +408,8 @@ class _BranchTransactionScreenState
                                       color: Colors.black45),
                                 )),
 
-                                // Status / Sync button
                                 DataCell(
                                   t.isSynced
-                                  // ✅ Synced — green badge
                                       ? Container(
                                     padding: const EdgeInsets
                                         .symmetric(
@@ -312,7 +448,6 @@ class _BranchTransactionScreenState
                                       ],
                                     ),
                                   )
-                                  // ⏳ Pending — sync button
                                       : SizedBox(
                                     width: 90,
                                     child: ElevatedButton.icon(
@@ -385,11 +520,17 @@ class _BranchTransactionScreenState
 }
 
 // ── Summary Card ─────────────────────────────────────────────
+// ── Summary Card ─────────────────────────────────────────────
 class _SummaryCard extends StatelessWidget {
   final double totalAmount;
   final double cashInHand;
+  final double totalPayAmount;
 
-  const _SummaryCard({required this.totalAmount, required this.cashInHand});
+  const _SummaryCard({
+    required this.totalAmount,
+    required this.cashInHand,
+    required this.totalPayAmount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -402,19 +543,19 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Expanded(
               child: _AmountItem(
-                label:  'Total Amount',
+                label:  'Cash In Hand',
                 amount: totalAmount,
-                color:  Colors.blue,
-                icon:   Icons.account_balance_wallet_outlined,
+                color:  Colors.green,
+                icon:   Icons.payments_outlined,
               ),
             ),
             Container(width: 1, height: 50, color: Colors.grey.shade200),
             Expanded(
               child: _AmountItem(
-                label:  'Cash In Hand',
-                amount: cashInHand,
-                color:  Colors.green,
-                icon:   Icons.payments_outlined,
+                label:  'Total Pay Amount',
+                amount: totalPayAmount,
+                color:  Colors.red,
+                icon:   Icons.arrow_upward_rounded,
               ),
             ),
           ],

@@ -13,7 +13,9 @@ class BranchTransactionState {
   final bool     isSubmitting;
   final String?  errorMessage;
   final bool     isSuccess;
-  final String?  syncingRowId; // konsi row sync ho rahi hai
+  final String?  syncingRowId;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   const BranchTransactionState({
     this.totalAmount   = 0.0,
@@ -24,17 +26,22 @@ class BranchTransactionState {
     this.errorMessage,
     this.isSuccess     = false,
     this.syncingRowId,
+    this.startDate,
+    this.endDate,
   });
 
   BranchTransactionState copyWith({
-    double?  totalAmount,
-    double?  cashInHand,
+    double?   totalAmount,
+    double?   cashInHand,
     List<BranchTransactionHistoryModel>? history,
-    bool?    isLoading,
-    bool?    isSubmitting,
-    String?  errorMessage,
-    bool?    isSuccess,
-    String?  syncingRowId,
+    bool?     isLoading,
+    bool?     isSubmitting,
+    String?   errorMessage,
+    bool?     isSuccess,
+    String?   syncingRowId,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool      clearDates = false,
   }) =>
       BranchTransactionState(
         totalAmount:   totalAmount   ?? this.totalAmount,
@@ -45,6 +52,8 @@ class BranchTransactionState {
         errorMessage:  errorMessage,
         isSuccess:     isSuccess     ?? this.isSuccess,
         syncingRowId:  syncingRowId,
+        startDate:     clearDates ? null : (startDate ?? this.startDate),
+        endDate:       clearDates ? null : (endDate   ?? this.endDate),
       );
 }
 
@@ -57,14 +66,18 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
       : _ds = BranchTransactionDataSource(),
         super(const BranchTransactionState());
 
-  // ── Load data ──────────────────────────────────────────
+  // ── Load data (uses current startDate/endDate filter agar set ho) ──
   Future<void> loadData() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final auth        = _ref.read(authProvider);
       final storeId     = auth.storeId;
       final totalAmount = await _ds.getBranchTotalAmount(storeId);
-      final historyList = await _ds.getHistory(storeId);
+      final historyList = await _ds.getHistory(
+        storeId,
+        startDate: state.startDate,
+        endDate:   state.endDate,
+      );
 
       state = state.copyWith(
         totalAmount: totalAmount,
@@ -79,6 +92,18 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
         errorMessage: 'Data load error: $e',
       );
     }
+  }
+
+  // ── Date filter set karo aur dobara load karo ──────────
+  Future<void> setDateRange(DateTime start, DateTime end) async {
+    state = state.copyWith(startDate: start, endDate: end);
+    await loadData();
+  }
+
+  // ── Date filter clear karo (sab history dikhao) ────────
+  Future<void> clearDateRange() async {
+    state = state.copyWith(clearDates: true);
+    await loadData();
   }
 
   // ── Cash Out ───────────────────────────────────────────

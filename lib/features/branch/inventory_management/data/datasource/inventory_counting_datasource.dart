@@ -6,15 +6,31 @@ class InventoryCountingRemoteDatasource {
 
   static const int _pageSize = 50;
 
-  /// Already counted product_ids fetch karo
+  String get _todayDate {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Aaj ke counted product_ids fetch karo (date filter ke saath)
   Future<List<String>> fetchCountedProductIds() async {
     final response = await _client
         .from('inventory_counting')
-        .select('product_id');
+        .select('product_id')
+        .eq('counted_date', _todayDate);
 
     return (response as List)
         .map((e) => e['product_id'] as String)
         .toList();
+  }
+
+  /// Aaj kitne products count ho chuke — DB se actual count
+  Future<int> fetchTodayCountedCount() async {
+    final response = await _client
+        .from('inventory_counting')
+        .select('product_id')
+        .eq('counted_date', _todayDate);
+
+    return (response as List).length;
   }
 
   /// 50 products fetch karo — already counted ko exclude karo
@@ -22,13 +38,11 @@ class InventoryCountingRemoteDatasource {
     required String storeId,
     required List<String> excludeProductIds,
   }) async {
-    // ─── Pehle filter build karo (PostgrestFilterBuilder pe) ─────────────────
     var query = _client
         .from('branch_stock_inventory')
         .select('id, product_id, product_name, stock, updated_at')
         .eq('store_id', storeId);
 
-    // .not() filter pehle lagao — transform se pehle
     if (excludeProductIds.isNotEmpty) {
       query = query.not(
         'product_id',
@@ -37,7 +51,6 @@ class InventoryCountingRemoteDatasource {
       );
     }
 
-    // ─── Ab order + limit lagao ───────────────────────────────────────────────
     final response = await query
         .order('product_name', ascending: true)
         .limit(_pageSize);

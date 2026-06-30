@@ -31,12 +31,14 @@ class InventoryCountingModel {
   final double productStock;
   final double countingStock;
   final DateTime updatedAt;
+  final String countedDate; // ← naya field
 
   InventoryCountingModel({
     required this.productId,
     required this.productStock,
     required this.countingStock,
     required this.updatedAt,
+    required this.countedDate,
   });
 
   Map<String, dynamic> toMap() {
@@ -45,6 +47,7 @@ class InventoryCountingModel {
       'product_stock': productStock,
       'counting_stock': countingStock,
       'updated_at': updatedAt.toIso8601String(),
+      'counted_date': countedDate, // ← DB mein save hoga
     };
   }
 }
