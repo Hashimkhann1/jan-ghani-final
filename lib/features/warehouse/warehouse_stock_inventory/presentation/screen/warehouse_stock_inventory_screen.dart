@@ -497,6 +497,7 @@ class _ProductRow extends StatelessWidget {
                     case 'edit':    onEdit();    break;
                     case 'history': onHistory(); break;
                     case 'printQr': onPrintQR(); break;
+                    case 'delete':  onDelete();  break;
                   }
                 },
                 itemBuilder: (context) => [
@@ -521,6 +522,17 @@ class _ProductRow extends StatelessWidget {
                     child: ListTile(
                       leading: const Icon(Icons.print, color: Color(0xFF268DF1)),
                       title: const Text("Print QR"),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: const Icon(Icons.delete_outline_rounded,
+                          color: Color(0xFFEF4444)),
+                      title: const Text("Delete",
+                          style: TextStyle(color: Color(0xFFEF4444))),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -569,7 +581,7 @@ void _showDeleteDialog(BuildContext context, WidgetRef ref, ProductModel product
               child: const Row(children: [
                 Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFF59E0B)),
                 SizedBox(width: 8),
-                Expanded(child: Text("Product soft delete hoga — inventory data mehfooz rahega.", style: TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
+                Expanded(child: Text("Product soft delete hoga", style: TextStyle(fontSize: 12, color: Color(0xFF6C7280)))),
               ]),
             ),
           ),
