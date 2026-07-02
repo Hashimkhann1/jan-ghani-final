@@ -3,6 +3,7 @@ import 'package:jan_ghani_final/features/accountant/branch_reports/account_branc
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_branch_summary/presentation/screen/accountant_branch_summary_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_customer_ledger/presentation/screen/accountant_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/screen/accountant_dashboard_screen.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_discount_wise_sale_report/presentation/screen/accountant_discount_wise_sale_report_screen.dart';
 import '../../../../../../core/color/app_color.dart';
 import 'accountant_branch_transaction/presentation/screen/accountant_branch_transaction_report_screen.dart';
 import 'accountant_category_wise_sale_report/presentaion/screen/category_sale_report_screen.dart';
@@ -84,6 +85,12 @@ class BranchReportListScreen extends StatelessWidget {
       label:    'Category Wise Sale Report',
       subtitle: 'Track sales by category',
       color:    Color(0xFFD97706),
+    ),
+    _ReportItem(
+      icon:     Icons.assignment_return_rounded,
+      label:    'Discount Wise Sale Report',
+      subtitle: 'Details of Discount Wise items',
+      color:    Color(0xFFF59E0B),
     ),
   ];
 
@@ -171,6 +178,11 @@ class BranchReportListScreen extends StatelessWidget {
       case 10:
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => CategorySaleReportScreen(branchId: branchId),
+        ));
+        break;
+      case 11:
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => DiscountWiseSaleReportScreen(branchId: branchId),
         ));
         break;
     }

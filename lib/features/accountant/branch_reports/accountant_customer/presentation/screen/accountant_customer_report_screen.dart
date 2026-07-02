@@ -978,7 +978,8 @@ class _MobileLayout extends StatelessWidget {
           Container(
             color:   Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            child: Row(children: [
+            child: Wrap(
+                children: [
               _SummaryCard(
                 label: 'Total',
                 value: '${state.summary.totalCustomers}',
@@ -1156,258 +1157,244 @@ class _CustomerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final exceeded    = customer.isCreditLimitExceeded;
-    final hasBalance  = customer.balance > 0;
-    final balColor    = exceeded
+    final exceeded   = customer.isCreditLimitExceeded;
+    final hasBalance = customer.balance > 0;
+    final balColor   = exceeded
         ? const Color(0xFFEF4444)
         : hasBalance
         ? AppColor.error
         : AppColor.success;
-    final usageRatio  = customer.creditUsageRatio;
+    final usageRatio = customer.creditUsageRatio;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+    return Container(
       decoration: BoxDecoration(
         color:        Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: exceeded
-              ? const Color(0xFFEF4444).withOpacity(0.35)
-              : const Color(0xFFEEEEEE),
-          width: exceeded ? 1.5 : 1.0,
+              ? const Color(0xFFEF4444).withOpacity(0.3)
+              : const Color(0xFFEFEFF2),
         ),
         boxShadow: [
           BoxShadow(
-            color:      exceeded
-                ? const Color(0xFFEF4444).withOpacity(0.07)
-                : Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset:     const Offset(0, 2),
+            color:      Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset:     const Offset(0, 3),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
 
-            // ── Top Row ──────────────────────────────────────────────
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+          // ── Header strip: avatar + name + limit badge ────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar
                 Container(
-                  width:  46,
-                  height: 46,
+                  width:  48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        _typeColor.withOpacity(0.15),
-                        _typeColor.withOpacity(0.05),
-                      ],
-                      begin: Alignment.topLeft,
-                      end:   Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
+                    color:        _typeColor,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color:      _typeColor.withOpacity(0.35),
+                        blurRadius: 8,
+                        offset:     const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: Text(
                       customer.name.isNotEmpty
                           ? customer.name[0].toUpperCase()
                           : '?',
-                      style: TextStyle(
-                        fontSize:   18,
+                      style: const TextStyle(
+                        fontSize:   19,
                         fontWeight: FontWeight.w800,
-                        color:      _typeColor,
+                        color:      Colors.white,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
 
-                // Name + badges
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [
-                        Flexible(
-                          child: Text(
-                            customer.name,
-                            style: const TextStyle(
-                              fontSize:   14,
-                              fontWeight: FontWeight.w700,
-                              color:      Color(0xFF1A1D23),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                      Text(
+                        customer.name,
+                        style: const TextStyle(
+                          fontSize:   15,
+                          fontWeight: FontWeight.w700,
+                          color:      Color(0xFF1A1D23),
                         ),
-                        if (exceeded) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 2),
-                            decoration: BoxDecoration(
-                              color:        const Color(0xFFEF4444),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.warning_amber_rounded,
-                                    size: 9, color: Colors.white),
-                                SizedBox(width: 2),
-                                Text('LIMIT',
-                                    style: TextStyle(
-                                      fontSize:   8,
-                                      fontWeight: FontWeight.w800,
-                                      color:      Colors.white,
-                                    )),
-                              ],
-                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 5),
+                      Wrap(
+                        spacing:   10,
+                        runSpacing: 4,
+                        children: [
+                          _MetaChip(
+                            icon: Icons.phone_outlined,
+                            text: customer.phone.isEmpty
+                                ? '-' : customer.phone,
+                          ),
+                          _MetaChip(
+                            icon: Icons.tag_rounded,
+                            text: customer.code,
                           ),
                         ],
-                      ]),
-                      const SizedBox(height: 4),
-                      Row(children: [
-                        const Icon(Icons.phone_outlined,
-                            size: 11, color: AppColor.textHint),
-                        const SizedBox(width: 3),
-                        Flexible(
-                          child: Text(
-                            customer.phone.isEmpty
-                                ? '-'
-                                : customer.phone,
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color:    AppColor.textSecondary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.tag_rounded,
-                            size: 11, color: AppColor.textHint),
-                        const SizedBox(width: 2),
-                        Flexible(
-                          child: Text(
-                            customer.code,
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color:    AppColor.textHint),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ]),
+                      ),
                     ],
                   ),
                 ),
 
-                const SizedBox(width: 8),
-                // Balance + Type — fixed right column
-                SizedBox(
-                  width: 90,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color:        balColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(7),
-                          border: Border.all(
-                              color: balColor.withOpacity(0.3)),
-                        ),
-                        child: Text(
+                if (exceeded)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 4),
+                    decoration: BoxDecoration(
+                      color:        const Color(0xFFEF4444),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.warning_amber_rounded,
+                            size: 11, color: Colors.white),
+                        SizedBox(width: 3),
+                        Text('LIMIT',
+                            style: TextStyle(
+                              fontSize:   9,
+                              fontWeight: FontWeight.w800,
+                              color:      Colors.white,
+                              letterSpacing: 0.3,
+                            )),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Balance + Type strip ──────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color:        balColor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Balance',
+                            style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: balColor.withOpacity(0.75))),
+                        const SizedBox(height: 2),
+                        Text(
                           fmtAmt(customer.balance),
-                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize:   11,
+                            fontSize:   14,
                             fontWeight: FontWeight.w800,
                             color:      balColor,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(
-                          color:        _typeColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(
-                              color: _typeColor.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          customer.customerType.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize:   9,
-                            fontWeight: FontWeight.w700,
-                            color:      _typeColor,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color:        _typeColor.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: _typeColor.withOpacity(0.25)),
+                  ),
+                  child: Text(
+                    customer.customerType.toUpperCase(),
+                    style: TextStyle(
+                      fontSize:   10.5,
+                      fontWeight: FontWeight.w800,
+                      color:      _typeColor,
+                      letterSpacing: 0.4,
+                    ),
                   ),
                 ),
               ],
             ),
+          ),
 
-            // ── Credit Limit Section ──────────────────────────────────
-            if (customer.creditLimit > 0) ...[
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color:        exceeded
-                      ? const Color(0xFFEF4444).withOpacity(0.05)
-                      : const Color(0xFFF5F6FA),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(
-                    color: exceeded
-                        ? const Color(0xFFEF4444).withOpacity(0.2)
-                        : const Color(0xFFEEEEEE),
-                  ),
+          // ── Credit Limit Section ───────────────────────────────────────
+          if (customer.creditLimit > 0) ...[
+            const SizedBox(height: 10),
+            Container(
+              margin:  const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color:        exceeded
+                    ? const Color(0xFFEF4444).withOpacity(0.05)
+                    : const Color(0xFFF5F6FA),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: exceeded
+                      ? const Color(0xFFEF4444).withOpacity(0.2)
+                      : const Color(0xFFEEEEEE),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(children: [
-                          Icon(
-                            exceeded
-                                ? Icons.warning_amber_rounded
-                                : Icons.credit_score_outlined,
-                            size:  12,
-                            color: exceeded
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(children: [
+                        Icon(
+                          exceeded
+                              ? Icons.warning_amber_rounded
+                              : Icons.credit_score_outlined,
+                          size:  12,
+                          color: exceeded
+                              ? const Color(0xFFEF4444)
+                              : AppColor.textHint,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Credit Limit',
+                          style: TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w600,
+                            color:      exceeded
                                 ? const Color(0xFFEF4444)
                                 : AppColor.textHint,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Credit Limit',
-                            style: TextStyle(
-                              fontSize:   11,
-                              fontWeight: FontWeight.w600,
-                              color:      exceeded
-                                  ? const Color(0xFFEF4444)
-                                  : AppColor.textHint,
-                            ),
-                          ),
-                        ]),
-                        RichText(
+                        ),
+                      ]),
+                      Flexible(
+                        child: RichText(
+                          textAlign: TextAlign.right,
                           text: TextSpan(children: [
                             TextSpan(
                               text: fmtAmt(customer.balance),
@@ -1420,107 +1407,102 @@ class _CustomerCard extends StatelessWidget {
                               ),
                             ),
                             TextSpan(
-                              text:
-                              ' / ${fmtAmt(customer.creditLimit)}',
+                              text: ' / ${fmtAmt(customer.creditLimit)}',
                               style: const TextStyle(
                                   fontSize: 11,
                                   color:    AppColor.textHint),
                             ),
                           ]),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 7),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value:      usageRatio.clamp(0.0, 1.0),
-                        minHeight:  6,
-                        backgroundColor: exceeded
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value:      usageRatio.clamp(0.0, 1.0),
+                      minHeight:  6,
+                      backgroundColor: exceeded
+                          ? const Color(0xFFEF4444).withOpacity(0.15)
+                          : const Color(0xFFE5E7EB),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        exceeded
                             ? const Color(0xFFEF4444)
-                            .withOpacity(0.15)
-                            : const Color(0xFFE5E7EB),
-                        valueColor:
-                        AlwaysStoppedAnimation<Color>(
-                          exceeded
-                              ? const Color(0xFFEF4444)
-                              : usageRatio > 0.75
-                              ? const Color(0xFFF59E0B)
-                              : AppColor.success,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    exceeded
-                        ? Text(
-                      '⚠️ Limit se ${fmtAmt(customer.balance - customer.creditLimit)} zyada',
-                      style: const TextStyle(
-                        fontSize:   10,
-                        fontWeight: FontWeight.w600,
-                        color:      Color(0xFFEF4444),
-                      ),
-                    )
-                        : Text(
-                      '${(usageRatio * 100).toStringAsFixed(0)}% used',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color:    usageRatio > 0.75
+                            : usageRatio > 0.75
                             ? const Color(0xFFF59E0B)
-                            : AppColor.textHint,
+                            : AppColor.success,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 5),
+                  exceeded
+                      ? Text(
+                    'Limit se ${fmtAmt(customer.balance - customer.creditLimit)} zyada',
+                    style: const TextStyle(
+                      fontSize:   10,
+                      fontWeight: FontWeight.w600,
+                      color:      Color(0xFFEF4444),
+                    ),
+                  )
+                      : Text(
+                    '${(usageRatio * 100).toStringAsFixed(0)}% used',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color:    usageRatio > 0.75
+                          ? const Color(0xFFF59E0B)
+                          : AppColor.textHint,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+          ],
 
-            // ── Address ───────────────────────────────────────────────
-            const SizedBox(height: 8),
-            Row(children: [
+          // ── Address ────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+            child: Row(children: [
               const Icon(Icons.location_on_outlined,
-                  size: 11, color: AppColor.textHint),
-              const SizedBox(width: 3),
+                  size: 12, color: AppColor.textHint),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   customer.address.isEmpty
                       ? 'No address'
                       : customer.address,
                   style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 11.5,
                       color:    AppColor.textHint),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ]),
+          ),
 
-            // ── WhatsApp Button ───────────────────────────────────────
-            if (customer.phone.isNotEmpty &&
-                customer.balance > 0) ...[
-              const SizedBox(height: 10),
-              GestureDetector(
+          // ── WhatsApp Button ────────────────────────────────────────────
+          if (customer.phone.isNotEmpty && customer.balance > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: GestureDetector(
                 onTap: () => _sendWhatsAppReminder(context),
                 child: Container(
                   width:   double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 9),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF25D366)
-                        .withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(9),
+                    color: const Color(0xFF25D366).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: const Color(0xFF25D366)
-                            .withOpacity(0.35)),
+                        color: const Color(0xFF25D366).withOpacity(0.35)),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.chat,
-                          size:  15,
-                          color: Color(0xFF25D366)),
+                      Icon(Icons.chat, size: 15, color: Color(0xFF25D366)),
                       SizedBox(width: 6),
                       Text(
-                        'ادائیگی یاد دہانی بھیجیں',
+                        'Send Payment Reminder',
                         style: TextStyle(
                           fontSize:   12,
                           fontWeight: FontWeight.w600,
@@ -1531,14 +1513,14 @@ class _CustomerCard extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ],
-        ),
+            )
+          else
+            const SizedBox(height: 14),
+        ],
       ),
     );
   }
 }
-
 // ══════════════════════════════════════════════════════════════════════════════
 // Shared Widgets
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1669,5 +1651,23 @@ class _EmptyState extends StatelessWidget {
                 fontSize: 13, color: Colors.grey.shade400)),
       ],
     ),
+  );
+}
+
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String   text;
+  const _MetaChip({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 11, color: AppColor.textHint),
+      const SizedBox(width: 3),
+      Text(text,
+          style: const TextStyle(
+              fontSize: 11.5, color: AppColor.textSecondary)),
+    ],
   );
 }

@@ -80,12 +80,216 @@ class _AccountantSaleReturnReportScreenState
     _toCtrl.text     = _dateFmt.format(todayClean);
   }
 
+  // ── Filter Bottom Sheet ──────────────────────────────────────────────
+  void _showFilterSheet(BuildContext context) {
+    showModalBottomSheet(
+      context:              context,
+      isScrollControlled:   true,
+      backgroundColor:      Colors.transparent,
+      builder: (sheetCtx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final state = ref.watch(
+                      accountantSaleReturnProvider(widget.branchId));
+                  final notifier = ref.read(
+                      accountantSaleReturnProvider(widget.branchId)
+                          .notifier);
+
+                  final customerItems = [
+                    DropdownItem<String?>(
+                      value: null,
+                      label: 'All Customers',
+                      icon:  Icons.people_outline_rounded,
+                    ),
+                    ...state.customers.map((c) => DropdownItem<String?>(
+                      value: c.id,
+                      label: c.label,
+                      icon:  Icons.person_outline_rounded,
+                    )),
+                  ];
+
+                  final refundItems = [
+                    DropdownItem<String?>(
+                        value: null,
+                        label: 'All Refund Types',
+                        icon:  Icons.swap_horiz_rounded),
+                    DropdownItem<String?>(
+                        value: 'cash',
+                        label: 'Cash',
+                        icon:  Icons.payments_outlined),
+                    DropdownItem<String?>(
+                        value: 'card',
+                        label: 'Card',
+                        icon:  Icons.credit_card_outlined),
+                    DropdownItem<String?>(
+                        value: 'credit',
+                        label: 'Credit',
+                        icon:  Icons.receipt_long_outlined),
+                  ];
+
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        // Handle bar
+                        Center(
+                          child: Container(
+                            width:  40,
+                            height: 4,
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE5E7EB),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+
+                        // Header
+                        Row(
+                          mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Filters',
+                              style: TextStyle(
+                                fontSize:   16,
+                                fontWeight: FontWeight.w700,
+                                color:      Color(0xFF1A1D23),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                notifier.setCustomer(null);
+                                notifier.setRefundType(null);
+                                _setToday(notifier);
+                              },
+                              child: const Text('Reset'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+
+                        // Date fields
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _DateField(
+                                label:      'Start Date',
+                                controller: _fromCtrl,
+                                onTap:      () => _pickDate(context, true),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _DateField(
+                                label:      'End Date',
+                                controller: _toCtrl,
+                                onTap:      () => _pickDate(context, false),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Customer dropdown
+                        const Text(
+                          'Customer',
+                          style: TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w600,
+                            color:      AppColor.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        AppSearchableDropdown<String?>(
+                          items:      customerItems,
+                          value:      state.selectedCustomerId,
+                          hint:       'All Customers',
+                          fullWidth:  true,
+                          prefixIcon: Icons.person_outline_rounded,
+                          onChanged:  (v) => notifier.setCustomer(v),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Refund type dropdown
+                        const Text(
+                          'Refund Type',
+                          style: TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w600,
+                            color:      AppColor.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        AppSearchableDropdown<String?>(
+                          items:      refundItems,
+                          value:      state.selectedRefundType,
+                          hint:       'All Refund Types',
+                          fullWidth:  true,
+                          prefixIcon: Icons.swap_horiz_rounded,
+                          onChanged:  (v) => notifier.setRefundType(v),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Apply button
+                        SizedBox(
+                          width:  double.infinity,
+                          height: 46,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColor.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                BorderRadius.circular(10),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () => Navigator.pop(sheetCtx),
+                            child: const Text(
+                              'Apply Filters',
+                              style: TextStyle(
+                                fontSize:   14,
+                                fontWeight: FontWeight.w700,
+                                color:      Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(accountantSaleReturnProvider(widget.branchId));
     final notifier =
     ref.read(accountantSaleReturnProvider(widget.branchId).notifier);
     final summary  = state.summary;
+
+    final bool hasActiveFilter =
+        state.selectedCustomerId != null || state.selectedRefundType != null;
 
     ref.listen<AccountantSaleReturnState>(
         accountantSaleReturnProvider(widget.branchId), (_, next) {
@@ -104,38 +308,6 @@ class _AccountantSaleReturnReportScreenState
         ));
       }
     });
-
-    final customerItems = [
-      DropdownItem<String?>(
-        value: null,
-        label: 'All Customers',
-        icon:  Icons.people_outline_rounded,
-      ),
-      ...state.customers.map((c) => DropdownItem<String?>(
-        value: c.id,
-        label: c.label,
-        icon:  Icons.person_outline_rounded,
-      )),
-    ];
-
-    final refundItems = [
-      DropdownItem<String?>(
-          value: null,
-          label: 'All Refund Types',
-          icon:  Icons.swap_horiz_rounded),
-      DropdownItem<String?>(
-          value: 'cash',
-          label: 'Cash',
-          icon:  Icons.payments_outlined),
-      DropdownItem<String?>(
-          value: 'card',
-          label: 'Card',
-          icon:  Icons.credit_card_outlined),
-      DropdownItem<String?>(
-          value: 'credit',
-          label: 'Credit',
-          icon:  Icons.receipt_long_outlined),
-    ];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
@@ -158,6 +330,30 @@ class _AccountantSaleReturnReportScreenState
                 color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                onPressed: () => _showFilterSheet(context),
+                icon:    const Icon(Icons.filter_alt_outlined,
+                    color: AppColor.textSecondary),
+                tooltip: 'Filters',
+              ),
+              if (hasActiveFilter)
+                Positioned(
+                  right: 8,
+                  top:   8,
+                  child: Container(
+                    width:  8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColor.error,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           TextButton(
             onPressed: () => _setToday(notifier),
             child: const Text('Today'),
@@ -173,69 +369,11 @@ class _AccountantSaleReturnReportScreenState
       body: Column(
         children: [
 
-          // ── Row 1: Date filters ──────────────────────────────────────
+          // ── Summary Cards ─────────────────────────────────────────────
           Container(
             color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _DateField(
-                    label:      'Start Date',
-                    controller: _fromCtrl,
-                    onTap:      () => _pickDate(context, true),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _DateField(
-                    label:      'End Date',
-                    controller: _toCtrl,
-                    onTap:      () => _pickDate(context, false),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Row 2: Dropdowns ─────────────────────────────────────────
-          Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: AppSearchableDropdown<String?>(
-                    items:      customerItems,
-                    value:      state.selectedCustomerId,
-                    hint:       'All Customers',
-                    fullWidth:  true,
-                    prefixIcon: Icons.person_outline_rounded,
-                    onChanged:  (v) => notifier.setCustomer(v),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: AppSearchableDropdown<String?>(
-                    items:      refundItems,
-                    value:      state.selectedRefundType,
-                    hint:       'All Refund Types',
-                    fullWidth:  true,
-                    prefixIcon: Icons.swap_horiz_rounded,
-                    onChanged:  (v) => notifier.setRefundType(v),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Container(height: 1, color: const Color(0xFFE5E7EB)),
-
-          // ── Row 3: Summary Cards ─────────────────────────────────────
-          Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Wrap(
               children: [
                 _SummaryCard(
                   label: 'Returns',
@@ -270,7 +408,7 @@ class _AccountantSaleReturnReportScreenState
 
           Container(height: 6, color: const Color(0xFFF5F6FA)),
 
-          // ── Row 4: Return List ───────────────────────────────────────
+          // ── Return List ───────────────────────────────────────────────
           Expanded(
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())

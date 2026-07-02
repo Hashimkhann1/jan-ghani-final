@@ -61,6 +61,200 @@ class _AccountantCustomerLedgerScreenState
     }
   }
 
+  // ── Filter bottom sheet (mobile) ────────────────────────────────────────
+  void _showFilterSheet({
+    required CustomerLedgerState state,
+    required dynamic notifier,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppColor.grey200,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Filters',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A1D23),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        notifier.clearDates();
+                        _searchCtrl.clear();
+                        notifier.search('');
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Reset'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Customer dropdown
+                AppSearchableDropdown<AccountantCustomerReportModel>(
+                  hint:  'Customer select karein',
+                  items: state.customers
+                      .map((c) => DropdownItem(
+                    value: c,
+                    label: '${c.name}  •  ${c.code}',
+                    icon:  Icons.person_outline_rounded,
+                  ))
+                      .toList(),
+                  value:     state.selectedCustomer,
+                  onChanged: (c) {
+                    if (c != null) notifier.selectCustomer(c);
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Search
+                TextField(
+                  controller:   _searchCtrl,
+                  onChanged:    notifier.search,
+                  style: const TextStyle(fontSize: 14),
+                  cursorHeight: 16,
+                  decoration: InputDecoration(
+                    hintText: 'Notes ya naam se search karein...',
+                    hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color:    AppColor.textHint),
+                    prefixIcon: const Icon(Icons.search_rounded,
+                        size: 20, color: AppColor.primary),
+                    suffixIcon: state.searchQuery.isNotEmpty
+                        ? IconButton(
+                      icon: const Icon(Icons.clear_rounded,
+                          size: 18, color: AppColor.textHint),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        notifier.search('');
+                        setSheetState(() {});
+                      },
+                    )
+                        : null,
+                    filled:    true,
+                    fillColor: AppColor.grey100,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:   BorderSide.none),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                          color: AppColor.grey200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                          color: AppColor.primary, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Date range
+                Row(children: [
+                  Expanded(
+                    child: _DateButton(
+                      label: 'Start Date',
+                      date:  state.startDate,
+                      fmt:   _dateFmt,
+                      onTap: () async {
+                        await _pickDate(ctx, true);
+                        setSheetState(() {});
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DateButton(
+                      label: 'End Date',
+                      date:  state.endDate,
+                      fmt:   _dateFmt,
+                      onTap: () async {
+                        await _pickDate(ctx, false);
+                        setSheetState(() {});
+                      },
+                    ),
+                  ),
+                  if (state.startDate != null ||
+                      state.endDate != null) ...[
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        notifier.clearDates();
+                        setSheetState(() {});
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColor.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: AppColor.error
+                                  .withOpacity(0.3)),
+                        ),
+                        child: const Icon(Icons.close_rounded,
+                            size: 18, color: AppColor.error),
+                      ),
+                    ),
+                  ],
+                ]),
+
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColor.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Apply Filters'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(customerLedgerProvider(_bid));
@@ -87,6 +281,11 @@ class _AccountantCustomerLedgerScreenState
       },
     );
 
+    final activeFilterCount =
+        (state.selectedCustomer != null ? 1 : 0) +
+            (state.startDate != null || state.endDate != null ? 1 : 0) +
+            (state.searchQuery.isNotEmpty ? 1 : 0);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: desktop
@@ -100,20 +299,22 @@ class _AccountantCustomerLedgerScreenState
         onPickEnd:   () => _pickDate(context, false),
       )
           : _MobileLayout(
-        state:      state,
-        notifier:   notifier,
-        fmt:        _fmt,
-        dateFmt:    _dateFmt,
-        searchCtrl: _searchCtrl,
-        onPickStart: () => _pickDate(context, true),
-        onPickEnd:   () => _pickDate(context, false),
+        state:             state,
+        notifier:          notifier,
+        fmt:               _fmt,
+        dateFmt:           _dateFmt,
+        activeFilterCount: activeFilterCount,
+        onOpenFilters: () => _showFilterSheet(
+          state:    state,
+          notifier: notifier,
+        ),
       ),
     );
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// DESKTOP LAYOUT
+// DESKTOP LAYOUT (unchanged)
 // ══════════════════════════════════════════════════════════════════════════════
 class _DesktopLayout extends StatelessWidget {
   final CustomerLedgerState     state;
@@ -204,219 +405,219 @@ class _DesktopLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
 
-              // Customer dropdown
-              SizedBox(
-                width: 280,
-                child: AppSearchableDropdown<
-                    AccountantCustomerReportModel>(
-                  hint:  'Customer select karein',
-                  items: state.customers
-                      .map((c) => DropdownItem(
-                    value: c,
-                    label: '${c.name}  •  ${c.code}',
-                    icon:  Icons.person_outline_rounded,
-                  ))
-                      .toList(),
-                  value:     state.selectedCustomer,
-                  onChanged: (c) {
-                    if (c != null) notifier.selectCustomer(c);
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Start Date
-              SizedBox(
-                width: 170,
-                child: _DateButton(
-                  label: 'Start Date',
-                  date:  state.startDate,
-                  fmt:   dateFmt,
-                  onTap: onPickStart,
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // End Date
-              SizedBox(
-                width: 170,
-                child: _DateButton(
-                  label: 'End Date',
-                  date:  state.endDate,
-                  fmt:   dateFmt,
-                  onTap: onPickEnd,
-                ),
-              ),
-
-              // Clear dates
-              if (state.startDate != null ||
-                  state.endDate != null) ...[
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap:        notifier.clearDates,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColor.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color:
-                          AppColor.error.withOpacity(0.3)),
-                    ),
-                    child: const Icon(Icons.close_rounded,
-                        size: 18, color: AppColor.error),
-                  ),
-                ),
-              ],
-
-              const SizedBox(width: 16),
-              const SizedBox(
-                  height: 48,
-                  child: VerticalDivider(
-                      width: 1, color: Color(0xFFEEEEEE))),
-              const SizedBox(width: 16),
-
-              // Search
-              Expanded(
-                child: SizedBox(
-                  height: 42,
-                  child: TextField(
-                    controller: searchCtrl,
-                    onChanged:  notifier.search,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Notes ya naam se search karein...',
-                      hintStyle: const TextStyle(
-                          fontSize: 13,
-                          color:    AppColor.textHint),
-                      prefixIcon: const Icon(
-                          Icons.search_rounded,
-                          size:  18,
-                          color: AppColor.primary),
-                      suffixIcon: state.searchQuery.isNotEmpty
-                          ? IconButton(
-                        icon: const Icon(
-                            Icons.clear_rounded,
-                            size:  16,
-                            color: AppColor.textHint),
-                        onPressed: () {
-                          searchCtrl.clear();
-                          notifier.search('');
-                        },
-                      )
-                          : null,
-                      filled:    true,
-                      fillColor: AppColor.grey100,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:   BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color:  AppColor.primary,
-                            width: 1.5),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            // Customer dropdown
+            SizedBox(
+            width: 280,
+            child: AppSearchableDropdown
+            <AccountantCustomerReportModel>(
+            hint:  'Customer select karein',
+            items: state.customers
+                .map((c) => DropdownItem(
+              value: c,
+              label: '${c.name}  •  ${c.code}',
+              icon:  Icons.person_outline_rounded,
+            ))
+                .toList(),
+            value:     state.selectedCustomer,
+            onChanged: (c) {
+              if (c != null) notifier.selectCustomer(c);
+            },
           ),
         ),
-        const Divider(height: 1, color: Color(0xFFEEEEEE)),
+        const SizedBox(width: 12),
 
-        // ── Summary cards row ────────────────────────────────────────────────
-        if (state.filtered.isNotEmpty)
-          Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(28, 10, 28, 14),
-            child: Row(
-              children: [
-                _DeskStatCard(
-                  label: 'Total Collected',
-                  value: fmt(state.totalCollected),
-                  icon:  Icons.account_balance_wallet_outlined,
-                  color: AppColor.primary,
-                ),
-                const SizedBox(width: 10),
-                _DeskStatCard(
-                  label: 'Filtered Total',
-                  value: fmt(state.totalPaid),
-                  icon:  Icons.payments_outlined,
-                  color: AppColor.success,
-                ),
-                const SizedBox(width: 10),
-                _DeskStatCard(
-                  label: 'Entries',
-                  value: '${state.filtered.length}',
-                  icon:  Icons.receipt_long_outlined,
-                  color: AppColor.warning,
-                ),
-                if (state.startDate != null ||
-                    state.endDate != null) ...[
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color:        AppColor.primary.withOpacity(0.07),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: AppColor.primary.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.filter_alt_rounded,
-                            size: 14, color: AppColor.primary),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${state.startDate != null ? dateFmt.format(state.startDate!) : '?'}'
-                              '  –  '
-                              '${state.endDate != null ? dateFmt.format(state.endDate!) : '?'}',
-                          style: const TextStyle(
-                            fontSize:   12,
-                            fontWeight: FontWeight.w600,
-                            color:      AppColor.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
+        // Start Date
+        SizedBox(
+          width: 170,
+          child: _DateButton(
+            label: 'Start Date',
+            date:  state.startDate,
+            fmt:   dateFmt,
+            onTap: onPickStart,
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // End Date
+        SizedBox(
+          width: 170,
+          child: _DateButton(
+            label: 'End Date',
+            date:  state.endDate,
+            fmt:   dateFmt,
+            onTap: onPickEnd,
+          ),
+        ),
+
+        // Clear dates
+        if (state.startDate != null ||
+            state.endDate != null) ...[
+          const SizedBox(width: 8),
+          InkWell(
+            onTap:        notifier.clearDates,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColor.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color:
+                    AppColor.error.withOpacity(0.3)),
+              ),
+              child: const Icon(Icons.close_rounded,
+                  size: 18, color: AppColor.error),
             ),
           ),
+        ],
 
-        if (state.filtered.isNotEmpty)
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+        const SizedBox(width: 16),
+        const SizedBox(
+            height: 48,
+            child: VerticalDivider(
+                width: 1, color: Color(0xFFEEEEEE))),
+        const SizedBox(width: 16),
 
-        // ── Table ────────────────────────────────────────────────────────────
+        // Search
         Expanded(
-          child: state.isLoadingLedger
-              ? const Center(child: CircularProgressIndicator())
-              : state.filtered.isEmpty
-              ? _EmptyState(
-            message: state.selectedCustomer == null
-                ? 'Customer select karein'
-                : 'Koi entry nahi mili',
-          )
-              : _LedgerTable(
-            items:  state.filtered,
-            fmt:    fmt,
-            dateFmt: DateFormat('dd MMM yyyy  hh:mm a'),
+          child: SizedBox(
+            height: 42,
+            child: TextField(
+              controller: searchCtrl,
+              onChanged:  notifier.search,
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Notes ya naam se search karein...',
+                hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color:    AppColor.textHint),
+                prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size:  18,
+                    color: AppColor.primary),
+                suffixIcon: state.searchQuery.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(
+                      Icons.clear_rounded,
+                      size:  16,
+                      color: AppColor.textHint),
+                  onPressed: () {
+                    searchCtrl.clear();
+                    notifier.search('');
+                  },
+                )
+                    : null,
+                filled:    true,
+                fillColor: AppColor.grey100,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:   BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                      color: AppColor.grey200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                      color:  AppColor.primary,
+                      width: 1.5),
+                ),
+              ),
+            ),
           ),
         ),
       ],
+    ),
+    ),
+    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+    // ── Summary cards row ────────────────────────────────────────────────
+    if (state.filtered.isNotEmpty)
+    Container(
+    color:   Colors.white,
+    padding: const EdgeInsets.fromLTRB(28, 10, 28, 14),
+    child: Row(
+    children: [
+    _DeskStatCard(
+    label: 'Total Collected',
+    value: fmt(state.totalCollected),
+    icon:  Icons.account_balance_wallet_outlined,
+    color: AppColor.primary,
+    ),
+    const SizedBox(width: 10),
+    _DeskStatCard(
+    label: 'Filtered Total',
+    value: fmt(state.totalPaid),
+    icon:  Icons.payments_outlined,
+    color: AppColor.success,
+    ),
+    const SizedBox(width: 10),
+    _DeskStatCard(
+    label: 'Entries',
+    value: '${state.filtered.length}',
+    icon:  Icons.receipt_long_outlined,
+    color: AppColor.warning,
+    ),
+    if (state.startDate != null ||
+    state.endDate != null) ...[
+    const SizedBox(width: 10),
+    Container(
+    padding: const EdgeInsets.symmetric(
+    horizontal: 12, vertical: 8),
+    decoration: BoxDecoration(
+    color:        AppColor.primary.withOpacity(0.07),
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(
+    color: AppColor.primary.withOpacity(0.2)),
+    ),
+    child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+    const Icon(Icons.filter_alt_rounded,
+    size: 14, color: AppColor.primary),
+    const SizedBox(width: 6),
+    Text(
+    '${state.startDate != null ? dateFmt.format(state.startDate!) : '?'}'
+    '  –  '
+    '${state.endDate != null ? dateFmt.format(state.endDate!) : '?'}',
+    style: const TextStyle(
+    fontSize:   12,
+    fontWeight: FontWeight.w600,
+    color:      AppColor.primary,
+    ),
+    ),
+    ],
+    ),
+    ),
+    ],
+    ],
+    ),
+    ),
+
+    if (state.filtered.isNotEmpty)
+    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+    // ── Table ────────────────────────────────────────────────────────────
+    Expanded(
+    child: state.isLoadingLedger
+    ? const Center(child: CircularProgressIndicator())
+        : state.filtered.isEmpty
+    ? _EmptyState(
+    message: state.selectedCustomer == null
+    ? 'Customer select karein'
+        : 'Koi entry nahi mili',
+    )
+        : _LedgerTable(
+    items:  state.filtered,
+    fmt:    fmt,
+    dateFmt: DateFormat('dd MMM yyyy  hh:mm a'),
+    ),
+    ),
+    ],
     );
   }
 }
@@ -711,25 +912,23 @@ class _TH extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MOBILE LAYOUT
+// MOBILE LAYOUT — filters ab AppBar ke filter icon se bottom sheet mein khultay hain
 // ══════════════════════════════════════════════════════════════════════════════
 class _MobileLayout extends StatelessWidget {
   final CustomerLedgerState     state;
   final dynamic                 notifier;
   final String Function(double) fmt;
   final DateFormat              dateFmt;
-  final TextEditingController   searchCtrl;
-  final VoidCallback            onPickStart;
-  final VoidCallback            onPickEnd;
+  final VoidCallback            onOpenFilters;
+  final int                     activeFilterCount;
 
   const _MobileLayout({
     required this.state,
     required this.notifier,
     required this.fmt,
     required this.dateFmt,
-    required this.searchCtrl,
-    required this.onPickStart,
-    required this.onPickEnd,
+    required this.onOpenFilters,
+    required this.activeFilterCount,
   });
 
   @override
@@ -748,6 +947,41 @@ class _MobileLayout extends StatelessWidget {
               color:      Color(0xFF1A1D23)),
         ),
         actions: [
+          // ── Filter icon with active-count badge ──────────────────────────
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                onPressed: onOpenFilters,
+                icon: const Icon(Icons.filter_list_rounded,
+                    color: AppColor.textSecondary),
+                tooltip: 'Filters',
+              ),
+              if (activeFilterCount > 0)
+                Positioned(
+                  right: 6,
+                  top:   6,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: AppColor.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints:
+                    const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      '$activeFilterCount',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize:   9,
+                        color:      Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             onPressed: notifier.refresh,
             icon: const Icon(Icons.refresh_rounded,
@@ -765,126 +999,11 @@ class _MobileLayout extends StatelessWidget {
       body: Column(
         children: [
 
-          // ── Controls ─────────────────────────────────────────────────
-          Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Column(
-              children: [
-
-                // Customer dropdown
-                AppSearchableDropdown<
-                    AccountantCustomerReportModel>(
-                  hint:  'Customer select karein',
-                  items: state.customers
-                      .map((c) => DropdownItem(
-                    value: c,
-                    label: '${c.name}  •  ${c.code}',
-                    icon:  Icons.person_outline_rounded,
-                  ))
-                      .toList(),
-                  value:     state.selectedCustomer,
-                  onChanged: (c) {
-                    if (c != null) notifier.selectCustomer(c);
-                  },
-                ),
-
-                const SizedBox(height: 10),
-
-                // Search
-                TextField(
-                  controller:   searchCtrl,
-                  onChanged:    notifier.search,
-                  style: const TextStyle(fontSize: 14),
-                  cursorHeight: 16,
-                  decoration: InputDecoration(
-                    hintText: 'Notes ya naam se search karein...',
-                    hintStyle: const TextStyle(
-                        fontSize: 13,
-                        color:    AppColor.textHint),
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        size: 20, color: AppColor.primary),
-                    suffixIcon: state.searchQuery.isNotEmpty
-                        ? IconButton(
-                      icon: const Icon(Icons.clear_rounded,
-                          size: 18, color: AppColor.textHint),
-                      onPressed: () {
-                        searchCtrl.clear();
-                        notifier.search('');
-                      },
-                    )
-                        : null,
-                    filled:    true,
-                    fillColor: AppColor.grey100,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:   BorderSide.none),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(
-                          color: AppColor.grey200),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(
-                          color: AppColor.primary, width: 1.5),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // Date range
-                Row(children: [
-                  Expanded(
-                    child: _DateButton(
-                      label: 'Start Date',
-                      date:  state.startDate,
-                      fmt:   dateFmt,
-                      onTap: onPickStart,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _DateButton(
-                      label: 'End Date',
-                      date:  state.endDate,
-                      fmt:   dateFmt,
-                      onTap: onPickEnd,
-                    ),
-                  ),
-                  if (state.startDate != null ||
-                      state.endDate != null) ...[
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap:        notifier.clearDates,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColor.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: AppColor.error
-                                  .withOpacity(0.3)),
-                        ),
-                        child: const Icon(Icons.close_rounded,
-                            size: 18, color: AppColor.error),
-                      ),
-                    ),
-                  ],
-                ]),
-              ],
-            ),
-          ),
-
           // ── Summary Cards ────────────────────────────────────────────
           if (state.filtered.isNotEmpty)
             Container(
               color:   Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
               child: Row(children: [
                 _SummaryCard(
                   label: 'Total Collected',
@@ -911,7 +1030,7 @@ class _MobileLayout extends StatelessWidget {
 
           Container(height: 1, color: const Color(0xFFE5E7EB)),
 
-          // Result count + active filter
+          // Result count + active filter chip
           if (!state.isLoadingLedger &&
               state.filtered.isNotEmpty)
             Padding(

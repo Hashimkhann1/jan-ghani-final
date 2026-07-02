@@ -55,11 +55,13 @@ class _InventoryCountingReportScreenState
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Text("Inventory Counting Report"),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(context, state, notifier),
             if (!state.isLoading && state.errorMessage == null && state.records.isNotEmpty) ...[
               _buildSummaryCards(context, state.records),
               _buildSearchBar(context),
@@ -67,67 +69,6 @@ class _InventoryCountingReportScreenState
             Expanded(child: _buildBody(context, filtered, state, notifier)),
           ],
         ),
-      ),
-    );
-  }
-
-  // ─── Header ───────────────────────────────────────────────────────────────
-
-  Widget _buildHeader(
-      BuildContext context,
-      InventoryCountingReportState state,
-      InventoryCountingReportNotifier notifier,
-      ) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFFF1F3F4),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Inventory Counting Report',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Complete inventory counting details',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-          IntrinsicWidth(
-            child: OutlinedButton.icon(
-              onPressed: state.isLoading ? null : () => notifier.loadReport(),
-              icon: state.isLoading
-                  ? const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Icon(Icons.refresh, size: 16),
-              label: const Text('Refresh'),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                minimumSize: const Size(0, 40),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
