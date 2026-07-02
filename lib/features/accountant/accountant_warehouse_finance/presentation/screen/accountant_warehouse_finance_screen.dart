@@ -513,9 +513,12 @@ class _TxTile extends StatelessWidget {
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
-              tx.supplierName?.isNotEmpty == true
-                  ? '${_date(tx.createdAt)}  •  ${tx.supplierName}'
-                  : _date(tx.createdAt),
+              // Expense ke saath notes, supplier payment ke saath supplier name
+              tx.entryType == 'expense' && tx.notes?.isNotEmpty == true
+                  ? '${_date(tx.createdAt)}  •  ${tx.notes}'
+                  : (tx.supplierName?.isNotEmpty == true
+                      ? '${_date(tx.createdAt)}  •  ${tx.supplierName}'
+                      : _date(tx.createdAt)),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, color: AppColor.textMuted),
