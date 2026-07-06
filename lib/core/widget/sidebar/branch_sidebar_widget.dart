@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
-import 'package:jan_ghani_final/features/branch/backup/presentation/screen/branch_backup_screen.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_damage/presentation/screen/branch_stock_damage_screen.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';

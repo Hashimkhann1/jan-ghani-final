@@ -670,10 +670,12 @@ class _DayCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Invoices Tab
+//  Invoices Tab (with Profit / Loss filter)
 // ═══════════════════════════════════════════════════════════
 
-class _InvoicesTab extends StatelessWidget {
+enum _InvoiceFilter { all, profit, loss }
+
+class _InvoicesTab extends StatefulWidget {
   final List<PnlInvoice>        invoices;
   final DateFormat              timeFmt;
   final String Function(double) fmtAmt;
@@ -685,20 +687,138 @@ class _InvoicesTab extends StatelessWidget {
   });
 
   @override
+  State<_InvoicesTab> createState() => _InvoicesTabState();
+}
+
+class _InvoicesTabState extends State<_InvoicesTab> {
+  _InvoiceFilter _filter = _InvoiceFilter.all;
+
+  List<PnlInvoice> get _filteredInvoices {
+    switch (_filter) {
+      case _InvoiceFilter.profit:
+        return widget.invoices.where((i) => i.totalProfit >= 0).toList();
+      case _InvoiceFilter.loss:
+        return widget.invoices.where((i) => i.totalProfit < 0).toList();
+      case _InvoiceFilter.all:
+        return widget.invoices;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (invoices.isEmpty) return const _EmptyState();
-    return ListView.separated(
-      padding:          const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount:        invoices.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) => _InvoicePnlCard(
-        inv:     invoices[i],
-        timeFmt: timeFmt,
-        fmtAmt:  fmtAmt,
+    final list = _filteredInvoices;
+
+    return Column(children: [
+
+      // ── Filter Buttons ──────────────────────────────
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+        child: Row(children: [
+          Expanded(
+            child: _FilterButton(
+              label:    'All',
+              count:    widget.invoices.length,
+              selected: _filter == _InvoiceFilter.all,
+              color:    AppColor.primary,
+              onTap:    () => setState(() => _filter = _InvoiceFilter.all),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _FilterButton(
+              label:    'Profit',
+              count:    widget.invoices.where((i) => i.totalProfit >= 0).length,
+              selected: _filter == _InvoiceFilter.profit,
+              color:    AppColor.success,
+              onTap:    () => setState(() => _filter = _InvoiceFilter.profit),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _FilterButton(
+              label:    'Loss',
+              count:    widget.invoices.where((i) => i.totalProfit < 0).length,
+              selected: _filter == _InvoiceFilter.loss,
+              color:    AppColor.error,
+              onTap:    () => setState(() => _filter = _InvoiceFilter.loss),
+            ),
+          ),
+        ]),
       ),
-    );
+
+      // ── List ─────────────────────────────────────────
+      Expanded(
+        child: list.isEmpty
+            ? const _EmptyState()
+            : ListView.separated(
+          padding:          const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          itemCount:        list.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (_, i) => _InvoicePnlCard(
+            inv:     list[i],
+            timeFmt: widget.timeFmt,
+            fmtAmt:  widget.fmtAmt,
+          ),
+        ),
+      ),
+    ]);
   }
 }
+
+// ── Filter Toggle Button ─────────────────────────────────
+class _FilterButton extends StatelessWidget {
+  final String       label;
+  final int          count;
+  final bool         selected;
+  final Color        color;
+  final VoidCallback onTap;
+
+  const _FilterButton({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap:        onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color:        selected ? color.withOpacity(0.12) : AppColor.grey100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: selected ? color.withOpacity(0.4) : Colors.transparent,
+        ),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(
+          '$count',
+          style: TextStyle(
+              fontSize:   14,
+              fontWeight: FontWeight.w800,
+              color:      selected ? color : AppColor.textSecondary),
+        ),
+        const SizedBox(height: 1),
+        Text(
+          label,
+          style: TextStyle(
+              fontSize:   10,
+              fontWeight: FontWeight.w600,
+              color:      selected ? color : AppColor.textHint),
+        ),
+      ]),
+    ),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Invoice Card (with per-item breakdown)
+// ═══════════════════════════════════════════════════════════
 
 class _InvoicePnlCard extends StatefulWidget {
   final PnlInvoice              inv;

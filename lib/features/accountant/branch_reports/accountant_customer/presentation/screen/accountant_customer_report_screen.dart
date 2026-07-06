@@ -978,7 +978,7 @@ class _MobileLayout extends StatelessWidget {
           Container(
             color:   Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            child: Wrap(
+            child: Row(
                 children: [
               _SummaryCard(
                 label: 'Total',
@@ -1088,19 +1088,27 @@ class _SummaryCard extends StatelessWidget {
             child: Icon(icon, size: 13, color: color),
           ),
           const SizedBox(height: 8),
-          Text(value,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
               style: TextStyle(
                 fontSize:   13,
                 fontWeight: FontWeight.w800,
                 color:      color,
               ),
               maxLines: 1,
-              overflow: TextOverflow.ellipsis),
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10,
-                  color:    AppColor.textHint)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color:    AppColor.textHint,
+            ),
+          ),
         ],
       ),
     ),

@@ -790,6 +790,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/color/app_color.dart';
 import '../../../../../core/service/print/print_service.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
+import '../../../branch_info/presentation/provider/branch_provider.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../provider/sale_invoice_provider.dart';
 
@@ -893,8 +894,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     setState(() {});
   }
 
-  void _selectAll(TextEditingController c) =>
-      c.selection = TextSelection(baseOffset: 0, extentOffset: c.text.length);
+  void _selectAll(TextEditingController c) => c.selection = TextSelection(baseOffset: 0, extentOffset: c.text.length);
 
   void _onChanged() {
     if (_adjusting) return;
@@ -1038,6 +1038,8 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     try {
       final auth = ref.read(authProvider);
 
+      final branch = await ref.read(branchProvider(auth.storeId).future);
+
       debugPrint('═══════════════ PRINT DEBUG ═══════════════');
       debugPrint('🧾 Invoice   : ${state.invoiceNo}');
       debugPrint('👤 Customer  : ${state.selectedCustomer?.name ?? 'WALK IN'}');
@@ -1054,9 +1056,16 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
       debugPrint('   💸 paidAmount    : $paidAmount');
       debugPrint('   📈 currentBalance: $currentBalance');
       debugPrint('═══════════════════════════════════════════');
+      debugPrint(branch?.name ?? '');
+      debugPrint(branch?.address ?? '');
+      debugPrint(branch?.phone ?? '');
+      debugPrint('═══════════════════════════════════════════');
+
 
       await ThermalPrintService.printSaleInvoice(
-        storeName:       'JAN GHANI',
+        storeName:       branch?.name ?? '',
+        branchAddress:   branch?.address ?? '',
+        branchPhone:     branch?.phone ?? '',
         invoiceNo:       state.invoiceNo,
         date:            state.date,
         customerName:    state.selectedCustomer?.name,

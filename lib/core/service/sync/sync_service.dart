@@ -75,6 +75,7 @@ class SyncConfig {
     'sale_invoice_items',
     'sale_return_items',
     'branch_transaction_to_janghani',
+    'branch_stock_inventory',
   ];
 
   // ── Har table ka timestamp column ────────────────────────

@@ -8,6 +8,7 @@ import 'package:jan_ghani_final/features/branch/customer/presentation/provider/c
 import 'package:jan_ghani_final/features/branch/reports/data/model/sale_invoice_report_model.dart';
 import '../../../../../core/service/print/print_service.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../branch_info/presentation/provider/branch_provider.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../sale_invoice/data/model/sale_invoice_model.dart';
 import '../provider/sale_invoice_report_provider.dart';
@@ -623,7 +624,7 @@ class _CustomerStatsBanner extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 // Invoice Card
 // ══════════════════════════════════════════════════════════════
-class _InvoiceCard extends StatefulWidget {
+class _InvoiceCard extends ConsumerStatefulWidget {
   final SaleInvoiceListModel inv;
   final DateFormat dateFmt;
   final DateFormat timeFmt;
@@ -639,10 +640,10 @@ class _InvoiceCard extends StatefulWidget {
   });
 
   @override
-  State<_InvoiceCard> createState() => _InvoiceCardState();
+  ConsumerState<_InvoiceCard> createState() => _InvoiceCardState();
 }
 
-class _InvoiceCardState extends State<_InvoiceCard> {
+class _InvoiceCardState extends ConsumerState<_InvoiceCard> {
   bool _isPrinting = false;
 
   Future<void> _print() async {
@@ -651,6 +652,8 @@ class _InvoiceCardState extends State<_InvoiceCard> {
     try {
       final inv         = widget.inv;
       final hasCustomer = inv.customerId != null;
+      final auth   = ref.read(authProvider);
+      final branch = await ref.read(branchProvider(auth.storeId).future);
 
       // ── Report items (flat) -> CartItem (printer ke liye) ──
       final cartItems = inv.items.map((item) {
@@ -685,6 +688,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
         );
       }).toList();
 
+
       // ── Report payments -> PaymentEntry ─────────────────────
       final payments = inv.payments.map((p) => PaymentEntry(method: p.method, amount: p.amount)).toList();
 
@@ -703,6 +707,9 @@ class _InvoiceCardState extends State<_InvoiceCard> {
       debugPrint('║        SALE INVOICE PRINT DEBUG (REPORT)          ║');
       debugPrint('╚══════════════════════════════════════════════════╝');
       debugPrint('Invoice No     : ${inv.invoiceNo}');
+      debugPrint('Branch Name     : ${branch?.name ?? ""}');
+      debugPrint('Branch Address     : ${branch?.address ?? ""}');
+      debugPrint('Branch Phone Number     : ${branch?.phone ?? ""}');
       debugPrint('Invoice Date   : ${inv.invoiceDate}');
       debugPrint('Status         : ${inv.status}');
       debugPrint('Customer       : ${inv.customerName ?? "WALK IN"}');
@@ -734,10 +741,13 @@ class _InvoiceCardState extends State<_InvoiceCard> {
       debugPrint('Stored PayAmt  : ${inv.payAmount ?? "- (fallback used)"}');
       debugPrint('Paid Amount    : $paidAmount');
       debugPrint('Current Bal    : ${inv.currentBalance ?? "-"}');
+      debugPrint('Current Bal    : ${inv.currentBalance ?? "-"}');
       debugPrint('══════════════════════════════════════════════════');
 
       await ThermalPrintService.printSaleInvoice(
-        storeName:       widget.storeName,
+        storeName:       branch?.name ?? '',
+        branchAddress:   branch?.address ?? '',
+        branchPhone:     branch?.phone ?? '',
         invoiceNo:       inv.invoiceNo,
         date:            inv.invoiceDate,
         customerName:    inv.customerName,

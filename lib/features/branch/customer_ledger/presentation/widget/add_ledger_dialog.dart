@@ -8,6 +8,7 @@ import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/pro
 import '../../../../../core/service/print/customer_ledger_print_service.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
+import '../../../branch_info/presentation/provider/branch_provider.dart';
 import '../../../counter/presentation/provider/counter_provider.dart';
 import '../../data/model/customer_ledger_model.dart';
 
@@ -83,11 +84,16 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
       // ✅ Print karo agar checkbox on hai
       if (_printReceipt) {
         final auth     = ref.read(authProvider);
+        final branch = await ref.read(branchProvider(auth.storeId).future);
         final counters = ref.read(counterProvider).counters;
         final counterName = auth.counterId != null ? counters.where((c) => c.id == auth.counterId).map((c) => c.counterName).firstOrNull ?? 'Counter' : 'Counter';
-
+        print("Branch name : ${branch?.name}");
+        print("phone : ${branch?.phone}");
+        print("address : ${branch?.address}");
         await CustomerLedgerPrintService.printReceipt(
-          storeName: 'Jan Ghani Store',
+          storeName: branch?.name ?? "",
+          branchAddress: branch?.address ?? "",
+          branchPhone: branch?.phone ?? "",
           counterName: counterName,
           customerName: _selectedCustomer?.name ?? widget.ledger?.customerName ?? '',
           previousAmount:  _previousAmount,

@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
+import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 
 import '../../../../../core/service/print/scr_print_service.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../branch_info/presentation/provider/branch_provider.dart';
 import '../../data/model/csr_model.dart';
 import '../provider/csr_provider.dart';
 
@@ -79,11 +81,13 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
     }
   }
 
-  String get _storeName => 'Jan Ghani';
 
   // ── Print All ────────────────────────────────────────────
   Future<void> _printAll() async {
     final state = ref.read(csrProvider);
+    final auth = ref.read(authProvider);
+    final branch = await ref.read(branchProvider(auth.storeId).future);
+
     if (!state.hasCustomer) {
       _showSnack('Pehle customer select karein', AppColor.warning);
       return;
@@ -94,7 +98,9 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
     }
     _showSnack('Printing...', AppColor.primary);
     await CsrPrintService.printCsrReport(
-      storeName: _storeName,
+      storeName: branch?.name ?? '',
+      branchAddress: branch?.address ?? '',
+      branchPhone: branch?.phone ?? '',
       customerName: state.selectedCustomerName ?? '',
       customerId: state.selectedCustomerId ?? '',
       fromDate: state.fromDate,
@@ -110,8 +116,15 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
   // ── Print Single Entry ───────────────────────────────────
   Future<void> _printEntry(CsrEntry entry) async {
     _showSnack('Printing...', AppColor.primary);
+    final auth = ref.read(authProvider);
+    final branch = await ref.read(branchProvider(auth.storeId).future);
+    print("Branch name : ${branch?.name}");
+    print("phone : ${branch?.phone}");
+    print("address : ${branch?.address}");
     await CsrPrintService.printSingleEntry(
-      storeName: _storeName,
+      storeName: branch?.name ?? '',
+      branchAddress: branch?.address ?? '',
+      branchPhone: branch?.phone ?? '',
       entry: entry,
     );
   }

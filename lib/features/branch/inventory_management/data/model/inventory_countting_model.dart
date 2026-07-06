@@ -1,3 +1,5 @@
+// data/model/inventory_countting_model.dart
+
 class InventoryProductModel {
   final String id;
   final String productId;
@@ -31,7 +33,8 @@ class InventoryCountingModel {
   final double productStock;
   final double countingStock;
   final DateTime updatedAt;
-  final String countedDate; // ← naya field
+  final String countedDate;
+  final String storeId;
 
   InventoryCountingModel({
     required this.productId,
@@ -39,6 +42,7 @@ class InventoryCountingModel {
     required this.countingStock,
     required this.updatedAt,
     required this.countedDate,
+    required this.storeId,
   });
 
   Map<String, dynamic> toMap() {
@@ -47,7 +51,8 @@ class InventoryCountingModel {
       'product_stock': productStock,
       'counting_stock': countingStock,
       'updated_at': updatedAt.toIso8601String(),
-      'counted_date': countedDate, // ← DB mein save hoga
+      'counted_date': countedDate,
+      'store_id': storeId,
     };
   }
 }

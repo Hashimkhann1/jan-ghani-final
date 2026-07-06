@@ -326,8 +326,7 @@ class _AccountantSaleReturnReportScreenState
         actions: [
           IconButton(
             onPressed: notifier.load,
-            icon:    const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon:    const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
           Stack(
@@ -335,8 +334,7 @@ class _AccountantSaleReturnReportScreenState
             children: [
               IconButton(
                 onPressed: () => _showFilterSheet(context),
-                icon:    const Icon(Icons.filter_alt_outlined,
-                    color: AppColor.textSecondary),
+                icon: const Icon(Icons.filter_alt_outlined, color: AppColor.textSecondary),
                 tooltip: 'Filters',
               ),
               if (hasActiveFilter)
@@ -373,7 +371,7 @@ class _AccountantSaleReturnReportScreenState
           Container(
             color:   Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Wrap(
+            child: Row(
               children: [
                 _SummaryCard(
                   label: 'Returns',
@@ -474,15 +472,18 @@ class _SummaryCard extends StatelessWidget {
             child: Icon(icon, size: 13, color: color),
           ),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize:   13,
-              fontWeight: FontWeight.w800,
-              color:      color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize:   13,
+                fontWeight: FontWeight.w800,
+                color:      color,
+              ),
+              maxLines: 1,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
@@ -497,6 +498,7 @@ class _SummaryCard extends StatelessWidget {
     ),
   );
 }
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Return Card

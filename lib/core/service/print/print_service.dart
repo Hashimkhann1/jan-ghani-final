@@ -28,6 +28,8 @@ class ThermalPrintService {
   // ═══════════════════════════════════════════════════════════
   static Future<void> printSaleInvoice({
     required String storeName,
+    required String branchAddress,
+    required String branchPhone,
     required String invoiceNo,
     required DateTime date,
     required String? customerName,
@@ -85,18 +87,20 @@ class ThermalPrintService {
             ),
           ),
           pw.SizedBox(height: 2),
-          pw.Center(
-            child: pw.Text(
-              'MalangAbad Road Jaga Stop',
-              style: const pw.TextStyle(fontSize: 7.5),
+          if (branchAddress.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                branchAddress,
+                style: const pw.TextStyle(fontSize: 7.5),
+              ),
             ),
-          ),
-          pw.Center(
-            child: pw.Text(
-              '03489729366',
-              style: const pw.TextStyle(fontSize: 7.5),
+          if (branchPhone.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                branchPhone,
+                style: const pw.TextStyle(fontSize: 7.5),
+              ),
             ),
-          ),
           pw.SizedBox(height: 3),
           _dashedLine(),
 
@@ -335,6 +339,8 @@ class ThermalPrintService {
   // ═══════════════════════════════════════════════════════════
   static Future<void> printSaleReturn({
     required String storeName,
+    required String branchAddress,
+    required String branchPhone,
     required String returnNo,
     required DateTime date,
     required String? customerName,
@@ -376,18 +382,20 @@ class ThermalPrintService {
             ),
           ),
           pw.SizedBox(height: 2),
-          pw.Center(
-            child: pw.Text(
-              'MalangAbad Road Jaga Stop',
-              style: const pw.TextStyle(fontSize: 7.5),
+          if (branchAddress.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                branchAddress,
+                style: const pw.TextStyle(fontSize: 7.5),
+              ),
             ),
-          ),
-          pw.Center(
-            child: pw.Text(
-              '03489729366',
-              style: const pw.TextStyle(fontSize: 7.5),
+          if (branchPhone.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                branchPhone,
+                style: const pw.TextStyle(fontSize: 7.5),
+              ),
             ),
-          ),
           pw.SizedBox(height: 3),
           _dashedLine(),
           pw.Row(

@@ -92,6 +92,7 @@ import 'features/accountant/authentication/presentation/providers/accoutant_sess
 import 'features/accountant/authentication/presentation/screen/login_screen.dart';
 import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
+import 'features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -138,8 +139,8 @@ class MyApp extends ConsumerWidget {
       theme: LightTheme.theme,
       home:
       // InventoryCountingScreen(),
-      session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
-      // _resolveHome(session, auth),
+      // session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
+      _resolveHome(session, auth),
     );
   }
 

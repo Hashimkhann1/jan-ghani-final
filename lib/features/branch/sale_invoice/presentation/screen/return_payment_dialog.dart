@@ -694,6 +694,8 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
             : payments.reduce((a, b) => a.amount >= b.amount ? a : b).method;
         await ThermalPrintService.printSaleReturn(
           storeName:       'Jan Ghani Store',
+          branchAddress: '',
+          branchPhone: '',
           returnNo:        returnNo,
           date:            date,
           customerName:    customerName,

@@ -6,7 +6,6 @@ import '../widget/dashboard_chart_widget.dart';
 import '../widget/low_stock_banner_widget.dart';
 import '../widget/summary_card_row_widget.dart';
 import '../widget/top_list_widget.dart';
-import 'low_stock_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -170,24 +169,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
                 ),
-
-              const SizedBox(height: 24),
-              if (stockState.items.isNotEmpty) ...[
-                LowStockBanner(
-                  outOfStock: stockState.outOfStockCount,
-                  lowStock:   stockState.lowStockCount,
-                  items:      stockState.items.take(3).toList(),
-                  onViewAll:  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => LowStockScreen(
-                        items: stockState.items,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
             ],
           ),
         ),

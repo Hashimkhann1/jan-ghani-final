@@ -3,15 +3,15 @@ import '../model/accountant_branch_stock_inventory_model.dart';
 
 class AccountantBranchInventoryDatasource {
   final _client = Supabase.instance.client;
-  final String  branchId;
+  final String branchId;
 
   AccountantBranchInventoryDatasource({required this.branchId});
 
   Future<List<AccountantBranchInventoryModel>> fetchInventory() async {
     List<AccountantBranchInventoryModel> allItems = [];
-    int       rangeStart = 0;
-    const int pageSize   = 1000;
-    bool      hasMore    = true;
+    int rangeStart = 0;
+    const int pageSize = 1000; // requested chunk size
+    bool hasMore = true;
 
     while (hasMore) {
       final result = await _client
@@ -27,18 +27,21 @@ class AccountantBranchInventoryDatasource {
           .order('product_name', ascending: true)
           .range(rangeStart, rangeStart + pageSize - 1);
 
-      final page = (result as List)
-          .map((r) => AccountantBranchInventoryModel.fromMap(
-          r as Map<String, dynamic>))
+      final rows = result as List;
+
+      if (rows.isEmpty) {
+        hasMore = false;
+        break;
+      }
+
+      final page = rows
+          .map((r) =>
+          AccountantBranchInventoryModel.fromMap(r as Map<String, dynamic>))
           .toList();
 
       allItems.addAll(page);
-
-      if (page.length < pageSize) {
-        hasMore = false;
-      } else {
-        rangeStart += pageSize;
-      }
+      print('🔵 Range: $rangeStart-${rangeStart + pageSize - 1} → Got ${rows.length} rows');
+      rangeStart += rows.length;
     }
 
     return allItems;

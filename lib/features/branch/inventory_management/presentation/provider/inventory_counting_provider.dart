@@ -1,3 +1,5 @@
+// presentation/provider/inventory_counting_provider.dart
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasource/inventory_counting_datasource.dart';
 import '../../data/model/inventory_countting_model.dart';
@@ -63,9 +65,8 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
     );
 
     try {
-      // DB se aaj ke counted IDs aur actual count dono lo
-      final countedIds = await _datasource.fetchCountedProductIds();
-      final todayCount = await _datasource.fetchTodayCountedCount();
+      final countedIds = await _datasource.fetchCountedProductIds(storeId);
+      final totalCount = await _datasource.fetchTotalCountedCount(storeId);
 
       final products = await _datasource.fetchProducts(
         storeId: storeId,
@@ -74,7 +75,7 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
 
       state = state.copyWith(
         products: products,
-        countedCount: todayCount, // ← memory nahi, DB se actual count
+        countedCount: totalCount,
         isLoading: false,
         allCounted: products.isEmpty,
       );
@@ -86,7 +87,6 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
     }
   }
 
-  /// Returns true if save successful, false if error
   Future<bool> submitCounting({
     required InventoryProductModel product,
     required double countingStock,
@@ -97,7 +97,8 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
         productStock: product.currentStock,
         countingStock: countingStock,
         updatedAt: product.updatedAt,
-        countedDate: _todayDate, // ← aaj ki date
+        countedDate: _todayDate,
+        storeId: storeId,
       );
 
       await _datasource.saveInventoryCounting(model);

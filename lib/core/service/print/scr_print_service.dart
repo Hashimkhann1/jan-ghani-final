@@ -1,4 +1,3 @@
-
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -21,6 +20,8 @@ class CsrPrintService {
   // ── Print All Filtered Entries ─────────────────────────────
   static Future<void> printCsrReport({
     required String storeName,
+    required String branchAddress,
+    required String branchPhone,
     required String customerName,
     required String customerId,
     required DateTime fromDate,
@@ -59,6 +60,21 @@ class CsrPrintService {
               ),
             ),
           ),
+          pw.SizedBox(height: 2),
+          if (branchAddress.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                branchAddress,
+                style: const pw.TextStyle(fontSize: 7.5),
+              ),
+            ),
+          if (branchPhone.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                branchPhone,
+                style: const pw.TextStyle(fontSize: 7.5),
+              ),
+            ),
           pw.SizedBox(height: 2),
           pw.Center(
             child: pw.Text(
@@ -261,6 +277,8 @@ class CsrPrintService {
   // ── Print Single Entry ─────────────────────────────────────
   static Future<void> printSingleEntry({
     required String storeName,
+    required String branchAddress,
+    required String branchPhone,
     required CsrEntry entry,
   }) async {
     final doc = pw.Document();
@@ -290,6 +308,21 @@ class CsrPrintService {
               ),
             ),
           ),
+          pw.SizedBox(height: 2),
+          if (branchAddress.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                branchAddress,
+                style: const pw.TextStyle(fontSize: 7.5),
+              ),
+            ),
+          if (branchPhone.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                branchPhone,
+                style: const pw.TextStyle(fontSize: 7.5),
+              ),
+            ),
           pw.SizedBox(height: 2),
           pw.Center(
             child: pw.Text(

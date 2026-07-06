@@ -19,6 +19,8 @@ class CustomerLedgerPrintService {
   // ── Main Print Method ────────────────────────────────────
   static Future<void> printReceipt({
     required String storeName,
+    required String branchAddress,
+    required String branchPhone,
     required String counterName,
     required String customerName,
     required double previousAmount,
@@ -50,6 +52,21 @@ class CustomerLedgerPrintService {
                 ),
               ),
             ),
+            pw.SizedBox(height: 1),
+            if (branchAddress.isNotEmpty)
+              pw.Center(
+                child: pw.Text(
+                  branchAddress,
+                  style: const pw.TextStyle(fontSize: 7.5),
+                ),
+              ),
+            if (branchPhone.isNotEmpty)
+              pw.Center(
+                child: pw.Text(
+                  branchPhone,
+                  style: const pw.TextStyle(fontSize: 7.5),
+                ),
+              ),
             pw.SizedBox(height: 1),
 
             // ── Receipt Title ───────────────────────────

@@ -601,8 +601,7 @@ class _MobileLayout extends StatelessWidget {
           Container(
             color:   Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
-            child: Wrap(
-              runSpacing: 10,
+            child: Row(
               children: [
                 _SummaryCard(
                   label: 'Products',
@@ -681,7 +680,8 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Expanded(
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+          horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color:        color.withOpacity(0.06),
         borderRadius: BorderRadius.circular(10),
@@ -699,18 +699,27 @@ class _SummaryCard extends StatelessWidget {
             child: Icon(icon, size: 13, color: color),
           ),
           const SizedBox(height: 8),
-          Text(value,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
               style: TextStyle(
                 fontSize:   13,
                 fontWeight: FontWeight.w800,
                 color:      color,
               ),
               maxLines: 1,
-              overflow: TextOverflow.ellipsis),
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10, color: AppColor.textHint)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color:    AppColor.textHint,
+            ),
+          ),
         ],
       ),
     ),
