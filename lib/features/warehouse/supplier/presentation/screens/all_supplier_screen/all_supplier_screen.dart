@@ -634,18 +634,19 @@ class _SupplierRowState extends State<_SupplierRow> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.name,
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize:   14,
-                                color:      AppColor.textPrimary),
-                            overflow: TextOverflow.ellipsis),
                         if (s.companyName != null)
                           Text(s.companyName!,
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color:    AppColor.textSecondary),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color:    AppColor.textPrimary),
                               overflow: TextOverflow.ellipsis),
+                        Text(s.name,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize:   12,
+                                color:      AppColor.textSecondary),
+                            overflow: TextOverflow.ellipsis),
                         if (s.address != null)
                           Row(children: [
                             Icon(Icons.location_on_outlined,

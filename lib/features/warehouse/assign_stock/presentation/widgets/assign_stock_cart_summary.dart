@@ -163,12 +163,203 @@ class AssignStockCartSummary extends ConsumerWidget {
     required String assignedById,
     required String assignedByName,
   }) {
+    // Purana detail + "Confirm & Assign Stock" wala dialog (bilkul same).
+    void openConfirm() {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _AssignStockConfirmDialog(
+          assignedById: assignedById,
+          assignedByName: assignedByName,
+        ),
+      );
+    }
+
+    // Qty 0 wale products — yeh transfer inka stock nahi bhejega, sirf
+    // product info (price/barcode) store par update karega.
+    final zeroQtyNames = ref
+        .read(assignStockProvider)
+        .cartItems
+        .where((i) => i.quantity == 0)
+        .map((i) => i.productName)
+        .toList();
+
+    // Koi 0-qty nahi → seedha purana confirm dialog (flow same).
+    if (zeroQtyNames.isEmpty) {
+      openConfirm();
+      return;
+    }
+
+    // Koi 0-qty hai → pehle warning dialog, Confirm par purana dialog khulta hai.
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _AssignStockConfirmDialog(
-        assignedById: assignedById,
-        assignedByName: assignedByName,
+      builder: (dialogCtx) => _ZeroQtyWarningDialog(
+        productNames: zeroQtyNames,
+        onCancel: () => Navigator.of(dialogCtx).pop(),
+        onConfirm: () {
+          Navigator.of(dialogCtx).pop();
+          openConfirm();
+        },
+      ),
+    );
+  }
+}
+
+// ─── 0-Qty Warning Dialog ─────────────────────────────────────────────────
+// Jab kisi cart item ki qty 0 ho: user ko product naam(s) dikha kar batao
+// ke yeh sirf info update hai (stock nahi jayega). Confirm par aage badho.
+class _ZeroQtyWarningDialog extends StatelessWidget {
+  final List<String> productNames;
+  final VoidCallback onCancel;
+  final VoidCallback onConfirm;
+
+  const _ZeroQtyWarningDialog({
+    required this.productNames,
+    required this.onCancel,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColor.warning.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.info_outline_rounded,
+                        color: AppColor.warning, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Qty 0 — sirf info update',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColor.textPrimary),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Message
+              const Text(
+                'In products ki Qty 0 hai. Yeh transfer inka stock NAHI bhejega — '
+                'sirf inki product info (price, barcode waghera) store par update karega:',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: AppColor.textSecondary,
+                    height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              // Product list
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColor.warningLight,
+                  borderRadius: BorderRadius.circular(10),
+                  border:
+                      Border.all(color: AppColor.warning.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final name in productNames)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.circle,
+                                size: 6, color: AppColor.warning),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColor.textPrimary),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColor.warning.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('Qty 0',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColor.warning)),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onCancel,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: AppColor.grey300),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Cancel',
+                          style: TextStyle(
+                              color: AppColor.textSecondary,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: onConfirm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColor.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.check_circle_outline_rounded,
+                          size: 18),
+                      label: const Text('Confirm',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -144,14 +144,16 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
               onFocusChange: (f) {
                 if (!f) {
                   final val = double.tryParse(_qtyCtrl.text.trim());
-                  if (val != null && val > 0) {
+                  // 0 allow (info-update transfer), negative nahi
+                  if (val != null && val >= 0) {
                     notifier.updateQuantity(item.cartId, val);
                   }
                 }
               },
               onSubmitted: (_) {
                 final val = double.tryParse(_qtyCtrl.text.trim());
-                if (val != null && val > 0) {
+                // 0 allow (info-update transfer), negative nahi
+                if (val != null && val >= 0) {
                   notifier.updateQuantity(item.cartId, val);
                 }
               },

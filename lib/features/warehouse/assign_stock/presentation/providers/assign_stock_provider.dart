@@ -71,13 +71,15 @@ class AssignStockNotifier extends StateNotifier<AssignStockState> {
     state.cartItems.any((i) => i.productId == product.id);
     if (exists) return;
 
-    // Stock check
+    // Stock check — qty 0 se check: available >= 0 wala product add ho jaye
+    // (stock-0 product bhi info-update ke liye add ho sake). Sirf NEGATIVE
+    // stock wala product block hota hai (available < 0).
     final enough = await _repo.checkStock(
-        product.id, _warehouseId, 1);
+        product.id, _warehouseId, 0);
     if (!enough) {
       state = state.copyWith(
           errorMessage:
-          '${product.name} ka stock available nahi hai!');
+          '${product.name} ka stock minus (negative) hai — assign nahi ho sakta!');
       return;
     }
 

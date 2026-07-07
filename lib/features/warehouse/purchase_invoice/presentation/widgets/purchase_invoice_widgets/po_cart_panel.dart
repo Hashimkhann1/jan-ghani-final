@@ -289,23 +289,24 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                                     fontWeight: FontWeight.w700,
                                     color: AppColor.primary)),
                           ),
-                          title: Text(s.name,
+                          title: Text(s.company,
                               style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 14,
                                   fontWeight: isSelected
                                       ? FontWeight.w600
-                                      : FontWeight.w400,
+                                      : FontWeight.w600,
                                   color: isSelected
                                       ? AppColor.primary
                                       : AppColor.textPrimary)),
                           subtitle: Text.rich(
                             TextSpan(
                               children: [
-                                TextSpan(text: '${s.company}  •  '),
+                                TextSpan(text: '${s.name}  •  ',style: TextStyle(fontSize: 13)),
                                 TextSpan(
                                   text: s.outstandingLabel,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
+                                    fontSize: 12,
                                     color: s.hasDue
                                         ? const Color(0xFFEF4444)
                                         : AppColor.textSecondary,

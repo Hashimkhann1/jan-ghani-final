@@ -336,23 +336,23 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
           // ),
 
           // Discount
-          Expanded(
-            flex: 2,
-            child: _TF(
-              controller:    _disCtrl,
-              focusNode:     _disFocus,
-              prefix:        'Rs',
-              onFocusChange: (f) { if (!f) _commitDis(); },
-              onSubmitted:   (_) => _commitDis(),
-              onChanged:     (v) {
-                final val = double.tryParse(v);
-                if (val != null && val >= 0) {
-                  ref.read(purchaseInvoiceProvider.notifier)
-                      .updateDiscount(item.cartId, val);
-                }
-              },
-            ),
-          ),
+          // Expanded(
+          //   flex: 2,
+          //   child: _TF(
+          //     controller:    _disCtrl,
+          //     focusNode:     _disFocus,
+          //     prefix:        'Rs',
+          //     onFocusChange: (f) { if (!f) _commitDis(); },
+          //     onSubmitted:   (_) => _commitDis(),
+          //     onChanged:     (v) {
+          //       final val = double.tryParse(v);
+          //       if (val != null && val >= 0) {
+          //         ref.read(purchaseInvoiceProvider.notifier)
+          //             .updateDiscount(item.cartId, val);
+          //       }
+          //     },
+          //   ),
+          // ),
 
           // Sub Total (highlighted)
           // FIX: onChanged NAHI — sirf focus lose / submit pe commit
