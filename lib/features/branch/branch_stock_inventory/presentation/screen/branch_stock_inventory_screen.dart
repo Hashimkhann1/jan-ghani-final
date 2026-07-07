@@ -472,7 +472,7 @@ class _InventoryTable extends ConsumerWidget {
     'Cost Price', 'Sale Price', 'Wholesale',
     'Tax', 'Discount', 'Min Stock', 'Max Stock',
     'Quantity',
-    // 'Actions',
+    'Actions',
   ];
 
   static double get _totalWidth => _widths.fold(0.0, (s, w) => s + w) + 32;
@@ -746,27 +746,27 @@ class _DataRow extends StatelessWidget {
             ),
           ),
           // Actions
-          // SizedBox(
-          //   width: widths[12],
-          //   child: Row(
-          //     mainAxisAlignment: MainAxisAlignment.center,
-          //     children: [
-          //       CustomerActionButton(
-          //         icon:    Icons.edit_outlined,
-          //         color:   AppColor.primary,
-          //         tooltip: 'Edit',
-          //         onTap:   onEdit,
-          //       ),
-          //       const SizedBox(width: 6),
-          //       CustomerActionButton(
-          //         icon:    Icons.delete_outline_rounded,
-          //         color:   AppColor.error,
-          //         tooltip: 'Delete',
-          //         onTap:   onDelete,
-          //       ),
-          //     ],
-          //   ),
-          // ),
+          SizedBox(
+            width: widths[12],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomerActionButton(
+                  icon:    Icons.edit_outlined,
+                  color:   AppColor.primary,
+                  tooltip: 'Edit',
+                  onTap:   onEdit,
+                ),
+                const SizedBox(width: 6),
+                CustomerActionButton(
+                  icon:    Icons.delete_outline_rounded,
+                  color:   AppColor.error,
+                  tooltip: 'Delete',
+                  onTap:   onDelete,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
