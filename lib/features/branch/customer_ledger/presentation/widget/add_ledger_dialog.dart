@@ -28,9 +28,43 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
   CustomerModel? _selectedCustomer;
   bool _isSaving   = false;
   bool _printReceipt = true;
-  double get _previousAmount => _isEdit ? widget.ledger!.previousAmount : (_selectedCustomer?.balance ?? 0.0);
+
+  double get _previousAmount =>
+      _isEdit ? widget.ledger!.previousAmount : (_selectedCustomer?.balance ?? 0.0);
+
+  /// Full amount the customer physically handed over.
   double get _payAmount => double.tryParse(_payCtrl.text) ?? 0.0;
-  double get _newAmount => _previousAmount - _payAmount;
+
+  /// Amount actually applied/adjusted against the due balance.
+  /// This — NOT the full pay amount — is what gets saved as `pay_amount`
+  /// in the database, since the trigger computes new_amount = balance - pay_amount
+  /// and the cash counter adds pay_amount to installment.
+  double get _appliedAmount {
+    if (_previousAmount <= 0) return 0.0;
+    return _payAmount > _previousAmount ? _previousAmount : _payAmount;
+  }
+
+  /// Remaining due after applying the payment. Never negative.
+  double get _newAmount => _previousAmount - _appliedAmount;
+
+  /// Amount to hand back to the customer when they pay more than the due amount.
+  double get _returnAmount => _payAmount - _appliedAmount;
+
+  /// Builds final notes: user's typed notes + auto-generated payment breakdown
+  /// when there's a return involved, so the record is self-explanatory.
+  String? _buildNotes() {
+    final parts = <String>[];
+    final typed = _notesCtrl.text.trim();
+    if (typed.isNotEmpty) parts.add(typed);
+    if (_returnAmount > 0) {
+      parts.add(
+        'Customer paid Rs ${_payAmount.toStringAsFixed(0)}, '
+            'Rs ${_appliedAmount.toStringAsFixed(0)} adjusted against due, '
+            'Rs ${_returnAmount.toStringAsFixed(0)} returned to customer.',
+      );
+    }
+    return parts.isEmpty ? null : parts.join(' | ');
+  }
 
   @override
   void initState() {
@@ -64,32 +98,27 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
       if (_isEdit) {
         await ref.read(customerLedgerProvider.notifier).updateLedger(
           id:        widget.ledger!.id,
-          payAmount: _payAmount,
+          payAmount: _appliedAmount,
           newAmount: _newAmount,
-          notes:     _notesCtrl.text.trim().isEmpty
-              ? null
-              : _notesCtrl.text.trim(),
+          notes:     _buildNotes(),
         );
       } else {
         await ref.read(customerLedgerProvider.notifier).addLedger(
           customerId:     _selectedCustomer!.id,
           customerName:   _selectedCustomer!.name,
           previousAmount: _previousAmount,
-          payAmount:      _payAmount,
+          payAmount:      _appliedAmount,
           newAmount:      _newAmount,
-          notes:          _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+          notes:          _buildNotes(),
         );
       }
 
-      // ✅ Print karo agar checkbox on hai
+      // ✅ Print receipt if checkbox is on
       if (_printReceipt) {
         final auth     = ref.read(authProvider);
         final branch = await ref.read(branchProvider(auth.storeId).future);
         final counters = ref.read(counterProvider).counters;
         final counterName = auth.counterId != null ? counters.where((c) => c.id == auth.counterId).map((c) => c.counterName).firstOrNull ?? 'Counter' : 'Counter';
-        print("Branch name : ${branch?.name}");
-        print("phone : ${branch?.phone}");
-        print("address : ${branch?.address}");
         await CustomerLedgerPrintService.printReceipt(
           storeName: branch?.name ?? "",
           branchAddress: branch?.address ?? "",
@@ -100,7 +129,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
           payAmount:  _payAmount,
           dueAmount: _newAmount,
           date: DateTime.now(),
-          notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+          notes: _buildNotes(),
         );
       }
 
@@ -133,6 +162,8 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
       icon:  Icons.person_outline_rounded,
     ))
         .toList();
+
+    final hasReturn = _returnAmount > 0;
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -167,7 +198,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Payment Record', style: TextStyle(fontSize:   16, fontWeight: FontWeight.w700)),
-                        Text('Customer ka payment record karein', style: TextStyle(fontSize: 12, color:    AppColor.textSecondary)),
+                        Text('Record a customer payment', style: TextStyle(fontSize: 12, color:    AppColor.textSecondary)),
                       ],
                     ),
                     const Spacer(),
@@ -189,11 +220,11 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                 AppSearchableDropdown<CustomerModel>(
                   items: dropdownItems,
                   value: _selectedCustomer,
-                  hint: 'Customer select karein...',
+                  hint: 'Select customer...',
                   fullWidth: true,
                   onChanged: _onCustomerChanged,
                   validator: (v) =>
-                  v == null ? 'Customer select karein' : null,
+                  v == null ? 'Please select a customer' : null,
                 ),
 
                 const SizedBox(height: 16),
@@ -201,7 +232,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                 // ── Previous Balance ─────────────────────
                 _AmountField(
                   label: 'Current Balance',
-                  value: _selectedCustomer == null ? '—' : 'Rs ${_previousAmount}',
+                  value: _selectedCustomer == null ? '—' : 'Rs $_previousAmount',
                   color: _previousAmount > 0 ? AppColor.error : AppColor.success,
                   icon: Icons.account_balance_outlined,
                   readOnly: true,
@@ -223,10 +254,11 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                       fontWeight: FontWeight.w600,
                       color:      AppColor.textPrimary),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
-                      return 'Amount required hai';
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Amount is required';
+                    }
                     final p = double.tryParse(v);
-                    if (p == null || p <= 0) return 'Valid amount dalein';
+                    if (p == null || p <= 0) return 'Enter a valid amount';
                     return null;
                   },
                   decoration: InputDecoration(
@@ -263,25 +295,45 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
 
                 const SizedBox(height: 12),
 
+                // ── Applied to Due (only shown when it differs from pay amount) ──
+                if (hasReturn) ...[
+                  _AmountField(
+                    label: 'Applied to Due',
+                    value: 'Rs ${_appliedAmount.toStringAsFixed(0)}',
+                    color: AppColor.success,
+                    icon: Icons.check_circle_outline_rounded,
+                    readOnly: true,
+                    subtitle: 'Amount adjusted against customer due',
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // ── Remaining ────────────────────────────
                 _AmountField(
                   label: 'Remaining',
                   value: _payCtrl.text.isEmpty || _selectedCustomer == null
                       ? '—'
                       : 'Rs ${_newAmount.toStringAsFixed(0)}',
-                  color: _newAmount > 0
-                      ? AppColor.warning
-                      : _newAmount < 0
-                      ? AppColor.info
-                      : AppColor.success,
+                  color: _newAmount > 0 ? AppColor.warning : AppColor.success,
                   icon:     Icons.calculate_outlined,
                   readOnly: true,
-                  subtitle: _newAmount < 0
-                      ? 'Advance'
-                      : _newAmount == 0
-                      ? 'Clear'
+                  subtitle: _newAmount == 0 && _payCtrl.text.isNotEmpty
+                      ? 'Cleared'
                       : null,
                 ),
+
+                // ── Return Amount (only when customer overpays) ──
+                if (hasReturn) ...[
+                  const SizedBox(height: 12),
+                  _AmountField(
+                    label: 'Return to Customer',
+                    value: 'Rs ${_returnAmount.toStringAsFixed(0)}',
+                    color: AppColor.info,
+                    icon: Icons.keyboard_return_rounded,
+                    readOnly: true,
+                    subtitle: 'Give this amount back to the customer',
+                  ),
+                ],
 
                 const SizedBox(height: 16),
 
@@ -348,12 +400,12 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Receipt Print Karein',
+                            Text('Print Receipt',
                                 style: TextStyle(
                                     fontSize:   13,
                                     fontWeight: FontWeight.w600,
                                     color:      AppColor.textPrimary)),
-                            Text('Save hone ke baad receipt print hogi',
+                            Text('Receipt will print after saving',
                                 style: TextStyle(
                                     fontSize: 11,
                                     color:    AppColor.textSecondary)),

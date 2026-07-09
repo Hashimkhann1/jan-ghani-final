@@ -88,8 +88,20 @@ class SyncConfig {
   };
 
   // ── Har table ka conflict (primary key) column ────────────
+  //
+  // ⚠️ IMPORTANT FIX (branch_stock_inventory):
+  // Har local branch database alag machine par hai, aur products
+  // insert/seed karte waqt kayi branches mein SAME UUID `id` ban
+  // jaata hai (alag store_id ke sath). Agar conflict column sirf
+  // "id" ho, to Supabase mein upsert karte waqt Branch B ki row,
+  // Branch A ki row ko OVERWRITE kar deti hai (store_id samet) —
+  // is se dusri branch ka stock "gayab" ho jaata hai.
+  //
+  // Fix: conflict ko store_id + product_id par based karo, taake
+  // har branch ki apni alag row Supabase mein rahe.
   static const Map<String, String> _conflictColumns = {
-    'branch_summary': 'store_id,counter_date',
+    'branch_summary'        : 'store_id,counter_date',
+    'branch_stock_inventory': 'store_id,product_id',
   };
 
   // ── Yeh columns Supabase mein nahi hain — upsert se remove honge

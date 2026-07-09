@@ -452,8 +452,8 @@ class _InventoryTable extends ConsumerWidget {
   const _InventoryTable({required this.rows});
 
   static const _widths = [
-    80.0,  // SKU
-    120.0, // Barcode
+    120.0,  // SKU
+    160.0, // Barcode
     170.0, // Name
     70.0,  // Unit
     110.0, // Cost Price

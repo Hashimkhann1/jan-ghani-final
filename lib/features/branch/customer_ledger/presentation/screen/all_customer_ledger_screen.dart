@@ -44,6 +44,23 @@ class _CounterCustomerLedgerScreenState
     );
   }
 
+  void _showFullNote(BuildContext context, String note) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Note', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Text(note, style: const TextStyle(fontSize: 13, color: AppColor.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Delete Dialog ─────────────────────────────────────────
   void _confirmDelete(BuildContext context, CustomerLedgerModel ledger) {
     showDialog(
@@ -175,8 +192,7 @@ class _CounterCustomerLedgerScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$counterName — Ledger',
-            style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text('$counterName — Ledger', style: const TextStyle(fontWeight: FontWeight.w700)),
         toolbarHeight: 60,
         actions: [
           IconButton(
@@ -240,7 +256,7 @@ class _CounterCustomerLedgerScreenState
                     Icon(Icons.warning_amber_rounded,
                         color: AppColor.warning, size: 18),
                     SizedBox(width: 10),
-                    Text('Aapko koi counter assign nahi',
+                    Text('No counter assigned to you',
                         style: TextStyle(
                             fontSize:   13,
                             fontWeight: FontWeight.w600,
@@ -375,13 +391,23 @@ class _CounterCustomerLedgerScreenState
                                   color: l.newAmount > 0 ? AppColor.error : l.newAmount < 0 ? AppColor.info : AppColor.success,
                                 )),
 
+                                // ── Notes: tap to view full text in a dialog (reliable across web/touch) ──
                                 DataCell(SizedBox(
-                                  width: 140,
-                                  child: Text(
-                                    l.notes ?? '—',
-                                    style: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
+                                  width: 220,
+                                  child: InkWell(
+                                    onTap: (l.notes == null || l.notes!.isEmpty)
+                                        ? null
+                                        : () => _showFullNote(context, l.notes!),
+                                    child: Tooltip(
+                                      message: l.notes ?? '',
+                                      waitDuration: const Duration(milliseconds: 400),
+                                      child: Text(
+                                        l.notes ?? '—',
+                                        style: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ),
                                   ),
                                 )),
 
@@ -450,10 +476,10 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           noCounterAssigned
-              ? 'Counter assign nahi'
+              ? 'No counter assigned'
               : isSearching
-              ? 'Koi record nahi mila'
-              : 'Koi payment record nahi',
+              ? 'No record found'
+              : 'No payment record yet',
           style: const TextStyle(
               fontSize:   16,
               fontWeight: FontWeight.w600,
@@ -462,10 +488,10 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           noCounterAssigned
-              ? 'Admin se counter assign karwayein'
+              ? 'Ask admin to assign a counter'
               : isSearching
-              ? 'Search query change karein'
-              : 'New Payment button se record add karein',
+              ? 'Try changing your search query'
+              : 'Add a record using the New Payment button',
           style: const TextStyle(
               fontSize: 13, color: AppColor.textHint),
         ),

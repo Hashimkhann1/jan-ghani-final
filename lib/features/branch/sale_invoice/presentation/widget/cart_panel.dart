@@ -265,16 +265,16 @@ class _NoteTextFieldState extends State<_NoteTextField> {
         Text("Note"),
         SizedBox(height: 5,),
         TextField(
-          controller:  _ctrl,
-          onChanged: widget.onChanged,
-          keyboardType: TextInputType.multiline,
-          textInputAction: TextInputAction.newline,
-          style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
-          decoration: InputDecoration(
-            labelText:  'Invoice note (optional)...',
-            filled:      true,
-            fillColor:   AppColor.grey100,
-          )
+            controller:  _ctrl,
+            onChanged: widget.onChanged,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
+            decoration: InputDecoration(
+              labelText:  'Invoice note (optional)...',
+              filled:      true,
+              fillColor:   AppColor.grey100,
+            )
         ),
       ],
     );
@@ -605,6 +605,7 @@ class _ReturnSummary extends ConsumerWidget {
 }
 
 // ── Return Item Row ───────────────────────────────────────────────
+// ── Return Item Row ───────────────────────────────────────────────
 class _ReturnItemRow extends ConsumerStatefulWidget {
   final ReturnCartItem item;
   const _ReturnItemRow({required this.item});
@@ -617,7 +618,10 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
   late TextEditingController _qtyCtrl;
   late TextEditingController _priceCtrl;
   late TextEditingController _disCtrl;
+  late TextEditingController _subCtrl;
   bool _qtyFocused = false;
+  bool _disFocused = false; // ✅ NEW — discount ke liye focus guard
+  bool _subFocused = false;
 
   @override
   void initState() {
@@ -625,6 +629,7 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
     _qtyCtrl   = TextEditingController(text: _fmt(widget.item.quantity));
     _priceCtrl = TextEditingController(text: _fmtD(widget.item.returnPrice));
     _disCtrl   = TextEditingController(text: _fmtD(widget.item.discountAmount));
+    _subCtrl   = TextEditingController(text: _fmtD(widget.item.subTotal));
   }
 
   @override
@@ -636,8 +641,15 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
     }
     final p = _fmtD(widget.item.returnPrice);
     if (_priceCtrl.text != p) _priceCtrl.text = p;
-    final d = _fmtD(widget.item.discountAmount);
-    if (_disCtrl.text != d) _disCtrl.text = d;
+    // ✅ FIX — discount ab focus mein hone par overwrite nahi hoga
+    if (!_disFocused) {
+      final d = _fmtD(widget.item.discountAmount);
+      if (_disCtrl.text != d) _disCtrl.text = d;
+    }
+    if (!_subFocused) {
+      final s = _fmtD(widget.item.subTotal);
+      if (_subCtrl.text != s) _subCtrl.text = s;
+    }
   }
 
   @override
@@ -645,6 +657,7 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
     _qtyCtrl.dispose();
     _priceCtrl.dispose();
     _disCtrl.dispose();
+    _subCtrl.dispose();
     super.dispose();
   }
 
@@ -713,10 +726,11 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
               _priceCtrl.text = item.returnPrice.toStringAsFixed(0);
           },
         )),
+        // ✅ FIX — focus guard added + auto-select-all on focus (neeche _RTF mein)
         Expanded(flex: 2, child: _RTF(
           controller:    _disCtrl,
           prefix:        'Rs',
-          onFocusChange: (_) {},
+          onFocusChange: (f) => _disFocused = f,
           onChanged: (v) {
             final val = double.tryParse(v);
             if (val != null && val >= 0)
@@ -724,21 +738,32 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
           },
           onSubmitted: (_) {
             final val = double.tryParse(_disCtrl.text.trim());
-            if (val == null)
+            if (val == null || val < 0) {
               _disCtrl.text = item.discountAmount.toStringAsFixed(0);
+            } else {
+              notifier.updateDiscount(item.cartId, val);
+            }
           },
         )),
-        Expanded(
-          flex: 2,
-          child: Text(
-            'Rs ${_fmtD(item.subTotal)}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontSize:   13,
-                fontWeight: FontWeight.w700,
-                color:      AppColor.error),
-          ),
-        ),
+        Expanded(flex: 2, child: _RTF(
+          controller:    _subCtrl,
+          prefix:        'Rs',
+          color:         AppColor.error,
+          onFocusChange: (f) => _subFocused = f,
+          onChanged: (v) {
+            final val = double.tryParse(v);
+            if (val != null && val >= 0)
+              notifier.updateSubTotal(item.cartId, val);
+          },
+          onSubmitted: (_) {
+            final val = double.tryParse(_subCtrl.text.trim());
+            if (val == null || val < 0) {
+              _subCtrl.text = _fmtD(item.subTotal);
+            } else {
+              notifier.updateSubTotal(item.cartId, val);
+            }
+          },
+        )),
         GestureDetector(
           onTap: () => notifier.removeFromCart(item.cartId),
           child: Container(
@@ -784,7 +809,17 @@ class _RTFState extends State<_RTF> {
   void initState() {
     super.initState();
     _focus = FocusNode()
-      ..addListener(() => widget.onFocusChange(_focus.hasFocus));
+      ..addListener(() {
+        widget.onFocusChange(_focus.hasFocus);
+        // ✅ FIX — focus milte hi poora text select ho jaye
+        // (varna default "0" ke sath number jud kar galat value banti thi)
+        if (_focus.hasFocus) {
+          widget.controller.selection = TextSelection(
+            baseOffset:   0,
+            extentOffset: widget.controller.text.length,
+          );
+        }
+      });
   }
 
   @override
@@ -826,6 +861,7 @@ class _RTFState extends State<_RTF> {
     ),
   );
 }
+
 
 // ── Small Helpers ─────────────────────────────────────────────────
 class _RH extends StatelessWidget {
