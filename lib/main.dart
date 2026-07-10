@@ -104,11 +104,11 @@ void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
     url:
-    "https://fngvbieiwilypecznwcl.supabase.co",
-    // "https://kjjtqfruxhjcxwvxwffz.supabase.co",
+    // "https://fngvbieiwilypecznwcl.supabase.co",
+    "https://kjjtqfruxhjcxwvxwffz.supabase.co",
     anonKey:
-    "sb_publishable_z-6QD20dfck8hoG9_NzSZw_063NHmS4",
-    // "sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS",
+    // "sb_publishable_z-6QD20dfck8hoG9_NzSZw_063NHmS4",
+    "sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS",
     realtimeClientOptions: const RealtimeClientOptions(
       logLevel: RealtimeLogLevel.info,
     ),
