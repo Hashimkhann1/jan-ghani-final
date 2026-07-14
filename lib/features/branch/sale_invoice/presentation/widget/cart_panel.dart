@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/features/branch/customer/data/model/customer_model.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/widget/sale_type_dropdown.dart';
-
 import '../../../../../core/color/app_color.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../../data/model/sale_return_model.dart';
@@ -427,41 +426,70 @@ class _CustomerDropdown extends ConsumerWidget {
                   ),
                   style: const TextStyle(fontSize: 14),
                 ),
-                itemBuilder: (ctx, customer, isDisabled, isSelected) =>
-                    ListTile(
-                      leading: CircleAvatar(
-                        radius:          16,
-                        backgroundColor: accent.withOpacity(0.1),
-                        child: Text(
-                          customer == null
-                              ? 'W'
-                              : customer.name[0].toUpperCase(),
-                          style: TextStyle(
-                              fontSize:   13,
-                              fontWeight: FontWeight.w700,
-                              color:      accent),
-                        ),
-                      ),
-                      title: Text(
-                        customer == null ? 'Walk In' : customer.name,
+                itemBuilder: (ctx, customer, isDisabled, isSelected) {
+                  final balanceColor = customer == null
+                      ? AppColor.textSecondary
+                      : customer.isClear
+                      ? AppColor.textSecondary
+                      : customer.isAdvance
+                      ? AppColor.success
+                      : AppColor.error;
+
+                  return ListTile(
+                    leading: CircleAvatar(
+                      radius:          16,
+                      backgroundColor: accent.withOpacity(0.1),
+                      child: Text(
+                        customer == null
+                            ? 'W'
+                            : customer.name[0].toUpperCase(),
                         style: TextStyle(
-                            fontSize:   14,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                            color: isSelected
-                                ? accent
-                                : AppColor.textPrimary),
+                            fontSize:   13,
+                            fontWeight: FontWeight.w700,
+                            color:      accent),
                       ),
-                      subtitle: customer != null
-                          ? Text(customer.code,
-                          style: const TextStyle(
-                              fontSize: 11, color: AppColor.textSecondary))
-                          : null,
-                      trailing: isSelected
-                          ? Icon(Icons.check_circle, size: 18, color: accent)
-                          : null,
                     ),
+                    title: Text(
+                      customer == null ? 'Walk In' : customer.name,
+                      style: TextStyle(
+                          fontSize:   14,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: isSelected
+                              ? accent
+                              : AppColor.textPrimary),
+                    ),
+                    subtitle: customer != null
+                        ? Text(
+                      (customer.address?.isNotEmpty ?? false)
+                          ? customer.address!
+                          : 'No address',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColor.textSecondary),
+                    )
+                        : null,
+                    trailing: customer == null
+                        ? (isSelected
+                        ? Icon(Icons.check_circle, size: 18, color: accent)
+                        : null)
+                        : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Rs ${customer.balance.abs().toStringAsFixed(0)}',
+                          style: TextStyle(
+                              fontSize:   12,
+                              fontWeight: FontWeight.w700,
+                              color:      balanceColor),
+                        ),
+                      ],
+                    ),
+                  );
+                },
                 fit:         FlexFit.loose,
                 constraints: const BoxConstraints(maxHeight: 300),
               ),
@@ -472,7 +500,6 @@ class _CustomerDropdown extends ConsumerWidget {
     );
   }
 }
-
 // ── Return Body ───────────────────────────────────────────────────
 class _ReturnBody extends ConsumerWidget {
   const _ReturnBody();
