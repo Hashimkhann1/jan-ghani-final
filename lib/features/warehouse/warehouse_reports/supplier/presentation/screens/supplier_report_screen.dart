@@ -2,7 +2,6 @@
 // supplier_report_screen.dart
 // =============================================================
 
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -96,12 +95,8 @@ class _Body extends ConsumerWidget {
           if (state.summary != null) _SummaryCardsRow(summary: state.summary!),
           const SizedBox(height: 16),
 
-          // ── Pie + Bar charts row ──────────────────
-          _PieBarChartsRow(state: state),
-          const SizedBox(height: 16),
-
-          // ── Line chart — monthly trend ────────────
-          _MonthlyTrendSection(trend: state.monthlyTrend),
+          // ── Top suppliers by Outstanding (horizontal bar) ──
+          _TopOutstandingChart(items: state.topByBalance),
           const SizedBox(height: 16),
 
           // ── Supplier balance table ────────────────
@@ -333,348 +328,164 @@ class _SummaryCardsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        DashStatCard(
-          label:      'Total Suppliers',
-          value:      summary.totalActive.toString(),
-          badge:      'Active',
-          icon:       Icons.people_outline,
-          color:      AppColor.primary,
-          barPercent: 1.0,
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Total Outstanding',
-          value:      'Rs ${summary.totalOutstanding.pkrFormat}',
-          badge:      '${summary.hasBalanceCount} suppliers',
-          icon:       Icons.account_balance_wallet_outlined,
-          color:      AppColor.error,
-          barPercent: summary.hasBalanceCount / (summary.totalActive == 0 ? 1 : summary.totalActive),
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Clear Balance',
-          value:      summary.clearCount.toString(),
-          badge:      'Suppliers',
-          icon:       Icons.check_circle_outline,
-          color:      AppColor.success,
-          barPercent: summary.clearCount / (summary.totalActive == 0 ? 1 : summary.totalActive),
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Total Purchased',
-          value:      'Rs ${summary.totalPurchased.pkrFormat}',
-          badge:      'All time',
-          icon:       Icons.shopping_cart_outlined,
-          color:      AppColor.info,
-          barPercent: 1.0,
-        ),
-      ],
+    final cards = <Widget>[
+      DashStatCard(
+        label:      'Total Suppliers',
+        value:      summary.totalActive.toString(),
+        badge:      'Active',
+        icon:       Icons.people_outline,
+        color:      AppColor.primary,
+        barPercent: 1.0,
+      ),
+      DashStatCard(
+        label:      'Total Outstanding',
+        value:      'Rs ${summary.totalOutstanding.pkrFormat}',
+        badge:      '${summary.hasBalanceCount} suppliers',
+        icon:       Icons.account_balance_wallet_outlined,
+        color:      AppColor.error,
+        barPercent: summary.hasBalanceCount / (summary.totalActive == 0 ? 1 : summary.totalActive),
+      ),
+      DashStatCard(
+        label:      'Clear Balance',
+        value:      summary.clearCount.toString(),
+        badge:      'Suppliers',
+        icon:       Icons.check_circle_outline,
+        color:      AppColor.success,
+        barPercent: summary.clearCount / (summary.totalActive == 0 ? 1 : summary.totalActive),
+      ),
+      DashStatCard(
+        label:      'Total Purchased',
+        value:      'Rs ${summary.totalPurchased.pkrFormat}',
+        badge:      'All time',
+        icon:       Icons.shopping_cart_outlined,
+        color:      AppColor.info,
+        barPercent: 1.0,
+      ),
+    ];
+
+    // Responsive: wide → 4/row, medium → 2/row, mobile → 1/row
+    return LayoutBuilder(
+      builder: (context, c) {
+        final perRow = c.maxWidth >= 760 ? 4 : (c.maxWidth >= 480 ? 2 : 1);
+        return _cardGrid(cards, perRow);
+      },
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// PIE + BAR CHARTS ROW
-// ─────────────────────────────────────────────────────────────
-
-class _PieBarChartsRow extends StatelessWidget {
-  final SupplierReportState state;
-  const _PieBarChartsRow({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+// 4 stat cards ko responsive rows (perRow) mein arrange karo. DashStatCard
+// khud Expanded return karta hai → seedha Row mein. Adhoori aakhri row ko
+// Expanded(SizedBox) se pad karte hain taake widths barabar rahein.
+// NOTE: Row par crossAxisAlignment.stretch NAHI (scroll view mein infinite
+// height crash karta hai) — default/start use karo.
+Widget _cardGrid(List<Widget> cards, int perRow) {
+  final rows = <Widget>[];
+  for (int i = 0; i < cards.length; i += perRow) {
+    final end   = (i + perRow) > cards.length ? cards.length : i + perRow;
+    final chunk = cards.sublist(i, end);
+    final children = <Widget>[];
+    for (int j = 0; j < chunk.length; j++) {
+      if (j > 0) children.add(const SizedBox(width: 12));
+      children.add(chunk[j]);
+    }
+    for (int k = chunk.length; k < perRow; k++) {
+      children.add(const SizedBox(width: 12));
+      children.add(const Expanded(child: SizedBox()));
+    }
+    if (rows.isNotEmpty) rows.add(const SizedBox(height: 12));
+    rows.add(Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: _BalancePieChart(items: state.topByBalance)),
-        const SizedBox(width: 12),
-        Expanded(child: _PurchaseBarChart(items: state.topByPurchase)),
-      ],
-    );
+      children: children,
+    ));
   }
+  return Column(children: rows);
 }
 
 // ─────────────────────────────────────────────────────────────
-// BALANCE PIE CHART
+// TOP SUPPLIERS BY OUTSTANDING — horizontal bar (pie ki jagah)
 // ─────────────────────────────────────────────────────────────
 
-class _BalancePieChart extends StatefulWidget {
+class _TopOutstandingChart extends StatelessWidget {
   final List<SupplierBalanceItem> items;
-  const _BalancePieChart({required this.items});
-
-  @override
-  State<_BalancePieChart> createState() => _BalancePieChartState();
-}
-
-class _BalancePieChartState extends State<_BalancePieChart> {
-  int _touchIndex = -1;
+  const _TopOutstandingChart({required this.items});
 
   @override
   Widget build(BuildContext context) {
+    final top = items.take(5).toList();
+    final maxVal = top.isEmpty
+        ? 0.0
+        : top.map((e) => e.outstandingBalance).reduce((a, b) => a > b ? a : b);
+
     return SectionCard(
       headerIcon: Container(
-        width: 26, height: 26,
-        decoration: BoxDecoration(color: AppColor.errorLight, borderRadius: BorderRadius.circular(6)),
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+            color: AppColor.errorLight, borderRadius: BorderRadius.circular(6)),
         alignment: Alignment.center,
-        child: const Icon(Icons.pie_chart_outline, size: 14, color: AppColor.error),
+        child: const Icon(Icons.trending_up_rounded,
+            size: 14, color: AppColor.error),
       ),
-      title: 'Outstanding Balance',
+      title: 'Top Suppliers by Outstanding',
       children: [
-        if (widget.items.isEmpty)
+        if (top.isEmpty)
           const _EmptyState(message: 'Koi outstanding balance nahi')
-        else ...[
-          SizedBox(
-            height: 200,
-            child: Row(
-              children: [
-                Expanded(
-                  child: PieChart(
-                    PieChartData(
-                      pieTouchData: PieTouchData(
-                        touchCallback: (event, response) {
-                          setState(() {
-                            if (!event.isInterestedForInteractions ||
-                                response?.touchedSection == null) {
-                              _touchIndex = -1;
-                              return;
-                            }
-                            _touchIndex = response!.touchedSection!.touchedSectionIndex;
-                          });
-                        },
-                      ),
-                      sections: widget.items.asMap().entries.map((e) {
-                        final isTouched = e.key == _touchIndex;
-                        final color     = _kChartColors[e.key % _kChartColors.length];
-                        return PieChartSectionData(
-                          color:      color,
-                          value:      e.value.outstandingBalance,
-                          title:      isTouched ? 'Rs ${e.value.outstandingBalance.pkrFormat}' : '',
-                          radius:     isTouched ? 65 : 54,
-                          titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.white),
-                        );
-                      }).toList(),
-                      sectionsSpace:    3,
-                      centerSpaceRadius: 30,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: widget.items.asMap().entries.map((e) {
-                    final color = _kChartColors[e.key % _kChartColors.length];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                          const SizedBox(width: 6),
-                          SizedBox(
-                            width: 80,
-                            child: Text(
-                              e.value.name,
-                              style: const TextStyle(fontSize: 10, color: AppColor.textSecondary),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-        ],
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// PURCHASE BAR CHART
-// ─────────────────────────────────────────────────────────────
-
-class _PurchaseBarChart extends StatelessWidget {
-  final List<SupplierPurchaseItem> items;
-  const _PurchaseBarChart({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionCard(
-      headerIcon: Container(
-        width: 26, height: 26,
-        decoration: BoxDecoration(color: AppColor.infoLight, borderRadius: BorderRadius.circular(6)),
-        alignment: Alignment.center,
-        child: const Icon(Icons.bar_chart_rounded, size: 14, color: AppColor.info),
-      ),
-      title: 'Top by Purchase Volume',
-      children: [
-        if (items.isEmpty)
-          const _EmptyState(message: 'Koi purchase data nahi')
         else
-          SizedBox(
-            height: 200,
-            child: BarChart(
-              BarChartData(
-                alignment:       BarChartAlignment.spaceAround,
-                maxY:            items.map((e) => e.totalPurchased).reduce((a, b) => a > b ? a : b) * 1.2,
-                barTouchData:    BarTouchData(
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      return BarTooltipItem(
-                        '${items[group.x].name}\nRs ${rod.toY.pkrFormat}',
-                        const TextStyle(fontSize: 10, color: AppColor.white, fontWeight: FontWeight.w600),
-                      );
-                    },
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        final i = value.toInt();
-                        if (i < 0 || i >= items.length) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            items[i].name.length > 6 ? '${items[i].name.substring(0, 6)}..' : items[i].name,
-                            style: const TextStyle(fontSize: 9, color: AppColor.textSecondary),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles:   const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles:    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles:  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                gridData:    const FlGridData(show: false),
-                borderData:  FlBorderData(show: false),
-                barGroups:   items.asMap().entries.map((e) {
-                  return BarChartGroupData(
-                    x: e.key,
-                    barRods: [
-                      BarChartRodData(
-                        toY:          e.value.totalPurchased,
-                        color:        AppColor.primary,
-                        width:        18,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
+          ...List.generate(top.length, (i) {
+            final it    = top[i];
+            final frac  = maxVal == 0
+                ? 0.0
+                : (it.outstandingBalance / maxVal).clamp(0.0, 1.0);
+            final color = _kChartColors[i % _kChartColors.length];
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 9,
+                        height: 9,
+                        decoration:
+                            BoxDecoration(color: color, shape: BoxShape.circle),
                       ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(it.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColor.textPrimary)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text('Rs ${it.outstandingBalance.pkrFormat}',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColor.error)),
                     ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// MONTHLY TREND — LINE CHART
-// ─────────────────────────────────────────────────────────────
-
-class _MonthlyTrendSection extends StatelessWidget {
-  final List<MonthlyPurchaseData> trend;
-  const _MonthlyTrendSection({required this.trend});
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionCard(
-      headerIcon: Container(
-        width: 26, height: 26,
-        decoration: BoxDecoration(color: AppColor.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-        alignment: Alignment.center,
-        child: const Icon(Icons.show_chart_rounded, size: 14, color: AppColor.primary),
-      ),
-      title: 'Monthly Purchase Trend (Last 6 Months)',
-      children: [
-        if (trend.isEmpty)
-          const _EmptyState(message: 'Is period mein koi purchase nahi')
-        else
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipItems: (spots) => spots.map((spot) {
-                      return LineTooltipItem(
-                        'Rs ${spot.y.pkrFormat}',
-                        const TextStyle(fontSize: 11, color: AppColor.white, fontWeight: FontWeight.w600),
-                      );
-                    }).toList(),
                   ),
-                ),
-                gridData: FlGridData(
-                  show:                    true,
-                  drawVerticalLine:        false,
-                  horizontalInterval:      _gridInterval(trend),
-                  getDrawingHorizontalLine: (_) => const FlLine(color: AppColor.grey100, strokeWidth: 1),
-                ),
-                borderData: FlBorderData(
-                  show:   true,
-                  border: const Border(
-                    bottom: BorderSide(color: AppColor.grey200),
-                    left:   BorderSide(color: AppColor.grey200),
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles:   true,
-                      reservedSize: 28,
-                      getTitlesWidget: (value, meta) {
-                        final i = value.toInt();
-                        if (i < 0 || i >= trend.length) return const SizedBox.shrink();
-                        final m = trend[i].month;
-                        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text('${months[m.month - 1]} ${m.year.toString().substring(2)}',
-                              style: const TextStyle(fontSize: 9, color: AppColor.textSecondary)),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles:  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles:   const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: trend.asMap().entries.map((e) =>
-                        FlSpot(e.key.toDouble(), e.value.total)).toList(),
-                    isCurved:       true,
-                    color:          AppColor.primary,
-                    barWidth:       2.5,
-                    dotData:        const FlDotData(show: true),
-                    belowBarData:   BarAreaData(
-                      show:  true,
-                      color: AppColor.primary.withOpacity(0.08),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      height: 8,
+                      color: AppColor.grey200,
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: frac == 0 ? 0.02 : frac,
+                        child: Container(color: color),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ),
+            );
+          }),
       ],
     );
-  }
-
-  double _gridInterval(List<MonthlyPurchaseData> data) {
-    if (data.isEmpty) return 1;
-    final max = data.map((e) => e.total).reduce((a, b) => a > b ? a : b);
-    if (max == 0) return 1;
-    return (max / 4).ceilToDouble();
   }
 }
 

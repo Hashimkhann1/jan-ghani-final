@@ -81,6 +81,9 @@ const kExpenseQuickSelect = [
   'Transport',
   'Maintenance',
   'Grocery',
+  'Wawra',
+  'Feed',
+  'Bike Fuel',
   'Miscellaneous',
 ];
 
