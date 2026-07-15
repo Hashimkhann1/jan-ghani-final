@@ -307,7 +307,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                 const SizedBox(height: 18),
 
                 // ── Description ──────────────────────────────
-                const Text('Description (Optional)',
+                const Text('Description *',
                     style: TextStyle(
                         fontSize:   13,
                         fontWeight: FontWeight.w500,
@@ -318,7 +318,15 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   maxLines:   3,
                   style: const TextStyle(
                       fontSize: 13, color: AppColor.textPrimary),
-                  decoration: _deco('Extra details...'),
+                  decoration: _deco('Kam se kam 10 characters likhein...'),
+                  validator: (v) {
+                    final t = v?.trim() ?? '';
+                    if (t.isEmpty) return 'Description zaroori hai';
+                    if (t.length < 10) {
+                      return 'Description kam se kam 10 characters ka hona chahiye';
+                    }
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 28),

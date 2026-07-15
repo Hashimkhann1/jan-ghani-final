@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/screens/inventory_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/presentation/screens/cash_flow_report_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/expense/presentation/screens/expense_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/purchase/presentation/screens/purchase_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/supplier/presentation/screens/supplier_report_screen.dart';
 
@@ -82,6 +83,12 @@ class _WarehouseReportsShellState extends State<WarehouseReportsShell> {
       label:       'Cash Flow',
       description: 'Daily cash, expenses, finance summary',
       screen:      CashFlowReportScreen(),
+    ),
+    _ReportItem(
+      icon:        Icons.receipt_long_outlined,
+      label:       'Expenses',
+      description: 'Category-wise kharcha, share, daily average',
+      screen:      ExpenseReportScreen(),
     ),
   ];
 

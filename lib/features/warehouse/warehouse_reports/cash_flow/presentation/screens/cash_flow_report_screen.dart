@@ -1,7 +1,8 @@
 // =============================================================
 // cash_flow_report_screen.dart
-// Advanced Cash Flow Report — Triple LineChart, Grouped BarChart,
-// Net Flow BarChart, Donut PieChart, Progress Bars
+// Simplified + responsive Cash Flow Report — 6 summary cards (3/2/1 per
+// row), Monthly In vs Out (grouped bar) + Expense Breakdown by Category
+// (donut) — side-by-side on wide, stacked on mobile.
 // =============================================================
 
 import 'package:fl_chart/fl_chart.dart';
@@ -96,29 +97,20 @@ class _Body extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── 4 Summary Cards ──────────────────────
+          // ── Summary Cards (6) ─────────────────────
           if (state.summary != null)
-            _SummaryCards(summary: state.summary!, filterMode: state.filterMode),
+            _SummaryCards(
+              summary:    state.summary!,
+              filterMode: state.filterMode,
+              types:      state.typeBreakdown,
+            ),
           const SizedBox(height: 16),
 
-          // ── STAR: Triple Line Chart ───────────────
-          _TripleLineChart(data: state.monthlyData),
-          const SizedBox(height: 16),
-
-          // ── Grouped Bar + Net Flow Bar ─────────────
-          _TwoBarChartsRow(data: state.monthlyData),
-          const SizedBox(height: 16),
-
-          // ── Donut PieChart — Expense Breakdown ────
-          _DonutExpenseChart(categories: state.expenseBreakdown),
-          const SizedBox(height: 16),
-
-          // ── Progress Bars — Type Breakdown ────────
-          _TypeBreakdownSection(types: state.typeBreakdown),
-          const SizedBox(height: 16),
-
-          // ── Recent Transactions (drill-down) ──────
-          _RecentTransactionsSection(transactions: state.transactions),
+          // ── Monthly In vs Out  +  Expense Breakdown by Category ──
+          _TwoBarChartsRow(
+            data:       state.monthlyData,
+            categories: state.expenseBreakdown,
+          ),
           const SizedBox(height: 20),
         ],
       ),
@@ -330,7 +322,15 @@ class _CustomPill extends StatelessWidget {
 class _SummaryCards extends StatelessWidget {
   final CashFlowSummary summary;
   final DateFilterMode filterMode;
-  const _SummaryCards({required this.summary, required this.filterMode});
+  final List<TransactionTypeData> types;
+  const _SummaryCards({
+    required this.summary,
+    required this.filterMode,
+    required this.types,
+  });
+
+  double _typeAmt(String t) =>
+      types.where((e) => e.type == t).fold(0.0, (s, e) => s + e.amount);
 
   String get _periodWord {
     switch (filterMode) {
@@ -354,265 +354,138 @@ class _SummaryCards extends StatelessWidget {
       netBadge = '${up ? '↑' : '↓'} ${pct.abs().toStringAsFixed(0)}% vs last';
     }
 
-    return Row(
-      children: [
-        DashStatCard(
-          label:      'Cash In Hand',
-          value:      'Rs ${summary.cashInHand.pkrFormat}',
-          badge:      'Live balance',
-          icon:       Icons.account_balance_wallet_outlined,
-          color:      AppColor.primary,
-          barPercent: 1.0,
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      '$_periodWord In',
-          value:      'Rs ${summary.periodCashIn.pkrFormat}',
-          badge:      'Cash received',
-          icon:       Icons.arrow_downward_rounded,
-          color:      AppColor.success,
-          barPercent: summary.periodCashIn == 0 ? 0 : 1.0,
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      '$_periodWord Out',
-          value:      'Rs ${summary.periodCashOut.pkrFormat}',
-          badge:      'Total spent',
-          icon:       Icons.arrow_upward_rounded,
-          color:      AppColor.error,
-          barPercent: summary.periodCashIn == 0
-              ? 0
-              : (summary.periodCashOut / summary.periodCashIn).clamp(0, 1),
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Net Flow',
-          value:      'Rs ${summary.periodNet.abs().pkrFormat}',
-          badge:      netBadge,
-          icon:       netPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-          color:      netPositive ? AppColor.success : AppColor.error,
-          barPercent: 1.0,
-        ),
-      ],
-    );
-  }
-}
+    final totalExpense = _typeAmt('expense');
+    final paidSupplier = _typeAmt('supplier_payment');
+    final out          = summary.periodCashOut;
 
-// ─────────────────────────────────────────────────────────────
-// ⭐ STAR: TRIPLE LINE CHART
-// Cash In (green) + Cash Out (red) + Balance (purple) — 3 lines
-// ─────────────────────────────────────────────────────────────
-
-class _TripleLineChart extends StatefulWidget {
-  final List<MonthlyCashFlowData> data;
-  const _TripleLineChart({required this.data});
-
-  @override
-  State<_TripleLineChart> createState() => _TripleLineChartState();
-}
-
-class _TripleLineChartState extends State<_TripleLineChart> {
-  // Which line is touched — for highlight
-  int _touchedSpotIndex = -1;
-
-  @override
-  Widget build(BuildContext context) {
-    final d = widget.data;
-    if (d.isEmpty) {
-      return SectionCard(
-        headerIcon: _headerIcon(Icons.show_chart_rounded, AppColor.primary, AppColor.primary.withOpacity(0.1)),
-        title: 'Cash Flow Trend (Last 6 Months)',
-        children: const [_EmptyState(message: 'Koi transaction data nahi')],
-      );
-    }
-
-    // Max value across all 3 lines
-    final allValues = [
-      ...d.map((e) => e.cashIn),
-      ...d.map((e) => e.cashOut),
-      ...d.map((e) => e.endBalance),
+    final cards = <Widget>[
+      DashStatCard(
+        label:      'Cash In Hand',
+        value:      'Rs ${summary.cashInHand.pkrFormat}',
+        badge:      'Live balance',
+        icon:       Icons.account_balance_wallet_outlined,
+        color:      AppColor.primary,
+        barPercent: 1.0,
+      ),
+      DashStatCard(
+        label:      '$_periodWord In',
+        value:      'Rs ${summary.periodCashIn.pkrFormat}',
+        badge:      'Cash received',
+        icon:       Icons.arrow_downward_rounded,
+        color:      AppColor.success,
+        barPercent: summary.periodCashIn == 0 ? 0 : 1.0,
+      ),
+      DashStatCard(
+        label:      '$_periodWord Out',
+        value:      'Rs ${summary.periodCashOut.pkrFormat}',
+        badge:      'Total spent',
+        icon:       Icons.arrow_upward_rounded,
+        color:      AppColor.error,
+        barPercent: summary.periodCashIn == 0
+            ? 0
+            : (summary.periodCashOut / summary.periodCashIn).clamp(0, 1),
+      ),
+      DashStatCard(
+        label:      'Net Flow',
+        value:      'Rs ${summary.periodNet.abs().pkrFormat}',
+        badge:      netBadge,
+        icon:       netPositive
+            ? Icons.trending_up_rounded
+            : Icons.trending_down_rounded,
+        color:      netPositive ? AppColor.success : AppColor.error,
+        barPercent: 1.0,
+      ),
+      DashStatCard(
+        label:      'Total Expense',
+        value:      'Rs ${totalExpense.pkrFormat}',
+        badge:      'Expenses',
+        icon:       Icons.receipt_long_outlined,
+        color:      AppColor.warning,
+        barPercent: out == 0 ? 0 : (totalExpense / out).clamp(0, 1),
+      ),
+      DashStatCard(
+        label:      'Paid to Supplier',
+        value:      'Rs ${paidSupplier.pkrFormat}',
+        badge:      'Supplier payments',
+        icon:       Icons.people_outline_rounded,
+        color:      AppColor.info,
+        barPercent: out == 0 ? 0 : (paidSupplier / out).clamp(0, 1),
+      ),
     ];
-    final maxY = allValues.reduce((a, b) => a > b ? a : b) * 1.25;
-    final interval = maxY == 0 ? 1.0 : (maxY / 4).ceilToDouble();
 
-    return SectionCard(
-      headerIcon: _headerIcon(Icons.multiline_chart_rounded, AppColor.primary, AppColor.primary.withOpacity(0.1)),
-      title: 'Cash Flow Trend (Last 6 Months)',
-      headerTrailing: _tripleLegend(),
-      children: [
-        SizedBox(
-          height: 240,
-          child: LineChart(
-            LineChartData(
-              minY: 0,
-              maxY: maxY == 0 ? 10 : maxY,
-              lineTouchData: LineTouchData(
-                touchTooltipData: LineTouchTooltipData(
-                  fitInsideHorizontally: true,
-                  fitInsideVertically:   true,
-                  getTooltipItems: (spots) => spots.map((spot) {
-                    final labels = ['Cash In', 'Cash Out', 'Balance'];
-                    final colors = [AppColor.success, AppColor.error, AppColor.primary];
-                    final idx    = spot.barIndex.clamp(0, 2);
-                    return LineTooltipItem(
-                      '${labels[idx]}\nRs ${spot.y.pkrFormat}',
-                      TextStyle(fontSize: 10, color: colors[idx], fontWeight: FontWeight.w700),
-                    );
-                  }).toList(),
-                ),
-                touchCallback: (event, response) {
-                  setState(() {
-                    _touchedSpotIndex = response?.lineBarSpots?.first.spotIndex ?? -1;
-                  });
-                },
-              ),
-              gridData: FlGridData(
-                show:                    true,
-                drawVerticalLine:        false,
-                horizontalInterval:      interval,
-                getDrawingHorizontalLine: (_) => const FlLine(color: AppColor.grey100, strokeWidth: 1),
-              ),
-              borderData: FlBorderData(
-                show:   true,
-                border: const Border(
-                  bottom: BorderSide(color: AppColor.grey200),
-                  left:   BorderSide(color: AppColor.grey200),
-                ),
-              ),
-              titlesData: FlTitlesData(
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles:   true,
-                    reservedSize: 28,
-                    getTitlesWidget: (value, meta) {
-                      final i = value.toInt();
-                      if (i < 0 || i >= d.length) return const SizedBox.shrink();
-                      final m = d[i].month;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text('${_kMonths[m.month - 1]} ${m.year.toString().substring(2)}',
-                            style: const TextStyle(fontSize: 9, color: AppColor.textSecondary)),
-                      );
-                    },
-                  ),
-                ),
-                leftTitles:  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles:   const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              ),
-              // ── 3 Lines ──────────────────────────────────
-              lineBarsData: [
-                // Line 1: Cash In — green
-                LineChartBarData(
-                  spots:       d.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.cashIn)).toList(),
-                  isCurved:    true,
-                  color:       AppColor.success,
-                  barWidth:    2,
-                  dotData:     FlDotData(
-                    show:             true,
-                    getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
-                      radius:      index == _touchedSpotIndex ? 5 : 3,
-                      color:       AppColor.success,
-                      strokeWidth: 1.5,
-                      strokeColor: AppColor.white,
-                    ),
-                  ),
-                  belowBarData: BarAreaData(
-                    show:  true,
-                    color: AppColor.success.withOpacity(0.06),
-                  ),
-                ),
-                // Line 2: Cash Out — red
-                LineChartBarData(
-                  spots:    d.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.cashOut)).toList(),
-                  isCurved: true,
-                  color:    AppColor.error,
-                  barWidth: 2,
-                  dotData:  FlDotData(
-                    show:          true,
-                    getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
-                      radius:      index == _touchedSpotIndex ? 5 : 3,
-                      color:       AppColor.error,
-                      strokeWidth: 1.5,
-                      strokeColor: AppColor.white,
-                    ),
-                  ),
-                  belowBarData: BarAreaData(
-                    show:  true,
-                    color: AppColor.error.withOpacity(0.04),
-                  ),
-                ),
-                // Line 3: Running Balance — purple (thicker, most important)
-                LineChartBarData(
-                  spots:    d.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.endBalance)).toList(),
-                  isCurved: true,
-                  color:    AppColor.primary,
-                  barWidth: 3,
-                  dotData:  FlDotData(
-                    show:          true,
-                    getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
-                      radius:      index == _touchedSpotIndex ? 6 : 4,
-                      color:       AppColor.primary,
-                      strokeWidth: 2,
-                      strokeColor: AppColor.white,
-                    ),
-                  ),
-                  belowBarData: BarAreaData(
-                    show:  true,
-                    color: AppColor.primary.withOpacity(0.05),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Legend — teen colors explain karo
-  Widget _tripleLegend() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _legendDot(AppColor.success, 'In'),
-        const SizedBox(width: 10),
-        _legendDot(AppColor.error, 'Out'),
-        const SizedBox(width: 10),
-        _legendDot(AppColor.primary, 'Balance'),
-      ],
-    );
-  }
-
-  Widget _legendDot(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColor.textSecondary, fontWeight: FontWeight.w500)),
-      ],
+    // Responsive: wide → 3/row, medium → 2/row, mobile → 1/row
+    return LayoutBuilder(
+      builder: (context, c) {
+        final perRow = c.maxWidth >= 880 ? 3 : (c.maxWidth >= 520 ? 2 : 1);
+        return _cardGrid(cards, perRow);
+      },
     );
   }
 }
 
+// 6 stat cards ko responsive rows (perRow) mein arrange karo. DashStatCard
+// khud Expanded return karta hai → seedha Row mein. Adhoori aakhri row ko
+// Expanded(SizedBox) se pad karte hain taake card widths barabar rahein.
+Widget _cardGrid(List<Widget> cards, int perRow) {
+  final rows = <Widget>[];
+  for (int i = 0; i < cards.length; i += perRow) {
+    final end   = (i + perRow) > cards.length ? cards.length : i + perRow;
+    final chunk = cards.sublist(i, end);
+    final children = <Widget>[];
+    for (int j = 0; j < chunk.length; j++) {
+      if (j > 0) children.add(const SizedBox(width: 12));
+      children.add(chunk[j]);
+    }
+    for (int k = chunk.length; k < perRow; k++) {
+      children.add(const SizedBox(width: 12));
+      children.add(const Expanded(child: SizedBox()));
+    }
+    if (rows.isNotEmpty) rows.add(const SizedBox(height: 12));
+    // NOTE: crossAxisAlignment.stretch use NAHI karna — scroll view (unbounded
+    // height) mein woh cards ko infinite height de kar layout crash karta hai.
+    rows.add(Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    ));
+  }
+  return Column(children: rows);
+}
+
 // ─────────────────────────────────────────────────────────────
-// GROUPED BAR + NET FLOW BAR — SIDE BY SIDE ROW
+// MONTHLY IN/OUT  +  EXPENSE BREAKDOWN — SIDE BY SIDE ROW
 // ─────────────────────────────────────────────────────────────
 
 class _TwoBarChartsRow extends StatelessWidget {
   final List<MonthlyCashFlowData> data;
-  const _TwoBarChartsRow({required this.data});
+  final List<ExpenseCategoryData> categories;
+  const _TwoBarChartsRow({required this.data, required this.categories});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: _GroupedBarChart(data: data)),
-        const SizedBox(width: 12),
-        Expanded(child: _NetFlowBarChart(data: data)),
-      ],
+    // Left: Monthly In vs Out (grouped bar). Right: Expense Breakdown (donut).
+    // Wide → side-by-side; narrow (mobile) → stack (dono full-width).
+    return LayoutBuilder(
+      builder: (context, c) {
+        final bar   = _GroupedBarChart(data: data);
+        final donut = _DonutExpenseChart(categories: categories);
+        if (c.maxWidth >= 700) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: bar),
+              const SizedBox(width: 12),
+              Expanded(child: donut),
+            ],
+          );
+        }
+        return Column(
+          children: [
+            bar,
+            const SizedBox(height: 12),
+            donut,
+          ],
+        );
+      },
     );
   }
 }
@@ -709,134 +582,6 @@ class _GroupedBarChart extends StatelessWidget {
               ),
             ),
           ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// NET FLOW BAR CHART — Positive green / Negative red
-// ─────────────────────────────────────────────────────────────
-
-class _NetFlowBarChart extends StatelessWidget {
-  final List<MonthlyCashFlowData> data;
-  const _NetFlowBarChart({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    if (data.isEmpty) {
-      return SectionCard(
-        headerIcon: _headerIcon(Icons.waterfall_chart_rounded, AppColor.warning, AppColor.warningLight),
-        title: 'Net Flow per Month',
-        children: const [_EmptyState(message: 'Koi data nahi')],
-      );
-    }
-
-    final nets  = data.map((e) => e.netFlow).toList();
-    final maxAbs = nets.map((v) => v.abs()).reduce((a, b) => a > b ? a : b);
-    final maxY  = maxAbs * 1.3 == 0 ? 10.0 : maxAbs * 1.3;
-
-    return SectionCard(
-      headerIcon: _headerIcon(Icons.waterfall_chart_rounded, AppColor.warning, AppColor.warningLight),
-      title: 'Net Flow per Month',
-      headerTrailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _dot(AppColor.success), const SizedBox(width: 4),
-          const Text('Surplus', style: TextStyle(fontSize: 9, color: AppColor.textSecondary)),
-          const SizedBox(width: 8),
-          _dot(AppColor.error), const SizedBox(width: 4),
-          const Text('Deficit', style: TextStyle(fontSize: 9, color: AppColor.textSecondary)),
-        ],
-      ),
-      children: [
-        SizedBox(
-          height: 200,
-          child: BarChart(
-            BarChartData(
-              alignment: BarChartAlignment.spaceAround,
-              minY:      -maxY,
-              maxY:       maxY,
-              baselineY:  0,
-              barTouchData: BarTouchData(
-                touchTooltipData: BarTouchTooltipData(
-                  getTooltipItem: (group, gi, rod, ri) {
-                    final net   = data[group.x].netFlow;
-                    final label = net >= 0 ? 'Surplus' : 'Deficit';
-                    return BarTooltipItem(
-                      '$label\nRs ${net.abs().pkrFormat}',
-                      TextStyle(
-                        fontSize: 10,
-                        color: net >= 0 ? AppColor.success : AppColor.error,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              titlesData: FlTitlesData(
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, meta) {
-                      final i = value.toInt();
-                      if (i < 0 || i >= data.length) return const SizedBox.shrink();
-                      final m = data[i].month;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(_kMonths[m.month - 1],
-                            style: const TextStyle(fontSize: 8, color: AppColor.textSecondary)),
-                      );
-                    },
-                  ),
-                ),
-                // Zero line label on left
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles:   true,
-                    reservedSize: 30,
-                    getTitlesWidget: (value, meta) {
-                      if (value == 0) {
-                        return const Text('0', style: TextStyle(fontSize: 8, color: AppColor.grey400));
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-                topTitles:   const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              ),
-              gridData: FlGridData(
-                show:                    true,
-                drawVerticalLine:        false,
-                horizontalInterval:      maxY,
-                getDrawingHorizontalLine: (val) => FlLine(
-                  color:       val == 0 ? AppColor.grey300 : AppColor.grey100,
-                  strokeWidth: val == 0 ? 1.5 : 1,
-                ),
-              ),
-              borderData: FlBorderData(show: false),
-              barGroups: data.asMap().entries.map((e) {
-                final net   = e.value.netFlow;
-                final color = net >= 0 ? AppColor.success : AppColor.error;
-                return BarChartGroupData(
-                  x: e.key,
-                  barRods: [
-                    BarChartRodData(
-                      fromY: net < 0 ? net : 0,
-                      toY:   net > 0 ? net : 0,
-                      color: color,
-                      width: 18,
-                      borderRadius: net >= 0
-                          ? const BorderRadius.vertical(top: Radius.circular(5))
-                          : const BorderRadius.vertical(bottom: Radius.circular(5)),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -993,92 +738,6 @@ class _DonutExpenseChartState extends State<_DonutExpenseChart> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// TYPE BREAKDOWN — PROGRESS BARS
-// ─────────────────────────────────────────────────────────────
-
-class _TypeBreakdownSection extends ConsumerWidget {
-  final List<TransactionTypeData> types;
-  const _TypeBreakdownSection({required this.types});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final grandTotal = types.fold<double>(0, (s, e) => s + e.amount);
-
-    return SectionCard(
-      headerIcon: _headerIcon(Icons.stacked_bar_chart_rounded, AppColor.primary, AppColor.primary.withOpacity(0.1)),
-      title: 'Transaction Type Breakdown',
-      children: [
-        if (types.isEmpty)
-          const _EmptyState(message: 'Koi transaction nahi')
-        else
-          ...types.asMap().entries.map((e) {
-            final item   = e.value;
-            final isLast = e.key == types.length - 1;
-            final pct    = grandTotal == 0 ? 0.0 : item.amount / grandTotal;
-            final color  = item.isCashIn ? AppColor.success : AppColor.error;
-
-            return InkWell(
-              onTap: () => _showCashTxnSheet(
-                context,
-                ref.read(cashFlowReportProvider).transactions,
-                initialType: item.type,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        // Type dot + label
-                        Container(
-                          width: 8, height: 8,
-                          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(item.label,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-                        ),
-                        Text('Rs ${item.amount.pkrFormat}',
-                            style: const TextStyle(fontSize: 11, color: AppColor.textPrimary, fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color:        color.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text('${(pct * 100).toStringAsFixed(0)}%',
-                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color)),
-                        ),
-                        const SizedBox(width: 2),
-                        const Icon(Icons.chevron_right_rounded, size: 16, color: AppColor.grey400),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        value:           pct,
-                        minHeight:       5,
-                        backgroundColor: AppColor.grey100,
-                        valueColor:      AlwaysStoppedAnimation<Color>(color),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
 // SHARED HELPERS
 // ─────────────────────────────────────────────────────────────
 
@@ -1120,360 +779,3 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-// ═════════════════════════════════════════════════════════════
-// RECENT TRANSACTIONS — SECTION + DRILL-DOWN SHEET
-// ═════════════════════════════════════════════════════════════
-
-String _txnTypeLabel(String? t) {
-  switch (t) {
-    case null:               return 'All';
-    case 'cash_in':          return 'Cash In';
-    case 'purchase':         return 'Purchase';
-    case 'supplier_payment': return 'Supplier Payment';
-    case 'expense':          return 'Expense';
-    default:                 return t;
-  }
-}
-
-Color _txnTypeColor(String? t) {
-  switch (t) {
-    case null:      return AppColor.primary;
-    case 'cash_in': return AppColor.success;
-    default:        return AppColor.error;
-  }
-}
-
-String _txnDateStr(DateTime d) {
-  final h  = d.hour == 0 ? 12 : (d.hour > 12 ? d.hour - 12 : d.hour);
-  final m  = d.minute.toString().padLeft(2, '0');
-  final ap = d.hour >= 12 ? 'PM' : 'AM';
-  return '${d.day} ${_kMonths[d.month - 1]} · $h:$m $ap';
-}
-
-class _RecentTransactionsSection extends StatelessWidget {
-  final List<CashTransactionEntry> transactions;
-  const _RecentTransactionsSection({required this.transactions});
-
-  @override
-  Widget build(BuildContext context) {
-    final preview = transactions.take(6).toList();
-
-    return SectionCard(
-      headerIcon: _headerIcon(Icons.receipt_long_outlined, AppColor.info, AppColor.infoLight),
-      title: 'Recent Transactions',
-      headerTrailing: transactions.isEmpty
-          ? null
-          : GestureDetector(
-              onTap: () => _showCashTxnSheet(context, transactions),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: AppColor.infoLight, borderRadius: BorderRadius.circular(12)),
-                child: Text('View all (${transactions.length})',
-                    style: const TextStyle(
-                        fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.info)),
-              ),
-            ),
-      children: [
-        if (preview.isEmpty)
-          const _EmptyState(message: 'Is period mein koi transaction nahi')
-        else
-          ...preview.asMap().entries.map((e) =>
-              _TxnRow(txn: e.value, isLast: e.key == preview.length - 1)),
-      ],
-    );
-  }
-}
-
-void _showCashTxnSheet(
-  BuildContext context,
-  List<CashTransactionEntry> txns, {
-  String? initialType,
-}) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _CashTxnSheet(transactions: txns, initialType: initialType),
-  );
-}
-
-class _CashTxnSheet extends StatefulWidget {
-  final List<CashTransactionEntry> transactions;
-  final String? initialType;
-  const _CashTxnSheet({required this.transactions, this.initialType});
-
-  @override
-  State<_CashTxnSheet> createState() => _CashTxnSheetState();
-}
-
-class _CashTxnSheetState extends State<_CashTxnSheet> {
-  late String? _type = widget.initialType;
-  final _searchCtrl = TextEditingController();
-  String _query = '';
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
-  int _count(String? t) =>
-      t == null ? widget.transactions.length
-                : widget.transactions.where((e) => e.entryType == t).length;
-
-  @override
-  Widget build(BuildContext context) {
-    // Chips: All + jo types data mein present hain
-    final present = <String>{for (final e in widget.transactions) e.entryType}.toList();
-    final chips = <String?>[null, ...present];
-
-    final q = _query.trim().toLowerCase();
-    final filtered = widget.transactions.where((e) {
-      if (_type != null && e.entryType != _type) return false;
-      if (q.isEmpty) return true;
-      return (e.notes ?? '').toLowerCase().contains(q) ||
-          (e.byName ?? '').toLowerCase().contains(q) ||
-          e.typeLabel.toLowerCase().contains(q);
-    }).toList();
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColor.background,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              // Drag handle
-              Container(
-                margin: const EdgeInsets.only(top: 10, bottom: 4),
-                width: 42, height: 4,
-                decoration: BoxDecoration(
-                    color: AppColor.grey300, borderRadius: BorderRadius.circular(3)),
-              ),
-
-              // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 32, height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColor.info.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.receipt_long_outlined, size: 17, color: AppColor.info),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text('Transactions',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded, size: 20, color: AppColor.grey600),
-                      splashRadius: 18,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Search
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                child: TextField(
-                  controller: _searchCtrl,
-                  onChanged: (v) => setState(() => _query = v),
-                  style: const TextStyle(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Search notes ya user...',
-                    hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColor.grey500),
-                    suffixIcon: _query.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 16, color: AppColor.grey500),
-                            splashRadius: 14,
-                            onPressed: () {
-                              _searchCtrl.clear();
-                              setState(() => _query = '');
-                            },
-                          ),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                    filled: true,
-                    fillColor: AppColor.surface,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColor.grey200),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColor.primary),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Type chips
-              SizedBox(
-                height: 34,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: chips.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) {
-                    final t = chips[i];
-                    final selected = t == _type;
-                    final c = _txnTypeColor(t);
-                    return GestureDetector(
-                      onTap: () => setState(() => _type = t),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selected ? c : AppColor.grey100,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: selected ? c : AppColor.grey200),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(_txnTypeLabel(t),
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: selected ? AppColor.white : AppColor.grey600)),
-                            const SizedBox(width: 5),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: selected ? AppColor.white.withOpacity(0.25) : AppColor.grey200,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text('${_count(t)}',
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      color: selected ? AppColor.white : AppColor.grey600)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Divider(height: 1, color: AppColor.grey200),
-
-              // List
-              Expanded(
-                child: filtered.isEmpty
-                    ? const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.inbox_outlined, size: 34, color: AppColor.grey300),
-                            SizedBox(height: 8),
-                            Text('Koi transaction nahi mila',
-                                style: TextStyle(fontSize: 13, color: AppColor.textHint)),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        itemCount: filtered.length,
-                        itemBuilder: (_, i) => _TxnRow(
-                          txn: filtered[i],
-                          isLast: i == filtered.length - 1,
-                          dense: true,
-                        ),
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ── Single transaction row ──────────────────────────────────
-class _TxnRow extends StatelessWidget {
-  final CashTransactionEntry txn;
-  final bool isLast;
-  final bool dense;
-  const _TxnRow({required this.txn, this.isLast = false, this.dense = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final isIn  = txn.isCashIn;
-    final color = isIn ? AppColor.success : AppColor.error;
-    final sign  = isIn ? '+' : '-';
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: dense ? 20 : 0, vertical: 10),
-      decoration: BoxDecoration(
-        border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100)),
-      ),
-      child: Row(
-        children: [
-          // Direction icon
-          Container(
-            width: 30, height: 30,
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            alignment: Alignment.center,
-            child: Icon(
-              isIn ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-              size: 15, color: color,
-            ),
-          ),
-          const SizedBox(width: 10),
-          // Type + notes + date
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(txn.typeLabel,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(
-                  [
-                    _txnDateStr(txn.createdAt),
-                    if ((txn.notes ?? '').isNotEmpty) txn.notes!,
-                    if ((txn.byName ?? '').isNotEmpty) '· ${txn.byName}',
-                  ].join('  '),
-                  style: const TextStyle(fontSize: 10, color: AppColor.textHint),
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Amount + balance
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('$sign Rs ${txn.amount.pkrFormat}',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
-              const SizedBox(height: 2),
-              Text('Bal: Rs ${txn.balanceAfter.pkrFormat}',
-                  style: const TextStyle(fontSize: 9, color: AppColor.textSecondary)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
