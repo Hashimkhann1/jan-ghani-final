@@ -482,8 +482,7 @@ class _InventoryTable extends ConsumerWidget {
     final auth = ref.watch(authProvider);
 
     return LayoutBuilder(builder: (context, constraints) {
-      final tableWidth = _totalWidth.clamp(
-          constraints.maxWidth, double.infinity);
+      final tableWidth = _totalWidth.clamp(constraints.maxWidth, double.infinity);
       const headerH = 44.0;
       final rowsH   = constraints.maxHeight - headerH - 1;
 
@@ -506,9 +505,7 @@ class _InventoryTable extends ConsumerWidget {
                       width: _widths[i],
                       child: Text(
                         _headers[i],
-                        textAlign: isLast
-                            ? TextAlign.center
-                            : TextAlign.left,
+                        textAlign: isLast ? TextAlign.center : TextAlign.left,
                         style: const TextStyle(
                           fontSize:   12,
                           fontWeight: FontWeight.w700,
@@ -581,7 +578,7 @@ class _InventoryTable extends ConsumerWidget {
 }
 
 // ── Single data row ───────────────────────────────────────────────
-class _DataRow extends StatelessWidget {
+class _DataRow extends ConsumerWidget {
   final BranchStockModel row;
   final int              index;
   final List<double>     widths;
@@ -607,14 +604,10 @@ class _DataRow extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context,WidgetRef ref) {
     final isEven = index.isEven;
-    final qtyColor = row.isOutOfStock
-        ? AppColor.error
-        : row.isLowStock
-        ? AppColor.warning
-        : AppColor.success;
-
+    final qtyColor = row.isOutOfStock ? AppColor.error : row.isLowStock ? AppColor.warning : AppColor.success;
+    final auth = ref.watch(authProvider);
     return Container(
       height: 52,
       color: isEven ? Colors.white : const Color(0xFFFAFAFF),
@@ -746,6 +739,8 @@ class _DataRow extends StatelessWidget {
             ),
           ),
           // Actions
+          auth.user!.storeId  == "09ed6ad4-373d-4afb-a7fb-badb1e72e9e3" ?
+          SizedBox() :
           SizedBox(
             width: widths[12],
             child: Row(

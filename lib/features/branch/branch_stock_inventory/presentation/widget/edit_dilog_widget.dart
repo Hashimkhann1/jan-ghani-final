@@ -93,9 +93,7 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
       unit:           _selectedUnit,
     );
 
-    final success = await ref
-        .read(inventoryPageProvider.notifier)
-        .updateProduct(updated);
+    final success = await ref.read(inventoryPageProvider.notifier).updateProduct(updated);
 
     if (mounted) {
       Navigator.pop(context);
@@ -173,6 +171,7 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
                           child: _Field(
                             label: 'Product Name *',
                             ctrl:  _nameCtrl,
+                            enabled: false,
                             validator: (v) =>
                             (v == null || v.trim().isEmpty)
                                 ? 'Name required'
@@ -389,10 +388,12 @@ class _Field extends StatelessWidget {
   final bool                       isInt;
   final int                        maxLines;
   final String? Function(String?)? validator;
+  final bool? enabled;
 
   const _Field({
     required this.label,
     required this.ctrl,
+    this.enabled = true,
     this.isNumber  = false,
     this.isInt     = false,
     this.maxLines  = 1,
@@ -402,22 +403,16 @@ class _Field extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TextFormField(
     controller:   ctrl,
-    keyboardType: isNumber
-        ? const TextInputType.numberWithOptions(decimal: true)
-        : TextInputType.text,
-    inputFormatters: isInt
-        ? [FilteringTextInputFormatter.digitsOnly]
-        : isNumber
-        ? [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))]
-        : null,
+    keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+    inputFormatters: isInt ? [FilteringTextInputFormatter.digitsOnly] : isNumber ? [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))] : null,
     maxLines:    maxLines,
     validator:   validator,
     style:       const TextStyle(fontSize: 13),
     cursorHeight: 14,
+    enabled: enabled,
     decoration: InputDecoration(
       labelText:  label,
-      labelStyle: const TextStyle(
-          fontSize: 12, color: AppColor.textSecondary),
+      labelStyle: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
       filled:    true,
       fillColor: AppColor.grey100,
       contentPadding:
