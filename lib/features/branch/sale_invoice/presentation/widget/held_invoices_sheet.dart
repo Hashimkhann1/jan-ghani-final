@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../core/color/app_color.dart';
+import '../../../../../core/service/print/print_service.dart';
 import '../../data/model/held_invoice_model.dart';
+import '../../data/model/sale_invoice_model.dart';
 import '../provider/held_invoice_provider.dart';
 import '../provider/sale_invoice_provider.dart';
 
@@ -121,6 +123,7 @@ class _HeldInvoicesDialog extends ConsumerWidget {
                   },
                   onDiscard: () =>
                       _confirmDiscard(context, ref, holds[i]),
+                  onPrint: () => _printHeldInvoice(context, holds[i]),
                 ),
               ),
             ),
@@ -261,6 +264,45 @@ class _HeldInvoicesDialog extends ConsumerWidget {
       ),
     );
   }
+
+  // ── Print held invoice ──────────────────────────────────────────
+  Future<void> _printHeldInvoice(
+      BuildContext context, HeldInvoice hold) async {
+    try {
+      final totalAmount = hold.cartItems.fold<double>(
+        0.0,
+            (sum, item) => sum + (item.salePrice * item.quantity),
+      );
+      final totalDiscount = hold.cartItems.fold<double>(
+        0.0,
+            (sum, item) => sum + item.discountAmount,
+      );
+
+      await ThermalPrintService.printSaleInvoice(
+        storeName:      '',                 // TODO: apne branch/store provider se laga dein
+        branchAddress:  '',                 // TODO
+        branchPhone:    '',                 // TODO
+        invoiceNo:      hold.invoiceNo,
+        date:           hold.heldAt,
+        customerName:   hold.customer?.name,
+        items:          hold.cartItems,
+        totalAmount:    totalAmount,
+        totalDiscount:  totalDiscount,
+        grandTotal:     hold.grandTotal,
+        payments:       const [],           // held invoice abhi paid nahi hoti
+        cashierName:    '',                 // TODO: agar HeldInvoice mein cashierName add ho jaye
+        customerId:     hold.customer?.id,
+        previousBalance: hold.customer?.balance,
+        notes:          'HELD INVOICE — NOT FINAL BILL',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Print failed: $e')),
+        );
+      }
+    }
+  }
 }
 
 // ── Hold Card ──────────────────────────────────────────────────────
@@ -269,12 +311,14 @@ class _HoldCard extends StatelessWidget {
   final DateFormat   timeFmt;
   final VoidCallback onResume;
   final VoidCallback onDiscard;
+  final VoidCallback onPrint;
 
   const _HoldCard({
     required this.hold,
     required this.timeFmt,
     required this.onResume,
     required this.onDiscard,
+    required this.onPrint,
   });
 
   @override
@@ -387,6 +431,27 @@ class _HoldCard extends StatelessWidget {
                       child: const Center(
                         child: Icon(Icons.delete_outline,
                             size: 14, color: AppColor.error),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+
+                  // Print button
+                  InkWell(
+                    onTap:        onPrint,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width:  30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: AppColor.grey200.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: AppColor.grey300, width: 0.5),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.print_outlined,
+                            size: 14, color: AppColor.textPrimary),
                       ),
                     ),
                   ),

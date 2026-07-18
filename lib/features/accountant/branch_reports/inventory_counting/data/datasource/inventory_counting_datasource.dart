@@ -23,7 +23,7 @@ class InventoryCountingReportRemoteDatasource {
     // Pehle isi store mein dhoondo
     final inventoryResponse = await _client
         .from('branch_stock_inventory')
-        .select('product_id, product_name, purchase_price, sale_price, store_id')
+        .select('product_id, product_name, barcode, min_stock, max_stock, store_id')
         .eq('store_id', storeId)
         .inFilter('product_id', productIds);
 
@@ -37,7 +37,7 @@ class InventoryCountingReportRemoteDatasource {
     if (missingIds.isNotEmpty) {
       final fallbackResponse = await _client
           .from('branch_stock_inventory')
-          .select('product_id, product_name, purchase_price, sale_price, store_id')
+          .select('product_id, product_name, barcode, min_stock, max_stock, store_id')
           .inFilter('product_id', missingIds);
 
       for (final item in fallbackResponse as List) {
@@ -46,11 +46,20 @@ class InventoryCountingReportRemoteDatasource {
       }
     }
 
-    return countingList.map((e) {
+    final records = countingList.map((e) {
       final map = e as Map<String, dynamic>;
       final productId = map['product_id'] as String;
       final inv = inventoryMap[productId] ?? {};
       return InventoryCountingRecord.fromMerged(counting: map, inventory: inv);
     }).toList();
+
+    // Aaj wali / latest counted_date pehle, phir product name ascending
+    records.sort((a, b) {
+      final dateCompare = b.countedDate.compareTo(a.countedDate);
+      if (dateCompare != 0) return dateCompare;
+      return a.productName.toLowerCase().compareTo(b.productName.toLowerCase());
+    });
+
+    return records;
   }
 }

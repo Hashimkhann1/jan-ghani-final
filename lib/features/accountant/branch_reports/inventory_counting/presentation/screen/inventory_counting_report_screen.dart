@@ -5,7 +5,6 @@ import '../../data/model/inventory_counting_report_model.dart';
 import '../provider/inventory_counting_provider.dart';
 
 const double _kWideBreakpoint = 900;
-final _currencyFormat = NumberFormat('#,##0', 'en_US');
 
 // UUID pattern — rows jahan product name resolve nahi hua
 final _uuidRegex = RegExp(
@@ -14,6 +13,9 @@ final _uuidRegex = RegExp(
 );
 
 bool _isUuid(String s) => _uuidRegex.hasMatch(s);
+
+String _barcodeText(List<String> barcodes) =>
+    barcodes.isEmpty ? '—' : barcodes.join(', ');
 
 class InventoryCountingReportScreen extends ConsumerStatefulWidget {
   final String storeId;
@@ -31,12 +33,54 @@ class InventoryCountingReportScreen extends ConsumerStatefulWidget {
 class _InventoryCountingReportScreenState
     extends ConsumerState<InventoryCountingReportScreen> {
   final _searchController = TextEditingController();
-  String _searchQuery = '';
+  final _startController  = TextEditingController();
+  final _endController    = TextEditingController();
+  final _fieldDateFmt      = DateFormat('dd MMM yyyy');
 
   @override
   void dispose() {
     _searchController.dispose();
+    _startController.dispose();
+    _endController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickStartDate(
+      InventoryCountingReportNotifier notifier,
+      InventoryCountingReportState state,
+      ) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: state.startDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      _startController.text = _fieldDateFmt.format(picked);
+      notifier.setStartDate(picked);
+    }
+  }
+
+  Future<void> _pickEndDate(
+      InventoryCountingReportNotifier notifier,
+      InventoryCountingReportState state,
+      ) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: state.endDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      _endController.text = _fieldDateFmt.format(picked);
+      notifier.setEndDate(picked);
+    }
+  }
+
+  void _clearDates(InventoryCountingReportNotifier notifier) {
+    _startController.clear();
+    _endController.clear();
+    notifier.clearDateFilter();
   }
 
   @override
@@ -45,28 +89,24 @@ class _InventoryCountingReportScreenState
     final notifier =
     ref.read(inventoryCountingReportProvider(widget.storeId).notifier);
 
-    // Filter: UUID wali rows hide + search
-    final filtered = state.records.where((r) {
-      if (_isUuid(r.productName)) return false;
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      return r.productName.toLowerCase().contains(q);
-    }).toList();
+    // UUID wali rows hamesha hide (search + date filter provider mein ho chuka)
+    final visible = state.filtered.where((r) => !_isUuid(r.productName)).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text("Inventory Counting Report"),
+        title: const Text("Inventory Counting Report"),
       ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!state.isLoading && state.errorMessage == null && state.records.isNotEmpty) ...[
-              _buildSummaryCards(context, state.records),
-              _buildSearchBar(context),
+              _buildSummaryCards(context, visible),
+              _buildSearchBar(context, notifier),
+              _buildDateFilterRow(context, notifier, state),
             ],
-            Expanded(child: _buildBody(context, filtered, state, notifier)),
+            Expanded(child: _buildBody(context, visible, state, notifier)),
           ],
         ),
       ),
@@ -76,13 +116,10 @@ class _InventoryCountingReportScreenState
   // ─── Summary Cards ────────────────────────────────────────────────────────
 
   Widget _buildSummaryCards(
-      BuildContext context, List<InventoryCountingRecord> records) {
-    final visible = records.where((r) => !_isUuid(r.productName)).toList();
+      BuildContext context, List<InventoryCountingRecord> visible) {
     final surplus = visible.where((r) => r.difference > 0).length;
     final shortage = visible.where((r) => r.difference < 0).length;
     final matched = visible.where((r) => r.difference == 0).length;
-    final totalDiffValue =
-    visible.fold<double>(0, (s, r) => s + r.differenceValue);
 
     return Container(
       color: Colors.white,
@@ -122,15 +159,6 @@ class _InventoryCountingReportScreenState
               value: '$matched',
               valueColor: Colors.grey.shade700,
             ),
-            const SizedBox(width: 10),
-            _StatCard(
-              icon: Icons.account_balance_wallet_outlined,
-              iconColor: totalDiffValue >= 0 ? Colors.green : Colors.red,
-              label: 'Net Value',
-              value:
-              '${totalDiffValue >= 0 ? '+' : ''}Rs ${_currencyFormat.format(totalDiffValue)}',
-              valueColor: totalDiffValue >= 0 ? Colors.green : Colors.red,
-            ),
           ],
         ),
       ),
@@ -139,24 +167,25 @@ class _InventoryCountingReportScreenState
 
   // ─── Search Bar ───────────────────────────────────────────────────────────
 
-  Widget _buildSearchBar(BuildContext context) {
+  Widget _buildSearchBar(
+      BuildContext context, InventoryCountingReportNotifier notifier) {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: TextField(
         controller: _searchController,
-        onChanged: (v) => setState(() => _searchQuery = v.trim()),
+        onChanged: notifier.search,
         decoration: InputDecoration(
-          hintText: 'Product name search...',
+          hintText: 'Product name or barcode search...',
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           prefixIcon:
           Icon(Icons.search, color: Colors.grey.shade400, size: 20),
-          suffixIcon: _searchQuery.isNotEmpty
+          suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
             icon: const Icon(Icons.clear, size: 18),
             onPressed: () {
               _searchController.clear();
-              setState(() => _searchQuery = '');
+              notifier.search('');
             },
           )
               : null,
@@ -182,11 +211,107 @@ class _InventoryCountingReportScreenState
     );
   }
 
+  // ─── Date Filter Row ──────────────────────────────────────────────────────
+
+  Widget _buildDateFilterRow(
+      BuildContext context,
+      InventoryCountingReportNotifier notifier,
+      InventoryCountingReportState state,
+      ) {
+    final hasDateFilter = state.startDate != null || state.endDate != null;
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _startController,
+              readOnly: true,
+              onTap: () => _pickStartDate(notifier, state),
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Start date',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                prefixIcon: Icon(Icons.calendar_today_outlined,
+                    size: 16, color: Colors.grey.shade500),
+                filled: true,
+                fillColor: const Color(0xFFF8F9FA),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                  const BorderSide(color: Color(0xFF4A90D9), width: 1.5),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.grey.shade400),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _endController,
+              readOnly: true,
+              onTap: () => _pickEndDate(notifier, state),
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'End date',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                prefixIcon: Icon(Icons.calendar_today_outlined,
+                    size: 16, color: Colors.grey.shade500),
+                filled: true,
+                fillColor: const Color(0xFFF8F9FA),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                  const BorderSide(color: Color(0xFF4A90D9), width: 1.5),
+                ),
+              ),
+            ),
+          ),
+          if (hasDateFilter) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () => _clearDates(notifier),
+              icon: const Icon(Icons.filter_alt_off_outlined, size: 18, color: Colors.red),
+              tooltip: 'Clear date filter',
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.red.withOpacity(0.08),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   // ─── Body ─────────────────────────────────────────────────────────────────
 
   Widget _buildBody(
       BuildContext context,
-      List<InventoryCountingRecord> filtered,
+      List<InventoryCountingRecord> visible,
       InventoryCountingReportState state,
       InventoryCountingReportNotifier notifier,
       ) {
@@ -217,7 +342,7 @@ class _InventoryCountingReportScreenState
       );
     }
 
-    if (filtered.isEmpty) {
+    if (visible.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -226,7 +351,9 @@ class _InventoryCountingReportScreenState
                 size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
-              _searchQuery.isNotEmpty
+              (state.searchQuery.isNotEmpty ||
+                  state.startDate != null ||
+                  state.endDate != null)
                   ? 'Koi product nahi mila'
                   : 'Koi record nahi mila',
               style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
@@ -239,9 +366,9 @@ class _InventoryCountingReportScreenState
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth >= _kWideBreakpoint) {
-          return _WebTableView(records: filtered);
+          return _WebTableView(records: visible);
         }
-        return _MobileCardView(records: filtered);
+        return _MobileCardView(records: visible);
       },
     );
   }
@@ -336,14 +463,15 @@ class _WebTableView extends StatelessWidget {
                     child: const Row(
                       children: [
                         SizedBox(width: 40, child: _ColHeader('#')),
-                        SizedBox(width: 220, child: _ColHeader('Product')),
+                        SizedBox(width: 200, child: _ColHeader('Product')),
+                        SizedBox(width: 140, child: _ColHeader('Barcode')),
                         SizedBox(
-                            width: 110,
-                            child: _ColHeader('Purchase Price',
+                            width: 90,
+                            child: _ColHeader('Min Stock',
                                 align: TextAlign.right)),
                         SizedBox(
-                            width: 110,
-                            child: _ColHeader('Sale Price',
+                            width: 90,
+                            child: _ColHeader('Max Stock',
                                 align: TextAlign.right)),
                         SizedBox(
                             width: 100,
@@ -356,10 +484,6 @@ class _WebTableView extends StatelessWidget {
                         SizedBox(
                             width: 100,
                             child: _ColHeader('Difference',
-                                align: TextAlign.right)),
-                        SizedBox(
-                            width: 120,
-                            child: _ColHeader('Diff Value',
                                 align: TextAlign.right)),
                         Expanded(
                             child: _ColHeader('Counted On',
@@ -394,7 +518,7 @@ class _WebTableView extends StatelessWidget {
                                       color: Colors.grey.shade400)),
                             ),
                             SizedBox(
-                              width: 220,
+                              width: 200,
                               child: Text(r.productName,
                                   style: const TextStyle(
                                       fontSize: 13,
@@ -402,25 +526,33 @@ class _WebTableView extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis),
                             ),
                             SizedBox(
-                              width: 110,
+                              width: 140,
                               child: Text(
-                                'Rs ${_currencyFormat.format(r.purchasePrice)}',
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF4A90D9),
-                                    fontWeight: FontWeight.w500),
+                                _barcodeText(r.barcodes),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             SizedBox(
-                              width: 110,
+                              width: 90,
                               child: Text(
-                                'Rs ${_currencyFormat.format(r.salePrice)}',
+                                r.minStock.toStringAsFixed(1),
                                 textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF4A90D9),
-                                    fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 90,
+                              child: Text(
+                                r.maxStock.toStringAsFixed(1),
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600),
                               ),
                             ),
                             SizedBox(
@@ -445,14 +577,6 @@ class _WebTableView extends StatelessWidget {
                                 alignment: Alignment.centerRight,
                                 child: _DifferenceBadge(
                                     difference: r.difference),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 120,
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: _DifferenceValueBadge(
-                                    value: r.differenceValue),
                               ),
                             ),
                             Expanded(
@@ -567,6 +691,20 @@ class _MobileCard extends StatelessWidget {
               _DifferenceBadge(difference: record.difference),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.tag_rounded, size: 12, color: Colors.grey.shade400),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  _barcodeText(record.barcodes),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Divider(height: 1, color: Colors.grey.shade100),
           const SizedBox(height: 10),
@@ -574,17 +712,14 @@ class _MobileCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _MiniStat(
-                  label: 'Purchase',
-                  value:
-                  'Rs ${_currencyFormat.format(record.purchasePrice)}',
-                  color: const Color(0xFF4A90D9),
+                  label: 'Min Stock',
+                  value: record.minStock.toStringAsFixed(1),
                 ),
               ),
               Expanded(
                 child: _MiniStat(
-                  label: 'Sale',
-                  value: 'Rs ${_currencyFormat.format(record.salePrice)}',
-                  color: const Color(0xFF4A90D9),
+                  label: 'Max Stock',
+                  value: record.maxStock.toStringAsFixed(1),
                 ),
               ),
             ],
@@ -607,16 +742,6 @@ class _MobileCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Diff Value',
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade500)),
-              _DifferenceValueBadge(value: record.differenceValue),
-            ],
-          ),
-          const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -685,43 +810,6 @@ class _DifferenceBadge extends StatelessWidget {
       bg = Colors.grey.withOpacity(0.1);
       fg = Colors.grey.shade600;
       text = '0.0';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration:
-      BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w700, color: fg)),
-    );
-  }
-}
-
-// ─── Difference Value Badge ───────────────────────────────────────────────────
-
-class _DifferenceValueBadge extends StatelessWidget {
-  final double value;
-  const _DifferenceValueBadge({required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final Color bg;
-    final Color fg;
-    final String text;
-
-    if (value > 0) {
-      bg = Colors.green.withOpacity(0.1);
-      fg = Colors.green.shade700;
-      text = '+Rs ${_currencyFormat.format(value)}';
-    } else if (value < 0) {
-      bg = Colors.red.withOpacity(0.1);
-      fg = Colors.red.shade700;
-      text = 'Rs ${_currencyFormat.format(value)}';
-    } else {
-      bg = Colors.grey.withOpacity(0.1);
-      fg = Colors.grey.shade600;
-      text = 'Rs 0';
     }
 
     return Container(

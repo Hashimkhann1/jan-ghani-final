@@ -29,12 +29,20 @@ class BranchModel {
     name: m['name']?.toString() ?? '',
     address: m['address']?.toString(),
     phone: m['phone']?.toString(),
-    isActive: m['is_active'] as bool? ?? true,
-    createdAt: DateTime.parse(m['created_at'].toString()),
-    updatedAt: DateTime.parse(m['updated_at'].toString()),
-    deletedAt: m['deleted_at'] != null
-        ? DateTime.parse(m['deleted_at'].toString())
-        : null,
+    isActive: m['is_active'] is bool
+        ? m['is_active'] as bool
+        : (m['is_active']?.toString() == 'true'),
+    createdAt: m['created_at'] is DateTime
+        ? m['created_at'] as DateTime
+        : DateTime.parse(m['created_at'].toString()),
+    updatedAt: m['updated_at'] is DateTime
+        ? m['updated_at'] as DateTime
+        : DateTime.parse(m['updated_at'].toString()),
+    deletedAt: m['deleted_at'] == null
+        ? null
+        : (m['deleted_at'] is DateTime
+        ? m['deleted_at'] as DateTime
+        : DateTime.parse(m['deleted_at'].toString())),
   );
 
   Map<String, dynamic> toMap() => {
@@ -48,4 +56,5 @@ class BranchModel {
     'updated_at': updatedAt.toIso8601String(),
     'deleted_at': deletedAt?.toIso8601String(),
   };
+
 }

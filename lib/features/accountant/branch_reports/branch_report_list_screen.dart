@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/account_branch_stock_inventory_report/presentation/screen/accountant_branch_stock_inventory_report_screen.dart';
-import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_branch_summary/presentation/screen/accountant_branch_summary_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_customer_ledger/presentation/screen/accountant_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/screen/accountant_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_discount_wise_sale_report/presentation/screen/accountant_discount_wise_sale_report_screen.dart';
@@ -13,6 +12,7 @@ import 'accountant_sale_report/presentation/screen/accountant_sale_report_screen
 import 'accountant_sale_return_report/presentation/screen/sale_return_report_screen.dart';
 import 'ai_chatbot_screen.dart';
 import 'branch_cash_counter_report/presentation/screen/branch_cash_counter_screen.dart';
+import 'branch_stock_damage_report/presentation/screen/accountant_branch_stock_damage_report_screen.dart';
 import 'inventory_counting/presentation/screen/inventory_counting_report_screen.dart';
 
 class BranchReportListScreen extends StatelessWidget {
@@ -91,6 +91,12 @@ class BranchReportListScreen extends StatelessWidget {
       label:    'Discount Wise Sale Report',
       subtitle: 'Details of Discount Wise items',
       color:    Color(0xFFF59E0B),
+    ),
+    _ReportItem(
+      icon:     Icons.inventory_2_rounded,
+      label:    'Inventory Stock Damage Report',
+      subtitle: 'Show All damage Stock',
+      color:    Color(0xFF8B5CF6),
     ),
   ];
 
@@ -183,6 +189,11 @@ class BranchReportListScreen extends StatelessWidget {
       case 11:
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => DiscountWiseSaleReportScreen(branchId: branchId),
+        ));
+        break;
+      case 12:
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => AccountantBranchStockDamageReportScreen(branchId: branchId),
         ));
         break;
     }
