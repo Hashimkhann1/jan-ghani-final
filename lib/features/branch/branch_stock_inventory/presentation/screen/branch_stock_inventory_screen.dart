@@ -739,8 +739,8 @@ class _DataRow extends ConsumerWidget {
             ),
           ),
           // Actions
-          // auth.user!.storeId  == "09ed6ad4-373d-4afb-a7fb-badb1e72e9e3" ?
-          // SizedBox() :
+          auth.user!.storeId  == "09ed6ad4-373d-4afb-a7fb-badb1e72e9e3" ?
+          SizedBox() :
           SizedBox(
             width: widths[12],
             child: Row(
