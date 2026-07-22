@@ -107,6 +107,7 @@ class CustomerReportDatasource {
         .select('''
           id, invoice_no, invoice_date, status,
           total_amount, total_discount, grand_total, customer_id,
+          previous_amount, new_amount, pay_amount,
           customer:customer_id ( name ),
           counter:counter_id   ( counter_name ),
           cashier:user_id      ( full_name ),
@@ -134,7 +135,7 @@ class CustomerReportDatasource {
         .from('sale_invoice_items')
         .select(
       'invoice_id, product_name, sku, sale_price, purchase_price, '
-          'price, quantity, discount, total_amount',
+          'subtotal, quantity, discount, total_amount',
     )
         .inFilter('invoice_id', invoiceIds)
         .order('created_at', ascending: true);
@@ -155,20 +156,23 @@ class CustomerReportDatasource {
           .join(',') ?? 'cash';
 
       return CustomerInvoiceModel(
-        id:            id,
-        invoiceNo:     m['invoice_no']?.toString()   ?? '',
-        invoiceDate:   DateTime.tryParse(m['invoice_date']?.toString() ?? '')
+        id:             id,
+        invoiceNo:      m['invoice_no']?.toString()   ?? '',
+        invoiceDate:    DateTime.tryParse(m['invoice_date']?.toString() ?? '')
             ?? DateTime.now(),
-        paymentType:   payments,
-        status:        m['status']?.toString()        ?? 'completed',
-        totalAmount:   _dbl(m['total_amount'])        ?? 0,
-        totalDiscount: _dbl(m['total_discount'])      ?? 0,
-        grandTotal:    _dbl(m['grand_total'])          ?? 0,
-        customerId:    m['customer_id']?.toString(),
-        customerName:  (m['customer'] as Map?)?['name']?.toString(),
-        counterName:   (m['counter']  as Map?)?['counter_name']?.toString(),
-        cashierName:   (m['cashier']  as Map?)?['full_name']?.toString(),
-        items:         itemsMap[id] ?? [],
+        paymentType:    payments,
+        status:         m['status']?.toString()        ?? 'completed',
+        totalAmount:    _dbl(m['total_amount'])        ?? 0,
+        totalDiscount:  _dbl(m['total_discount'])      ?? 0,
+        grandTotal:     _dbl(m['grand_total'])          ?? 0,
+        previousAmount: _dbl(m['previous_amount'])      ?? 0,
+        newAmount:      _dbl(m['new_amount'])           ?? 0,
+        payAmount:      _dbl(m['pay_amount'])           ?? 0,
+        customerId:     m['customer_id']?.toString(),
+        customerName:   (m['customer'] as Map?)?['name']?.toString(),
+        counterName:    (m['counter']  as Map?)?['counter_name']?.toString(),
+        cashierName:    (m['cashier']  as Map?)?['full_name']?.toString(),
+        items:          itemsMap[id] ?? [],
       );
     }).toList();
   }
@@ -191,7 +195,7 @@ class CustomerReportDatasource {
           sale_return_payments (payment_method, amount),
           sale_return_items (
             product_name, sku, sale_price, purchase_price,
-            price, quantity, discount, total_amount
+            subtotal, quantity, discount, total_amount
           )
         ''')
         .eq('customer_id', customerId)
@@ -219,7 +223,7 @@ class CustomerReportDatasource {
         sku:           i['sku']?.toString(),
         salePrice:     _dbl(i['sale_price'])     ?? 0,
         purchasePrice: _dbl(i['purchase_price']) ?? 0,
-        price:         _dbl(i['price'])          ?? 0,
+        price:         _dbl(i['subtotal'])       ?? 0,
         quantity:      _dbl(i['quantity'])       ?? 0,
         discount:      _dbl(i['discount'])       ?? 0,
         totalAmount:   _dbl(i['total_amount'])   ?? 0,

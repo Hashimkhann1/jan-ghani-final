@@ -5,6 +5,28 @@ import '../../data/model/customer_return_model.dart';
 import '../../data/model/specific_customer_ledger_model.dart';
 
 // ═════════════════════════════════════════════════════════════
+// 0. ARGS — customerId par based equality (customerName sirf carry hota hai)
+// ═════════════════════════════════════════════════════════════
+
+class CustomerReportArgs {
+  final String customerId;
+  final String customerName;
+
+  const CustomerReportArgs({
+    required this.customerId,
+    required this.customerName,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          (other is CustomerReportArgs && other.customerId == customerId);
+
+  @override
+  int get hashCode => customerId.hashCode;
+}
+
+// ═════════════════════════════════════════════════════════════
 // 1. INVOICE PROVIDER
 // ═════════════════════════════════════════════════════════════
 
@@ -82,8 +104,7 @@ class CustomerReportInvoiceState {
   );
 }
 
-class CustomerReportInvoiceNotifier
-    extends StateNotifier<CustomerReportInvoiceState> {
+class CustomerReportInvoiceNotifier extends StateNotifier<CustomerReportInvoiceState> {
   final CustomerReportDatasource _ds;
 
   CustomerReportInvoiceNotifier({
@@ -125,10 +146,10 @@ class CustomerReportInvoiceNotifier
       state = state.copyWith(searchQuery: q);
 }
 
-final customerReportInvoiceProvider = StateNotifierProvider.family<
-    CustomerReportInvoiceNotifier,
+final customerReportInvoiceProvider = StateNotifierProvider.family
+<CustomerReportInvoiceNotifier,
     CustomerReportInvoiceState,
-    ({String customerId, String customerName})>(
+    CustomerReportArgs>(
       (ref, args) => CustomerReportInvoiceNotifier(
     customerId:   args.customerId,
     customerName: args.customerName,
@@ -234,10 +255,10 @@ class CustomerReportReturnNotifier
   }
 }
 
-final customerReportReturnProvider = StateNotifierProvider.family<
-    CustomerReportReturnNotifier,
+final customerReportReturnProvider = StateNotifierProvider.family
+<CustomerReportReturnNotifier,
     CustomerReportReturnState,
-    ({String customerId, String customerName})>(
+    CustomerReportArgs>(
       (ref, args) => CustomerReportReturnNotifier(
     customerId:   args.customerId,
     customerName: args.customerName,
@@ -306,10 +327,10 @@ class CustomerReportLedgerNotifier
   }
 }
 
-final customerReportLedgerProvider = StateNotifierProvider.family<
-    CustomerReportLedgerNotifier,
+final customerReportLedgerProvider = StateNotifierProvider.family
+<CustomerReportLedgerNotifier,
     CustomerReportLedgerState,
-    ({String customerId, String customerName})>(
+    CustomerReportArgs>(
       (ref, args) => CustomerReportLedgerNotifier(
     customerId:   args.customerId,
     customerName: args.customerName,

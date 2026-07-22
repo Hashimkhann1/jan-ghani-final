@@ -7,6 +7,9 @@ class CustomerInvoiceModel {
   final double   totalAmount;
   final double   totalDiscount;
   final double   grandTotal;
+  final double   previousAmount;
+  final double   newAmount;
+  final double   payAmount;
   final String?  customerId;
   final String?  customerName;
   final String?  counterName;
@@ -22,6 +25,9 @@ class CustomerInvoiceModel {
     required this.totalAmount,
     required this.totalDiscount,
     required this.grandTotal,
+    required this.previousAmount,
+    required this.newAmount,
+    required this.payAmount,
     this.customerId,
     this.customerName,
     this.counterName,
@@ -29,9 +35,12 @@ class CustomerInvoiceModel {
     required this.items,
   });
 
-  String get grandTotalLabel  => 'Rs ${grandTotal.toStringAsFixed(0)}';
-  String get totalAmountLabel => 'Rs ${totalAmount.toStringAsFixed(0)}';
-  String get discountLabel    => 'Rs ${totalDiscount.toStringAsFixed(0)}';
+  String get grandTotalLabel    => 'Rs ${grandTotal.toStringAsFixed(0)}';
+  String get totalAmountLabel   => 'Rs ${totalAmount.toStringAsFixed(0)}';
+  String get discountLabel      => 'Rs ${totalDiscount.toStringAsFixed(0)}';
+  String get previousAmountLabel => 'Rs ${previousAmount.toStringAsFixed(0)}';
+  String get newAmountLabel      => 'Rs ${newAmount.toStringAsFixed(0)}';
+  String get payAmountLabel      => 'Rs ${payAmount.toStringAsFixed(0)}';
 
   double get totalProfit =>
       items.fold(0.0, (sum, item) => sum + item.profit);
@@ -77,7 +86,7 @@ class CustomerInvoiceItemDetail {
         sku:           m['sku']?.toString(),
         salePrice:     _dbl(m['sale_price'])     ?? 0,
         purchasePrice: _dbl(m['purchase_price']) ?? 0,
-        price:         _dbl(m['price'])          ?? 0,
+        price:         _dbl(m['subtotal'])       ?? 0,
         quantity:      _dbl(m['quantity'])       ?? 0,
         discount:      _dbl(m['discount'])       ?? 0,
         totalAmount:   _dbl(m['total_amount'])   ?? 0,
