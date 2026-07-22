@@ -6,9 +6,11 @@ import 'package:jan_ghani_final/features/branch/branch_stock_damage/presentation
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all_customer_screen.dart';
+import 'package:jan_ghani_final/features/branch/customer_account/presentation/screen/customer_account_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/csr_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale_return_report_screen.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
+import 'package:jan_ghani_final/features/branch/services/presentation/screen/service_screen.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 import '../../../features/branch/branch_transcation/presentation/screen/branch_transaction_screen.dart';
 import '../../../features/branch/cash_counter/presentation/screen/cash_counter_screen.dart';
@@ -53,9 +55,17 @@ final _cashierItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyS,
   ),
   NavItem(
+    icon: Icons.point_of_sale_rounded, label: 'Service',
+    screen: const ServiceScreen(),
+  ),
+  NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
     shortcutKey: LogicalKeyboardKey.keyC,
+  ),
+  NavItem(
+    icon: Icons.people_alt_rounded, label: 'Customer account',
+    screen: const CustomerAccountScreen(),
   ),
   NavItem(
     icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
@@ -101,7 +111,6 @@ final _cashierItems = <NavItem>[
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
-    shortcutKey: LogicalKeyboardKey.keyR,
   ),
 ];
 
@@ -123,9 +132,17 @@ final _managerItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyU,
   ),
   NavItem(
+    icon: Icons.point_of_sale_rounded, label: 'Service',
+    screen: const ServiceScreen(),
+  ),
+  NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
     shortcutKey: LogicalKeyboardKey.keyC,
+  ),
+  NavItem(
+    icon: Icons.people_alt_rounded, label: 'Customer account',
+    screen: const CustomerAccountScreen(),
   ),
   // NavItem(
   //   icon: Icons.money_off_rounded, label: 'Expense',
