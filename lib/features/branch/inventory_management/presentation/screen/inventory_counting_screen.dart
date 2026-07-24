@@ -1,3 +1,5 @@
+// presentation/screen/inventory_counting_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/model/inventory_countting_model.dart';
@@ -204,6 +206,14 @@ class _ProductListTileState extends State<_ProductListTile> {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
+      subtitle: widget.product.barcodes.isNotEmpty
+          ? Text(
+        widget.product.barcodes.join(', '),
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      )
+          : null,
       trailing: SizedBox(
         width: 130,
         child: Row(

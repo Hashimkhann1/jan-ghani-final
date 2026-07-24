@@ -42,7 +42,7 @@ class InventoryCountingRemoteDatasource {
   }) async {
     final response = await _client
         .from('branch_stock_inventory')
-        .select('id, product_id, product_name, stock, updated_at')
+        .select('id, product_id, product_name, barcode, stock, updated_at')
         .eq('store_id', storeId)
         .order('product_name', ascending: true);
 
