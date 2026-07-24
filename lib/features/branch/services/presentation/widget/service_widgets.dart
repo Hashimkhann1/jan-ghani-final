@@ -257,164 +257,7 @@ class _ServiceCartItemWidgetState extends State<ServiceCartItemWidget> {
 
 
 // ════════════════════════════════════════════════════════════
-//  2. SERVICE ADD DIALOG  (Bottom Sheet ki jagah AlertDialog)
-//     AppBar mein "Add Service" button se khulta hai
-// ════════════════════════════════════════════════════════════
-class ServiceAddDialog extends ConsumerWidget {
-  final ValueChanged<ServiceModel> onServiceSelected;
-
-  const ServiceAddDialog({super.key, required this.onServiceSelected});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final servicesAsync = ref.watch(serviceListProvider);
-
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 560),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // ── Header ──────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 8, 0),
-              child: Row(
-                children: [
-                  const Icon(Icons.miscellaneous_services_outlined,
-                      color: AppColor.primary, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Service Select Karo',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  // Add New service shortcut
-                  TextButton.icon(
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) => const _ServiceFormDialog(existing: null),
-                    ),
-                    icon:  const Icon(Icons.add, size: 16),
-                    label: const Text('New', style: TextStyle(fontSize: 13)),
-                  ),
-                  IconButton(
-                    icon:      const Icon(Icons.close, size: 18),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-
-            // ── Service List ────────────────────────────────
-            Expanded(
-              child: servicesAsync.when(
-                loading: () =>
-                const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-                data: (services) {
-                  final active =
-                  services.where((s) => s.isActive).toList();
-
-                  if (active.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.miscellaneous_services_outlined,
-                              size: 48, color: Colors.grey.shade300),
-                          const SizedBox(height: 8),
-                          const Text('Koi active service nahi'),
-                          const SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            onPressed: () => showDialog(
-                              context: context,
-                              builder: (_) =>
-                              const _ServiceFormDialog(existing: null),
-                            ),
-                            icon:  const Icon(Icons.add),
-                            label: const Text('Add Service'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColor.primary,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.separated(
-                    padding:          const EdgeInsets.symmetric(vertical: 8),
-                    itemCount:        active.length,
-                    separatorBuilder: (_, __) =>
-                    const Divider(height: 1, indent: 16, endIndent: 16),
-                    itemBuilder: (_, i) {
-                      final s = active[i];
-                      return ListTile(
-                        contentPadding:
-                        const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        leading: CircleAvatar(
-                          backgroundColor:
-                          AppColor.primary.withOpacity(0.1),
-                          child: Icon(
-                            Icons.miscellaneous_services_outlined,
-                            color: AppColor.primary,
-                            size:  20,
-                          ),
-                        ),
-                        title: Text(
-                          s.name,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          '${s.serviceType.replaceAll('_', ' ').toUpperCase()}'
-                              '  •  Rs ${s.feeAmount.toStringAsFixed(0)}'
-                              ' per Rs ${s.perAmount.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            onServiceSelected(s);
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColor.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            minimumSize:   Size.zero,
-                            tapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text('Add',
-                              style: TextStyle(fontSize: 13)),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
-// ════════════════════════════════════════════════════════════
-//  3. SERVICE PAYMENT DIALOG
+//  2. SERVICE PAYMENT DIALOG
 // ════════════════════════════════════════════════════════════
 class ServicePaymentDialog extends StatefulWidget {
   final String              method;
@@ -510,173 +353,19 @@ class _ServicePaymentDialogState extends State<ServicePaymentDialog> {
 
 
 // ════════════════════════════════════════════════════════════
-//  4. SERVICE MANAGE SCREEN
-//     AppBar mein "Manage Services" se khulta hai
+//  3. SERVICE FORM DIALOG  (Add + Edit) — public, used directly
+//     from ServiceScreen's "Add Service" button
 // ════════════════════════════════════════════════════════════
-class ServiceManageScreen extends ConsumerWidget {
-  const ServiceManageScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final servicesAsync = ref.watch(serviceListProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Services'),
-        actions: [
-          IconButton(
-            icon:      const Icon(Icons.add),
-            tooltip:   'New Service',
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const _ServiceFormDialog(existing: null),
-            ),
-          ),
-        ],
-      ),
-      body: servicesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text('Error: $e')),
-        data: (services) {
-          if (services.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.miscellaneous_services_outlined,
-                      size: 64, color: Colors.grey.shade300),
-                  const SizedBox(height: 12),
-                  const Text('Koi service nahi'),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) =>
-                      const _ServiceFormDialog(existing: null),
-                    ),
-                    icon:  const Icon(Icons.add),
-                    label: const Text('Add Service'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding:          const EdgeInsets.all(12),
-            itemCount:        services.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) {
-              final s = services[i];
-              return Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: Colors.grey.shade200),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColor.primary.withOpacity(0.1),
-                    child: Icon(
-                      Icons.miscellaneous_services_outlined,
-                      color: AppColor.primary,
-                      size:  20,
-                    ),
-                  ),
-                  title: Text(s.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text(
-                    '${s.serviceType}  •  '
-                        'Rs ${s.feeAmount.toStringAsFixed(0)} per '
-                        'Rs ${s.perAmount.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Switch(
-                        value:       s.isActive,
-                        activeColor: AppColor.primary,
-                        onChanged:   (_) => ref
-                            .read(serviceListProvider.notifier)
-                            .update(
-                          id:          s.id,
-                          name:        s.name,
-                          serviceType: s.serviceType,
-                          perAmount:   s.perAmount,
-                          feeAmount:   s.feeAmount,
-                          notes:       s.notes,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        onPressed: () => showDialog(
-                          context: context,
-                          builder: (_) => _ServiceFormDialog(existing: s),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline,
-                            size: 18, color: Colors.red.shade300),
-                        onPressed: () =>
-                            _confirmDelete(context, ref, s),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  void _confirmDelete(
-      BuildContext context, WidgetRef ref, ServiceModel s) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title:   const Text('Service Delete Karo?'),
-        content: Text('"${s.name}" delete ho jayega.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              ref.read(serviceListProvider.notifier).delete(s.id);
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-// ════════════════════════════════════════════════════════════
-//  5. SERVICE FORM DIALOG  (Add + Edit)
-// ════════════════════════════════════════════════════════════
-class _ServiceFormDialog extends ConsumerStatefulWidget {
+class ServiceFormDialog extends ConsumerStatefulWidget {
   final ServiceModel? existing;
-  const _ServiceFormDialog({this.existing});
+  const ServiceFormDialog({super.key, this.existing});
 
   @override
-  ConsumerState<_ServiceFormDialog> createState() =>
+  ConsumerState<ServiceFormDialog> createState() =>
       _ServiceFormDialogState();
 }
 
-class _ServiceFormDialogState extends ConsumerState<_ServiceFormDialog> {
+class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameCtrl;
   late TextEditingController _perAmountCtrl;
@@ -721,7 +410,7 @@ class _ServiceFormDialogState extends ConsumerState<_ServiceFormDialog> {
 
     return AlertDialog(
       title: Text(
-        isEdit ? 'Service Edit Karo' : 'Nai Service Add Karo',
+        isEdit ? 'Edit Service' : 'Add New Service',
         style: const TextStyle(
             fontSize: 16, fontWeight: FontWeight.bold),
       ),
@@ -823,8 +512,8 @@ class _ServiceFormDialogState extends ConsumerState<_ServiceFormDialog> {
 
               const SizedBox(height: 4),
               Text(
-                'Matlab: Rs ${_perAmountCtrl.text.isEmpty ? '?' : _perAmountCtrl.text} '
-                    'par Rs ${_feeAmountCtrl.text.isEmpty ? '?' : _feeAmountCtrl.text} fee loge',
+                'Means: Rs ${_perAmountCtrl.text.isEmpty ? '?' : _perAmountCtrl.text} '
+                    'gets Rs ${_feeAmountCtrl.text.isEmpty ? '?' : _feeAmountCtrl.text} fee',
                 style: TextStyle(
                     fontSize: 11, color: Colors.grey.shade500),
               ),

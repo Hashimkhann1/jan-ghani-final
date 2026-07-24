@@ -189,7 +189,7 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
     state = state.copyWith(
       cartItems: state.cartItems.map((i) {
         if (i.cartId != cartId) return i;
-        return i.copyWith(amount: amount);
+        return i.copyWith(amount: amount);   // ← sirf amount, calculatedFee wahi purana (0) reh jata hai
       }).toList(),
       clearPayment: true,
     );
