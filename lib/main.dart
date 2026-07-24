@@ -139,8 +139,8 @@ class MyApp extends ConsumerWidget {
       theme: LightTheme.theme,
       home:
       // InventoryCountingScreen(),
-      session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
-      // _resolveHome(session, auth),
+      // session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
+      _resolveHome(session, auth),
     );
   }
 
