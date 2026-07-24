@@ -43,6 +43,7 @@ class AccountantSaleReportDatasource {
           id, invoice_no, invoice_date,
           total_amount, total_discount, grand_total,
           status, customer_id, deleted_at,
+          previous_amount, new_amount, pay_amount, paid_amount,
           customer (name),
           sale_invoice_payments (payment_method, amount),
           sale_invoice_items (
@@ -81,7 +82,7 @@ class AccountantSaleReportDatasource {
           salePrice:     _dbl(i['sale_price'])          ?? 0,
           purchasePrice: _dbl(i['purchase_price'])      ?? 0,
           quantity:      _dbl(i['quantity'])            ?? 0,
-          discount:      _dbl(i['discount'])            ?? 0,
+          discount:      _dbl(i['discount'])             ?? 0,
           totalAmount:   _dbl(i['total_amount'])        ?? 0,
         ))
             .toList();
@@ -104,13 +105,17 @@ class AccountantSaleReportDatasource {
           status:         r['status']?.toString()       ?? '',
           paymentMethods: methods,
           items:          items,
+          previousAmount: _dbl(r['previous_amount'])    ?? 0,
+          newAmount:      _dbl(r['new_amount'])          ?? 0,
+          payAmount:      _dbl(r['pay_amount'])          ?? 0,
+          paidAmount:     _dbl(r['paid_amount'])         ?? 0,
         );
       })
           .toList();
 
       allInvoices.addAll(page);
 
-      // Agar page size se kam aya toh aur pages nahi hain
+      // If fewer than pageSize rows returned, no more pages left
       if (page.length < pageSize) {
         hasMore = false;
       } else {

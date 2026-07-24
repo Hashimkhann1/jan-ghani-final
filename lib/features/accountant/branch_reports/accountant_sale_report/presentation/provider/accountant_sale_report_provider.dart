@@ -143,7 +143,7 @@ class AccountantSaleReportNotifier
   void clearError() => state = state.copyWith(errorMessage: null);
 }
 
-// ── Provider — branchId ke sath ───────────────────────────
+// ── Provider — scoped by branchId ─────────────────────────
 final accountantSaleReportProvider = StateNotifierProvider.autoDispose
     .family<AccountantSaleReportNotifier, AccountantSaleReportState, String>(
       (ref, branchId) => AccountantSaleReportNotifier(branchId: branchId),

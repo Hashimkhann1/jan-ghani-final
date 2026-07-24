@@ -56,7 +56,7 @@ class _AccountantSaleReportScreenState
       lastDate:    DateTime.now(),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColor.primary),
+          colorScheme: const ColorScheme.light(primary: Colors.black),
         ),
         child: child!,
       ),
@@ -126,7 +126,7 @@ class _AccountantSaleReportScreenState
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1D23),
+                      color: Colors.black,
                     ),
                   ),
                   TextButton(
@@ -136,6 +136,7 @@ class _AccountantSaleReportScreenState
                       notifier.setPaymentType(null);
                       Navigator.pop(ctx);
                     },
+                    style: TextButton.styleFrom(foregroundColor: Colors.black),
                     child: const Text('Reset'),
                   ),
                 ],
@@ -184,7 +185,7 @@ class _AccountantSaleReportScreenState
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
+                    backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -212,7 +213,7 @@ class _AccountantSaleReportScreenState
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:         Text(next.errorMessage!),
-          backgroundColor: AppColor.error,
+          backgroundColor: Colors.black,
           behavior:        SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10)),
@@ -257,7 +258,7 @@ class _AccountantSaleReportScreenState
           icon:  Icons.receipt_long_outlined),
     ];
 
-    // Kitne filters active hain — badge dikhane ke liye
+    // Count of active filters — used for the badge
     final activeFilterCount = (state.selectedCustomerId != null ? 1 : 0) +
         (state.selectedPaymentType != null ? 1 : 0);
 
@@ -302,7 +303,7 @@ class _AccountantSaleReportScreenState
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Desktop Layout (unchanged)
+// Desktop Layout
 // ══════════════════════════════════════════════════════════════════════════════
 class _DesktopLayout extends StatelessWidget {
   final AccountantSaleReportState   state;
@@ -350,8 +351,7 @@ class _DesktopLayout extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_rounded,
-                    color: Color(0xFF1A1D23)),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.black),
                 style: IconButton.styleFrom(
                   backgroundColor: const Color(0xFFF5F6FA),
                   shape: RoundedRectangleBorder(
@@ -368,12 +368,12 @@ class _DesktopLayout extends StatelessWidget {
                     style: TextStyle(
                       fontSize:   22,
                       fontWeight: FontWeight.w700,
-                      color:      Color(0xFF1A1D23),
+                      color:      Colors.black,
                     ),
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Sale invoices ki detail aur filters',
+                    'Invoice details and filters',
                     style: TextStyle(fontSize: 13, color: AppColor.textHint),
                   ),
                 ],
@@ -384,8 +384,8 @@ class _DesktopLayout extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onToday,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
+                    foregroundColor: Colors.black,
+                    side: const BorderSide(color: Colors.black),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -402,8 +402,8 @@ class _DesktopLayout extends StatelessWidget {
                   icon:  const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Refresh'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
+                    foregroundColor: Colors.black,
+                    side: const BorderSide(color: Colors.black),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -470,14 +470,12 @@ class _DesktopLayout extends StatelessWidget {
                 label: 'Total Invoices',
                 value: '${summary.totalInvoices}',
                 icon:  Icons.receipt_outlined,
-                color: AppColor.primary,
               ),
               const SizedBox(width: 12),
               _SummaryCard(
                 label: 'Total Sale',
                 value: 'Rs ${NumberFormat('#,##,###', 'en_IN').format(summary.totalSale.toInt())}',
                 icon:  Icons.payments_outlined,
-                color: AppColor.success,
               ),
               const SizedBox(width: 12),
               _SummaryCard(
@@ -486,14 +484,12 @@ class _DesktopLayout extends StatelessWidget {
                     ? summary.totalQuantity.toInt().toString()
                     : summary.totalQuantity.toStringAsFixed(2),
                 icon:  Icons.inventory_2_outlined,
-                color: AppColor.warning,
               ),
               const SizedBox(width: 12),
               _SummaryCard(
                 label: 'Total Discount',
                 value: 'Rs ${NumberFormat('#,##,###', 'en_IN').format(summary.totalDiscount.toInt())}',
                 icon:  Icons.discount_outlined,
-                color: AppColor.error,
               ),
             ],
           ),
@@ -501,10 +497,11 @@ class _DesktopLayout extends StatelessWidget {
         const Divider(height: 1, color: Color(0xFFEEEEEE)),
         Expanded(
           child: state.isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: Colors.black))
               : state.invoices.isEmpty
               ? const _EmptyState()
               : RefreshIndicator(
+            color: Colors.black,
             onRefresh: notifier.load,
             child: ListView.separated(
               padding:          const EdgeInsets.all(24),
@@ -516,6 +513,7 @@ class _DesktopLayout extends StatelessWidget {
                 dateFmt: dateFmt,
                 timeFmt: timeFmt,
                 fmtQty:  fmtQty,
+                fmtAmt:  fmtAmt,
               ),
             ),
           ),
@@ -526,7 +524,7 @@ class _DesktopLayout extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Mobile Layout — filters ab AppBar ke filter icon se bottom sheet mein khultay hain
+// Mobile Layout — filters open via AppBar filter icon in a bottom sheet
 // ══════════════════════════════════════════════════════════════════════════════
 class _MobileLayout extends StatelessWidget {
   final AccountantSaleReportState state;
@@ -566,7 +564,7 @@ class _MobileLayout extends StatelessWidget {
           style: TextStyle(
             fontSize:   17,
             fontWeight: FontWeight.w700,
-            color:      Color(0xFF1A1D23),
+            color:      Colors.black,
           ),
         ),
         actions: [
@@ -587,7 +585,7 @@ class _MobileLayout extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
-                      color: AppColor.primary,
+                      color: Colors.black,
                       shape: BoxShape.circle,
                     ),
                     constraints:
@@ -613,6 +611,7 @@ class _MobileLayout extends StatelessWidget {
           ),
           TextButton(
             onPressed: onToday,
+            style: TextButton.styleFrom(foregroundColor: Colors.black),
             child: const Text('Today'),
           ),
           const SizedBox(width: 4),
@@ -634,28 +633,24 @@ class _MobileLayout extends StatelessWidget {
                   label: 'Invoices',
                   value: '${summary.totalInvoices}',
                   icon:  Icons.receipt_outlined,
-                  color: AppColor.primary,
                 ),
                 const SizedBox(width: 8),
                 _SummaryCard(
                   label: 'Total Sale',
                   value: fmtAmt(summary.totalSale),
                   icon:  Icons.payments_outlined,
-                  color: AppColor.success,
                 ),
                 const SizedBox(width: 8),
                 _SummaryCard(
                   label: 'Qty',
                   value: fmtQty(summary.totalQuantity),
                   icon:  Icons.inventory_2_outlined,
-                  color: AppColor.warning,
                 ),
                 const SizedBox(width: 8),
                 _SummaryCard(
                   label: 'Discount',
                   value: fmtAmt(summary.totalDiscount),
                   icon:  Icons.discount_outlined,
-                  color: AppColor.error,
                 ),
               ],
             ),
@@ -665,10 +660,11 @@ class _MobileLayout extends StatelessWidget {
           // ── Invoice List ────────────────────────────────────────────────
           Expanded(
             child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: Colors.black))
                 : state.invoices.isEmpty
                 ? const _EmptyState()
                 : RefreshIndicator(
+              color: Colors.black,
               onRefresh: notifier.load,
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -680,6 +676,7 @@ class _MobileLayout extends StatelessWidget {
                   dateFmt: dateFmt,
                   timeFmt: timeFmt,
                   fmtQty:  fmtQty,
+                  fmtAmt:  fmtAmt,
                 ),
               ),
             ),
@@ -691,19 +688,17 @@ class _MobileLayout extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Summary Card
+// Summary Card — black-only theme
 // ══════════════════════════════════════════════════════════════════════════════
 class _SummaryCard extends StatelessWidget {
   final String   label;
   final String   value;
   final IconData icon;
-  final Color    color;
 
   const _SummaryCard({
     required this.label,
     required this.value,
     required this.icon,
-    required this.color,
   });
 
   @override
@@ -712,9 +707,9 @@ class _SummaryCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color:        color.withOpacity(0.06),
+        color:        const Color(0xFFF5F6FA),
         borderRadius: BorderRadius.circular(10),
-        border:       Border.all(color: color.withOpacity(0.15)),
+        border:       Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,10 +717,10 @@ class _SummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              color:        color.withOpacity(0.12),
+              color:        Colors.black.withOpacity(0.08),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 13, color: color),
+            child: Icon(icon, size: 13, color: Colors.black),
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -733,10 +728,10 @@ class _SummaryCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize:   13,
                 fontWeight: FontWeight.w800,
-                color:      color,
+                color:      Colors.black,
               ),
               maxLines: 1,
             ),
@@ -763,12 +758,14 @@ class _InvoiceCard extends StatefulWidget {
   final DateFormat              dateFmt;
   final DateFormat              timeFmt;
   final String Function(double) fmtQty;
+  final String Function(double) fmtAmt;
 
   const _InvoiceCard({
     required this.invoice,
     required this.dateFmt,
     required this.timeFmt,
     required this.fmtQty,
+    required this.fmtAmt,
   });
 
   @override
@@ -777,15 +774,6 @@ class _InvoiceCard extends StatefulWidget {
 
 class _InvoiceCardState extends State<_InvoiceCard> {
   bool _expanded = false;
-
-  Color get _paymentColor {
-    final methods = widget.invoice.paymentMethods;
-    if (methods.contains('credit')) return AppColor.warning;
-    if (methods.contains('card'))   return AppColor.info;
-    return AppColor.success;
-  }
-
-  Color get _paymentBg => _paymentColor.withOpacity(0.1);
 
   @override
   Widget build(BuildContext context) {
@@ -798,13 +786,13 @@ class _InvoiceCardState extends State<_InvoiceCard> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: _expanded
-              ? AppColor.primary.withOpacity(0.25)
+              ? Colors.black.withOpacity(0.25)
               : const Color(0xFFEEEEEE),
         ),
         boxShadow: _expanded
             ? [
           BoxShadow(
-            color:       AppColor.primary.withOpacity(0.06),
+            color:       Colors.black.withOpacity(0.06),
             blurRadius:  12,
             offset:      const Offset(0, 4),
           )
@@ -832,18 +820,11 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                     width:  44,
                     height: 44,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColor.primary.withOpacity(0.15),
-                          AppColor.primary.withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end:   Alignment.bottomRight,
-                      ),
+                      color: Colors.black.withOpacity(0.06),
                       borderRadius: BorderRadius.circular(11),
                     ),
                     child: const Icon(Icons.receipt_outlined,
-                        size: 20, color: AppColor.primary),
+                        size: 20, color: Colors.black),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -855,7 +836,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                           style: const TextStyle(
                             fontSize:   13,
                             fontWeight: FontWeight.w700,
-                            color:      AppColor.primary,
+                            color:      Colors.black,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -893,14 +874,11 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                         style: const TextStyle(
                           fontSize:   15,
                           fontWeight: FontWeight.w800,
-                          color:      Color(0xFF1A1D23),
+                          color:      Colors.black,
                         ),
                       ),
                       const SizedBox(height: 5),
-                      _PayBadge(
-                        label: inv.paymentLabel,
-                        color: _paymentColor,
-                      ),
+                      _PayBadge(label: inv.paymentLabel),
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -1003,7 +981,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                           style: const TextStyle(
                             fontSize:   12,
                             fontWeight: FontWeight.w600,
-                            color:      AppColor.textPrimary,
+                            color:      Colors.black,
                           ),
                         ),
                       ),
@@ -1033,7 +1011,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                                 '- Rs ${inv.totalDiscount.toStringAsFixed(0)}',
                                 style: const TextStyle(
                                   fontSize:   12,
-                                  color:      AppColor.success,
+                                  color:      Colors.black,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1053,7 +1031,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                               style: TextStyle(
                                 fontSize:   13,
                                 fontWeight: FontWeight.w700,
-                                color:      Color(0xFF1A1D23),
+                                color:      Colors.black,
                               ),
                             ),
                             Text(
@@ -1061,10 +1039,53 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                               style: const TextStyle(
                                 fontSize:   14,
                                 fontWeight: FontWeight.w800,
-                                color:      AppColor.primary,
+                                color:      Colors.black,
                               ),
                             ),
                           ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Previous / New / Pay Amount ─────────────────────────
+                  Container(
+                    margin:  const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color:        Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFEEEEEE)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _AmountBlock(
+                            label: 'Previous Amount',
+                            value: widget.fmtAmt(inv.previousAmount),
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 28,
+                          color: const Color(0xFFE5E7EB),
+                        ),
+                        Expanded(
+                          child: _AmountBlock(
+                            label: 'New Amount',
+                            value: widget.fmtAmt(inv.newAmount),
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 28,
+                          color: const Color(0xFFE5E7EB),
+                        ),
+                        Expanded(
+                          child: _AmountBlock(
+                            label: 'Pay Amount',
+                            value: widget.fmtAmt(inv.payAmount),
+                          ),
                         ),
                       ],
                     ),
@@ -1077,6 +1098,40 @@ class _InvoiceCardState extends State<_InvoiceCard> {
       ),
     );
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Small amount block used in Previous/New/Pay row
+// ══════════════════════════════════════════════════════════════════════════════
+class _AmountBlock extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _AmountBlock({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize:   12,
+          fontWeight: FontWeight.w700,
+          color:      Colors.black,
+        ),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 10,
+          color:    AppColor.textHint,
+        ),
+      ),
+    ],
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1112,10 +1167,10 @@ class _DateField extends StatelessWidget {
         onTap:        onTap,
         cursorHeight: 14,
         style: const TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w600),
+            fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black),
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.calendar_today_outlined,
-              size: 16, color: AppColor.primary),
+              size: 16, color: Colors.black),
           filled:     true,
           fillColor:  AppColor.grey100,
           contentPadding: const EdgeInsets.symmetric(
@@ -1131,7 +1186,7 @@ class _DateField extends StatelessWidget {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(
-                color: AppColor.primary, width: 1.5),
+                color: Colors.black, width: 1.5),
           ),
         ),
       ),
@@ -1141,23 +1196,22 @@ class _DateField extends StatelessWidget {
 
 class _PayBadge extends StatelessWidget {
   final String label;
-  final Color  color;
-  const _PayBadge({required this.label, required this.color});
+  const _PayBadge({required this.label});
 
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
-      color:        color.withOpacity(0.1),
+      color:        Colors.black.withOpacity(0.06),
       borderRadius: BorderRadius.circular(6),
-      border:       Border.all(color: color.withOpacity(0.3)),
+      border:       Border.all(color: Colors.black.withOpacity(0.2)),
     ),
     child: Text(
       label,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize:   10,
         fontWeight: FontWeight.w600,
-        color:      color,
+        color:      Colors.black,
       ),
     ),
   );
@@ -1199,7 +1253,7 @@ class _EmptyState extends StatelessWidget {
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text(
-          'Koi invoice nahi mila',
+          'No invoices found',
           style: TextStyle(
             fontSize:   16,
             fontWeight: FontWeight.w600,
@@ -1208,7 +1262,7 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Filters change karein ya date range update karein',
+          'Try changing filters or the date range',
           style: TextStyle(
               fontSize: 13, color: Colors.grey.shade400),
         ),

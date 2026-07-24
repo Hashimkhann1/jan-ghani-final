@@ -11,6 +11,12 @@ class SaleReportInvoice {
   final List<String> paymentMethods;
   final List<SaleReportItem> items;
 
+  // New fields
+  final double previousAmount;
+  final double newAmount;
+  final double payAmount;
+  final double paidAmount;
+
   const SaleReportInvoice({
     required this.id,
     required this.invoiceNo,
@@ -23,6 +29,10 @@ class SaleReportInvoice {
     required this.status,
     required this.paymentMethods,
     required this.items,
+    this.previousAmount = 0,
+    this.newAmount      = 0,
+    this.payAmount      = 0,
+    this.paidAmount     = 0,
   });
 
   double get totalQuantity =>
@@ -41,10 +51,10 @@ class SaleReportInvoice {
 class SaleReportItem {
   final String  productName;
   final String? sku;
-  final double  salePrice;      // price → salePrice
-  final double  purchasePrice;  // discount → purchasePrice (cost_price)
+  final double  salePrice;
+  final double  purchasePrice;
   final double  quantity;
-  final double  discount;       // invoice discount (alag field)
+  final double  discount;
   final double  totalAmount;
 
   const SaleReportItem({
