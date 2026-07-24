@@ -29,7 +29,9 @@ class SyncConfig {
     'branch',
     'branch_counter',
     'customer',
+    'customer_log',                    // ← ADD (customer ke baad)
     'branch_stock_inventory',
+    'branch_stock_log',                // ← ADD (branch_stock_inventory ke baad)
     'branch_expense',
     'branch_users',
     'branch_cash_counter',
@@ -46,9 +48,7 @@ class SyncConfig {
     'branch_transaction_to_janghani',
   ];
 
-  // ── Yeh tables mein store_id column HAI ──────────────────
-  // Inke liye last timestamp store_id se filter hoga
-  // (har branch apna alag timestamp check karegi)
+// ── Yeh tables mein store_id column HAI ──────────────────
   static const List<String> storeIdTables = [
     'branch_cash_counter',
     'branch_cash_transaction',
@@ -56,9 +56,11 @@ class SyncConfig {
     'branch_expense',
     'branch_stock_damage',
     'branch_stock_inventory',
+    'branch_stock_log',                // ← ADD
     'branch_summary',
     'branch_users',
     'customer',
+    'customer_log',                    // ← ADD
     'customer_ledger',
     'sale_invoice_payments',
     'sale_invoices',
@@ -79,12 +81,15 @@ class SyncConfig {
   ];
 
   // ── Har table ka timestamp column ────────────────────────
+// ── Har table ka timestamp column ────────────────────────
   static const Map<String, String> _timestampColumns = {
     'sale_invoice_items'    : 'created_at',
     'sale_invoice_payments' : 'created_at',
     'sale_return_items'     : 'created_at',
     'sale_return_payments'  : 'created_at',
     'branch_stock_damage'   : 'created_at',
+    'customer_log'          : 'changed_at',   // ← ADD
+    'branch_stock_log'      : 'changed_at',   // ← ADD
   };
 
   // ── Har table ka conflict (primary key) column ────────────
