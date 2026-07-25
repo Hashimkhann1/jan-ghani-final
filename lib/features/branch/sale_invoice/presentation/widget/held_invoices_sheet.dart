@@ -19,15 +19,45 @@ Future<void> showHeldInvoicesSheet(BuildContext context, WidgetRef ref) {
   );
 }
 
-class _HeldInvoicesDialog extends ConsumerWidget {
+class _HeldInvoicesDialog extends ConsumerStatefulWidget {
   const _HeldInvoicesDialog();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final holds   = ref.watch(heldInvoicesProvider);
-    final timeFmt = DateFormat('hh:mm a');
+  ConsumerState<_HeldInvoicesDialog> createState() =>
+      _HeldInvoicesDialogState();
+}
 
-    final double grandTotal = holds.fold(0, (sum, h) => sum + h.grandTotal);
+class _HeldInvoicesDialogState extends ConsumerState<_HeldInvoicesDialog> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<HeldInvoice> _filterHolds(List<HeldInvoice> holds) {
+    if (_query.trim().isEmpty) return holds;
+    final q = _query.trim().toLowerCase();
+    return holds.where((h) {
+      final invoiceNo    = h.invoiceNo.toLowerCase();
+      final displayLabel = h.displayLabel.toLowerCase();
+      final customerName = h.customer?.name.toLowerCase() ?? '';
+      return invoiceNo.contains(q) ||
+          displayLabel.contains(q) ||
+          customerName.contains(q);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final holds        = ref.watch(heldInvoicesProvider);
+    final filteredHolds = _filterHolds(holds);
+    final timeFmt       = DateFormat('hh:mm a');
+
+    final double grandTotal =
+    filteredHolds.fold(0, (sum, h) => sum + h.grandTotal);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -35,7 +65,7 @@ class _HeldInvoicesDialog extends ConsumerWidget {
       backgroundColor: Colors.white,
       child: SizedBox(
         width:  480,
-        height: 540,
+        height: 560,
         child: Column(
           children: [
             // ── Header ────────────────────────────────────────────
@@ -68,7 +98,9 @@ class _HeldInvoicesDialog extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        '${holds.length} invoice${holds.length == 1 ? '' : 's'} on hold',
+                        _query.trim().isEmpty
+                            ? '${holds.length} invoice${holds.length == 1 ? '' : 's'} on hold'
+                            : '${filteredHolds.length} of ${holds.length} matched',
                         style: const TextStyle(
                             fontSize: 12, color: AppColor.textSecondary),
                       ),
@@ -100,30 +132,71 @@ class _HeldInvoicesDialog extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
+
+            // ── Search Field ──────────────────────────────────────
+            if (holds.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+                child: TextField(
+                  controller:   _searchCtrl,
+                  onChanged:    (v) => setState(() => _query = v),
+                  style:        const TextStyle(fontSize: 13),
+                  cursorHeight: 14,
+                  decoration: InputDecoration(
+                    hintText:   'Search by invoice no, customer or label...',
+                    hintStyle:  const TextStyle(
+                        color: AppColor.textHint, fontSize: 13),
+                    prefixIcon: const Icon(Icons.search,
+                        size: 18, color: AppColor.grey400),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                      icon: const Icon(Icons.close_rounded,
+                          size: 16, color: AppColor.grey400),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        setState(() => _query = '');
+                      },
+                    ),
+                    filled:     true,
+                    fillColor:  AppColor.grey100,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:   BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+
             const Divider(color: AppColor.grey200, height: 1, thickness: 0.5),
 
             // ── List ──────────────────────────────────────────────
             Expanded(
               child: holds.isEmpty
                   ? const _EmptyHolds()
+                  : filteredHolds.isEmpty
+                  ? const _NoSearchResults()
                   : ListView.separated(
                 padding: const EdgeInsets.all(14),
-                itemCount: holds.length,
+                itemCount: filteredHolds.length,
                 separatorBuilder: (_, __) =>
                 const SizedBox(height: 10),
                 itemBuilder: (ctx, i) => _HoldCard(
-                  hold:    holds[i],
+                  hold:    filteredHolds[i],
                   timeFmt: timeFmt,
                   onResume: () {
                     Navigator.pop(context);
                     ref
                         .read(saleInvoiceProvider.notifier)
-                        .resumeHeldInvoice(holds[i]);
+                        .resumeHeldInvoice(filteredHolds[i]);
                   },
                   onDiscard: () =>
-                      _confirmDiscard(context, ref, holds[i]),
-                  onPrint: () => _printHeldInvoice(context, holds[i]),
+                      _confirmDiscard(context, ref, filteredHolds[i]),
+                  onPrint: () =>
+                      _printHeldInvoice(context, filteredHolds[i]),
                 ),
               ),
             ),
@@ -496,7 +569,7 @@ class _HoldCard extends StatelessWidget {
   }
 }
 
-// ── Empty State ────────────────────────────────────────────────────
+// ── Empty State (no holds at all) ───────────────────────────────────
 class _EmptyHolds extends StatelessWidget {
   const _EmptyHolds();
 
@@ -520,6 +593,38 @@ class _EmptyHolds extends StatelessWidget {
           SizedBox(height: 4),
           Text(
             'Press F3 to hold an invoice',
+            style: TextStyle(fontSize: 12, color: AppColor.textHint),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── No Search Results State ─────────────────────────────────────────
+class _NoSearchResults extends StatelessWidget {
+  const _NoSearchResults();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off_rounded,
+              size: 36, color: AppColor.grey300),
+          SizedBox(height: 10),
+          Text(
+            'No matching invoice found',
+            style: TextStyle(
+              fontSize:   14,
+              fontWeight: FontWeight.w600,
+              color:      AppColor.textSecondary,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Try a different invoice no, customer or label',
             style: TextStyle(fontSize: 12, color: AppColor.textHint),
           ),
         ],
