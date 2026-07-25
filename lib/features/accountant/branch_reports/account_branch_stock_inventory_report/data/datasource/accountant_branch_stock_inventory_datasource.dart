@@ -7,10 +7,35 @@ class AccountantBranchInventoryDatasource {
 
   AccountantBranchInventoryDatasource({required this.branchId});
 
-  Future<List<AccountantBranchInventoryModel>> fetchInventory() async {
+  Future<List<CategoryModel>> fetchCategories() async {
+    try {
+      final result = await _client
+          .from('warehouse_categories')
+          .select('id, warehouse_id, name, color_code, is_active')
+          .eq('is_active', true)
+          .order('name', ascending: true);
+
+      final rows = result as List;
+      print('🟣 warehouse_categories fetched: ${rows.length} rows');
+      if (rows.isEmpty) {
+        print('🟣 ⚠️ No categories returned — check RLS policy or is_active column type on warehouse_categories');
+      }
+
+      return rows
+          .map((r) => CategoryModel.fromMap(r as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('🔴 fetchCategories error: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<AccountantBranchInventoryModel>> fetchInventory(
+      Map<String, String> categoryNameById,
+      ) async {
     List<AccountantBranchInventoryModel> allItems = [];
     int rangeStart = 0;
-    const int pageSize = 1000; // requested chunk size
+    const int pageSize = 1000;
     bool hasMore = true;
 
     while (hasMore) {
@@ -21,7 +46,7 @@ class AccountantBranchInventoryDatasource {
             barcode, sku, product_name,
             purchase_price, sale_price, wholesale_price,
             stock, min_stock, max_stock,
-            unit, created_at, updated_at
+            unit, created_at, updated_at, category_id
           ''')
           .eq('store_id', branchId)
           .order('product_name', ascending: true)
@@ -34,10 +59,12 @@ class AccountantBranchInventoryDatasource {
         break;
       }
 
-      final page = rows
-          .map((r) =>
-          AccountantBranchInventoryModel.fromMap(r as Map<String, dynamic>))
-          .toList();
+      final page = rows.map((r) {
+        final map = r as Map<String, dynamic>;
+        final catId = map['category_id']?.toString();
+        final catName = categoryNameById[catId] ?? 'Uncategorized';
+        return AccountantBranchInventoryModel.fromMap(map, categoryName: catName);
+      }).toList();
 
       allItems.addAll(page);
       print('🔵 Range: $rangeStart-${rangeStart + pageSize - 1} → Got ${rows.length} rows');

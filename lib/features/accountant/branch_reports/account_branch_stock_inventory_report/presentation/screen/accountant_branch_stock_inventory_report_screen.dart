@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
+import '../../data/service/accountant_branch_inventory_pdf_service.dart';
 import '../provider/accountant_branch_stock_inventory_provider.dart';
 
 class AccountantBranchInventoryReportScreen extends ConsumerStatefulWidget {
@@ -75,6 +77,51 @@ class _AccountantBranchInventoryReportScreenState
   }
 }
 
+// Helper: build category dropdown items (shared by desktop + mobile)
+List<DropdownItem<String?>> _categoryDropdownItems(List<CategoryModel> categories) {
+  return [
+    const DropdownItem<String?>(value: null, label: 'All Categories', icon: Icons.apps_rounded),
+    ...categories.map((c) => DropdownItem<String?>(
+      value: c.id,
+      label: c.name,
+      icon: Icons.category_outlined,
+    )),
+  ];
+}
+
+// Export PDF — hamesha state.filtered (current applied filters) use karta hai
+Future<void> _exportPdf(BuildContext context, AccountantBranchInventoryState state) async {
+  try {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Generating PDF...'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+
+    String? categoryName;
+    if (state.categoryFilter != null) {
+      final match = state.categories.where((c) => c.id == state.categoryFilter);
+      categoryName = match.isNotEmpty ? match.first.name : null;
+    }
+
+    await AccountantBranchInventoryPdfService.exportAndShare(
+      items: state.filtered,
+      categoryName: categoryName,
+      stockFilter: state.stockFilter,
+      deadStockOnly: state.deadStockOnly,
+      searchQuery: state.searchQuery,
+    );
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Export failed: $e'),
+        backgroundColor: AppColor.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // DESKTOP LAYOUT
 // ══════════════════════════════════════════════════════════════════════════════
@@ -125,6 +172,22 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              SizedBox(
+                width: 130,
+                child: ElevatedButton.icon(
+                  onPressed: () => _exportPdf(context, state),
+                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  label: const Text('Export'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 120,
                 child: OutlinedButton.icon(
@@ -187,6 +250,15 @@ class _DesktopLayout extends StatelessWidget {
                 onTap: () => notifier.setStockFilter(
                     state.stockFilter == StockStatus.outOfStock ? null : StockStatus.outOfStock),
               ),
+              const SizedBox(width: 10),
+              _DeskSummaryCard(
+                label: 'Diet Product',
+                value: '${state.summary.deadStock}',
+                icon: Icons.local_fire_department_outlined,
+                color: const Color(0xFF8B5CF6),
+                selected: state.deadStockOnly,
+                onTap: notifier.toggleDeadStockOnly,
+              ),
               const SizedBox(width: 16),
               const SizedBox(height: 48, width: 1, child: VerticalDivider(width: 1, color: Color(0xFFEEEEEE))),
               const SizedBox(width: 16),
@@ -224,16 +296,33 @@ class _DesktopLayout extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 16),
+              // Category dropdown
+              AppSearchableDropdown<String?>(
+                items: _categoryDropdownItems(state.categories),
+                value: state.categoryFilter,
+                hint: 'Category',
+                prefixIcon: Icons.category_outlined,
+                desktopWidth: 220,
+                onChanged: notifier.setCategoryFilter,
+              ),
             ],
           ),
         ),
         const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
-        // Values row
+        // Values row — hamesha filtered list se
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(28, 10, 28, 14),
-          child: _ValuesRow(summary: state.summary, filter: state.stockFilter, fmtAmt: fmtAmt, fmtQty: fmtQty),
+          child: _ValuesRow(
+            items: state.filtered,
+            stockFilter: state.stockFilter,
+            deadStockOnly: state.deadStockOnly,
+            categoryFilter: state.categoryFilter,
+            fmtAmt: fmtAmt,
+            fmtQty: fmtQty,
+          ),
         ),
         const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
@@ -322,7 +411,8 @@ class _InventoryTable extends StatelessWidget {
           child: Row(children: [
             const SizedBox(width: 10),
             _TH(label: '#', flex: 1),
-            _TH(label: 'Product', flex: 5),
+            _TH(label: 'Product', flex: 4),
+            _TH(label: 'Category', flex: 2),
             _TH(label: 'SKU', flex: 3),
             _TH(label: 'Unit', flex: 2),
             _TH(label: 'Stock', flex: 2, center: true),
@@ -406,9 +496,26 @@ class _TableRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 5,
-            child: Text(item.productName,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
+            flex: 4,
+            child: Row(
+              children: [
+                if (item.isDeadStock) ...[
+                  const Icon(Icons.local_fire_department_outlined, size: 13, color: Color(0xFF8B5CF6)),
+                  const SizedBox(width: 4),
+                ],
+                Expanded(
+                  child: Text(item.productName,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(item.categoryName,
+                style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis),
           ),
@@ -502,6 +609,11 @@ class _MobileLayout extends StatelessWidget {
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF1A1D23))),
         actions: [
           IconButton(
+            onPressed: () => _exportPdf(context, state),
+            icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColor.primary),
+            tooltip: 'Export PDF',
+          ),
+          IconButton(
             onPressed: notifier.load,
             icon: const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
             tooltip: 'Refresh',
@@ -551,10 +663,24 @@ class _MobileLayout extends StatelessWidget {
             ),
           ),
 
-          // Filter Chips
+          // Category dropdown
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: AppSearchableDropdown<String?>(
+              items: _categoryDropdownItems(state.categories),
+              value: state.categoryFilter,
+              hint: 'Category',
+              prefixIcon: Icons.category_outlined,
+              fullWidth: true,
+              onChanged: notifier.setCategoryFilter,
+            ),
+          ),
+
+          // Filter Chips (Stock status)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: SizedBox(
               height: 34,
               child: ListView(
@@ -582,6 +708,13 @@ class _MobileLayout extends StatelessWidget {
                     color: AppColor.error,
                     onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.outOfStock ? null : StockStatus.outOfStock),
                   ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Diet Product',
+                    selected: state.deadStockOnly,
+                    color: const Color(0xFF8B5CF6),
+                    onTap: notifier.toggleDeadStockOnly,
+                  ),
                 ],
               ),
             ),
@@ -592,43 +725,80 @@ class _MobileLayout extends StatelessWidget {
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Row(children: [
-              _MobileSummaryCard(label: 'Total', value: '${state.summary.totalProducts}', icon: Icons.inventory_2_outlined, color: AppColor.primary),
-              const SizedBox(width: 8),
-              _MobileSummaryCard(
-                label: 'In Stock',
-                value: '${state.summary.inStock}',
-                icon: Icons.check_circle_outline_rounded,
-                color: AppColor.success,
-                selected: state.stockFilter == StockStatus.inStock,
-                onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.inStock ? null : StockStatus.inStock),
+            child: SizedBox(
+              height: 76,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  SizedBox(
+                    width: 90,
+                    child: _MobileSummaryCard(label: 'Total', value: '${state.summary.totalProducts}', icon: Icons.inventory_2_outlined, color: AppColor.primary),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 90,
+                    child: _MobileSummaryCard(
+                      label: 'In Stock',
+                      value: '${state.summary.inStock}',
+                      icon: Icons.check_circle_outline_rounded,
+                      color: AppColor.success,
+                      selected: state.stockFilter == StockStatus.inStock,
+                      onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.inStock ? null : StockStatus.inStock),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 90,
+                    child: _MobileSummaryCard(
+                      label: 'Low',
+                      value: '${state.summary.lowStock}',
+                      icon: Icons.warning_amber_rounded,
+                      color: AppColor.warning,
+                      selected: state.stockFilter == StockStatus.lowStock,
+                      onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.lowStock ? null : StockStatus.lowStock),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 90,
+                    child: _MobileSummaryCard(
+                      label: 'Out',
+                      value: '${state.summary.outOfStock}',
+                      icon: Icons.remove_circle_outline_rounded,
+                      color: AppColor.error,
+                      selected: state.stockFilter == StockStatus.outOfStock,
+                      onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.outOfStock ? null : StockStatus.outOfStock),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 90,
+                    child: _MobileSummaryCard(
+                      label: 'Diet Product',
+                      value: '${state.summary.deadStock}',
+                      icon: Icons.local_fire_department_outlined,
+                      color: const Color(0xFF8B5CF6),
+                      selected: state.deadStockOnly,
+                      onTap: notifier.toggleDeadStockOnly,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              _MobileSummaryCard(
-                label: 'Low',
-                value: '${state.summary.lowStock}',
-                icon: Icons.warning_amber_rounded,
-                color: AppColor.warning,
-                selected: state.stockFilter == StockStatus.lowStock,
-                onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.lowStock ? null : StockStatus.lowStock),
-              ),
-              const SizedBox(width: 8),
-              _MobileSummaryCard(
-                label: 'Out',
-                value: '${state.summary.outOfStock}',
-                icon: Icons.remove_circle_outline_rounded,
-                color: AppColor.error,
-                selected: state.stockFilter == StockStatus.outOfStock,
-                onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.outOfStock ? null : StockStatus.outOfStock),
-              ),
-            ]),
+            ),
           ),
 
-          // Values Row
+          // Values Row — hamesha filtered list se
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-            child: _ValuesRow(summary: state.summary, filter: state.stockFilter, fmtAmt: fmtAmt, fmtQty: fmtQty),
+            child: _ValuesRow(
+              items: state.filtered,
+              stockFilter: state.stockFilter,
+              deadStockOnly: state.deadStockOnly,
+              categoryFilter: state.categoryFilter,
+              fmtAmt: fmtAmt,
+              fmtQty: fmtQty,
+            ),
           ),
           Container(height: 6, color: const Color(0xFFF5F6FA)),
 
@@ -680,34 +850,33 @@ class _MobileSummaryCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Expanded(
-    child: GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.1) : color.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: selected ? color.withOpacity(0.4) : color.withOpacity(0.15)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-              child: Icon(icon, size: 12, color: color),
-            ),
-            const SizedBox(height: 7),
-            Text(value,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
-          ],
-        ),
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: selected ? color.withOpacity(0.1) : color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: selected ? color.withOpacity(0.4) : color.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
+            child: Icon(icon, size: 12, color: color),
+          ),
+          const SizedBox(height: 7),
+          Text(value,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColor.textHint), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
       ),
     ),
   );
@@ -717,41 +886,52 @@ class _MobileSummaryCard extends StatelessWidget {
 // Values Row (shared)
 // ══════════════════════════════════════════════════════════════════════════════
 class _ValuesRow extends StatelessWidget {
-  final AccountantBranchInventorySummary summary;
-  final StockStatus? filter;
+  final List<AccountantBranchInventoryModel> items;
+  final StockStatus? stockFilter;
+  final bool deadStockOnly;
+  final String? categoryFilter;
   final String Function(double) fmtAmt;
   final String Function(double) fmtQty;
 
-  const _ValuesRow({required this.summary, required this.filter, required this.fmtAmt, required this.fmtQty});
+  const _ValuesRow({
+    required this.items,
+    required this.stockFilter,
+    required this.deadStockOnly,
+    required this.categoryFilter,
+    required this.fmtAmt,
+    required this.fmtQty,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final String qtyLabel;
-    final double qty;
-    final double saleVal;
-    final double purchaseVal;
-    final Color accentColor;
+    final qty      = items.fold<double>(0, (s, i) => s + i.stock);
+    final saleVal  = items.fold<double>(0, (s, i) => s + (i.stock * i.salePrice));
+    final purchaseVal = items.fold<double>(0, (s, i) => s + (i.stock * i.purchasePrice));
 
-    switch (filter) {
-      case StockStatus.inStock:
-        qtyLabel = 'In Stock Qty'; qty = summary.inStockQty;
-        saleVal = summary.inStockSaleValue; purchaseVal = summary.inStockPurchaseValue;
-        accentColor = AppColor.success;
-        break;
-      case StockStatus.lowStock:
-        qtyLabel = 'Low Stock Qty'; qty = summary.lowStockQty;
-        saleVal = summary.lowStockSaleValue; purchaseVal = summary.lowStockPurchaseValue;
-        accentColor = AppColor.warning;
-        break;
-      case StockStatus.outOfStock:
-        qtyLabel = 'Out of Stock Qty'; qty = summary.outStockQty;
-        saleVal = summary.outStockSaleValue; purchaseVal = summary.outStockPurchaseValue;
-        accentColor = AppColor.error;
-        break;
-      default:
-        qtyLabel = 'Total Qty'; qty = summary.inStockQty + summary.lowStockQty + summary.outStockQty;
-        saleVal = summary.totalSaleValue; purchaseVal = summary.totalPurchaseValue;
-        accentColor = AppColor.primary;
+    final Color accentColor;
+    final String qtyLabel;
+
+    if (deadStockOnly) {
+      accentColor = const Color(0xFF8B5CF6);
+      qtyLabel = 'Diet Product Qty';
+    } else {
+      switch (stockFilter) {
+        case StockStatus.inStock:
+          accentColor = AppColor.success;
+          qtyLabel = 'In Stock Qty';
+          break;
+        case StockStatus.lowStock:
+          accentColor = AppColor.warning;
+          qtyLabel = 'Low Stock Qty';
+          break;
+        case StockStatus.outOfStock:
+          accentColor = AppColor.error;
+          qtyLabel = 'Out of Stock Qty';
+          break;
+        default:
+          accentColor = AppColor.primary;
+          qtyLabel = categoryFilter != null ? 'Category Qty' : 'Total Qty';
+      }
     }
 
     return Row(children: [
@@ -855,10 +1035,20 @@ class _InventoryCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.productName,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A1D23)),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
+                      Row(
+                        children: [
+                          if (item.isDeadStock) ...[
+                            const Icon(Icons.local_fire_department_outlined, size: 13, color: Color(0xFF8B5CF6)),
+                            const SizedBox(width: 4),
+                          ],
+                          Expanded(
+                            child: Text(item.productName,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A1D23)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 4),
                       Row(children: [
                         const Icon(Icons.tag_rounded, size: 11, color: AppColor.textHint),
@@ -868,6 +1058,17 @@ class _InventoryCard extends StatelessWidget {
                         const Icon(Icons.straighten_rounded, size: 11, color: AppColor.textHint),
                         const SizedBox(width: 2),
                         Text(item.unit, style: const TextStyle(fontSize: 11, color: AppColor.textHint)),
+                      ]),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        const Icon(Icons.category_outlined, size: 11, color: AppColor.textHint),
+                        const SizedBox(width: 2),
+                        Flexible(
+                          child: Text(item.categoryName,
+                              style: const TextStyle(fontSize: 11, color: AppColor.textHint),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ),
                       ]),
                     ],
                   ),
@@ -910,6 +1111,14 @@ class _InventoryCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
+                if (item.isDeadStock)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(color: const Color(0xFF8B5CF6).withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+                    child: const Text('No sale today',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF8B5CF6))),
+                  ),
                 const Spacer(),
                 if (item.minStock > 0 || item.maxStock > 0)
                   Text('Min ${fmtQty(item.minStock)}  ·  Max ${fmtQty(item.maxStock)}',

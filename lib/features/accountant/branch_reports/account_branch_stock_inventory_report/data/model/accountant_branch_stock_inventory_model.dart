@@ -13,6 +13,8 @@ class AccountantBranchInventoryModel {
   final double       maxStock;
   final String       unit;
   final DateTime     updatedAt;
+  final String?      categoryId;
+  final String       categoryName;
 
   const AccountantBranchInventoryModel({
     required this.id,
@@ -29,6 +31,8 @@ class AccountantBranchInventoryModel {
     required this.maxStock,
     required this.unit,
     required this.updatedAt,
+    this.categoryId,
+    this.categoryName = 'Uncategorized',
   });
 
   StockStatus get stockStatus {
@@ -37,7 +41,16 @@ class AccountantBranchInventoryModel {
     return StockStatus.inStock;
   }
 
-  factory AccountantBranchInventoryModel.fromMap(Map<String, dynamic> m) {
+  // Sale hone par updated_at change hota hai.
+  // 2+ din se updated_at change nahi hua = product 2 din se sale nahi hua (Dead Stock / Diet Product)
+  int get daysSinceUpdate => DateTime.now().difference(updatedAt).inDays;
+
+  bool get isDeadStock => daysSinceUpdate >= 7;
+
+  factory AccountantBranchInventoryModel.fromMap(
+      Map<String, dynamic> m, {
+        String categoryName = 'Uncategorized',
+      }) {
     List<String> barcodes = [];
     final raw = m['barcode'];
     if (raw is List) {
@@ -62,6 +75,8 @@ class AccountantBranchInventoryModel {
       unit:           m['unit']?.toString()          ?? '',
       updatedAt:      DateTime.tryParse(
           m['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      categoryId:     m['category_id']?.toString(),
+      categoryName:   categoryName,
     );
   }
 
@@ -80,42 +95,48 @@ class AccountantBranchInventorySummary {
   final int    inStock;
   final int    lowStock;
   final int    outOfStock;
+  final int    deadStock;
   final double totalStockValue;
   final double totalSaleValue;
   final double totalPurchaseValue;
 
-  // InStock breakdown
   final double inStockQty;
   final double inStockSaleValue;
   final double inStockPurchaseValue;
 
-  // LowStock breakdown
   final double lowStockQty;
   final double lowStockSaleValue;
   final double lowStockPurchaseValue;
 
-  // OutOfStock breakdown
   final double outStockQty;
   final double outStockSaleValue;
   final double outStockPurchaseValue;
+
+  final double deadStockQty;
+  final double deadStockSaleValue;
+  final double deadStockPurchaseValue;
 
   const AccountantBranchInventorySummary({
     required this.totalProducts,
     required this.inStock,
     required this.lowStock,
     required this.outOfStock,
+    this.deadStock              = 0,
     required this.totalStockValue,
-    this.totalSaleValue        = 0,
-    this.totalPurchaseValue    = 0,
-    this.inStockQty            = 0,
-    this.inStockSaleValue      = 0,
-    this.inStockPurchaseValue  = 0,
-    this.lowStockQty           = 0,
-    this.lowStockSaleValue     = 0,
-    this.lowStockPurchaseValue = 0,
-    this.outStockQty           = 0,
-    this.outStockSaleValue     = 0,
-    this.outStockPurchaseValue = 0,
+    this.totalSaleValue         = 0,
+    this.totalPurchaseValue     = 0,
+    this.inStockQty             = 0,
+    this.inStockSaleValue       = 0,
+    this.inStockPurchaseValue   = 0,
+    this.lowStockQty            = 0,
+    this.lowStockSaleValue      = 0,
+    this.lowStockPurchaseValue  = 0,
+    this.outStockQty            = 0,
+    this.outStockSaleValue      = 0,
+    this.outStockPurchaseValue  = 0,
+    this.deadStockQty           = 0,
+    this.deadStockSaleValue     = 0,
+    this.deadStockPurchaseValue = 0,
   });
 
   factory AccountantBranchInventorySummary.empty() =>
@@ -126,4 +147,28 @@ class AccountantBranchInventorySummary {
         outOfStock:    0,
         totalStockValue: 0,
       );
+}
+
+class CategoryModel {
+  final String id;
+  final String warehouseId;
+  final String name;
+  final String? colorCode;
+  final bool isActive;
+
+  const CategoryModel({
+    required this.id,
+    required this.warehouseId,
+    required this.name,
+    this.colorCode,
+    this.isActive = true,
+  });
+
+  factory CategoryModel.fromMap(Map<String, dynamic> m) => CategoryModel(
+    id:          m['id']?.toString()          ?? '',
+    warehouseId: m['warehouse_id']?.toString() ?? '',
+    name:        m['name']?.toString()         ?? 'Uncategorized',
+    colorCode:   m['color_code']?.toString(),
+    isActive:    m['is_active'] as bool?       ?? true,
+  );
 }

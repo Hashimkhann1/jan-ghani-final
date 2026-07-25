@@ -8,19 +8,25 @@ const _sentinel = Object();
 class AccountantBranchInventoryState {
   final List<AccountantBranchInventoryModel> allItems;
   final List<AccountantBranchInventoryModel> filtered;
+  final List<CategoryModel>                  categories;
   final AccountantBranchInventorySummary     summary;
   final String                               searchQuery;
   final StockStatus?                         stockFilter;
+  final String?                              categoryFilter;
+  final bool                                 deadStockOnly;
   final bool                                 isLoading;
   final String?                              errorMessage;
 
   const AccountantBranchInventoryState({
-    this.allItems    = const [],
-    this.filtered    = const [],
+    this.allItems       = const [],
+    this.filtered       = const [],
+    this.categories     = const [],
     AccountantBranchInventorySummary? summary,
-    this.searchQuery = '',
+    this.searchQuery    = '',
     this.stockFilter,
-    this.isLoading   = false,
+    this.categoryFilter,
+    this.deadStockOnly  = false,
+    this.isLoading      = false,
     this.errorMessage,
   }) : summary = summary ?? const AccountantBranchInventorySummary(
     totalProducts:   0,
@@ -33,22 +39,30 @@ class AccountantBranchInventoryState {
   AccountantBranchInventoryState copyWith({
     List<AccountantBranchInventoryModel>? allItems,
     List<AccountantBranchInventoryModel>? filtered,
+    List<CategoryModel>?                  categories,
     AccountantBranchInventorySummary?     summary,
     String?                               searchQuery,
-    Object?                               stockFilter  = _sentinel,
+    Object?                               stockFilter    = _sentinel,
+    Object?                               categoryFilter = _sentinel,
+    bool?                                 deadStockOnly,
     bool?                                 isLoading,
-    Object?                               errorMessage = _sentinel,
+    Object?                               errorMessage   = _sentinel,
   }) =>
       AccountantBranchInventoryState(
-        allItems:     allItems     ?? this.allItems,
-        filtered:     filtered     ?? this.filtered,
-        summary:      summary      ?? this.summary,
-        searchQuery:  searchQuery  ?? this.searchQuery,
-        stockFilter:  stockFilter == _sentinel
+        allItems:       allItems       ?? this.allItems,
+        filtered:       filtered       ?? this.filtered,
+        categories:     categories     ?? this.categories,
+        summary:        summary        ?? this.summary,
+        searchQuery:    searchQuery    ?? this.searchQuery,
+        stockFilter:    stockFilter == _sentinel
             ? this.stockFilter
             : stockFilter as StockStatus?,
-        isLoading:    isLoading    ?? this.isLoading,
-        errorMessage: errorMessage == _sentinel
+        categoryFilter: categoryFilter == _sentinel
+            ? this.categoryFilter
+            : categoryFilter as String?,
+        deadStockOnly:  deadStockOnly  ?? this.deadStockOnly,
+        isLoading:      isLoading      ?? this.isLoading,
+        errorMessage:   errorMessage == _sentinel
             ? this.errorMessage
             : errorMessage as String?,
       );
@@ -68,12 +82,24 @@ class AccountantBranchInventoryNotifier
   Future<void> load() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final items = await _ds.fetchInventory();
+      final categories = await _ds.fetchCategories();
+      final categoryNameById = {
+        for (final c in categories) c.id: c.name,
+      };
+      final items = await _ds.fetchInventory(categoryNameById);
+
       state = state.copyWith(
-        allItems:  items,
-        filtered:  _applyFilters(items, state.searchQuery, state.stockFilter),
-        summary:   _buildSummary(items),
-        isLoading: false,
+        allItems:   items,
+        categories: categories, // saari active categories, koi ID-match filter nahi
+        filtered:   _applyFilters(
+          items,
+          state.searchQuery,
+          state.stockFilter,
+          state.categoryFilter,
+          state.deadStockOnly,
+        ),
+        summary:    _buildSummary(items),
+        isLoading:  false,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -83,14 +109,37 @@ class AccountantBranchInventoryNotifier
   void search(String q) {
     state = state.copyWith(
       searchQuery: q,
-      filtered:    _applyFilters(state.allItems, q, state.stockFilter),
+      filtered:    _applyFilters(
+        state.allItems, q, state.stockFilter, state.categoryFilter, state.deadStockOnly,
+      ),
     );
   }
 
   void setStockFilter(StockStatus? filter) {
     state = state.copyWith(
       stockFilter: filter,
-      filtered:    _applyFilters(state.allItems, state.searchQuery, filter),
+      filtered:    _applyFilters(
+        state.allItems, state.searchQuery, filter, state.categoryFilter, state.deadStockOnly,
+      ),
+    );
+  }
+
+  void setCategoryFilter(String? categoryId) {
+    state = state.copyWith(
+      categoryFilter: categoryId,
+      filtered:       _applyFilters(
+        state.allItems, state.searchQuery, state.stockFilter, categoryId, state.deadStockOnly,
+      ),
+    );
+  }
+
+  void toggleDeadStockOnly() {
+    final next = !state.deadStockOnly;
+    state = state.copyWith(
+      deadStockOnly: next,
+      filtered:      _applyFilters(
+        state.allItems, state.searchQuery, state.stockFilter, state.categoryFilter, next,
+      ),
     );
   }
 
@@ -101,6 +150,8 @@ class AccountantBranchInventoryNotifier
       List<AccountantBranchInventoryModel> all,
       String       q,
       StockStatus? filter,
+      String?      categoryId,
+      bool         deadStockOnly,
       ) {
     var list = all;
     if (q.isNotEmpty) {
@@ -114,6 +165,12 @@ class AccountantBranchInventoryNotifier
     if (filter != null) {
       list = list.where((i) => i.stockStatus == filter).toList();
     }
+    if (categoryId != null) {
+      list = list.where((i) => i.categoryId == categoryId).toList();
+    }
+    if (deadStockOnly) {
+      list = list.where((i) => i.isDeadStock).toList();
+    }
     return list;
   }
 
@@ -123,6 +180,7 @@ class AccountantBranchInventoryNotifier
     final inStockItems    = items.where((i) => i.stockStatus == StockStatus.inStock).toList();
     final lowStockItems   = items.where((i) => i.stockStatus == StockStatus.lowStock).toList();
     final outOfStockItems = items.where((i) => i.stockStatus == StockStatus.outOfStock).toList();
+    final deadStockItems  = items.where((i) => i.isDeadStock).toList();
 
     double qty(List<AccountantBranchInventoryModel> l)      => l.fold(0, (s, i) => s + i.stock);
     double sale(List<AccountantBranchInventoryModel> l)     => l.fold(0, (s, i) => s + (i.stock * i.salePrice));
@@ -133,21 +191,22 @@ class AccountantBranchInventoryNotifier
       inStock:            inStockItems.length,
       lowStock:           lowStockItems.length,
       outOfStock:         outOfStockItems.length,
+      deadStock:          deadStockItems.length,
       totalStockValue:    purchase(items),
       totalPurchaseValue: purchase(items),
       totalSaleValue:     sale(items),
-      // InStock
       inStockQty:            qty(inStockItems),
       inStockSaleValue:      sale(inStockItems),
       inStockPurchaseValue:  purchase(inStockItems),
-      // LowStock
       lowStockQty:           qty(lowStockItems),
       lowStockSaleValue:     sale(lowStockItems),
       lowStockPurchaseValue: purchase(lowStockItems),
-      // OutOfStock
       outStockQty:           qty(outOfStockItems),
       outStockSaleValue:     sale(outOfStockItems),
       outStockPurchaseValue: purchase(outOfStockItems),
+      deadStockQty:            qty(deadStockItems),
+      deadStockSaleValue:      sale(deadStockItems),
+      deadStockPurchaseValue:  purchase(deadStockItems),
     );
   }
 }
