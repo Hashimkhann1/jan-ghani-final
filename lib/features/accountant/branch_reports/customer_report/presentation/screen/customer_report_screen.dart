@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../data/model/customer_invoice_model.dart';
 import '../../data/model/customer_return_model.dart';
 import '../../data/model/specific_customer_ledger_model.dart';
+import '../../data/service/customer_report_pdf_service.dart';
 import '../provider/customer_report_provider.dart';
 import 'package:jan_ghani_final/core/service/session/accountant_session.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
@@ -110,6 +111,39 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
     ),
   );
 
+  Future<void> _exportPdf() async {
+    final saleState   = ref.read(customerReportInvoiceProvider(_args));
+    final returnState = ref.read(customerReportReturnProvider(_args));
+    final ledgerState = ref.read(customerReportLedgerProvider(_args));
+
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Generating PDF...'),
+        duration: Duration(seconds: 2),
+      ));
+
+      await CustomerReportPdfService.exportAndShare(
+        customerName:    widget.customerName,
+        customerBalance: widget.customerBalance,
+        fromDate:        saleState.fromDate,
+        toDate:          saleState.toDate,
+        sales:           saleState.filtered,
+        returns:         returnState.returns,
+        ledger:          ledgerState.ledger,
+        totalSale:       saleState.totalSale,
+        totalReturn:     returnState.summary.totalAmount,
+        totalPaid:       ledgerState.totalPaid,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Export failed: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
+  }
+
   void _applyDateRange(DateTime from, DateTime to) {
     ref.read(customerReportInvoiceProvider(_args).notifier).setDateRange(from, to);
     ref.read(customerReportReturnProvider(_args).notifier)
@@ -161,6 +195,11 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
         title: Text(widget.customerName,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black)),
         actions: [
+          IconButton(
+            icon:      const Icon(Icons.picture_as_pdf_outlined, size: 20, color: Colors.black),
+            tooltip:   'Export PDF',
+            onPressed: _exportPdf,
+          ),
           IconButton(
             icon:    const Icon(Icons.logout_rounded, size: 20, color: Colors.black),
             tooltip: 'Logout',
