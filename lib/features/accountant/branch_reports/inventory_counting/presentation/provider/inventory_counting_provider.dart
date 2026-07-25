@@ -3,6 +3,7 @@ import '../../data/datasource/inventory_counting_datasource.dart';
 import '../../data/model/inventory_counting_report_model.dart';
 
 const _sentinel = Object();
+const int _pageSize = 100;
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,7 @@ class InventoryCountingReportState {
   final String                        searchQuery;
   final DateTime?                     startDate;
   final DateTime?                     endDate;
+  final int                           currentPage; // 1-indexed
   final bool                          isLoading;
   final String?                       errorMessage;
 
@@ -21,9 +23,25 @@ class InventoryCountingReportState {
     this.searchQuery = '',
     this.startDate,
     this.endDate,
+    this.currentPage = 1,
     this.isLoading   = false,
     this.errorMessage,
   });
+
+  int get totalPages =>
+      filtered.isEmpty ? 1 : (filtered.length / _pageSize).ceil();
+
+  /// Current page ka data — hamesha 100 (ya kam, last page par) items
+  List<InventoryCountingRecord> get paginated {
+    if (filtered.isEmpty) return const [];
+    final start = (currentPage - 1) * _pageSize;
+    if (start >= filtered.length) return const [];
+    final end = (start + _pageSize) > filtered.length ? filtered.length : start + _pageSize;
+    return filtered.sublist(start, end);
+  }
+
+  bool get hasNextPage => currentPage < totalPages;
+  bool get hasPrevPage => currentPage > 1;
 
   InventoryCountingReportState copyWith({
     List<InventoryCountingRecord>? records,
@@ -31,6 +49,7 @@ class InventoryCountingReportState {
     String?                        searchQuery,
     Object?                        startDate    = _sentinel,
     Object?                        endDate      = _sentinel,
+    int?                           currentPage,
     bool?                          isLoading,
     Object?                        errorMessage = _sentinel,
   }) {
@@ -44,6 +63,7 @@ class InventoryCountingReportState {
       endDate:      endDate == _sentinel
           ? this.endDate
           : endDate as DateTime?,
+      currentPage:  currentPage ?? this.currentPage,
       isLoading:    isLoading ?? this.isLoading,
       errorMessage: errorMessage == _sentinel
           ? this.errorMessage
@@ -77,9 +97,10 @@ class InventoryCountingReportNotifier extends StateNotifier<InventoryCountingRep
         state.endDate,
       );
       state = state.copyWith(
-        records:   records,
-        filtered:  filtered,
-        isLoading: false,
+        records:     records,
+        filtered:    filtered,
+        currentPage: 1, // fresh load par page 1 par reset
+        isLoading:   false,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -93,7 +114,7 @@ class InventoryCountingReportNotifier extends StateNotifier<InventoryCountingRep
       state.startDate,
       state.endDate,
     );
-    state = state.copyWith(searchQuery: q, filtered: filtered);
+    state = state.copyWith(searchQuery: q, filtered: filtered, currentPage: 1);
   }
 
   /// Set start date (pass null to clear)
@@ -104,7 +125,7 @@ class InventoryCountingReportNotifier extends StateNotifier<InventoryCountingRep
       date,
       state.endDate,
     );
-    state = state.copyWith(startDate: date, filtered: filtered);
+    state = state.copyWith(startDate: date, filtered: filtered, currentPage: 1);
   }
 
   /// Set end date (pass null to clear)
@@ -115,7 +136,7 @@ class InventoryCountingReportNotifier extends StateNotifier<InventoryCountingRep
       state.startDate,
       date,
     );
-    state = state.copyWith(endDate: date, filtered: filtered);
+    state = state.copyWith(endDate: date, filtered: filtered, currentPage: 1);
   }
 
   /// Set both dates together (useful for range pickers)
@@ -126,7 +147,7 @@ class InventoryCountingReportNotifier extends StateNotifier<InventoryCountingRep
       start,
       end,
     );
-    state = state.copyWith(startDate: start, endDate: end, filtered: filtered);
+    state = state.copyWith(startDate: start, endDate: end, filtered: filtered, currentPage: 1);
   }
 
   void clearDateFilter() {
@@ -136,7 +157,26 @@ class InventoryCountingReportNotifier extends StateNotifier<InventoryCountingRep
       null,
       null,
     );
-    state = state.copyWith(startDate: null, endDate: null, filtered: filtered);
+    state = state.copyWith(startDate: null, endDate: null, filtered: filtered, currentPage: 1);
+  }
+
+  // ─── Pagination controls ────────────────────────────────────────────────
+
+  void nextPage() {
+    if (state.hasNextPage) {
+      state = state.copyWith(currentPage: state.currentPage + 1);
+    }
+  }
+
+  void prevPage() {
+    if (state.hasPrevPage) {
+      state = state.copyWith(currentPage: state.currentPage - 1);
+    }
+  }
+
+  void goToPage(int page) {
+    if (page < 1 || page > state.totalPages) return;
+    state = state.copyWith(currentPage: page);
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────

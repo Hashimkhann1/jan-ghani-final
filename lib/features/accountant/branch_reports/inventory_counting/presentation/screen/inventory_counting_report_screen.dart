@@ -5,6 +5,7 @@ import '../../data/model/inventory_counting_report_model.dart';
 import '../provider/inventory_counting_provider.dart';
 
 const double _kWideBreakpoint = 900;
+const int _kPageSize = 100;
 
 // UUID pattern — rows jahan product name resolve nahi hua
 final _uuidRegex = RegExp(
@@ -92,6 +93,15 @@ class _InventoryCountingReportScreenState
     // UUID wali rows hamesha hide (search + date filter provider mein ho chuka)
     final visible = state.filtered.where((r) => !_isUuid(r.productName)).toList();
 
+    // Pagination isi visible (UUID-filtered) list par — 100 per page
+    final totalPages = visible.isEmpty ? 1 : (visible.length / _kPageSize).ceil();
+    final currentPage = state.currentPage.clamp(1, totalPages);
+    final pageStart = (currentPage - 1) * _kPageSize;
+    final pageEnd = (pageStart + _kPageSize) > visible.length ? visible.length : pageStart + _kPageSize;
+    final pageItems = visible.isEmpty ? <InventoryCountingRecord>[] : visible.sublist(pageStart, pageEnd);
+    final hasPrev = currentPage > 1;
+    final hasNext = currentPage < totalPages;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -106,7 +116,19 @@ class _InventoryCountingReportScreenState
               _buildSearchBar(context, notifier),
               _buildDateFilterRow(context, notifier, state),
             ],
-            Expanded(child: _buildBody(context, visible, state, notifier)),
+            Expanded(child: _buildBody(context, pageItems, visible, state, notifier)),
+            if (!state.isLoading && state.errorMessage == null && visible.isNotEmpty)
+              _buildPaginationBar(
+                context: context,
+                notifier: notifier,
+                currentPage: currentPage,
+                totalPages: totalPages,
+                pageStart: pageStart,
+                pageEnd: pageEnd,
+                totalCount: visible.length,
+                hasPrev: hasPrev,
+                hasNext: hasNext,
+              ),
           ],
         ),
       ),
@@ -311,6 +333,7 @@ class _InventoryCountingReportScreenState
 
   Widget _buildBody(
       BuildContext context,
+      List<InventoryCountingRecord> pageItems,
       List<InventoryCountingRecord> visible,
       InventoryCountingReportState state,
       InventoryCountingReportNotifier notifier,
@@ -366,10 +389,78 @@ class _InventoryCountingReportScreenState
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth >= _kWideBreakpoint) {
-          return _WebTableView(records: visible);
+          return _WebTableView(records: pageItems);
         }
-        return _MobileCardView(records: visible);
+        return _MobileCardView(records: pageItems);
       },
+    );
+  }
+
+  // ─── Pagination Bar (Prev/Next + Page X of Y) ────────────────────────────
+
+  Widget _buildPaginationBar({
+    required BuildContext context,
+    required InventoryCountingReportNotifier notifier,
+    required int currentPage,
+    required int totalPages,
+    required int pageStart,
+    required int pageEnd,
+    required int totalCount,
+    required bool hasPrev,
+    required bool hasNext,
+  }) {
+    final isWide = MediaQuery.of(context).size.width >= _kWideBreakpoint;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isWide ? 20 : 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              totalCount == 0
+                  ? 'No records'
+                  : 'Showing ${pageStart + 1}–$pageEnd of $totalCount',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: hasPrev ? notifier.prevPage : null,
+                icon: const Icon(Icons.chevron_left_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: hasPrev ? const Color(0xFFF1F3F4) : Colors.transparent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                tooltip: 'Previous page',
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  'Page $currentPage of $totalPages',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+              IconButton(
+                onPressed: hasNext ? notifier.nextPage : null,
+                icon: const Icon(Icons.chevron_right_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: hasNext ? const Color(0xFFF1F3F4) : Colors.transparent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                tooltip: 'Next page',
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
