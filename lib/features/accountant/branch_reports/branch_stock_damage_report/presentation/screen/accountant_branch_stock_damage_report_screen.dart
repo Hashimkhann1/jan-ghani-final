@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../../core/color/app_color.dart';
 import '../../data/model/accountant_branch_stock_damage_model.dart';
+import '../../data/service/accountant_branch_stock_damage_pdf_service.dart';
 import '../provider/accountant_branch_stock_damage_provider.dart';
 
 class AccountantBranchStockDamageReportScreen extends ConsumerStatefulWidget {
@@ -126,6 +127,32 @@ class _AccountantBranchStockDamageReportScreenState
         onClearDates: () => _clearDates(notifier),
       ),
     );
+  }
+}
+
+// Export PDF — hamesha state.filtered (current applied search + date filter) use karta hai
+Future<void> _exportPdf(BuildContext context, AccountantBranchStockDamageState state) async {
+  try {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Generating PDF...'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+
+    await AccountantBranchStockDamagePdfService.exportAndShare(
+      items: state.filtered,
+      searchQuery: state.searchQuery,
+      startDate: state.startDate,
+      endDate: state.endDate,
+    );
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Export failed: $e'),
+        backgroundColor: AppColor.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 }
 
@@ -283,6 +310,22 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              SizedBox(
+                width: 130,
+                child: ElevatedButton.icon(
+                  onPressed: () => _exportPdf(context, state),
+                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  label: const Text('Export'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 120,
                 child: OutlinedButton.icon(
@@ -645,6 +688,11 @@ class _MobileLayout extends StatelessWidget {
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF1A1D23))),
         actions: [
           IconButton(
+            onPressed: () => _exportPdf(context, state),
+            icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColor.primary),
+            tooltip: 'Export PDF',
+          ),
+          IconButton(
             onPressed: notifier.load,
             icon: const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
             tooltip: 'Refresh',
@@ -986,7 +1034,7 @@ class _EmptyState extends StatelessWidget {
         Text('No damage record found',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
         const SizedBox(height: 6),
-        Text('Try a different search or date range',
+        Text('Try a different esearch or date range',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
       ],
     ),
