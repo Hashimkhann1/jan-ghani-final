@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../../../../core/color/app_color.dart';
 import '../../data/model/inventory_counting_report_model.dart';
+import '../../data/service/inventory_counting_pdf_service.dart';
 import '../provider/inventory_counting_provider.dart';
 
 const double _kWideBreakpoint = 900;
@@ -84,6 +86,36 @@ class _InventoryCountingReportScreenState
     notifier.clearDateFilter();
   }
 
+  // ── Export PDF — hamesha poori filtered (visible) list use karta hai ─────
+  Future<void> _exportPdf(
+      BuildContext context,
+      List<InventoryCountingRecord> visible,
+      InventoryCountingReportState state,
+      ) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Generating PDF...'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ));
+
+      await InventoryCountingPdfService.exportAndShare(
+        records: visible,
+        searchQuery: state.searchQuery,
+        startDate: state.startDate,
+        endDate: state.endDate,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Export failed: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryCountingReportProvider(widget.storeId));
@@ -106,6 +138,27 @@ class _InventoryCountingReportScreenState
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text("Inventory Counting Report"),
+        actions: [
+          SizedBox(
+            width: 130,
+            child: ElevatedButton.icon(
+              onPressed: (!state.isLoading && state.errorMessage == null && visible.isNotEmpty)
+                  ? () => _exportPdf(context, visible, state)
+                  : null,
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+              label: const Text('Export'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColor.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 4),
+        ],
       ),
       body: SafeArea(
         child: Column(
