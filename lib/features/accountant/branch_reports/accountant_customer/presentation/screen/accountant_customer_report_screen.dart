@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../data/model/accountant_customer_model.dart';
+import '../../data/service/customer_report_pdf_service.dart';
 import '../provider/accountant_customer_provider.dart';
 
 class AccountantCustomerReportScreen extends ConsumerStatefulWidget {
@@ -31,6 +32,36 @@ class _AccountantCustomerReportScreenState
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  // ── Export PDF — hamesha current filtered list use karta hai ─────────────
+  Future<void> _exportPdf(
+      BuildContext context, AccountantCustomerReportState state) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Generating PDF...'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ));
+
+      await AccountantCustomerReportPdfService.exportAndShare(
+        items: state.filtered,
+        filterType: state.filterType,
+        searchQuery: state.searchQuery,
+        totalCustomers: state.summary.totalCustomers,
+        activeCustomers: state.summary.activeCustomers,
+        totalOutstanding: state.summary.totalOutstanding,
+        limitExceededCount: state.summary.limitExceededCount,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Export failed: $e'),
+          backgroundColor: AppColor.error,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
   }
 
   @override
@@ -69,12 +100,14 @@ class _AccountantCustomerReportScreenState
         notifier:   notifier,
         fmtAmt:     _fmt,
         searchCtrl: _searchCtrl,
+        onExportPdf: () => _exportPdf(context, state),
       )
           : _MobileLayout(
         state:      state,
         notifier:   notifier,
         fmtAmt:     _fmt,
         searchCtrl: _searchCtrl,
+        onExportPdf: () => _exportPdf(context, state),
       ),
     );
   }
@@ -88,12 +121,14 @@ class _DesktopLayout extends StatelessWidget {
   final dynamic                       notifier;
   final String Function(double)       fmtAmt;
   final TextEditingController         searchCtrl;
+  final VoidCallback                  onExportPdf;
 
   const _DesktopLayout({
     required this.state,
     required this.notifier,
     required this.fmtAmt,
     required this.searchCtrl,
+    required this.onExportPdf,
   });
 
   @override
@@ -137,6 +172,24 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              SizedBox(
+                width: 130,
+                child: ElevatedButton.icon(
+                  onPressed: onExportPdf,
+                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  label: const Text('Export'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 120,
                 child: OutlinedButton.icon(
@@ -852,12 +905,14 @@ class _MobileLayout extends StatelessWidget {
   final dynamic                       notifier;
   final String Function(double)       fmtAmt;
   final TextEditingController         searchCtrl;
+  final VoidCallback                  onExportPdf;
 
   const _MobileLayout({
     required this.state,
     required this.notifier,
     required this.fmtAmt,
     required this.searchCtrl,
+    required this.onExportPdf,
   });
 
   @override
@@ -874,6 +929,12 @@ class _MobileLayout extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color:      Color(0xFF1A1D23))),
         actions: [
+          IconButton(
+            onPressed: onExportPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined,
+                color: AppColor.primary),
+            tooltip: 'Export PDF',
+          ),
           IconButton(
             onPressed: notifier.load,
             icon: const Icon(Icons.refresh_rounded,
@@ -980,34 +1041,34 @@ class _MobileLayout extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             child: Row(
                 children: [
-              _SummaryCard(
-                label: 'Total',
-                value: '${state.summary.totalCustomers}',
-                icon:  Icons.people_outline_rounded,
-                color: AppColor.primary,
-              ),
-              const SizedBox(width: 8),
-              _SummaryCard(
-                label: 'Active',
-                value: '${state.summary.activeCustomers}',
-                icon:  Icons.person_outline_rounded,
-                color: AppColor.success,
-              ),
-              const SizedBox(width: 8),
-              _SummaryCard(
-                label: 'Outstanding',
-                value: fmtAmt(state.summary.totalOutstanding),
-                icon:  Icons.account_balance_wallet_outlined,
-                color: AppColor.error,
-              ),
-              const SizedBox(width: 8),
-              _SummaryCard(
-                label: 'Limit Cross',
-                value: '${state.summary.limitExceededCount}',
-                icon:  Icons.warning_amber_rounded,
-                color: const Color(0xFFEF4444),
-              ),
-            ]),
+                  _SummaryCard(
+                    label: 'Total',
+                    value: '${state.summary.totalCustomers}',
+                    icon:  Icons.people_outline_rounded,
+                    color: AppColor.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryCard(
+                    label: 'Active',
+                    value: '${state.summary.activeCustomers}',
+                    icon:  Icons.person_outline_rounded,
+                    color: AppColor.success,
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryCard(
+                    label: 'Outstanding',
+                    value: fmtAmt(state.summary.totalOutstanding),
+                    icon:  Icons.account_balance_wallet_outlined,
+                    color: AppColor.error,
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryCard(
+                    label: 'Limit Cross',
+                    value: '${state.summary.limitExceededCount}',
+                    icon:  Icons.warning_amber_rounded,
+                    color: const Color(0xFFEF4444),
+                  ),
+                ]),
           ),
           Container(height: 6, color: const Color(0xFFF5F6FA)),
 
