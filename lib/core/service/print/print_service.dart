@@ -264,16 +264,9 @@ class ThermalPrintService {
             pw.Center(
               child: pw.BarcodeWidget(
                 barcode: pw.Barcode.qrCode(),
-                data: "https://janghani.netlify.app/$customerId",
+                data: "https://janghani.netlify.app/",
                 width:  60,
                 height: 60,
-              ),
-            ),
-            pw.SizedBox(height: 3),
-            pw.Center(
-              child: pw.Text(
-                'ID: $customerId',
-                style: const pw.TextStyle(fontSize: 6.5),
               ),
             ),
             pw.SizedBox(height: 4),
