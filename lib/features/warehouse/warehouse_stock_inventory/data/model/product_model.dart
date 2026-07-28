@@ -14,6 +14,8 @@ class ProductModel {
   final String?      description;
   final String?      categoryId;
   final String?      categoryName;
+  final String?      companyId;
+  final String?      companyName;
   final String       unitOfMeasure;
   final double       purchasePrice;
   final double       sellingPrice;
@@ -46,6 +48,8 @@ class ProductModel {
     this.description,
     this.categoryId,
     this.categoryName,
+    this.companyId,
+    this.companyName,
     required this.unitOfMeasure,
     required this.purchasePrice,
     required this.sellingPrice,
@@ -74,6 +78,8 @@ class ProductModel {
       description:   m['description']?.toString(),
       categoryId:    m['category_id']?.toString(),
       categoryName:  m['category_name']?.toString(),
+      companyId:     m['company_id']?.toString(),
+      companyName:   m['company_name']?.toString(),
       unitOfMeasure: m['unit_of_measure']?.toString() ?? 'pcs',
       purchasePrice: _toDouble(m['purchase_price']),
       sellingPrice:  _toDouble(m['selling_price']),
@@ -105,6 +111,8 @@ class ProductModel {
     String?       description,
     String?       categoryId,
     String?       categoryName,
+    String?       companyId,
+    String?       companyName,
     String?       unitOfMeasure,
     double?       purchasePrice,
     double?       sellingPrice,
@@ -129,6 +137,8 @@ class ProductModel {
       description:   description    ?? this.description,
       categoryId:    categoryId     ?? this.categoryId,
       categoryName:  categoryName   ?? this.categoryName,
+      companyId:     companyId      ?? this.companyId,
+      companyName:   companyName    ?? this.companyName,
       unitOfMeasure: unitOfMeasure  ?? this.unitOfMeasure,
       purchasePrice: purchasePrice  ?? this.purchasePrice,
       sellingPrice:  sellingPrice   ?? this.sellingPrice,

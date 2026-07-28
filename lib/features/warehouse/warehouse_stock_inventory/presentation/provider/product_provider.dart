@@ -17,6 +17,7 @@ class ProductState {
   final String             searchQuery;
   final String             filterStatus;
   final String             filterCategory;
+  final String             filterCompany;
   final bool               isLoading;
   final String?            errorMessage;
   final List<ProductModel> filteredProducts; // ✅ ab cached field hai, getter nahi
@@ -26,6 +27,7 @@ class ProductState {
     this.searchQuery     = '',
     this.filterStatus    = 'all',
     this.filterCategory  = 'all',
+    this.filterCompany   = 'all',
     this.isLoading       = false,
     this.errorMessage,
     this.filteredProducts = const [], // ✅
@@ -37,6 +39,7 @@ class ProductState {
     String?             searchQuery,
     String?             filterStatus,
     String?             filterCategory,
+    String?             filterCompany,
     bool?               isLoading,
     String?             errorMessage,
   }) {
@@ -44,11 +47,13 @@ class ProductState {
     final newSearchQuery    = searchQuery    ?? this.searchQuery;
     final newFilterStatus   = filterStatus   ?? this.filterStatus;
     final newFilterCategory = filterCategory ?? this.filterCategory;
+    final newFilterCompany  = filterCompany  ?? this.filterCompany;
 
-    // ✅ Sirf tab recalculate hoga jab in 3 mein se koi change ho
+    // ✅ Sirf tab recalculate hoga jab in mein se koi change ho
     final newFiltered = (allProducts != null || searchQuery != null ||
-        filterStatus != null || filterCategory != null)
-        ? _computeFiltered(newAllProducts, newSearchQuery, newFilterStatus, newFilterCategory)
+        filterStatus != null || filterCategory != null || filterCompany != null)
+        ? _computeFiltered(newAllProducts, newSearchQuery, newFilterStatus,
+            newFilterCategory, newFilterCompany)
         : filteredProducts; // ← same list reuse, no loop
 
     return ProductState(
@@ -56,6 +61,7 @@ class ProductState {
       searchQuery:      newSearchQuery,
       filterStatus:     newFilterStatus,
       filterCategory:   newFilterCategory,
+      filterCompany:    newFilterCompany,
       isLoading:        isLoading  ?? this.isLoading,
       errorMessage:     errorMessage,
       filteredProducts: newFiltered,
@@ -68,6 +74,7 @@ class ProductState {
       String query,
       String status,
       String category,
+      String company,
       ) {
     return all.where((p) {
       if (p.deletedAt != null)                               return false;
@@ -77,6 +84,7 @@ class ProductState {
       if (status == 'out_stock' && !p.isOutOfStock) return false;
       if (status == 'in_stock'  &&  p.quantity <= 0) return false;
       if (category != 'all' && p.categoryId != category)    return false;
+      if (company  != 'all' && p.companyId  != company)     return false;
       if (query.isNotEmpty) {
         final q = query.toLowerCase();
         return p.name.toLowerCase().contains(q)              ||
@@ -134,6 +142,7 @@ class ProductNotifier extends StateNotifier<ProductState> {
     List<String>     barcodes = const [],
     String?          description,
     String?          categoryId,
+    String?          companyId,
     required String  unitOfMeasure,
     required double  purchasePrice,
     required double  sellingPrice,
@@ -161,6 +170,7 @@ class ProductNotifier extends StateNotifier<ProductState> {
         barcodes: barcodes,
         name: name, description: description,
         categoryId: categoryId,
+        companyId: companyId,
         unitOfMeasure: unitOfMeasure,
         purchasePrice: purchasePrice, sellingPrice: sellingPrice,
         wholesalePrice: wholesalePrice,
@@ -300,6 +310,7 @@ class ProductNotifier extends StateNotifier<ProductState> {
   void onSearchChanged(String q)         => state = state.copyWith(searchQuery: q);
   void onFilterStatusChanged(String f)   => state = state.copyWith(filterStatus: f);
   void onFilterCategoryChanged(String c) => state = state.copyWith(filterCategory: c);
+  void onFilterCompanyChanged(String c)  => state = state.copyWith(filterCompany: c);
   void clearError()                      => state = state.copyWith(errorMessage: null);
 }
 

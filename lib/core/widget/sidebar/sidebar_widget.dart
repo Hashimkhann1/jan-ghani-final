@@ -5,6 +5,8 @@ import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/scr
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/screens/login_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/category/presentation/screens/all_category_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/company/presentation/screens/all_company_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/employee/presentation/screens/salary_tracking_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/link_stores/presentation/screens/linked_stores_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/screens/purchase_order_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens/all_supplier_screen/all_supplier_screen.dart';
@@ -68,6 +70,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       screen: const AllCategoryScreen(),
     ),
     NavItem(
+      icon: Icons.business_outlined,
+      label: 'Company',
+      screen: const AllCompanyScreen(),
+    ),
+    NavItem(
       icon: Icons.account_balance_wallet_outlined,
       label: 'Finance',
       screen: const WarehouseFinanceScreen(),
@@ -76,6 +83,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       icon: Icons.money_off_outlined,
       label: 'Expense',
       screen: const WarehouseExpenseScreen(),
+    ),
+    NavItem(
+      icon: Icons.badge_outlined,
+      label: 'Salary',
+      screen: const SalaryTrackingScreen(),
     ),
     NavItem(
       icon: Icons.bar_chart_rounded,
@@ -101,6 +113,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       screen: const AllCategoryScreen(),
     ),
     NavItem(
+      icon: Icons.business_outlined,
+      label: 'Company',
+      screen: const AllCompanyScreen(),
+    ),
+    NavItem(
       icon: Icons.account_balance_wallet_outlined,
       label: 'Finance',
       screen: const WarehouseFinanceScreen(),
@@ -109,6 +126,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       icon: Icons.money_off_outlined,
       label: 'Expense',
       screen: const WarehouseExpenseScreen(),
+    ),
+    NavItem(
+      icon: Icons.badge_outlined,
+      label: 'Salary',
+      screen: const SalaryTrackingScreen(),
     ),
   ];
 
@@ -145,6 +167,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       screen: const AllCategoryScreen(),
     ),
     NavItem(
+      icon: Icons.business_outlined,
+      label: 'Company',
+      screen: const AllCompanyScreen(),
+    ),
+    NavItem(
       icon: Icons.account_balance_wallet_outlined,
       label: 'Finance',
       screen: const WarehouseFinanceScreen(),
@@ -153,6 +180,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       icon: Icons.money_off_outlined,
       label: 'Expense',
       screen: const WarehouseExpenseScreen(),
+    ),
+    NavItem(
+      icon: Icons.badge_outlined,
+      label: 'Salary',
+      screen: const SalaryTrackingScreen(),
     ),
     NavItem(
       icon: Icons.store_outlined,

@@ -6,6 +6,8 @@ import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/core/widget/textfield/app_text_field.dart';
 import 'package:jan_ghani_final/features/warehouse/category/data/model/category_model.dart';
 import 'package:jan_ghani_final/features/warehouse/category/presentation/provider/category_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/company/data/model/company_model.dart';
+import 'package:jan_ghani_final/features/warehouse/company/presentation/provider/company_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/Print_barcode_widget.dart';
 import '../../data/model/product_model.dart';
 import '../../presentation/provider/product_provider.dart';
@@ -120,6 +122,17 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
                       onChanged: notifier.onFilterCategoryChanged,
                     ),
                     const SizedBox(width: 8),
+                    // ── Company Dropdown ─────────────────────────
+                    _CompanyFilterDropdown(
+                      companies: ref
+                          .watch(companyProvider)
+                          .allCompanies
+                          .where((c) => c.isActive && c.deletedAt == null)
+                          .toList(),
+                      selectedCompanyId: state.filterCompany,
+                      onChanged: notifier.onFilterCompanyChanged,
+                    ),
+                    const SizedBox(width: 8),
                     // ── In Stock button (quantity > 0) ───────────
                     _StockFilterBtn(
                       label:    'In Stock',
@@ -189,7 +202,7 @@ class _ProductTable extends StatelessWidget {
   });
 
   static const _cols = [
-    'SKU', 'Product Name', 'Category',
+    'SKU', 'Product Name', 'Category', 'Company',
     'Purchase Price', 'Sale Price', 'Stock', 'Stock Status', 'Actions'
   ];
 
@@ -197,6 +210,7 @@ class _ProductTable extends StatelessWidget {
     switch (h) {
       case 'Product Name':    return 3;
       case 'Category':        return 2;
+      case 'Company':         return 2;
       case 'Purchase Price':  return 2;
       case 'Sale Price':      return 2;
       case 'Stock':           return 2;
@@ -403,6 +417,22 @@ class _ProductRow extends StatelessWidget {
                         : p.categoryName ?? '—',
                     bg:        const Color(0xFFEEF2FF),
                     textColor: const Color(0xFF6366F1),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: flex('Company'),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: ChipWidget(
+                    label: (p.companyName?.length ?? 0) > 12
+                        ? p.companyName!.substring(0, 12)
+                        : p.companyName ?? '—',
+                    bg:        const Color(0xFFF0FDF4),
+                    textColor: const Color(0xFF16A34A),
                   ),
                 ),
               ),
@@ -715,6 +745,96 @@ class _CategoryFilterDropdown extends StatelessWidget {
                 ),
                 child: const Icon(Icons.close_rounded,
                     size: 16, color: Color(0xFF6366F1)),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Company Filter Dropdown (Category filter ka mirror) ──────
+class _CompanyFilterDropdown extends StatelessWidget {
+  final List<CompanyModel>   companies;
+  final String               selectedCompanyId;
+  final ValueChanged<String> onChanged;
+
+  const _CompanyFilterDropdown({
+    required this.companies,
+    required this.selectedCompanyId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final validIds = companies.map((c) => c.id).toSet();
+    final safeValue = (selectedCompanyId != 'all' &&
+            validIds.contains(selectedCompanyId))
+        ? selectedCompanyId
+        : 'all';
+
+    final isFiltered = safeValue != 'all';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: isFiltered
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFF5BDD5B),
+                width: 1.3),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: safeValue,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 18, color: Color(0xFF6C7280)),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF1A1D23)),
+              items: [
+                const DropdownMenuItem(
+                  value: 'all',
+                  child: Text('All Companies',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF717275))),
+                ),
+                ...companies.map((c) => DropdownMenuItem(
+                      value: c.id,
+                      child: Text(c.name,
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w500)),
+                    )),
+              ],
+              onChanged: (v) => onChanged(v ?? 'all'),
+            ),
+          ),
+        ),
+        if (isFiltered) ...[
+          const SizedBox(width: 6),
+          Tooltip(
+            message: 'All products show karo',
+            child: InkWell(
+              onTap: () => onChanged('all'),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                height: 42,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: const Color(0xFF16A34A).withOpacity(0.3)),
+                ),
+                child: const Icon(Icons.close_rounded,
+                    size: 16, color: Color(0xFF16A34A)),
               ),
             ),
           ),

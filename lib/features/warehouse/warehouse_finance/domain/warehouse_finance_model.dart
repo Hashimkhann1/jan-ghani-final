@@ -117,6 +117,7 @@ class CashTransactionModel {
       case 'purchase':         return 'Purchase';
       case 'supplier_payment': return 'Supplier Payment';
       case 'expense':          return 'Expense';
+      case 'salary':           return 'Salary';
       default:                 return entryType;
     }
   }

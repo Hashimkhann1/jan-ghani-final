@@ -3,6 +3,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/screens/inventory_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/presentation/screens/cash_flow_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/expense/presentation/screens/expense_report_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_reports/overview/presentation/screens/reports_overview_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/purchase/presentation/screens/purchase_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/supplier/presentation/screens/supplier_report_screen.dart';
 
@@ -53,7 +54,15 @@ class _WarehouseReportsShellState extends State<WarehouseReportsShell> {
   int _selected = 0;
   bool _drawerOpen = false; // default: closed
 
+  // ⚠️ Is list ka ORDER reports_overview_screen.dart ke `ReportTab` indices
+  // se match karta hai (0=Dashboard, 1=Inventory, ...). Order badla to wahan
+  // bhi update karo. Dashboard ka `screen` null hai — build() mein special-case.
   static const _reports = [
+    _ReportItem(
+      icon: Icons.dashboard_outlined,
+      label: 'Dashboard',
+      description: 'Sab reports ka ek nazar mein khulasa',
+    ),
     _ReportItem(
       icon: Icons.inventory_2_outlined,
       label: 'Inventory',
@@ -148,9 +157,12 @@ class _WarehouseReportsShellState extends State<WarehouseReportsShell> {
 
         // ── Report content ───────────────────────────────────
         Expanded(
-          child: report.isComingSoon
-              ? _ComingSoonScreen(report: report)
-              : report.screen!,
+          child: _selected == 0
+              // Dashboard: card tap par report kholne ke liye _selectReport pass
+              ? ReportsOverviewScreen(onOpenReport: _selectReport)
+              : report.isComingSoon
+                  ? _ComingSoonScreen(report: report)
+                  : report.screen!,
         ),
       ],
     );

@@ -12,6 +12,9 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/category/data/model/category_model.dart';
 import 'package:jan_ghani_final/features/warehouse/category/presentation/provider/category_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/category/presentation/widget/add_category_dialog.dart';
+import 'package:jan_ghani_final/features/warehouse/company/data/model/company_model.dart';
+import 'package:jan_ghani_final/features/warehouse/company/presentation/provider/company_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/company/presentation/widget/add_company_dialog.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/section_label_widget.dart';
@@ -55,6 +58,7 @@ class _StockInventoryDialogState
   final TextEditingController _barcodeInputCtrl = TextEditingController();
 
   String? _selectedCategoryId;
+  String? _selectedCompanyId;
   bool    _isActive      = true;
   bool    _isTrackStock  = true;
   bool    _isSaving      = false;
@@ -112,6 +116,7 @@ class _StockInventoryDialogState
     }
 
     _selectedCategoryId = p?.categoryId;
+    _selectedCompanyId  = p?.companyId;
     _isActive           = p?.isActive ?? true;
     _isTrackStock       = p?.isTrackStock ?? true;
   }
@@ -182,6 +187,7 @@ class _StockInventoryDialogState
             description:    _descriptionCtrl.text.trim().isEmpty
                 ? null : _descriptionCtrl.text.trim(),
             categoryId:     _selectedCategoryId,
+            companyId:      _selectedCompanyId,
             unitOfMeasure:  _selectedUnit,
             purchasePrice:      double.tryParse(purchasePriceCtrl.text) ?? 0,
             sellingPrice:   double.tryParse(_sellPriceCtrl.text) ?? 0,
@@ -205,6 +211,7 @@ class _StockInventoryDialogState
           description:    _descriptionCtrl.text.trim().isEmpty
               ? null : _descriptionCtrl.text.trim(),
           categoryId:     _selectedCategoryId,
+          companyId:      _selectedCompanyId,
           unitOfMeasure:  _selectedUnit,
           purchasePrice:      double.tryParse(purchasePriceCtrl.text) ?? 0,
           sellingPrice:   double.tryParse(_sellPriceCtrl.text) ?? 0,
@@ -235,6 +242,11 @@ class _StockInventoryDialogState
   Widget build(BuildContext context) {
     final categories = ref.watch(
         categoryProvider.select((s) => s.allCategories
+            .where((c) => c.isActive && c.deletedAt == null)
+            .toList()));
+
+    final companies = ref.watch(
+        companyProvider.select((s) => s.allCompanies
             .where((c) => c.isActive && c.deletedAt == null)
             .toList()));
 
@@ -304,6 +316,17 @@ class _StockInventoryDialogState
                           onChanged:    (v) =>
                               setState(() => _selectedUnit = v ?? 'pcs'),
                         ),
+                      ]),
+                      const SizedBox(height: 14),
+
+                      FormRow(children: [
+                        _CompanyDropdown(
+                          companies:         companies,
+                          selectedCompanyId: _selectedCompanyId,
+                          onChanged: (id) =>
+                              setState(() => _selectedCompanyId = id),
+                        ),
+                        const SizedBox(), // half width — Company akela
                       ]),
 
                       const SizedBox(height: 24),
@@ -795,6 +818,114 @@ class _CategoryDropdown extends StatelessWidget {
             searchFieldProps: TextFieldProps(
               decoration: InputDecoration(
                 hintText:   'Search category...',
+                prefixIcon: const Icon(Icons.search, size: 18),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            fit: FlexFit.loose,
+            constraints: const BoxConstraints(maxHeight: 300),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// =============================================================
+// COMPANY DROPDOWN (Category dropdown ka mirror)
+// =============================================================
+class _CompanyDropdown extends StatelessWidget {
+  final List<CompanyModel>    companies;
+  final String?               selectedCompanyId;
+  final ValueChanged<String?> onChanged;
+
+  const _CompanyDropdown({
+    required this.companies,
+    required this.selectedCompanyId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final validIds = companies.map((c) => c.id).toSet();
+    final selectedCompany = (selectedCompanyId != null &&
+            validIds.contains(selectedCompanyId))
+        ? companies.firstWhere((c) => c.id == selectedCompanyId)
+        : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Label + New Company Button ───────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Company',
+                style: TextStyle(
+                    fontSize:   12,
+                    fontWeight: FontWeight.w600,
+                    color:      Color(0xFF374151))),
+            GestureDetector(
+              onTap: () => AddCompanyDialog.show(context),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.add_circle_outline_rounded,
+                      size: 13, color: Color(0xFF6366F1)),
+                  SizedBox(width: 3),
+                  Text('New Company',
+                      style: TextStyle(
+                          fontSize:   11,
+                          fontWeight: FontWeight.w600,
+                          color:      Color(0xFF6366F1))),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        DropdownSearch<CompanyModel>(
+          items:        (filter, _) => companies,
+          selectedItem: selectedCompany,
+          compareFn:    (a, b) => a.id == b.id,
+          itemAsString: (c) => c.name,
+          filterFn:     (c, filter) =>
+              c.name.toLowerCase().contains(filter.toLowerCase()),
+          onSelected:   (c) => onChanged(c?.id),
+          suffixProps: const DropdownSuffixProps(
+            clearButtonProps: ClearButtonProps(isVisible: true),
+          ),
+          decoratorProps: DropDownDecoratorProps(
+            decoration: InputDecoration(
+              hintText:  'Select company',
+              hintStyle: const TextStyle(
+                  fontSize: 13, color: Color(0xFFD1D5DB)),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 12),
+              filled:    true,
+              fillColor: const Color(0xFFF9FAFB),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                  const BorderSide(color: Color(0xFFE5E7EB))),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                  const BorderSide(color: Color(0xFFE5E7EB))),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                      color: Color(0xFF6366F1), width: 1.5)),
+            ),
+          ),
+          popupProps: PopupProps.menu(
+            showSearchBox: true,
+            searchFieldProps: TextFieldProps(
+              decoration: InputDecoration(
+                hintText:   'Search company...',
                 prefixIcon: const Icon(Icons.search, size: 18),
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),

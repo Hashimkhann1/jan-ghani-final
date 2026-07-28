@@ -108,9 +108,7 @@ class _Body extends ConsumerWidget {
         children: [
           if (state.summary != null) _SummaryCardsRow(summary: state.summary!),
           const SizedBox(height: 16),
-          _PieBarRow(state: state),
-          const SizedBox(height: 16),
-          _MonthlyTrendSection(trend: state.monthlyTrend),
+          _TopSuppliersBarChart(data: state.topSuppliers),
           const SizedBox(height: 16),
           _SupplierCompletionSection(data: state.supplierCompletion),
           const SizedBox(height: 16),
@@ -346,197 +344,80 @@ class _SummaryCardsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        DashStatCard(
-          label:      'Total POs',
-          value:      summary.totalPos.toString(),
-          badge:      'All time',
-          icon:       Icons.receipt_long_outlined,
-          color:      AppColor.primary,
-          barPercent: 1.0,
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Received Value',
-          value:      'Rs ${summary.totalReceivedValue.pkrFormat}',
-          badge:      'Completed',
-          icon:       Icons.check_circle_outline,
-          color:      AppColor.success,
-          barPercent: summary.totalPos == 0 ? 0 :
-              (summary.totalPos - summary.pendingCount) / summary.totalPos,
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Pending POs',
-          value:      summary.pendingCount.toString(),
-          badge:      'Draft / Ordered / Partial',
-          icon:       Icons.hourglass_empty_rounded,
-          color:      AppColor.warning,
-          barPercent: summary.totalPos == 0 ? 0 :
-              summary.pendingCount / summary.totalPos,
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'This Month',
-          value:      'Rs ${summary.thisMonthValue.pkrFormat}',
-          badge:      'Received only',
-          icon:       Icons.calendar_month_outlined,
-          color:      AppColor.info,
-          barPercent: summary.totalReceivedValue == 0 ? 0 :
-              (summary.thisMonthValue / summary.totalReceivedValue).clamp(0, 1),
-        ),
-      ],
+    final cards = <Widget>[
+      DashStatCard(
+        label:      'Total POs',
+        value:      summary.totalPos.toString(),
+        badge:      'All time',
+        icon:       Icons.receipt_long_outlined,
+        color:      AppColor.primary,
+        barPercent: 1.0,
+      ),
+      DashStatCard(
+        label:      'Received Value',
+        value:      'Rs ${summary.totalReceivedValue.pkrFormat}',
+        badge:      'Completed',
+        icon:       Icons.check_circle_outline,
+        color:      AppColor.success,
+        barPercent: summary.totalPos == 0 ? 0 :
+            (summary.totalPos - summary.pendingCount) / summary.totalPos,
+      ),
+      DashStatCard(
+        label:      'Pending POs',
+        value:      summary.pendingCount.toString(),
+        badge:      'Draft / Ordered / Partial',
+        icon:       Icons.hourglass_empty_rounded,
+        color:      AppColor.warning,
+        barPercent: summary.totalPos == 0 ? 0 :
+            summary.pendingCount / summary.totalPos,
+      ),
+      DashStatCard(
+        label:      'This Month',
+        value:      'Rs ${summary.thisMonthValue.pkrFormat}',
+        badge:      'Received only',
+        icon:       Icons.calendar_month_outlined,
+        color:      AppColor.info,
+        barPercent: summary.totalReceivedValue == 0 ? 0 :
+            (summary.thisMonthValue / summary.totalReceivedValue).clamp(0, 1),
+      ),
+    ];
+
+    // Responsive: wide → 4/row, medium → 2/row, mobile → 1/row
+    return LayoutBuilder(
+      builder: (context, c) {
+        final perRow = c.maxWidth >= 760 ? 4 : (c.maxWidth >= 480 ? 2 : 1);
+        return _cardGrid(cards, perRow);
+      },
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// PIE + BAR CHARTS ROW
-// ─────────────────────────────────────────────────────────────
-
-class _PieBarRow extends StatelessWidget {
-  final PurchaseReportState state;
-  const _PieBarRow({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+// Stat cards ko responsive rows (perRow) mein arrange karo. DashStatCard
+// khud Expanded return karta hai → seedha Row mein. Adhoori aakhri row ko
+// Expanded(SizedBox) se pad karte hain taake widths barabar rahein.
+// NOTE: Row par crossAxisAlignment.stretch NAHI (scroll view mein infinite
+// height crash karta hai) — default/start use karo.
+Widget _cardGrid(List<Widget> cards, int perRow) {
+  final rows = <Widget>[];
+  for (int i = 0; i < cards.length; i += perRow) {
+    final end   = (i + perRow) > cards.length ? cards.length : i + perRow;
+    final chunk = cards.sublist(i, end);
+    final children = <Widget>[];
+    for (int j = 0; j < chunk.length; j++) {
+      if (j > 0) children.add(const SizedBox(width: 12));
+      children.add(chunk[j]);
+    }
+    for (int k = chunk.length; k < perRow; k++) {
+      children.add(const SizedBox(width: 12));
+      children.add(const Expanded(child: SizedBox()));
+    }
+    if (rows.isNotEmpty) rows.add(const SizedBox(height: 12));
+    rows.add(Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: _StatusPieChart(data: state.statusDistribution)),
-        const SizedBox(width: 12),
-        Expanded(child: _TopSuppliersBarChart(data: state.topSuppliers)),
-      ],
-    );
+      children: children,
+    ));
   }
-}
-
-// ─────────────────────────────────────────────────────────────
-// STATUS PIE CHART
-// ─────────────────────────────────────────────────────────────
-
-class _StatusPieChart extends StatefulWidget {
-  final List<PoStatusCount> data;
-  const _StatusPieChart({required this.data});
-
-  @override
-  State<_StatusPieChart> createState() => _StatusPieChartState();
-}
-
-class _StatusPieChartState extends State<_StatusPieChart> {
-  int _touchIndex = -1;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = widget.data.fold<int>(0, (s, e) => s + e.count);
-
-    return SectionCard(
-      headerIcon: Container(
-        width: 26, height: 26,
-        decoration: BoxDecoration(
-            color: AppColor.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(6)),
-        alignment: Alignment.center,
-        child: const Icon(Icons.pie_chart_outline, size: 14, color: AppColor.primary),
-      ),
-      title: 'PO Status Distribution',
-      headerTrailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-            color: AppColor.infoLight, borderRadius: BorderRadius.circular(12)),
-        child: Text('$total POs',
-            style: const TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.info)),
-      ),
-      children: [
-        if (widget.data.isEmpty)
-          const _EmptyState(message: 'Koi PO nahi mila')
-        else ...[
-          SizedBox(
-            height: 200,
-            child: Row(
-              children: [
-                Expanded(
-                  child: PieChart(
-                    PieChartData(
-                      pieTouchData: PieTouchData(
-                        touchCallback: (event, response) {
-                          setState(() {
-                            if (!event.isInterestedForInteractions ||
-                                response?.touchedSection == null) {
-                              _touchIndex = -1;
-                              return;
-                            }
-                            _touchIndex = response!
-                                .touchedSection!.touchedSectionIndex;
-                          });
-                        },
-                      ),
-                      sections: widget.data.asMap().entries.map((e) {
-                        final isTouched = e.key == _touchIndex;
-                        final color     = _statusColor(e.value.status);
-                        final pct       = total == 0 ? 0.0 : e.value.count / total * 100;
-                        return PieChartSectionData(
-                          color:     color,
-                          value:     e.value.count.toDouble(),
-                          title:     isTouched ? '${pct.toStringAsFixed(0)}%' : '',
-                          radius:    isTouched ? 65 : 54,
-                          titleStyle: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColor.white),
-                        );
-                      }).toList(),
-                      sectionsSpace:    3,
-                      centerSpaceRadius: 30,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Legend
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: widget.data.map((e) {
-                    final color = _statusColor(e.status);
-                    final pct   = total == 0 ? 0.0 : e.count / total * 100;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                              width: 8, height: 8,
-                              decoration: BoxDecoration(
-                                  color: color, shape: BoxShape.circle)),
-                          const SizedBox(width: 6),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(e.label,
-                                  style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColor.textPrimary)),
-                              Text('${e.count} · ${pct.toStringAsFixed(0)}%',
-                                  style: const TextStyle(
-                                      fontSize: 9,
-                                      color: AppColor.textSecondary)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
+  return Column(children: rows);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -627,120 +508,6 @@ class _TopSuppliersBarChart extends StatelessWidget {
           ),
       ],
     );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// MONTHLY TREND — LINE CHART
-// ─────────────────────────────────────────────────────────────
-
-class _MonthlyTrendSection extends StatelessWidget {
-  final List<MonthlyPoData> trend;
-  const _MonthlyTrendSection({required this.trend});
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionCard(
-      headerIcon: Container(
-        width: 26, height: 26,
-        decoration: BoxDecoration(
-            color: AppColor.infoLight,
-            borderRadius: BorderRadius.circular(6)),
-        alignment: Alignment.center,
-        child: const Icon(Icons.show_chart_rounded, size: 14, color: AppColor.info),
-      ),
-      title: 'Monthly Purchase Trend (Last 6 Months)',
-      children: [
-        if (trend.isEmpty)
-          const _EmptyState(message: 'Is period mein koi received PO nahi')
-        else
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipItems: (spots) => spots.map((spot) {
-                      return LineTooltipItem(
-                        'Rs ${spot.y.pkrFormat}',
-                        const TextStyle(
-                            fontSize: 11,
-                            color: AppColor.white,
-                            fontWeight: FontWeight.w600),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                gridData: FlGridData(
-                  show:                    true,
-                  drawVerticalLine:        false,
-                  horizontalInterval:      _interval(trend),
-                  getDrawingHorizontalLine: (_) =>
-                      const FlLine(color: AppColor.grey100, strokeWidth: 1),
-                ),
-                borderData: FlBorderData(
-                  show:   true,
-                  border: const Border(
-                    bottom: BorderSide(color: AppColor.grey200),
-                    left:   BorderSide(color: AppColor.grey200),
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles:   true,
-                      reservedSize: 28,
-                      getTitlesWidget: (value, meta) {
-                        final i = value.toInt();
-                        if (i < 0 || i >= trend.length) {
-                          return const SizedBox.shrink();
-                        }
-                        final m = trend[i].month;
-                        const months = [
-                          'Jan','Feb','Mar','Apr','May','Jun',
-                          'Jul','Aug','Sep','Oct','Nov','Dec'
-                        ];
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            '${months[m.month - 1]} ${m.year.toString().substring(2)}',
-                            style: const TextStyle(
-                                fontSize: 9, color: AppColor.textSecondary),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles:  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles:   const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: trend.asMap().entries
-                        .map((e) => FlSpot(e.key.toDouble(), e.value.total))
-                        .toList(),
-                    isCurved:     true,
-                    color:        AppColor.info,
-                    barWidth:     2.5,
-                    dotData:      const FlDotData(show: true),
-                    belowBarData: BarAreaData(
-                      show:  true,
-                      color: AppColor.info.withOpacity(0.08),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  double _interval(List<MonthlyPoData> data) {
-    if (data.isEmpty) return 1;
-    final max = data.map((e) => e.total).reduce((a, b) => a > b ? a : b);
-    return max == 0 ? 1 : (max / 4).ceilToDouble();
   }
 }
 

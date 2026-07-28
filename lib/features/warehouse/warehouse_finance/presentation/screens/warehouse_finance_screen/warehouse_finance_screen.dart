@@ -416,6 +416,7 @@ class _FilterTabs extends StatelessWidget {
     // {'key': 'purchase',        'label': 'Purchase'},
     {'key': 'supplier_payment','label': 'Supplier Pay'},
     {'key': 'expense',         'label': 'Expense'},
+    {'key': 'salary',          'label': 'Salary'},
   ];
 
   @override

@@ -41,6 +41,8 @@ class WarehouseSupabaseSyncService {
     'locations',
     'warehouse_users',
     'warehouse_categories',
+    'warehouse_companies',   // ← products se pehle (company_id FK)
+    'warehouse_employees',   // ← salary_payments se pehle (employee_id FK)
     // 'warehouse_finance',
     'linked_stores',
 
@@ -55,6 +57,7 @@ class WarehouseSupabaseSyncService {
 
     // ── Level 5: cash_transactions pe dependent ──
     'warehouse_expenses',
+    'warehouse_salary_payments',   // ← employee_id + cash_transaction_id FK
 
     // ── Level 6: suppliers pe dependent ──
     'purchase_orders',

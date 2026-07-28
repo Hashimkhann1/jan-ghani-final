@@ -269,6 +269,27 @@ class WarehouseFinanceRepository {
   }
 
   // ─────────────────────────────────────────────────────────
+  // 6b. Salary entry karo (entry_type='salary')
+  //     Expense entry jaisa hi — cash_in_hand minus (trigger).
+  // ─────────────────────────────────────────────────────────
+  Future<CashTransactionModel> addSalaryEntry({
+    required double amount,
+    required String salaryPaymentId,
+    String?         notes,
+    String?         createdBy,
+    String?         createdByName,
+  }) async {
+    return _insertTransaction(
+      entryType:     'salary',
+      amount:        amount,
+      referenceId:   salaryPaymentId,
+      notes:         notes ?? 'Salary',
+      createdBy:     createdBy,
+      createdByName: createdByName,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
   // 7. Finance Summary lo (dashboard ke liye)
   // ─────────────────────────────────────────────────────────
   Future<WarehouseFinanceSummary> getSummary() async {

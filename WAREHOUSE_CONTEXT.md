@@ -49,7 +49,10 @@ AppConfig.appMode       // 'warehouse' ya 'store'
 | `stock_transfers` | Stock sent to stores (status: pending/accepted) |
 | `stock_transfer_items` | Transfer line items |
 | `linked_stores` | Stores linked to this warehouse |
-| `warehouse_cash_transactions` | Cash entries (cash_in, purchase, supplier_payment, expense) |
+| `warehouse_cash_transactions` | Cash entries (cash_in, purchase, supplier_payment, expense, **salary** ← Session 7) |
+| `warehouse_companies` | ⭐ Session 7 — Product companies (name-only master); `warehouse_products.company_id` FK |
+| `warehouse_employees` | ⭐ Session 7 — Employees (name, phone, address, monthly_salary, max_advance_percent) |
+| `warehouse_salary_payments` | ⭐ Session 7 — Salary/advance payments (payment_type salary/advance, salary_month, cash_transaction_id link) |
 | `warehouse_finance` | Cash in hand (auto-updated via trigger) |
 | `warehouse_expenses` | Expense records |
 | `warehouse_users` | Users (roles: warehouse_owner, warehouse_manager, warehouse_staff, data_entry) |
@@ -109,6 +112,14 @@ lib/
     │   ├── warehouse_stock_inventory/ ← Products + stock management
     │   │   └── presentation/provider/product_provider.dart  ← productProvider (ProductState)
     │   ├── warehouse_user/           ← User management
+    │   ├── company/                  ← ⭐ Session 7 — Product companies (Category ka FULL mirror: model/datasource/repo/usecases/provider/screen/dialog)
+    │   ├── employee/                 ← ⭐ Session 7 — Employees + Salary tracking
+    │   │   ├── domain/  (employee_model, salary_payment_model, employee_month_status)
+    │   │   ├── data/employee_repository.dart   ← CRUD + paySalary + monthly status (Expense-repo pattern, singleton)
+    │   │   └── presentation/
+    │   │       ├── provider/ (employee_provider, salary_provider)
+    │   │       ├── screens/  (salary_tracking_screen ← MAIN sidebar target, employees_screen)
+    │   │       └── widgets/  (add_employee_dialog, pay_salary_dialog, employee_history_dialog)
     │   └── warehouse_reports/        ← *** NAYA FEATURE (humne banaya) ***
     │       ├── presentation/screens/
     │       │   └── warehouse_reports_shell.dart        ← Reports shell (drawer + routing)
@@ -175,10 +186,10 @@ AppColor.background    // white
 ## Navigation Structure (`sidebar_widget.dart`)
 
 ```
-SideBar (90px wide sidebar)
-├── Role: warehouse_manager → Full nav (Dashboard, Stock, Purchase, Supplier, Assign Stock, Category, Finance, Expense, Link Stores, User, Reports)
-├── Role: warehouse_owner / default → (Stock, Purchase, Supplier, Category, Finance, Expense, Reports)
-└── Role: data_entry → (Stock, Supplier, Category, Finance, Expense)
+SideBar (90px wide sidebar) — Session 7: har role mein "Company" (Category ke baad) + "Salary" (Expense ke baad) add hue
+├── Role: warehouse_manager → Full nav (Dashboard, Stock, Purchase, Supplier, Assign Stock, Category, Company, Finance, Expense, Salary, Link Stores, User, Reports)
+├── Role: warehouse_owner / default → (Stock, Purchase, Supplier, Category, Company, Finance, Expense, Salary, Reports)
+└── Role: data_entry → (Stock, Supplier, Category, Company, Finance, Expense, Salary)
 ```
 
 **Special handling for Reports:**
@@ -207,7 +218,8 @@ Jab Reports select ho, main 90px sidebar HIDE ho jata hai, sirf shell full-scree
   2. Purchases  — ACTIVE ✅ (`PurchaseReportScreen`)
   3. Transfers  — Coming Soon (abhi tak nahi bana)
   4. Suppliers  — ACTIVE ✅ (`SupplierReportScreen`)
-  5. Cash Flow  — ACTIVE ✅ (`CashFlowReportScreen`)
+  5. Cash Flow  — ACTIVE ✅ (`CashFlowReportScreen`) — Session 7 mein SIMPLIFIED (dekho Session 7)
+  6. Expenses   — ACTIVE ✅ (`ExpenseReportScreen`) — ⭐ Session 7 naya (platform-aware: desktop=local, web=Supabase raw+compute)
 
 **Animation fix:** `OverflowBox` + `SizedBox` inside `AnimatedContainer` with `Clip.hardEdge` — ye zaroori hai warna layout overflow errors aate hain during animation.
 ```dart
@@ -424,6 +436,10 @@ MovementRow(entry, isLast)
 | `supplierReportProvider` | `warehouse_reports/supplier/.../supplier_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | 6 queries; desktop=local, web=Supabase raw+compute |
 | `purchaseReportProvider` | `warehouse_reports/purchase/.../purchase_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | 7 queries; desktop=local, web=Supabase RPC |
 | `cashFlowReportProvider` | `warehouse_reports/cash_flow/.../cash_flow_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | 5 queries; desktop=local, web=Supabase raw+compute |
+| `expenseReportProvider` | `warehouse_reports/expense/.../expense_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | ⭐ S7 — summary(+prev period)+category breakdown; desktop=local, web=Supabase raw+compute |
+| `companyProvider` | `company/presentation/provider/company_provider.dart` | `StateNotifierProvider<CompanyNotifier, CompanyState>` | ⭐ S7 — companies CRUD (Category pattern) |
+| `employeeProvider` | `employee/presentation/provider/employee_provider.dart` | `StateNotifierProvider<EmployeeNotifier, EmployeeState>` | ⭐ S7 — employees master CRUD |
+| `salaryProvider` | `employee/presentation/provider/salary_provider.dart` | `StateNotifierProvider<SalaryNotifier, SalaryState>` | ⭐ S7 — monthly salary tracking + pay/delete (month state) |
 | `transferReportProvider` | `assign_stock/presentation/providers/assign_stock_report_provider.dart` | `StateNotifierProvider<TransferReportNotifier, TransferReportState>` | Stock transfers data |
 | `assignStockProvider` | `assign_stock/presentation/providers/assign_stock_provider.dart` | StateNotifier | Cart state for assigning stock |
 | `warehouseDashboardProvider` | `warehouse_dashboard/presentation/provider/` | StateNotifier | Dashboard data |
@@ -679,6 +695,129 @@ Teeno jagah ab **`availableQty` (reserve-aware)** dikhati hain: Assign left list
 4. **Display consistency** — Assign left list ab `availableQty` (cart "Max" + Inventory screen ke saath match).
 
 > Tafseel: upar **"Stock Transfer — Reserve-on-Create Model (Session 5)"** section dekho.
+
+---
+
+## Stock Movement Ledger + Negative Stock (Session 6) ⭐
+
+> **Maqsad:** `warehouse_stock_movements` ek **adhoora ledger** tha (opening/adjustment kabhi log hi nahi hote the), aur transfer accept par stock **chup-chaap `GREATEST(0,…)` se 0 par floor** ho jata tha — kami chhup jati thi. Teen additive fixes se ledger complete + kami visible.
+
+### Allowed movement types (schema — local + Supabase dono confirmed)
+- `movement_type` CHECK: `purchase_in, transfer_out, return_in, return_out, adjustment, opening`
+- `reference_type` CHECK: `purchase, transfer, adjustment`
+- `warehouse_inventory.quantity` par **koi `>= 0` constraint nahi** (negative DB-level allowed — jaan-bujh kar, constraint lagana hi nahi).
+
+### Fix A — Opening movement (product create)
+`product_remote_datasource.dart` → `add()`: inventory set ke baad `initialQty != 0` ho to `opening` movement insert (`reference_type='adjustment'`).
+
+### Fix B — Adjustment movement (manual edit)
+Same file → `update()`: `qtyDiff = newQty − oldQty` != 0 → `adjustment` movement (signed diff, negative allow, 0-floor nahi).
+
+### Fix C — Floor hatao (transfer accept) — negative visible
+`stock_transfer_sync_service.dart` → `_syncAcceptedTransfer()` Step 2: `quantity = quantity - sent` (**GREATEST(0,…) HATA diya** — real minus visible), `reserved_quantity = GREATEST(0, reserved - sent)` (reserved ab bhi capped). Reserve-on-create naye transfers ko phir bhi block karta hai.
+
+---
+
+## Stock Status — Available-based, har jagah consistent (Session 6) ⭐
+
+- **ProductModel getters available-based:** `isOutOfStock => availableQty <= 0` (naya), `isLowStock => availableQty <= minStockLevel`, `needsReorder => availableQty <= reorderPoint` — poore app mein use hote hain (dashboard + reports counts bhi).
+- **Inventory screen:** Stock column = **physical `quantity`** + grey sub-label `X free · Y reserved` (jab reserved > 0); `itemExtent 58`; badge/summary-card/`out_stock` filter ab `p.isOutOfStock`.
+- **Inventory report (desktop)** bhi `isOutOfStock`.
+- **Baqi flagged (nahi kiye):** PO product picker abhi physical `quantity > 0`; web inventory report Supabase views ka out-of-stock count server-side SQL (Dart getter apply nahi hota).
+
+---
+
+## PO Edit Sync + Supplier Ledger Reconcile (Session 6) ⭐
+
+### Sync ka core rule (yaad rakho)
+`warehouse_supabase_sync_service.dart` **sirf upsert karti hai (by `id`), DELETE bilkul nahi.** Koi bhi **delete+insert-with-new-id** pattern Supabase par **orphan/duplicate** chhodta hai. Hal: same-id UPDATE, ya sync-side explicit delete.
+
+### Fix #2-a — PO items duplicate (sync replace per PO)
+`updatePO()` items DELETE-all + naye-id INSERT karta hai → sync upsert-only → Supabase orphans. Fix: `purchase_order_items` generic loop se nikaal kar naya **`_syncPurchaseOrderItemsReplace(conn)`** (Step 1b): distinct un-synced po_ids → har PO ke remote items delete → local poora set upsert → is_synced=true. Per-PO atomic, offline-safe. Log: `🧾 purchase_order_items (replace per PO): N`.
+
+### Fix #2-b — Supplier ledger/balance reconcile on edit
+`updatePO()` ka ledger block sirf `becomingReceived` par tha — already-received PO edit par skip. Fix: naya `else if (alreadyReceived...)` block → `UPDATE supplier_ledger SET amount = @remaining WHERE po_id=@poId AND entry_type='purchase'` (same-id UPDATE, orphan nahi) → `fn_update_supplier_balance` trigger balance full-SUM recompute. **Self-heal:** purane out-of-sync PO ko edit→Save karne se ledger theek.
+
+---
+
+## Session 6 — Kya Kiya (Stock ledger + Status consistency + PO edit sync/ledger)
+
+1. **Stock movement ledger + negative stock** — opening/adjustment movements + transfer-accept floor hataya (negative visible; reserved 0-capped).
+2. **Stock status available-based** — `isOutOfStock` + getters availableQty par; screen/report/filters consistent.
+3. **PO items duplicate** — sync `_syncPurchaseOrderItemsReplace` (delete-then-upsert per PO).
+4. **Supplier ledger reconcile** — `updatePO` alreadyReceived block (same-id UPDATE, self-heal).
+
+### ⚠️ Session 6 ke baad BAAQI
+- Purana corrupt data cleanup (Supabase duplicate PO items, galat negative stock/`reserved_quantity`, out-of-sync ledger).
+- **#5:** duplicate `transfer_out` movements (sync 2-3 baar likhta) + pre-fix pending transfers `reserved_quantity` mein count nahi.
+- PO product picker physical qty; web inventory report views ka out-of-stock count.
+- Naya product turant search mein nahi dikhta (refresh/sync timing).
+
+### Files chhui (Session 6)
+`product_remote_datasource.dart` (opening+adjustment) · `stock_transfer_sync_service.dart` (floor) · `product_model.dart` (getters) · `warehouse_stock_inventory_screen.dart` + `product_provider.dart` (UI/filter) · inventory report provider+screen · `warehouse_supabase_sync_service.dart` (PO items replace) · `purchase_order_remote_datasource.dart` (ledger reconcile)
+
+---
+
+## Session 7 — Kya Kiya (Assign fixes · In-Stock filter · Expense polish · Expense Report · Reports simplify · Company · Salary/Employee) ⭐
+
+### 1. Assign Stock — fixes & 0-qty info-update transfers
+- **Duplicate `transfer_number` (23505) friendly message** — `assign_stock_provider.dart` catch mein `isDuplicateTransferNo` detect (23505 / constraint-name / duplicate+transfer_number) → "Yeh transfer ID database mein pehle se mojood hai... restart karein". (Root cause: number sirf success par rotate hota hai; rare, restart workaround.)
+- **Offline transfer = SUCCESS treat** — `assign_stock_repository.assignStock()` ab `bool` return karta hai; remote insert **best-effort** with **6s `.timeout()`** + `_isNetworkError()` (offline mein Supabase HTTP client throw nahi karta, HANG karta hai — isliye timeout zaroori). Offline par: local saved (background sync baad mein push) → cart clear + number rotate + **blue snackbar right-bottom 380px** ("Internet nahi — transfer save ho gayi, sync ho jayegi"). `lastSaveOffline` flag `AssignStockState` mein.
+- **Transfer report** — store dropdown mein `store_name · store_code`; **default filter = last 7 din** (`_initialFilter()`), refresh par filter qaim, Reset → wapas last-week (all-time nahi).
+- **0-qty transfer (product info-update to store)** — store accept `branch_stock_inventory` par prices/barcode/sku/min-max/category UPSERT karta hai (name/unit sirf INSERT par) → 0-qty transfer se store ka product master update hota hai bina stock hilaye. Rules: transfer qty **>= 0** (negative block — `assign_stock_cart_row.dart` `val >= 0`), product available stock **>= 0** ho to add (negative block — `addToCart` `checkStock(...,0)`). Assign par agar koi qty-0 item ho → pehle **`_ZeroQtyWarningDialog`** (product naam + "sirf info update") → Confirm → purana confirm dialog. Reserve/accept math par 0 ka koi asar nahi.
+
+### 2. Stock Inventory
+- **"In Stock" filter** — `in_stock` (physical `quantity > 0`) — provider `_computeFiltered` + green button screen par. ⚠️ Yeh PHYSICAL qty hai (available nahi) — reserved-out product In Stock + Out of Stock dono mein aa sakta hai (user ne yehi manga).
+- **Duplicate barcode friendly error + product NAAM** — `product_provider._friendlyError()` (async): jo barcodes add/update ho rahe the unhi ko DB mein check karke owner ka naam laata hai (`productNameByBarcode(..., excludeId)` datasource mein) → "Barcode 'X' pehle se 'Coca Cola' par mojood hai". Regex sirf fallback (Postgres `toString()` parse unreliable tha). Error snackbar: right-side 420px card, font 16 w600.
+
+### 3. Warehouse Expense polish
+- Quick-select chips: `Electricity` → **`Bills`**; naye chips: **Wawra, Feed, Bike Fuel**. Ab: Rent · Bills · Salary · Transport · Maintenance · Grocery · Wawra · Feed · Bike Fuel · Miscellaneous.
+- **Description ab REQUIRED, min 10 chars** (`add_expense_dialog.dart` validator).
+
+### 4. Expense Report (naya — `warehouse_reports/expense/`)
+- Cash-flow pattern: `expense_report_models/source/local_datasource/remote_datasource` + provider (kIsWeb switch + `reportsWarehouseIdProvider`) + screen. Shell mein **'Expenses'** registered.
+- **Hero card (responsive Row):** left = TOTAL <MONTH> EXPENSE + bada PKR + "Rozana average ≈ X / active day"; right = "N entries · M active days" + **vs-pichla-period chip** (↑red/↓green, equal-length prev period) + "Sabse zyada: <top category> — %". Narrow par stack.
+- **Category breakdown** (head/amount/entries/share-bar, wide=table narrow=stacked) + **"HAR RUPYA KAHAN GAYA" proportion stacked bar** + legend. Filter pills: Overall/This Month(default)/Custom range.
+- Summary mein `prevTotal`/`hasPrev`/`changePct` — local extra query, remote extra fetch.
+
+### 5. Cash Flow Report — SIMPLIFIED (1519 → ~780 lines)
+- **Removed:** Triple Line (Cash Flow Trend), Net Flow per Month, Recent Transactions (+ drill-down sheet/rows), Transaction Type Breakdown — classes DELETE ki gayeen.
+- **Ab layout:** (1) **6 summary cards** — Cash In Hand · In · Out · Net Flow · **Total Expense** · **Paid to Supplier** (naye do `typeBreakdown` ke expense/supplier_payment se derive; isliye `typeBreakdown` data ab bhi fetch hota hai) — responsive `_cardGrid` (≥880→3/row, ≥520→2, else 1). (2) **Monthly In vs Out + Expense Breakdown by Category (donut)** — wide(≥700) side-by-side, narrow stacked.
+- ⚠️ **`_cardGrid` Row par `crossAxisAlignment.stretch` MAT lagana** — scroll view (unbounded height) mein infinite-height crash. `start` use karo.
+
+### 6. Supplier Report — SIMPLIFIED
+- **Removed:** Monthly Purchase Trend (line), Top by Purchase Volume (bar). `fl_chart` import bhi gaya.
+- **Pie → `_TopOutstandingChart`:** Top 5 by Outstanding horizontal bars (naam + Rs + width∝outstanding, `_kChartColors`).
+- Summary cards responsive `_cardGrid` (≥760→4/row, ≥480→2, else 1). Layout: cards → TopOutstanding → Supplier Balance Table.
+- Note: provider abhi bhi `topByPurchase`/`monthlyTrend` fetch karta hai (unused — cleanup pending).
+
+### 7. Company Feature (naya — Category ka FULL mirror)
+- **DB (local + Supabase):** `warehouse_companies` (id, warehouse_id FK CASCADE, name, is_active, timestamps, sync fields) + `warehouse_products.company_id` (FK, ON DELETE SET NULL) + indexes. ⚠️ Supabase par `gen_random_uuid()` (BINA `public.` prefix); local par `public.uuid_generate_v4()`.
+- **11 files** `company/` — Category jaisa hi (name-only, no description/color).
+- **Product integration:** `ProductModel.companyId/companyName`; datasource SELECT `LEFT JOIN warehouse_companies co` + INSERT/UPDATE/`_toMap`/audit-map; **product dialog** mein `_CompanyDropdown` (search + inline "New Company"); provider `filterCompany` + `onFilterCompanyChanged`; inventory screen **Company filter dropdown** (green) + table **"Company" column** (green chip).
+- Sidebar "Company" nav (teeno roles), sync `_allTables` mein `warehouse_companies` (products se PEHLE — FK order).
+
+### 8. Salary / Employee Feature (naya) ⭐⭐
+> Salary ab dedicated section se track hoti hai — per-employee, per-month, advance ke saath. **Salary EXPENSE BHI hai** (total expense mein + hoti hai).
+
+- **DB (local + Supabase):** `warehouse_employees` + `warehouse_salary_payments` (upar tables mein dekho) + `cash_transactions_entry_type_check` mein **'salary'** + **`fn_update_cash_in_hand()` trigger REPLACE** (salary → -amount, warna cash minus na hota!). Supabase version: DO-block se KOI BHI entry_type check drop karke naya add (naam-mismatch safe).
+- **Har payment = 3 records (cash EK baar minus):**
+  1. `warehouse_cash_transactions` (entry_type='salary', `WarehouseFinanceRepository.addSalaryEntry()`) → trigger se cash minus + finance row
+  2. `warehouse_expenses` row (head='Salary', **usi** cash_txn se linked, apna cash_txn NAHI) → **total expense mein count** (Expense screen/report)
+  3. `warehouse_salary_payments` row → per-employee tracking
+- **Logic:** monthly cycle (`salary_month` = 1st of month); **advance auto-adjust** (advance bhi month-total mein count → remaining = salary − sab paid); **advance cap** = salary × `max_advance_percent`%; **partial allowed**; month status = pending/partial/paid (computed `EmployeeMonthStatus`).
+- **AUTO type (koi manual toggle nahi):** selected month **FUTURE** → **Advance**; current/past → **Salary**. (Current=Salary isliye ke month-end full salary advance-cap par block na ho.) Dialog mein colored read-only badge. Future month ka advance = month navigator se aage jao → Pay.
+- **Delete payment:** cash_txn `amount=0` UPDATE (trigger recompute → cash wapas; cash_txn HARD-DELETE kabhi nahi — trigger DELETE par `NEW` null hone se recompute nahi karta) + expense row + payment soft-delete.
+- **UI:** Salary Tracking (sidebar "Salary"): month navigator (‹ July 2026 ›) + summary cards (Paid x/y, Pending, Total Paid, Remaining) + employee rows (status badge, Pay button, is-month payments **dates ke saath**) + **Refresh button** + Employees button (**wapsi par auto-reload** `.then((_) => load())`). **Row TAP → `EmployeeHistoryDialog`** (poora record: totals + month-wise groups + har payment date/time). Employees screen: master CRUD.
+- **Finance:** `addSalaryEntry()`, model label 'salary'→'Salary', finance screen "Salary" filter tab.
+- Sync `_allTables`: `warehouse_employees` (companies ke baad), `warehouse_salary_payments` (expenses ke baad).
+
+### ⚠️ Session 7 ke LAYOUT/TIME lessons (bohat zaroori)
+1. **`.icon` Material buttons unbounded-width mein CRASH** ("BoxConstraints forces infinite width") — jab bhi button AppBar `actions`, `mainAxisSize.min` Row, ya center-aligned Column ke top-bar mein ho → **`SizedBox(width: N)` mein wrap karo**, YA parent Container `width: double.infinity`, YA body Column par `crossAxisAlignment: stretch`. (Salary tracking + Employees dono mein yehi tha.)
+2. **Custom top-bar wali screens:** Scaffold body Column par `crossAxisAlignment: CrossAxisAlignment.stretch` do (default `center` children ko intrinsic width deta hai → Row+Expanded/Spacer = infinite).
+3. **Scroll view ke andar Row par `crossAxisAlignment.stretch` MAT** (infinite HEIGHT crash — cash flow cards mein hua).
+4. **`timestamptz` display** — DB UTC store karta hai, driver UTC deta hai → display par **`.toLocal()`** lazmi (salary dates mein fix kiya). `purchase_orders.order_date` bhi DB default now() UTC hai — app pass nahi karta (documented, abhi fix NAHI kiya).
+5. **Supabase uuid:** `gen_random_uuid()` bina prefix; local: `public.uuid_generate_v4()`.
 
 ---
 

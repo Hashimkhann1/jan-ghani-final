@@ -135,50 +135,81 @@ class _SummaryCardsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        DashStatCard(
-          label: 'Total products',
-          value: '${data.totalActive}',
-          badge: 'Active',
-          icon: Icons.inventory_2_outlined,
-          color: AppColor.primary,
-          barPercent: (data.totalActive / 500).clamp(0.0, 1.0),
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label: 'Inventory value',
-          value: 'Rs ${data.totalPurchaseValue.pkrFormat}',
-          badge: 'Purchase cost',
-          icon: Icons.currency_rupee_rounded,
-          color: AppColor.success,
-          barPercent: 1.0,
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label: 'Reorder needed',
-          value: '${data.needsReorderCount}',
-          badge: data.needsReorderCount > 0 ? 'Order now' : 'All good',
-          icon: Icons.shopping_cart_outlined,
-          color: data.needsReorderCount > 0 ? AppColor.warning : AppColor.success,
-          barPercent: data.totalActive > 0
-              ? (data.needsReorderCount / data.totalActive).clamp(0.0, 1.0)
-              : 0.0,
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label: 'Out of stock',
-          value: '${data.outOfStockCount}',
-          badge: data.outOfStockCount > 0 ? 'Urgent' : 'All good',
-          icon: Icons.remove_shopping_cart_outlined,
-          color: data.outOfStockCount > 0 ? AppColor.error : AppColor.success,
-          barPercent: data.totalActive > 0
-              ? (data.outOfStockCount / data.totalActive).clamp(0.0, 1.0)
-              : 0.0,
-        ),
-      ],
+    final cards = <Widget>[
+      DashStatCard(
+        label: 'Total products',
+        value: '${data.totalActive}',
+        badge: 'Active',
+        icon: Icons.inventory_2_outlined,
+        color: AppColor.primary,
+        barPercent: (data.totalActive / 500).clamp(0.0, 1.0),
+      ),
+      DashStatCard(
+        label: 'Inventory value',
+        value: 'Rs ${data.totalPurchaseValue.pkrFormat}',
+        badge: 'Purchase cost',
+        icon: Icons.currency_rupee_rounded,
+        color: AppColor.success,
+        barPercent: 1.0,
+      ),
+      DashStatCard(
+        label: 'Reorder needed',
+        value: '${data.needsReorderCount}',
+        badge: data.needsReorderCount > 0 ? 'Order now' : 'All good',
+        icon: Icons.shopping_cart_outlined,
+        color: data.needsReorderCount > 0 ? AppColor.warning : AppColor.success,
+        barPercent: data.totalActive > 0
+            ? (data.needsReorderCount / data.totalActive).clamp(0.0, 1.0)
+            : 0.0,
+      ),
+      DashStatCard(
+        label: 'Out of stock',
+        value: '${data.outOfStockCount}',
+        badge: data.outOfStockCount > 0 ? 'Urgent' : 'All good',
+        icon: Icons.remove_shopping_cart_outlined,
+        color: data.outOfStockCount > 0 ? AppColor.error : AppColor.success,
+        barPercent: data.totalActive > 0
+            ? (data.outOfStockCount / data.totalActive).clamp(0.0, 1.0)
+            : 0.0,
+      ),
+    ];
+
+    // Responsive: wide → 4/row, medium → 2/row, mobile → 1/row
+    return LayoutBuilder(
+      builder: (context, c) {
+        final perRow = c.maxWidth >= 760 ? 4 : (c.maxWidth >= 480 ? 2 : 1);
+        return _cardGrid(cards, perRow);
+      },
     );
   }
+}
+
+// Stat cards ko responsive rows (perRow) mein arrange karo. DashStatCard
+// khud Expanded return karta hai → seedha Row mein. Adhoori aakhri row ko
+// Expanded(SizedBox) se pad karte hain taake widths barabar rahein.
+// NOTE: Row par crossAxisAlignment.stretch NAHI (scroll view mein infinite
+// height crash karta hai) — default/start use karo.
+Widget _cardGrid(List<Widget> cards, int perRow) {
+  final rows = <Widget>[];
+  for (int i = 0; i < cards.length; i += perRow) {
+    final end   = (i + perRow) > cards.length ? cards.length : i + perRow;
+    final chunk = cards.sublist(i, end);
+    final children = <Widget>[];
+    for (int j = 0; j < chunk.length; j++) {
+      if (j > 0) children.add(const SizedBox(width: 12));
+      children.add(chunk[j]);
+    }
+    for (int k = chunk.length; k < perRow; k++) {
+      children.add(const SizedBox(width: 12));
+      children.add(const Expanded(child: SizedBox()));
+    }
+    if (rows.isNotEmpty) rows.add(const SizedBox(height: 12));
+    rows.add(Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    ));
+  }
+  return Column(children: rows);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -191,13 +222,28 @@ class _ChartsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 3, child: _CategoryPieChart(data: data)),
-        const SizedBox(width: 16),
-        Expanded(flex: 2, child: _StockHealthPanel(data: data)),
-      ],
+    return LayoutBuilder(
+      builder: (context, c) {
+        // Narrow → stack vertically; wide → side by side (3:2)
+        if (c.maxWidth < 700) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _CategoryPieChart(data: data),
+              const SizedBox(height: 16),
+              _StockHealthPanel(data: data),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 3, child: _CategoryPieChart(data: data)),
+            const SizedBox(width: 16),
+            Expanded(flex: 2, child: _StockHealthPanel(data: data)),
+          ],
+        );
+      },
     );
   }
 }
@@ -584,92 +630,136 @@ class _StockTransferSection extends ConsumerWidget {
           ),
         ),
 
-        // ── 4 Transfer stats ──────────────────────────────────
+        // ── 4 Transfer stats (responsive: wide 4-in-row, narrow 2×2) ──
         Container(
           decoration: BoxDecoration(
             border: Border.symmetric(horizontal: BorderSide(color: AppColor.grey200)),
           ),
-          child: Row(
-            children: [
-              _TransferStatTile(label: 'Total Transfers', value: '${transfers.length}', icon: Icons.swap_horiz_rounded, color: AppColor.info),
-              _vDivider(),
-              _TransferStatTile(label: 'Total Cost', value: 'Rs ${totalCost.pkrFormat}', icon: Icons.currency_rupee_rounded, color: AppColor.primary),
-              _vDivider(),
-              _TransferStatTile(label: 'Items Transferred', value: '$totalItems', icon: Icons.inventory_2_outlined, color: AppColor.success),
-              _vDivider(),
-              _TransferStatTile(label: 'Pending', value: '$pendingCount', icon: Icons.hourglass_empty_rounded, color: AppColor.warning),
-            ],
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final t1 = _TransferStatTile(label: 'Total Transfers', value: '${transfers.length}', icon: Icons.swap_horiz_rounded, color: AppColor.info);
+              final t2 = _TransferStatTile(label: 'Total Cost', value: 'Rs ${totalCost.pkrFormat}', icon: Icons.currency_rupee_rounded, color: AppColor.primary);
+              final t3 = _TransferStatTile(label: 'Items Transferred', value: '$totalItems', icon: Icons.inventory_2_outlined, color: AppColor.success);
+              final t4 = _TransferStatTile(label: 'Pending', value: '$pendingCount', icon: Icons.hourglass_empty_rounded, color: AppColor.warning);
+
+              if (c.maxWidth < 600) {
+                // 2 × 2 grid with a horizontal divider between rows
+                return Column(
+                  children: [
+                    Row(children: [t1, _vDivider(), t2]),
+                    Container(height: 1, color: AppColor.grey200),
+                    Row(children: [t3, _vDivider(), t4]),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  t1, _vDivider(), t2, _vDivider(), t3, _vDivider(), t4,
+                ],
+              );
+            },
           ),
         ),
 
-        // ── Charts Row ────────────────────────────────────────
-        Container(
-          decoration: BoxDecoration(
-            color: AppColor.surface,
-            border: Border.all(color: AppColor.grey200),
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
-            child: Row(
+        // ── Charts Row (responsive: wide side-by-side, narrow stacked) ──
+        Builder(
+          builder: (context) {
+            // Store-wise bars panel
+            final storePanel = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Store-wise bars
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: const BoxDecoration(
-                      border: Border(right: BorderSide(color: AppColor.grey200)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(children: [
-                          Icon(Icons.storefront_outlined, size: 14, color: AppColor.info),
-                          SizedBox(width: 6),
-                          Text('Store-wise transfer value',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-                        ]),
-                        const SizedBox(height: 14),
-                        if (stores.isEmpty)
-                          const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 24),
-                            child: Text('Koi transfer nahi', style: TextStyle(fontSize: 12, color: AppColor.textSecondary))))
-                        else
-                          ...stores.take(6).map((s) => _StoreBar(store: s, maxCost: stores.first.totalCost)),
-                      ],
-                    ),
-                  ),
-                ),
+                const Row(children: [
+                  Icon(Icons.storefront_outlined, size: 14, color: AppColor.info),
+                  SizedBox(width: 6),
+                  Text('Store-wise transfer value',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                ]),
+                const SizedBox(height: 14),
+                if (stores.isEmpty)
+                  const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text('Koi transfer nahi', style: TextStyle(fontSize: 12, color: AppColor.textSecondary))))
+                else
+                  ...stores.take(6).map((s) => _StoreBar(store: s, maxCost: stores.first.totalCost)),
+              ],
+            );
 
-                // Monthly trend
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(children: [
-                          Icon(Icons.bar_chart_rounded, size: 14, color: AppColor.primary),
-                          SizedBox(width: 6),
-                          Text('Monthly trend (transfers)',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
-                        ]),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          height: 160,
-                          child: _MonthlyBarChart(data: monthlyData, maxCount: maxCount),
-                        ),
-                      ],
-                    ),
-                  ),
+            // Monthly trend panel
+            final monthlyPanel = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(children: [
+                  Icon(Icons.bar_chart_rounded, size: 14, color: AppColor.primary),
+                  SizedBox(width: 6),
+                  Text('Monthly trend (transfers)',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                ]),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 160,
+                  child: _MonthlyBarChart(data: monthlyData, maxCount: maxCount),
                 ),
               ],
-            ),
-          ),
+            );
+
+            return Container(
+              decoration: BoxDecoration(
+                color: AppColor.surface,
+                border: Border.all(color: AppColor.grey200),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    if (c.maxWidth < 700) {
+                      // Stacked: store panel (bottom border) above monthly panel
+                      return Column(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: AppColor.grey200)),
+                            ),
+                            child: storePanel,
+                          ),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            child: monthlyPanel,
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: const BoxDecoration(
+                              border: Border(right: BorderSide(color: AppColor.grey200)),
+                            ),
+                            child: storePanel,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            child: monthlyPanel,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -707,12 +797,18 @@ class _TransferStatTile extends StatelessWidget {
               child: Icon(icon, size: 15, color: color),
             ),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: color)),
-                Text(label, style: const TextStyle(fontSize: 10, color: AppColor.textSecondary)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(value,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: color),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(label,
+                      style: const TextStyle(fontSize: 10, color: AppColor.textSecondary),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
           ],
         ),

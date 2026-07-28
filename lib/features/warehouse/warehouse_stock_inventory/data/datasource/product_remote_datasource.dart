@@ -22,6 +22,7 @@ class ProductRemoteDataSource {
           p.id, p.warehouse_id, p.sku, p.barcode,
           p.name, p.description,
           p.category_id, c.name AS category_name,
+          p.company_id, co.name AS company_name,
           p.unit_of_measure, p.purchase_price, p.selling_price,  -- ✅ cost_price → purchase_price
           p.wholesale_price, p.tax_rate,
           p.min_stock_level, p.max_stock_level, p.reorder_point,
@@ -31,6 +32,7 @@ class ProductRemoteDataSource {
           COALESCE(i.reserved_quantity, 0) AS reserved_quantity
         FROM warehouse_products p
         LEFT JOIN warehouse_categories c ON c.id = p.category_id
+        LEFT JOIN warehouse_companies  co ON co.id = p.company_id
         LEFT JOIN warehouse_inventory  i ON i.product_id = p.id
           AND i.warehouse_id = p.warehouse_id
         WHERE p.warehouse_id = @warehouseId
@@ -51,6 +53,7 @@ class ProductRemoteDataSource {
           p.id, p.warehouse_id, p.sku, p.barcode,
           p.name, p.description,
           p.category_id, c.name AS category_name,
+          p.company_id, co.name AS company_name,
           p.unit_of_measure, p.purchase_price, p.selling_price,  -- ✅ cost_price → purchase_price
           p.wholesale_price, p.tax_rate,
           p.min_stock_level, p.max_stock_level, p.reorder_point,
@@ -60,6 +63,7 @@ class ProductRemoteDataSource {
           COALESCE(i.reserved_quantity, 0) AS reserved_quantity
         FROM warehouse_products p
         LEFT JOIN warehouse_categories c ON c.id = p.category_id
+        LEFT JOIN warehouse_companies  co ON co.id = p.company_id
         LEFT JOIN warehouse_inventory  i ON i.product_id = p.id
           AND i.warehouse_id = p.warehouse_id
         WHERE p.id = @id AND p.deleted_at IS NULL
@@ -84,12 +88,12 @@ class ProductRemoteDataSource {
       Sql.named('''
         INSERT INTO warehouse_products (
           warehouse_id, sku, barcode, name, description,
-          category_id, unit_of_measure, purchase_price, selling_price,  -- ✅ cost_price → purchase_price
+          category_id, company_id, unit_of_measure, purchase_price, selling_price,  -- ✅ cost_price → purchase_price
           wholesale_price, tax_rate, min_stock_level, max_stock_level,
           reorder_point, is_active, is_track_stock
         ) VALUES (
           @warehouseId, @sku, @barcode, @name, @description,
-          @categoryId, @unitOfMeasure, @purchasePrice, @sellingPrice,  -- ✅ costPrice → purchasePrice
+          @categoryId, @companyId, @unitOfMeasure, @purchasePrice, @sellingPrice,  -- ✅ costPrice → purchasePrice
           @wholesalePrice, @taxRate, @minStockLevel, @maxStockLevel,
           @reorderPoint, @isActive, @isTrackStock
         )
@@ -102,6 +106,7 @@ class ProductRemoteDataSource {
         'name':           product.name,
         'description':    product.description,
         'categoryId':     product.categoryId,
+        'companyId':      product.companyId,
         'unitOfMeasure':  product.unitOfMeasure,
         'purchasePrice':  product.purchasePrice,   // ✅ costPrice → purchasePrice
         'sellingPrice':   product.sellingPrice,
@@ -228,6 +233,7 @@ class ProductRemoteDataSource {
           name            = @name,
           description     = @description,
           category_id     = @categoryId,
+          company_id      = @companyId,
           unit_of_measure = @unitOfMeasure,
           purchase_price  = @purchasePrice,  -- ✅ cost_price → purchase_price
           selling_price   = @sellingPrice,
@@ -249,6 +255,7 @@ class ProductRemoteDataSource {
         'name':          newProduct.name,
         'description':   newProduct.description,
         'categoryId':    newProduct.categoryId,
+        'companyId':     newProduct.companyId,
         'unitOfMeasure': newProduct.unitOfMeasure,
         'purchasePrice': newProduct.purchasePrice,  // ✅ costPrice → purchasePrice
         'sellingPrice':  newProduct.sellingPrice,
@@ -427,7 +434,8 @@ class ProductRemoteDataSource {
   Map<String, dynamic> _productToAuditMap(ProductModel p, double qty) => {
     'name': p.name, 'sku': p.sku,
     'barcodes': p.barcodes,
-    'category': p.categoryName, 'unit': p.unitOfMeasure,
+    'category': p.categoryName, 'company': p.companyName,
+    'unit': p.unitOfMeasure,
     'purchase_price': p.purchasePrice,  // ✅ cost_price → purchase_price
     'selling_price': p.sellingPrice,
     'wholesale_price': p.wholesalePrice, 'tax_rate': p.taxRate,
@@ -446,6 +454,8 @@ class ProductRemoteDataSource {
       'description': m['description']?.toString(),
       'category_id': m['category_id']?.toString(),
       'category_name': m['category_name']?.toString(),
+      'company_id': m['company_id']?.toString(),
+      'company_name': m['company_name']?.toString(),
       'unit_of_measure': m['unit_of_measure']?.toString() ?? 'pcs',
       'purchase_price': m['purchase_price'],  // ✅ cost_price → purchase_price
       'selling_price': m['selling_price'],
