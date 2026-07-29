@@ -29,9 +29,8 @@ class SyncConfig {
     'branch',
     'branch_counter',
     'customer',
-    'customer_log',                    // ← ADD (customer ke baad)
+    'customer_logs',                    // ← ADD (customer ke baad)
     'branch_stock_inventory',
-    'branch_stock_log',                // ← ADD (branch_stock_inventory ke baad)
     'branch_expense',
     'branch_users',
     'branch_cash_counter',
@@ -56,11 +55,10 @@ class SyncConfig {
     'branch_expense',
     'branch_stock_damage',
     'branch_stock_inventory',
-    'branch_stock_log',                // ← ADD
     'branch_summary',
     'branch_users',
     'customer',
-    'customer_log',                    // ← ADD
+    'customer_logs',                    // ← ADD
     'customer_ledger',
     'sale_invoice_payments',
     'sale_invoices',
@@ -88,8 +86,7 @@ class SyncConfig {
     'sale_return_items'     : 'created_at',
     'sale_return_payments'  : 'created_at',
     'branch_stock_damage'   : 'created_at',
-    'customer_log'          : 'changed_at',   // ← ADD
-    'branch_stock_log'      : 'changed_at',   // ← ADD
+    'customer_logs'          : 'changed_at',   // ← ADD
   };
 
   // ── Har table ka conflict (primary key) column ────────────
