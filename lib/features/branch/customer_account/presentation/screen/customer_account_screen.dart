@@ -5,6 +5,7 @@ import '../../../../../core/color/app_color.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
+import '../../../customer/presentation/widget/customer_action_button_widget.dart';
 import '../../data/model/customer_account_model.dart';
 import '../provider/customer_account_provider.dart';
 
@@ -18,6 +19,12 @@ class CustomerAccountScreen extends ConsumerStatefulWidget {
 
 class _CustomerAccountScreenState
     extends ConsumerState<CustomerAccountScreen> {
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
+  int?  _sortColumnIndex;
+  bool  _sortAscending = true;
+
   @override
   void initState() {
     super.initState();
@@ -28,31 +35,61 @@ class _CustomerAccountScreenState
     });
   }
 
-  void _showSnack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? AppColor.error : AppColor.success,
-      ),
-    );
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
-  // ── Create Account Dialog ─────────────────────────────────
+  // ── Filter ───────────────────────────────────────────────
+  List<CustomerAccountModel> _filtered(List<CustomerAccountModel> list) {
+    if (_searchQuery.isEmpty) return list;
+    final q = _searchQuery.toLowerCase();
+    return list.where((a) =>
+    a.fullName.toLowerCase().contains(q) ||
+        a.email.toLowerCase().contains(q)).toList();
+  }
+
+  // ── Sort ─────────────────────────────────────────────────
+  int _cmp<T extends Comparable>(T a, T b) =>
+      _sortAscending ? a.compareTo(b) : b.compareTo(a);
+
+  List<CustomerAccountModel> _sorted(List<CustomerAccountModel> list) {
+    if (_sortColumnIndex == null) return list;
+    final s = List<CustomerAccountModel>.from(list);
+    s.sort((a, b) {
+      switch (_sortColumnIndex) {
+        case 1: return _cmp(a.fullName.toLowerCase(), b.fullName.toLowerCase());
+        case 2: return _cmp(a.email.toLowerCase(),    b.email.toLowerCase());
+        case 4: return _cmp(a.createdAt,              b.createdAt);
+        default: return 0;
+      }
+    });
+    return s;
+  }
+
+  void _onSort(int col, bool asc) =>
+      setState(() { _sortColumnIndex = col; _sortAscending = asc; });
+
+  // ── Snack ────────────────────────────────────────────────
+  void _showSnack(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: isError ? AppColor.error : AppColor.success,
+    ));
+  }
+
+  // ── Dialogs ──────────────────────────────────────────────
   void _showCreateAccountDialog() {
     showDialog(
       context: context,
       builder: (ctx) => _CreateAccountDialog(
-        onSuccess: (name) {
-          _showSnack('Account created for $name');
-        },
-        onError: (err) {
-          _showSnack(err, isError: true);
-        },
+        onSuccess: (name) => _showSnack('Account created for $name'),
+        onError:   (err)  => _showSnack(err, isError: true),
       ),
     );
   }
 
-  // ── Password update dialog ────────────────────────────────
   void _showUpdatePasswordDialog(CustomerAccountModel account) {
     final passCtrl    = TextEditingController();
     final confirmCtrl = TextEditingController();
@@ -63,64 +100,47 @@ class _CustomerAccountScreenState
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
-          title: Row(
-            children: [
-              const Icon(Icons.lock_reset, color: AppColor.primary, size: 22),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Update Password',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Row(children: [
+            const Icon(Icons.lock_reset, color: AppColor.primary, size: 22),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('Update Password',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            ),
+          ]),
           content: Form(
             key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Account info
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: AppColor.grey100,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person_outline,
-                          size: 16, color: AppColor.grey500),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              account.fullName,
+                  child: Row(children: [
+                    const Icon(Icons.person_outline,
+                        size: 16, color: AppColor.grey500),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(account.fullName,
                               style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              account.email,
+                                  fontSize: 13, fontWeight: FontWeight.w600)),
+                          Text(account.email,
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColor.textSecondary),
-                            ),
-                          ],
-                        ),
+                                  fontSize: 12, color: AppColor.textSecondary)),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ]),
                 ),
                 const SizedBox(height: 16),
-
-                // New password
                 TextFormField(
                   controller: passCtrl,
                   obscureText: !passVisible,
@@ -134,11 +154,9 @@ class _CustomerAccountScreenState
                         passVisible
                             ? Icons.visibility_off_outlined
                             : Icons.visibility_outlined,
-                        size: 18,
-                        color: AppColor.grey500,
+                        size: 18, color: AppColor.grey500,
                       ),
-                      onPressed: () =>
-                          setDlg(() => passVisible = !passVisible),
+                      onPressed: () => setDlg(() => passVisible = !passVisible),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
@@ -151,18 +169,12 @@ class _CustomerAccountScreenState
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Password is required';
-                    }
-                    if (v.trim().length < 6) {
-                      return 'Minimum 6 characters';
-                    }
+                    if (v == null || v.trim().isEmpty) return 'Password is required';
+                    if (v.trim().length < 6) return 'Minimum 6 characters';
                     return null;
                   },
                 ),
                 const SizedBox(height: 12),
-
-                // Confirm password
                 TextFormField(
                   controller: confirmCtrl,
                   obscureText: !passVisible,
@@ -182,12 +194,8 @@ class _CustomerAccountScreenState
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Please confirm password';
-                    }
-                    if (v.trim() != passCtrl.text.trim()) {
-                      return 'Passwords do not match';
-                    }
+                    if (v == null || v.trim().isEmpty) return 'Please confirm password';
+                    if (v.trim() != passCtrl.text.trim()) return 'Passwords do not match';
                     return null;
                   },
                 ),
@@ -200,167 +208,259 @@ class _CustomerAccountScreenState
               child: const Text('Cancel',
                   style: TextStyle(color: AppColor.grey500)),
             ),
-            Consumer(
-              builder: (_, ref, __) {
-                final saving = ref.watch(customerAccountProvider).saving;
-                return ElevatedButton.icon(
-                  onPressed: saving
-                      ? null
-                      : () async {
-                    if (!formKey.currentState!.validate()) return;
-                    final storeId =
-                        ref.read(authProvider).storeId ?? '';
-                    await ref
-                        .read(customerAccountProvider.notifier)
-                        .updatePassword(
-                      userId:      account.id,
-                      newPassword: passCtrl.text.trim(),
-                      storeId:     storeId,
-                    );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  },
-                  icon: saving
-                      ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                      : const Icon(Icons.save_outlined, size: 16),
-                  label:
-                  Text(saving ? 'Saving...' : 'Update Password'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                  ),
-                );
-              },
-            ),
+            Consumer(builder: (_, ref, __) {
+              final saving = ref.watch(customerAccountProvider).saving;
+              return ElevatedButton.icon(
+                onPressed: saving
+                    ? null
+                    : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  final storeId = ref.read(authProvider).storeId ?? '';
+                  await ref
+                      .read(customerAccountProvider.notifier)
+                      .updatePassword(
+                    userId:      account.id,
+                    newPassword: passCtrl.text.trim(),
+                    storeId:     storeId,
+                  );
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                icon: saving
+                    ? const SizedBox(
+                  width: 14, height: 14,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+                    : const Icon(Icons.save_outlined, size: 16),
+                label: Text(saving ? 'Saving...' : 'Update Password'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  // ─────────────────────────────────────────────────────────
+  // ── Build ─────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final state     = ref.watch(customerAccountProvider);
-    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
+    final state = ref.watch(customerAccountProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Customer Accounts'),
+        title: const Text('Customer Accounts',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        toolbarHeight: 60,
         actions: [
+          IconButton(
+            onPressed: () {
+              final storeId = ref.read(authProvider).storeId ?? '';
+              ref.read(customerAccountProvider.notifier).loadAccounts(storeId);
+            },
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh',
+            style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
+          ),
+          const SizedBox(width: 4),
           IntrinsicWidth(
             child: Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: ElevatedButton.icon(
                 onPressed: _showCreateAccountDialog,
-                icon: const Icon(Icons.person_add_outlined, size: 18),
-                label: const Text('Add Account'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
+                icon: const Icon(Icons.person_add_outlined, size: 18),
+                label: const Text('Add Account',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
           ),
+          const SizedBox(width: 16),
         ],
       ),
-      body: _buildManageBody(state, isDesktop),
+      body: state.loadingAccounts
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Search bar ─────────────────────────
+            SizedBox(
+              width: 300,
+              child: TextField(
+                controller: _searchCtrl,
+                style: const TextStyle(fontSize: 13),
+                cursorHeight: 14,
+                onChanged: (v) =>
+                    setState(() => _searchQuery = v.trim()),
+                decoration: InputDecoration(
+                  hintText: 'Search by name or username...',
+                  hintStyle: const TextStyle(
+                      color: AppColor.textHint, fontSize: 13),
+                  prefixIcon: const Icon(Icons.search,
+                      size: 18, color: AppColor.grey400),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                    icon: const Icon(Icons.close,
+                        size: 16, color: AppColor.grey500),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  )
+                      : null,
+                  filled: true,
+                  fillColor: AppColor.grey100,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Table ──────────────────────────────
+            Expanded(child: _buildTable(state)),
+          ],
+        ),
+      ),
     );
   }
 
-  // ── Manage / Table body ───────────────────────────────────
-  Widget _buildManageBody(CustomerAccountState state, bool isDesktop) {
-    if (state.loadingAccounts) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
+  Widget _buildTable(CustomerAccountState state) {
     if (state.accounts.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.people_outline,
-                size: 64, color: AppColor.grey300),
+            Icon(Icons.people_outline, size: 64, color: AppColor.grey300),
             const SizedBox(height: 12),
-            const Text(
-              'No customer accounts yet',
-              style: TextStyle(
-                  fontSize: 15, color: AppColor.textSecondary),
-            ),
+            const Text('No customer accounts yet',
+                style: TextStyle(fontSize: 15, color: AppColor.textSecondary)),
             const SizedBox(height: 6),
-            const Text(
-              'Tap "Add Account" to create one',
-              style:
-              TextStyle(fontSize: 13, color: AppColor.grey400),
-            ),
+            const Text('Tap "Add Account" to create one',
+                style: TextStyle(fontSize: 13, color: AppColor.grey400)),
           ],
         ),
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: isDesktop
-          ? _buildDesktopTable(state.accounts)
-          : _buildMobileCards(state.accounts),
-    );
-  }
+    final rows = _sorted(_filtered(state.accounts));
 
-  // ── Desktop DataTable ─────────────────────────────────────
-  Widget _buildDesktopTable(List<CustomerAccountModel> accounts) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.border),
-        boxShadow: const [
-          BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: DataTable(
-          headingRowColor:
-          WidgetStateProperty.all(AppColor.primary.withValues(alpha: 0.07)),
-          columnSpacing: 120,
-          columns: const [
-            DataColumn(label: Text('#',           style: _hStyle)),
-            DataColumn(label: Text('Full Name',   style: _hStyle)),
-            DataColumn(label: Text('Username',    style: _hStyle)),
-            DataColumn(label: Text('Password',    style: _hStyle)),
-            DataColumn(label: Text('Created',     style: _hStyle)),
-            DataColumn(label: Text('Actions',     style: _hStyle)),
-          ],
-          rows: accounts.asMap().entries.map((entry) {
-            final i       = entry.key;
-            final account = entry.value;
-            return DataRow(
-              color: WidgetStateProperty.resolveWith((states) =>
-              i.isOdd ? AppColor.grey100.withValues(alpha: 0.5) : Colors.white),
-              cells: [
-                DataCell(Text('${i + 1}',
-                    style: const TextStyle(
-                        fontSize: 13, color: AppColor.textSecondary))),
-                DataCell(Text(account.fullName,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w500))),
-                DataCell(Text(account.email,
-                    style: const TextStyle(
-                        fontSize: 13, color: AppColor.textSecondary))),
-                DataCell(
-                  Row(
-                    children: [
+    if (rows.isEmpty) {
+      return const Center(
+        child: Text('No results found',
+            style: TextStyle(fontSize: 14, color: AppColor.textSecondary)),
+      );
+    }
+
+    return LayoutBuilder(builder: (context, constraints) {
+      const double minTableWidth = 860;
+      final tableWidth = constraints.maxWidth > minTableWidth
+          ? constraints.maxWidth
+          : minTableWidth;
+
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: tableWidth),
+          child: SingleChildScrollView(
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+              dataRowColor:
+              WidgetStateProperty.resolveWith<Color?>((states) {
+                if (states.contains(WidgetState.hovered)) {
+                  return AppColor.primary.withValues(alpha: 0.05);
+                }
+                return null;
+              }),
+              dataRowMinHeight: 52,
+              dataRowMaxHeight: 52,
+              columnSpacing: (tableWidth * 0.025).clamp(16.0, 48.0),
+              showCheckboxColumn: false,
+              sortColumnIndex: _sortColumnIndex,
+              sortAscending: _sortAscending,
+              columns: [
+                const DataColumn(label: Text('#', style: _hStyle)),
+                DataColumn(
+                  label: const Text('Full Name', style: _hStyle),
+                  onSort: _onSort,
+                ),
+                DataColumn(
+                  label: const Text('Username', style: _hStyle),
+                  onSort: _onSort,
+                ),
+                const DataColumn(label: Text('Password', style: _hStyle)),
+                DataColumn(
+                  label: const Text('Created', style: _hStyle),
+                  onSort: _onSort,
+                ),
+                const DataColumn(label: Text('Actions', style: _hStyle)),
+              ],
+              rows: List.generate(rows.length, (i) {
+                final account = rows[i];
+                return DataRow(
+                  onSelectChanged: (_) {},
+                  cells: [
+                    // #
+                    DataCell(Text(
+                      '${i + 1}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColor.textSecondary),
+                    )),
+
+                    // Full Name with avatar
+                    DataCell(Row(children: [
+                      CircleAvatar(
+                        radius: 15,
+                        backgroundColor:
+                        AppColor.primary.withValues(alpha: 0.12),
+                        child: Text(
+                          account.fullName.isNotEmpty
+                              ? account.fullName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: AppColor.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        account.fullName,
+                        style: const TextStyle(
+                            color: AppColor.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13),
+                      ),
+                    ])),
+
+                    // Username
+                    DataCell(Text(
+                      account.email,
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColor.textSecondary),
+                    )),
+
+                    // Password masked + plain
+                    DataCell(Row(children: [
                       Text(
                         '•' * account.password.length.clamp(0, 10),
                         style: const TextStyle(
@@ -368,131 +468,52 @@ class _CustomerAccountScreenState
                             letterSpacing: 2,
                             color: AppColor.textSecondary),
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 6),
                       Text(
                         '(${account.password})',
                         style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColor.grey400),
+                            fontSize: 11, color: AppColor.grey400),
                       ),
-                    ],
-                  ),
-                ),
-                DataCell(Text(
-                  DateFormat('dd MMM yyyy').format(account.createdAt),
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColor.textSecondary),
-                )),
-                DataCell(
-                  IconButton(
-                    tooltip: 'Update Password',
-                    icon: const Icon(Icons.lock_reset,
-                        size: 20, color: AppColor.primary),
-                    onPressed: () =>
-                        _showUpdatePasswordDialog(account),
-                  ),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
+                    ])),
 
-  // ── Mobile Cards ──────────────────────────────────────────
-  Widget _buildMobileCards(List<CustomerAccountModel> accounts) {
-    return Column(
-      children: accounts.asMap().entries.map((entry) {
-        final i       = entry.key;
-        final account = entry.value;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColor.border),
-            boxShadow: const [
-              BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 3,
-                  offset: Offset(0, 1)),
-            ],
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor:
-                AppColor.primary.withValues(alpha: 0.12),
-                child: Text(
-                  '${i + 1}',
-                  style: const TextStyle(
-                    color: AppColor.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      account.fullName,
+                    // Created date
+                    DataCell(Text(
+                      DateFormat('dd MMM yyyy').format(account.createdAt),
                       style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      account.email,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColor.textSecondary),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                          fontSize: 12, color: AppColor.textSecondary),
+                    )),
+
+                    // Actions
+                    DataCell(Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.lock_outline,
-                            size: 12, color: AppColor.grey400),
-                        const SizedBox(width: 4),
-                        Text(
-                          account.password,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColor.grey500),
+                        CustomerActionButton(
+                          icon: Icons.lock_reset,
+                          color: AppColor.primary,
+                          tooltip: 'Update Password',
+                          onTap: () => _showUpdatePasswordDialog(account),
                         ),
                       ],
-                    ),
+                    )),
                   ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'Update Password',
-                icon: const Icon(Icons.lock_reset,
-                    color: AppColor.primary),
-                onPressed: () =>
-                    _showUpdatePasswordDialog(account),
-              ),
-            ],
+                );
+              }),
+            ),
           ),
-        );
-      }).toList(),
-    );
+        ),
+      );
+    });
   }
 }
 
-// ── Heading style constant ─────────────────────────────────
+// ── Heading style ─────────────────────────────────────────
 const _hStyle = TextStyle(
   fontSize: 13,
   fontWeight: FontWeight.w600,
   color: AppColor.textPrimary,
 );
 
-// ── Create Account Dialog (extracted from old Tab 1) ───────
+// ── Create Account Dialog ─────────────────────────────────
 class _CreateAccountDialog extends ConsumerStatefulWidget {
   const _CreateAccountDialog({
     required this.onSuccess,
@@ -525,15 +546,9 @@ class _CreateAccountDialogState
     super.dispose();
   }
 
-  void _onCustomerSelected(CustomerModel? customer) {
-    setState(() => _selectedCustomer = customer);
-    if (customer != null) {
-      final suggestion =
-          '${customer.name.toLowerCase().replaceAll(' ', '.')}'
-          '@janghani.com';
-      _emailCtrl.text = suggestion;
-    }
-  }
+  // NO auto-fill — user types username manually
+  void _onCustomerSelected(CustomerModel? customer) =>
+      setState(() => _selectedCustomer = customer);
 
   Future<void> _submit() async {
     if (_selectedCustomer == null) {
@@ -541,7 +556,6 @@ class _CreateAccountDialogState
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-
     final storeId = ref.read(authProvider).storeId ?? '';
     await ref.read(customerAccountProvider.notifier).createAccount(
       customer: _selectedCustomer!,
@@ -555,38 +569,37 @@ class _CreateAccountDialogState
       BuildContext context, {
         required String label,
         required IconData icon,
-      }) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20, color: AppColor.primary),
-      filled: true,
-      fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
-      contentPadding:
-      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColor.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColor.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide:
-        const BorderSide(color: AppColor.primary, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColor.error),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide:
-        const BorderSide(color: AppColor.error, width: 1.5),
-      ),
-    );
-  }
+      }) =>
+      InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20, color: AppColor.primary),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColor.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColor.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:
+          const BorderSide(color: AppColor.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColor.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:
+          const BorderSide(color: AppColor.error, width: 1.5),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -606,8 +619,7 @@ class _CreateAccountDialogState
     });
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520, maxHeight: 650),
         child: Padding(
@@ -623,29 +635,24 @@ class _CreateAccountDialogState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.person_add_outlined,
-                          color: AppColor.primary, size: 22),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Create Customer Account',
+                  Row(children: [
+                    const Icon(Icons.person_add_outlined,
+                        color: AppColor.primary, size: 22),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text('Create Customer Account',
                           style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
+                              fontWeight: FontWeight.w600)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ]),
                   const Divider(color: AppColor.divider),
                   const SizedBox(height: 8),
 
-                  // Customer selection — forced full width to match text fields
                   SizedBox(
                     width: double.infinity,
                     child: AppSearchableDropdown<CustomerModel>(
@@ -655,15 +662,13 @@ class _CreateAccountDialogState
                       prefixIcon: Icons.people_outline,
                       value: _selectedCustomer,
                       items: state.customers
-                          .map(
-                            (c) => DropdownItem<CustomerModel>(
-                          value: c,
-                          label: '${c.name} (${c.code})',
-                          icon: Icons.person_outline,
-                        ),
-                      )
+                          .map((c) => DropdownItem<CustomerModel>(
+                        value: c,
+                        label: '${c.name} (${c.code})',
+                        icon: Icons.person_outline,
+                      ))
                           .toList(),
-                      onChanged: (v) => _onCustomerSelected(v),
+                      onChanged: _onCustomerSelected,
                       validator: (_) => _selectedCustomer == null
                           ? 'Please select a customer'
                           : null,
@@ -675,16 +680,13 @@ class _CreateAccountDialogState
                   ],
                   const SizedBox(height: 18),
 
-                  // Email / Username
                   TextFormField(
                     controller: _emailCtrl,
                     enabled: !state.saving,
                     style: const TextStyle(fontSize: 14),
-                    decoration: _inputDeco(
-                      context,
-                      label: 'Username / Email',
-                      icon: Icons.alternate_email,
-                    ),
+                    decoration: _inputDeco(context,
+                        label: 'Username / Email',
+                        icon: Icons.alternate_email),
                     validator: (v) =>
                     (v == null || v.trim().isEmpty)
                         ? 'Username is required'
@@ -692,24 +694,21 @@ class _CreateAccountDialogState
                   ),
                   const SizedBox(height: 14),
 
-                  // Password
                   TextFormField(
                     controller: _passCtrl,
                     enabled: !state.saving,
                     obscureText: !_passVisible,
                     style: const TextStyle(fontSize: 14),
-                    decoration: _inputDeco(
-                      context,
-                      label: 'Password',
-                      icon: Icons.lock_outline,
-                    ).copyWith(
+                    decoration: _inputDeco(context,
+                        label: 'Password',
+                        icon: Icons.lock_outline)
+                        .copyWith(
                       suffixIcon: IconButton(
                         icon: Icon(
                           _passVisible
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: AppColor.grey500,
-                          size: 20,
+                          color: AppColor.grey500, size: 20,
                         ),
                         onPressed: () => setState(
                                 () => _passVisible = !_passVisible),
@@ -727,24 +726,21 @@ class _CreateAccountDialogState
                   ),
                   const SizedBox(height: 14),
 
-                  // Confirm password
                   TextFormField(
                     controller: _confirmCtrl,
                     enabled: !state.saving,
                     obscureText: !_confirmVisible,
                     style: const TextStyle(fontSize: 14),
-                    decoration: _inputDeco(
-                      context,
-                      label: 'Confirm Password',
-                      icon: Icons.lock_outline,
-                    ).copyWith(
+                    decoration: _inputDeco(context,
+                        label: 'Confirm Password',
+                        icon: Icons.lock_outline)
+                        .copyWith(
                       suffixIcon: IconButton(
                         icon: Icon(
                           _confirmVisible
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: AppColor.grey500,
-                          size: 20,
+                          color: AppColor.grey500, size: 20,
                         ),
                         onPressed: () => setState(() =>
                         _confirmVisible = !_confirmVisible),
@@ -769,12 +765,10 @@ class _CreateAccountDialogState
                       onPressed: state.saving ? null : _submit,
                       icon: state.saving
                           ? const SizedBox(
-                        width: 18,
-                        height: 18,
+                        width: 18, height: 18,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                            strokeWidth: 2,
+                            color: Colors.white),
                       )
                           : const Icon(Icons.person_add_outlined,
                           size: 20),
@@ -783,15 +777,13 @@ class _CreateAccountDialogState
                             ? 'Creating Account...'
                             : 'Create Account',
                         style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600),
+                            fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColor.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
@@ -805,7 +797,7 @@ class _CreateAccountDialogState
   }
 }
 
-// ── Customer info tile ─────────────────────────────────────
+// ── Customer info tile ────────────────────────────────────
 class _CustomerInfoTile extends StatelessWidget {
   const _CustomerInfoTile({required this.customer});
   final CustomerModel customer;
@@ -847,8 +839,7 @@ class _CustomerInfoTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(customer.phone,
                     style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColor.textSecondary)),
+                        fontSize: 12, color: AppColor.textSecondary)),
                 if (customer.address != null &&
                     customer.address!.isNotEmpty) ...[
                   const SizedBox(height: 2),
