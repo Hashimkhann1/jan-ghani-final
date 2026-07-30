@@ -5,6 +5,7 @@ import '../../data/datasources/investment_remote_datasource.dart';
 import '../../data/model/investment_model.dart';
 import '../../data/repositories/investment_repository_impl.dart';
 import '../../domain/repositories/investment_repository.dart';
+import '../../../dashboard/presentation/provider/dashboard_provider.dart';
 
 // ── Datasource ────────────────────────────────────────────────────────────────
 final investmentDatasourceProvider = Provider<InvestmentRemoteDatasource>((ref) {
@@ -49,6 +50,8 @@ class AddInvestmentNotifier extends AsyncNotifier<void> {
 
       // List refresh karo
       ref.invalidate(investmentsProvider);
+      // Dashboard balance bhi refresh karo
+      ref.invalidate(janghaniAmountProvider);
       state = const AsyncData(null);
       return true;
     } catch (e) {

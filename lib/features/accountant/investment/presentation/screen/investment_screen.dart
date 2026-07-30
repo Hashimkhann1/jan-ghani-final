@@ -41,13 +41,11 @@ class AccountantInvestmentScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-
-                // ✅ SizedBox mein wrap karo
                 SizedBox(
                   width: 100,
                   height: 42,
                   child: ElevatedButton.icon(
-                    onPressed: () => _showAddSheet(context, ref),
+                    onPressed: () => _showAddDialog(context, ref),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Add'),
                     style: ElevatedButton.styleFrom(
@@ -156,12 +154,17 @@ class AccountantInvestmentScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+  void _showAddDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _AddInvestmentSheet(ref: ref),
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: _AddInvestmentContent(ref: ref),
+      ),
     );
   }
 }
@@ -269,7 +272,6 @@ class _InvestmentCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Icon
           Container(
             width: 44,
             height: 44,
@@ -283,9 +285,7 @@ class _InvestmentCard extends StatelessWidget {
               size: 22,
             ),
           ),
-          const SizedBox(width: 12),
-
-          // Name + Note
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,56 +293,38 @@ class _InvestmentCard extends StatelessWidget {
                 Text(
                   inv.name,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
                     fontSize: 14,
+                    fontWeight: FontWeight.w600,
                     color: AppColor.textDark,
                   ),
                 ),
-                if (inv.note != null && inv.note!.isNotEmpty) ...[
-                  const SizedBox(height: 3),
+                if (inv.note != null && inv.note!.isNotEmpty)
                   Text(
                     inv.note!,
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppColor.textMuted,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
+                Text(
+                  _fmtDate(inv.createdAt),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColor.textMuted,
+                  ),
+                ),
               ],
             ),
           ),
-
-          // Amount + Date
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                _fmt(inv.amount),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColor.primary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today_rounded,
-                    size: 11,
-                    color: AppColor.textMuted,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    _fmtDate(inv.createdAt),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColor.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          Text(
+            _fmt(inv.amount),
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColor.primary,
+            ),
           ),
         ],
       ),
@@ -350,16 +332,16 @@ class _InvestmentCard extends StatelessWidget {
   }
 }
 
-// ── Add Investment Bottom Sheet ────────────────────────────────────────────────
-class _AddInvestmentSheet extends StatefulWidget {
+// ── Add Investment Dialog Content ─────────────────────────────────────────────
+class _AddInvestmentContent extends StatefulWidget {
   final WidgetRef ref;
-  const _AddInvestmentSheet({required this.ref});
+  const _AddInvestmentContent({required this.ref});
 
   @override
-  State<_AddInvestmentSheet> createState() => _AddInvestmentSheetState();
+  State<_AddInvestmentContent> createState() => _AddInvestmentContentState();
 }
 
-class _AddInvestmentSheetState extends State<_AddInvestmentSheet> {
+class _AddInvestmentContentState extends State<_AddInvestmentContent> {
   final _nameCtrl   = TextEditingController();
   final _amountCtrl = TextEditingController();
   final _noteCtrl   = TextEditingController();
@@ -412,11 +394,7 @@ class _AddInvestmentSheetState extends State<_AddInvestmentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return Padding(
       padding: EdgeInsets.fromLTRB(
         24,
         24,
@@ -427,19 +405,6 @@ class _AddInvestmentSheetState extends State<_AddInvestmentSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle bar
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
           const Text(
             'New Investment',
             style: TextStyle(
