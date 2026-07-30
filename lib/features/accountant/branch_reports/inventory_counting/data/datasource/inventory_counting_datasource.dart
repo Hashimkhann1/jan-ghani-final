@@ -115,9 +115,12 @@ class InventoryCountingReportRemoteDatasource {
       return InventoryCountingRecord.fromMerged(counting: map, inventory: inv);
     }).toList();
 
+    // Zyada difference wali rows pehle, phir product name alphabetically
     records.sort((a, b) {
-      final dateCompare = b.countedDate.compareTo(a.countedDate);
-      if (dateCompare != 0) return dateCompare;
+      final diffA = (a.countingStock - a.productStock).abs();
+      final diffB = (b.countingStock - b.productStock).abs();
+      final diffCompare = diffB.compareTo(diffA);
+      if (diffCompare != 0) return diffCompare;
       return a.productName.toLowerCase().compareTo(b.productName.toLowerCase());
     });
 
