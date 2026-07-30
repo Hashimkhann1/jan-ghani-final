@@ -4,6 +4,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 
+import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/presentation/widget/customer_action_button_widget.dart';
 import '../../../customer/presentation/widget/customer_filter_chip_widget.dart';
 import '../../../customer/presentation/widget/customer_status_badge_widget.dart';
@@ -78,7 +79,12 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
     final state    = ref.watch(userProvider);
     final users    = state.filteredUsers;
     final counters = ref.watch(counterProvider).counters;
-    final size = MediaQuery.sizeOf(context);
+    final auth     = ref.watch(authProvider);
+
+    // ✅ Role flags
+    final isOwner   = auth.isOwner;
+    final isManager = auth.isManager;
+
     ref.listen<UserState>(userProvider, (_, next) {
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -114,24 +120,28 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                 foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
-          IntrinsicWidth(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: ElevatedButton.icon(
-                onPressed: () => _openDialog(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: Colors.white,
-                  elevation:       0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+
+          // ✅ Owner aur Manager dono naya user add kar sakte hain
+          if (isOwner || isManager)
+            IntrinsicWidth(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: ElevatedButton.icon(
+                  onPressed: () => _openDialog(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white,
+                    elevation:       0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon:  const Icon(Icons.person_add_outlined, size: 18),
+                  label: const Text('New User',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
-                icon:  const Icon(Icons.person_add_outlined, size: 18),
-                label: const Text('New User',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
-          ),
+
           const SizedBox(width: 16),
         ],
       ),
@@ -247,37 +257,37 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
 
             // ── Table ────────────────────────────────
             Expanded(
-              child: users.isEmpty ?
-              UserEmptyStateWidget(isSearching: state.searchQuery.isNotEmpty) :
-              LayoutBuilder(
+              child: users.isEmpty
+                  ? UserEmptyStateWidget(
+                  isSearching: state.searchQuery.isNotEmpty)
+                  : LayoutBuilder(
                 builder: (context, constraints) {
                   final availableWidth = constraints.maxWidth;
-
-                  // Columns ki estimated minimum width
                   const double minTableWidth = 900;
-
-                  final tableWidth =
-                  availableWidth > minTableWidth ? availableWidth : minTableWidth;
+                  final tableWidth = availableWidth > minTableWidth
+                      ? availableWidth
+                      : minTableWidth;
 
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: tableWidth),
+                      constraints:
+                      BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor:
-                          WidgetStateProperty.all(AppColor.grey100),
-                          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                          headingRowColor: WidgetStateProperty.all(
+                              AppColor.grey100),
+                          dataRowColor:
+                          WidgetStateProperty.resolveWith<Color?>(
                                 (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary.withValues(alpha: 0.05)
+                                ? AppColor.primary
+                                .withValues(alpha: 0.05)
                                 : null,
                           ),
                           dataRowMinHeight: 52,
                           dataRowMaxHeight: 52,
-
-                          // ✅ Fixed: size.width ki bajaye available width se calculate karo
-                          columnSpacing: (tableWidth * 0.03).clamp(16.0, 48.0),
-
+                          columnSpacing:
+                          (tableWidth * 0.03).clamp(16.0, 48.0),
                           showCheckboxColumn: false,
                           columns: const [
                             DataColumn(label: Text('Full Name')),
@@ -299,57 +309,80 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
 
                             return DataRow(
                               cells: [
+                                // Full Name
                                 DataCell(Row(
                                   children: [
                                     CircleAvatar(
                                       radius: 16,
                                       backgroundColor:
-                                      AppColor.primary.withValues(alpha: 0.1),
+                                      AppColor.primary
+                                          .withValues(alpha: 0.1),
                                       child: Text(
                                         u.fullName.isNotEmpty
                                             ? u.fullName[0].toUpperCase()
                                             : '?',
                                         style: const TextStyle(
-                                          fontSize: 13,
+                                          fontSize:   13,
                                           fontWeight: FontWeight.w700,
-                                          color: AppColor.primary,
+                                          color:      AppColor.primary,
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
                                     Text(u.fullName,
                                         style: const TextStyle(
-                                            fontWeight: FontWeight.w600, fontSize: 13)),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize:   13)),
                                   ],
                                 )),
+                                // Username
                                 DataCell(Text('@${u.username}',
                                     style: const TextStyle(
-                                        color: AppColor.textSecondary, fontSize: 13))),
+                                        color:    AppColor.textSecondary,
+                                        fontSize: 13))),
+                                // Phone
                                 DataCell(Text(u.phone ?? '—',
                                     style: const TextStyle(fontSize: 13))),
+                                // Role
                                 DataCell(UserRoleBadge(role: u.role)),
-                                DataCell(_CounterChip(counterName: counterName)),
+                                // Counter
+                                DataCell(_CounterChip(
+                                    counterName: counterName)),
+                                // Last Login
                                 DataCell(Text(u.lastLoginLabel,
                                     style: const TextStyle(
-                                        fontSize: 12, color: AppColor.textSecondary))),
-                                DataCell(CustomerStatusBadge(isActive: u.isActive)),
-                                DataCell(Row(
-                                  children: [
-                                    CustomerActionButton(
-                                      icon: Icons.edit_outlined,
-                                      color: AppColor.primary,
-                                      tooltip: 'Edit',
-                                      onTap: () => _openDialog(context, user: u),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    CustomerActionButton(
-                                      icon: Icons.delete_outline_rounded,
-                                      color: AppColor.error,
-                                      tooltip: 'Delete',
-                                      onTap: () => _confirmDelete(context, u),
-                                    ),
-                                  ],
-                                )),
+                                        fontSize: 12,
+                                        color: AppColor.textSecondary))),
+                                // Status
+                                DataCell(CustomerStatusBadge(
+                                    isActive: u.isActive)),
+                                // ✅ Actions
+                                // Owner: edit + delete
+                                // Manager + Cashier: koi action nahi
+                                DataCell(
+                                  isOwner
+                                      ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CustomerActionButton(
+                                        icon:    Icons.edit_outlined,
+                                        color:   AppColor.primary,
+                                        tooltip: 'Edit',
+                                        onTap:   () => _openDialog(
+                                            context, user: u),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      CustomerActionButton(
+                                        icon:    Icons.delete_outline_rounded,
+                                        color:   AppColor.error,
+                                        tooltip: 'Delete',
+                                        onTap:   () =>
+                                            _confirmDelete(context, u),
+                                      ),
+                                    ],
+                                  )
+                                      : const SizedBox.shrink(),
+                                ),
                               ],
                             );
                           }).toList(),
