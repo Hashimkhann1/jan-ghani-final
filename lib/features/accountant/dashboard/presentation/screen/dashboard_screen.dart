@@ -682,7 +682,7 @@ class _CashCard extends StatelessWidget {
 
   String _fmt(double? val) {
     if (val == null) return 'Rs. 0';
-    return 'Rs. ${val.toStringAsFixed(0).replaceAllMapped(
+    return 'Rs. ${val.toStringAsFixed(2).replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
     )}';
