@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -15,12 +16,41 @@ class StockTransferDetailScreen extends ConsumerWidget {
 
     return asyncTransfers.when(
       loading: () =>
-      const Scaffold(body: Center(child: CircularProgressIndicator())),
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) =>
           Scaffold(body: Center(child: Text("Error: $e"))),
       data: (transfers) {
-        final transfer =
-        transfers.firstWhere((t) => t.id == transferId);
+        // ✅ BUG 3 FIX: firstWhereOrNull — crash nahi hoga
+        final transfer = transfers.firstWhereOrNull((t) => t.id == transferId);
+
+        if (transfer == null) {
+          return Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded,
+                    color: Color(0xFF1A1D23)),
+                onPressed: () => Navigator.pop(context),
+              ),
+              backgroundColor: Colors.white,
+              elevation: 0,
+            ),
+            body: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.search_off_rounded,
+                      size: 56, color: Color(0xFFD1D5DB)),
+                  SizedBox(height: 12),
+                  Text('Transfer not found',
+                      style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF6C7280),
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          );
+        }
 
         return Scaffold(
           backgroundColor: const Color(0xFFF5F6FA),
@@ -37,12 +67,11 @@ class StockTransferDetailScreen extends ConsumerWidget {
               children: [
                 Text(transfer.transferNumber,
                     style: const TextStyle(
-                        color: Color(0xFF1A1D23),
+                        color:      Color(0xFF1A1D23),
                         fontWeight: FontWeight.w700,
-                        fontSize: 16)),
+                        fontSize:   16)),
                 const Text("Transfer Invoice",
-                    style: TextStyle(
-                        color: Colors.grey, fontSize: 11)),
+                    style: TextStyle(color: Colors.grey, fontSize: 11)),
               ],
             ),
             actions: [
@@ -104,7 +133,7 @@ class _HeaderCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
+                  color:        const Color(0xFFEEF2FF),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.receipt_long_rounded,
@@ -120,9 +149,9 @@ class _HeaderCard extends StatelessWidget {
                             fontSize: 10, color: Color(0xFF9CA3AF))),
                     Text(transfer.transferNumber,
                         style: const TextStyle(
-                            fontSize: 16,
+                            fontSize:   16,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF6366F1))),
+                            color:      Color(0xFF6366F1))),
                   ],
                 ),
               ),
@@ -134,13 +163,13 @@ class _HeaderCard extends StatelessWidget {
           Row(
             children: [
               _InfoTile(
-                icon: Icons.calendar_today_rounded,
+                icon:  Icons.calendar_today_rounded,
                 label: "Date",
                 value: dateFmt.format(transfer.assignedAt),
               ),
               const SizedBox(width: 10),
               _InfoTile(
-                icon: Icons.access_time_rounded,
+                icon:  Icons.access_time_rounded,
                 label: "Time",
                 value: timeFmt.format(transfer.assignedAt),
               ),
@@ -150,13 +179,13 @@ class _HeaderCard extends StatelessWidget {
           Row(
             children: [
               _InfoTile(
-                icon: Icons.inventory_2_rounded,
+                icon:  Icons.inventory_2_rounded,
                 label: "Products",
                 value: "${transfer.items.length} types",
               ),
               const SizedBox(width: 10),
               _InfoTile(
-                icon: Icons.numbers_rounded,
+                icon:  Icons.numbers_rounded,
                 label: "Total Qty",
                 value: "${transfer.totalItems} units",
               ),
@@ -170,8 +199,8 @@ class _HeaderCard extends StatelessWidget {
 
 class _InfoTile extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final String value;
+  final String   label;
+  final String   value;
   const _InfoTile(
       {required this.icon, required this.label, required this.value});
 
@@ -179,12 +208,11 @@ class _InfoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding:
-        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
+          color:        const Color(0xFFF9FAFB),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border:       Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Row(
           children: [
@@ -199,9 +227,9 @@ class _InfoTile extends StatelessWidget {
                           fontSize: 9, color: Color(0xFF9CA3AF))),
                   Text(value,
                       style: const TextStyle(
-                          fontSize: 12,
+                          fontSize:   12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1D23))),
+                          color:      Color(0xFF1A1D23))),
                 ],
               ),
             ),
@@ -234,24 +262,24 @@ class _FromToCard extends StatelessWidget {
                   SizedBox(width: 6),
                   Text("FROM",
                       style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF6366F1),
+                          fontSize:      10,
+                          fontWeight:    FontWeight.w700,
+                          color:         Color(0xFF6366F1),
                           letterSpacing: 1)),
                 ]),
                 const SizedBox(height: 6),
                 Text(transfer.assignedByName ?? 'Warehouse',
                     style: const TextStyle(
-                        fontSize: 13,
+                        fontSize:   13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1D23))),
+                        color:      Color(0xFF1A1D23))),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF2FF),
+              color:        const Color(0xFFEEF2FF),
               borderRadius: BorderRadius.circular(50),
             ),
             child: const Icon(Icons.arrow_forward_rounded,
@@ -266,9 +294,9 @@ class _FromToCard extends StatelessWidget {
                     children: [
                       Text("TO",
                           style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF10B981),
+                              fontSize:      10,
+                              fontWeight:    FontWeight.w700,
+                              color:         Color(0xFF10B981),
                               letterSpacing: 1)),
                       SizedBox(width: 6),
                       Icon(Icons.store_rounded,
@@ -278,9 +306,9 @@ class _FromToCard extends StatelessWidget {
                 Text(transfer.toStoreName,
                     textAlign: TextAlign.end,
                     style: const TextStyle(
-                        fontSize: 13,
+                        fontSize:   13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1D23))),
+                        color:      Color(0xFF1A1D23))),
               ],
             ),
           ),
@@ -290,17 +318,17 @@ class _FromToCard extends StatelessWidget {
   }
 }
 
-// ── Invoice Table (main UI) ──
+// ── Invoice Table ──
 class _InvoiceTable extends StatelessWidget {
   final StockTransfer transfer;
   const _InvoiceTable({required this.transfer});
 
   @override
   Widget build(BuildContext context) {
-    final subtotal = transfer.subtotal;
+    final subtotal      = transfer.subtotal;
     final totalDiscount = transfer.totalDiscount;
-    final totalTax = transfer.totalTax;
-    final grandTotal = transfer.grandTotal;
+    final totalTax      = transfer.totalTax;
+    final grandTotal    = transfer.grandTotal;
 
     return Container(
       decoration: _cardDecoration(),
@@ -316,22 +344,22 @@ class _InvoiceTable extends StatelessWidget {
                 const SizedBox(width: 8),
                 const Text("Product List",
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize:   13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1D23))),
+                        color:      Color(0xFF1A1D23))),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEF2FF),
+                    color:        const Color(0xFFEEF2FF),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text("${transfer.items.length} items",
                       style: const TextStyle(
-                          fontSize: 11,
+                          fontSize:   11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF6366F1))),
+                          color:      Color(0xFF6366F1))),
                 ),
               ],
             ),
@@ -339,15 +367,13 @@ class _InvoiceTable extends StatelessWidget {
 
           // Column Headers
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: const Color(0xFFF8F9FF),
             child: const Row(
               children: [
                 Expanded(
                     flex: 3,
-                    child: Text("Product",
-                        style: _headerStyle)),
+                    child: Text("Product", style: _headerStyle)),
                 Expanded(
                     child: Text("Qty",
                         textAlign: TextAlign.center,
@@ -370,21 +396,23 @@ class _InvoiceTable extends StatelessWidget {
 
           // Product Rows
           ...transfer.items.asMap().entries.map((entry) {
-            final i = entry.key;
+            final i    = entry.key;
             final item = entry.value;
+
+            // ✅ BUG 5 FIX: rowTotal mein tax bhi shamil karo — grandTotal se match karega
             final rowTotal =
-                (item.purchasePrice * item.quantity) - item.discountAmount;
+                (item.purchasePrice * item.quantitySent) +
+                item.taxAmount -
+                item.discountAmount;
 
             return Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 11),
               decoration: BoxDecoration(
-                color: i.isEven
-                    ? Colors.white
-                    : const Color(0xFFFAFAFF),
+                color: i.isEven ? Colors.white : const Color(0xFFFAFAFF),
                 border: i < transfer.items.length - 1
                     ? const Border(
-                    bottom: BorderSide(color: Color(0xFFF3F4F6)))
+                        bottom: BorderSide(color: Color(0xFFF3F4F6)))
                     : null,
               ),
               child: Row(
@@ -398,34 +426,34 @@ class _InvoiceTable extends StatelessWidget {
                       children: [
                         Text(item.productName,
                             style: const TextStyle(
-                                fontSize: 12,
+                                fontSize:   12,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF1A1D23))),
+                                color:      Color(0xFF1A1D23))),
                         const SizedBox(height: 2),
                         Text(item.sku,
                             style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xFF9CA3AF),
+                                fontSize:   10,
+                                color:      Color(0xFF9CA3AF),
                                 fontFamily: 'monospace')),
                       ],
                     ),
                   ),
-                  // Qty
+                  // Qty (quantitySent dikhao)
                   Expanded(
                     child: Container(
-                      margin: const EdgeInsets.only(top: 2),
+                      margin:  const EdgeInsets.only(top: 2),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEF2FF),
+                        color:        const Color(0xFFEEF2FF),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(_fmtQty(item.quantitySent),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontSize: 12,
+                              fontSize:   12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF6366F1))),
+                              color:      Color(0xFF6366F1))),
                     ),
                   ),
                   // Rate
@@ -444,18 +472,17 @@ class _InvoiceTable extends StatelessWidget {
                             : "-",
                         textAlign: TextAlign.right,
                         style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF10B981))),
+                            fontSize: 11, color: Color(0xFF10B981))),
                   ),
-                  // Total
+                  // Total (tax shamil)
                   Expanded(
                     child: Text(
                         "Rs.${rowTotal.toStringAsFixed(0)}",
                         textAlign: TextAlign.right,
                         style: const TextStyle(
-                            fontSize: 12,
+                            fontSize:   12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A1D23))),
+                            color:      Color(0xFF1A1D23))),
                   ),
                 ],
               ),
@@ -471,15 +498,15 @@ class _InvoiceTable extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _SummaryRow("Subtotal",
+                _summaryRow("Subtotal",
                     "Rs. ${subtotal.toStringAsFixed(0)}"),
                 const SizedBox(height: 6),
-                _SummaryRow(
+                _summaryRow(
                     "Total Discount",
                     "- Rs. ${totalDiscount.toStringAsFixed(0)}",
                     color: const Color(0xFF10B981)),
                 const SizedBox(height: 6),
-                _SummaryRow(
+                _summaryRow(
                     "Total Tax",
                     "+ Rs. ${totalTax.toStringAsFixed(0)}",
                     color: const Color(0xFFF59E0B)),
@@ -491,22 +518,22 @@ class _InvoiceTable extends StatelessWidget {
                   children: [
                     const Text("Grand Total",
                         style: TextStyle(
-                            fontSize: 15,
+                            fontSize:   15,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A1D23))),
+                            color:      Color(0xFF1A1D23))),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF6366F1),
+                        color:        const Color(0xFF6366F1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                           "Rs. ${grandTotal.toStringAsFixed(0)}",
                           style: const TextStyle(
-                              fontSize: 15,
+                              fontSize:   15,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white)),
+                              color:      Colors.white)),
                     ),
                   ],
                 ),
@@ -519,7 +546,8 @@ class _InvoiceTable extends StatelessWidget {
   }
 }
 
-Widget _SummaryRow(String label, String value, {Color? color}) {
+// ✅ BUG 7 FIX: camelCase function naam
+Widget _summaryRow(String label, String value, {Color? color}) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
@@ -528,17 +556,17 @@ Widget _SummaryRow(String label, String value, {Color? color}) {
               fontSize: 13, color: Color(0xFF6C7280))),
       Text(value,
           style: TextStyle(
-              fontSize: 13,
+              fontSize:   13,
               fontWeight: FontWeight.w600,
-              color: color ?? const Color(0xFF1A1D23))),
+              color:      color ?? const Color(0xFF1A1D23))),
     ],
   );
 }
 
 const _headerStyle = TextStyle(
-  fontSize: 10,
-  fontWeight: FontWeight.w700,
-  color: Color(0xFF6C7280),
+  fontSize:      10,
+  fontWeight:    FontWeight.w700,
+  color:         Color(0xFF6C7280),
   letterSpacing: 0.3,
 );
 
@@ -550,7 +578,7 @@ class _NotesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
+      width:   double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
       child: Column(
@@ -561,16 +589,16 @@ class _NotesCard extends StatelessWidget {
             SizedBox(width: 8),
             Text("Notes",
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize:   13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1D23))),
+                    color:      Color(0xFF1A1D23))),
           ]),
           const SizedBox(height: 8),
           Text(notes,
               style: const TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF6C7280),
-                  height: 1.5)),
+                  color:    Color(0xFF6C7280),
+                  height:   1.5)),
         ],
       ),
     );
@@ -591,12 +619,12 @@ class _BottomBar extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPad),
         decoration: _bottomDecoration(),
         child: Container(
-          width: double.infinity,
+          width:   double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0FDF4),
+            color:        const Color(0xFFF0FDF4),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF86EFAC)),
+            border:       Border.all(color: const Color(0xFF86EFAC)),
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -606,9 +634,9 @@ class _BottomBar extends ConsumerWidget {
               SizedBox(width: 10),
               Text("Transfer Accepted & Added to Stock",
                   style: TextStyle(
-                      fontSize: 14,
+                      fontSize:   14,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF059669))),
+                      color:      Color(0xFF059669))),
             ],
           ),
         ),
@@ -620,12 +648,12 @@ class _BottomBar extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPad),
         decoration: _bottomDecoration(),
         child: Container(
-          width: double.infinity,
+          width:   double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFFFEF2F2),
+            color:        const Color(0xFFFEF2F2),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFFCA5A5)),
+            border:       Border.all(color: const Color(0xFFFCA5A5)),
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -635,9 +663,9 @@ class _BottomBar extends ConsumerWidget {
               SizedBox(width: 10),
               Text("Transfer Rejected",
                   style: TextStyle(
-                      fontSize: 14,
+                      fontSize:   14,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFDC2626))),
+                      color:      Color(0xFFDC2626))),
             ],
           ),
         ),
@@ -654,11 +682,11 @@ class _BottomBar extends ConsumerWidget {
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () => _onReject(context, ref),
-              icon: const Icon(Icons.close_rounded,
+              icon:  const Icon(Icons.close_rounded,
                   size: 18, color: Color(0xFFEF4444)),
               label: const Text("Reject",
                   style: TextStyle(
-                      color: Color(0xFFEF4444),
+                      color:      Color(0xFFEF4444),
                       fontWeight: FontWeight.w700)),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(0, 52),
@@ -674,12 +702,12 @@ class _BottomBar extends ConsumerWidget {
             flex: 2,
             child: FilledButton.icon(
               onPressed: () => _onAccept(context, ref),
-              icon: const Icon(Icons.check_circle_rounded, size: 18),
+              icon:  const Icon(Icons.check_circle_rounded, size: 18),
               label: const Text("Accept & Add to Stock",
                   style: TextStyle(fontWeight: FontWeight.w700)),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
-                minimumSize: const Size(0, 52),
+                minimumSize:     const Size(0, 52),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
@@ -694,14 +722,14 @@ class _BottomBar extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => _ConfirmDialog(
-        title: "Accept Transfer?",
+        title:        "Accept Transfer?",
         message:
-        "${transfer.items.length} products (${transfer.totalItems} units) will be added to your branch stock.\n\nFrom: ${transfer.assignedByName ?? 'Warehouse'}",
+            "${transfer.items.length} products (${transfer.totalItems} units) will be added to your branch stock.\n\nFrom: ${transfer.assignedByName ?? 'Warehouse'}",
         confirmLabel: "Yes, Accept",
         confirmColor: const Color(0xFF6366F1),
-        icon: Icons.inventory_rounded,
-        iconBg: const Color(0xFFEEF2FF),
-        iconColor: const Color(0xFF6366F1),
+        icon:         Icons.inventory_rounded,
+        iconBg:       const Color(0xFFEEF2FF),
+        iconColor:    const Color(0xFF6366F1),
       ),
     );
 
@@ -724,10 +752,10 @@ class _BottomBar extends ConsumerWidget {
             ),
           ]),
           backgroundColor:
-          success ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+              success ? const Color(0xFF10B981) : const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
         ));
       }
@@ -738,14 +766,14 @@ class _BottomBar extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => _ConfirmDialog(
-        title: "Reject Transfer?",
+        title:        "Reject Transfer?",
         message:
-        "This transfer will be marked as rejected. Products will NOT be added to stock.",
+            "This transfer will be marked as rejected. Products will NOT be added to stock.",
         confirmLabel: "Yes, Reject",
         confirmColor: const Color(0xFFEF4444),
-        icon: Icons.cancel_rounded,
-        iconBg: const Color(0xFFFEF2F2),
-        iconColor: const Color(0xFFEF4444),
+        icon:         Icons.cancel_rounded,
+        iconBg:       const Color(0xFFFEF2F2),
+        iconColor:    const Color(0xFFEF4444),
       ),
     );
 
@@ -764,8 +792,8 @@ class _BottomBar extends ConsumerWidget {
               ? const Color(0xFFEF4444)
               : const Color(0xFF1A1D23),
           behavior: SnackBarBehavior.floating,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
         ));
       }
@@ -775,13 +803,13 @@ class _BottomBar extends ConsumerWidget {
 
 // ── Confirm Dialog ──
 class _ConfirmDialog extends StatelessWidget {
-  final String title;
-  final String message;
-  final String confirmLabel;
-  final Color confirmColor;
+  final String   title;
+  final String   message;
+  final String   confirmLabel;
+  final Color    confirmColor;
   final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
+  final Color    iconBg;
+  final Color    iconColor;
 
   const _ConfirmDialog({
     required this.title,
@@ -796,8 +824,7 @@ class _ConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape:
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -805,22 +832,23 @@ class _ConfirmDialog extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+              decoration:
+                  BoxDecoration(color: iconBg, shape: BoxShape.circle),
               child: Icon(icon, color: iconColor, size: 30),
             ),
             const SizedBox(height: 16),
             Text(title,
                 style: const TextStyle(
-                    fontSize: 18,
+                    fontSize:   18,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1D23))),
+                    color:      Color(0xFF1A1D23))),
             const SizedBox(height: 10),
             Text(message,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF6C7280),
-                    height: 1.5)),
+                    color:    Color(0xFF6C7280),
+                    height:   1.5)),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -835,7 +863,7 @@ class _ConfirmDialog extends StatelessWidget {
                     ),
                     child: const Text("Cancel",
                         style: TextStyle(
-                            color: Color(0xFF6C7280),
+                            color:      Color(0xFF6C7280),
                             fontWeight: FontWeight.w600)),
                   ),
                 ),
@@ -871,30 +899,32 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg, text;
+    Color  bg, text;
     String label;
 
     if (transfer.isPending) {
-      bg = const Color(0xFFFEF3C7);
-      text = const Color(0xFFD97706);
+      bg    = const Color(0xFFFEF3C7);
+      text  = const Color(0xFFD97706);
       label = "Pending";
     } else if (transfer.isAccepted) {
-      bg = const Color(0xFFD1FAE5);
-      text = const Color(0xFF059669);
+      bg    = const Color(0xFFD1FAE5);
+      text  = const Color(0xFF059669);
       label = "Accepted";
     } else {
-      bg = const Color(0xFFFEE2E2);
-      text = const Color(0xFFDC2626);
+      bg    = const Color(0xFFFEE2E2);
+      text  = const Color(0xFFDC2626);
       label = "Rejected";
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(20)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Text(label,
           style: TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w700, color: text)),
+              fontSize:   12,
+              fontWeight: FontWeight.w700,
+              color:      text)),
     );
   }
 }
@@ -904,12 +934,12 @@ String _fmtQty(double v) =>
 
 // ── Helpers ──
 BoxDecoration _cardDecoration() => BoxDecoration(
-  color: Colors.white,
+  color:        Colors.white,
   borderRadius: BorderRadius.circular(16),
-  border: Border.all(color: const Color(0xFFE5E7EB)),
+  border:       Border.all(color: const Color(0xFFE5E7EB)),
 );
 
 BoxDecoration _bottomDecoration() => const BoxDecoration(
-  color: Colors.white,
+  color:  Colors.white,
   border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
 );
