@@ -89,6 +89,7 @@ import 'core/service/db/db_service.dart';
 import 'core/service/sync/sync_service.dart';
 import 'core/widget/sidebar/branch_sidebar_widget.dart';
 import 'features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
+import 'features/accountant/authentication/presentation/screen/login_screen.dart';
 import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
 
@@ -159,9 +160,9 @@ class MyApp extends ConsumerWidget {
 
 
     // ── Accountant logged in ──
-    if (session.isNotEmpty) {
-      return AccountantDashboardScreen();
-    }
+    // if (session.isNotEmpty) {
+    //   return AccountantDashboardScreen();
+    // }
 
     // ── Branch user logged in ──
     if (auth.isLoggedIn) {

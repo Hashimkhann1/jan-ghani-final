@@ -29,7 +29,7 @@ dependencies:
   qr_flutter: ^4.1.0
   barcode: ^2.2.9
   barcode_widget: ^2.0.4
-  google_fonts: ^8.0.2
+  google_fonts: ^8.1.0
   fl_chart: ^1.2.0
   http: ^1.6.0
   flutter_dotenv: ^6.0.1
