@@ -38,8 +38,7 @@ class CartItem {
     this.discountAmount = 0,
   });
 
-  double get subTotal =>
-      (salePrice * quantity) + taxAmount - discountAmount;
+  double get subTotal => (salePrice * quantity) + taxAmount - discountAmount;
 
   CartItem copyWith({
     double? quantity,

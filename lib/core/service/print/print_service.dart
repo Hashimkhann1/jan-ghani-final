@@ -632,7 +632,8 @@ class ThermalPrintService {
         pw.SizedBox(
             width: 32,
             child: pw.Text(
-                (item.subTotal - item.discountAmount).toStringAsFixed(0),
+                // (item.subTotal - item.discountAmount).toStringAsFixed(0),
+                item.subTotal.toStringAsFixed(0),
                 style: const pw.TextStyle(fontSize: 7.5),
                 textAlign: pw.TextAlign.right)),
       ],
