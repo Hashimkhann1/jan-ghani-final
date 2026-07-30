@@ -84,8 +84,6 @@ class _BranchStockInventoryScreenState
               final totalCostVal = products.fold(0.0, (s, p) => s + p.costPrice * p.quantity);
               final totalSaleVal = products.fold(0.0, (s, p) => s + p.sellingPrice * p.quantity);
 
-              // FIXED: #,##,##0.## — 0.86 sahi dikhega, trailing zeros hide
-              final _amtFmt = RegExp(r'');
               String fmtAmt(double v) {
                 if (v == v.truncateToDouble()) return 'Rs ${v.toInt()}';
                 final s = v.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
@@ -451,28 +449,29 @@ class _InventoryTable extends ConsumerWidget {
   final List<BranchStockModel> rows;
   const _InventoryTable({required this.rows});
 
+  // ✅ Shelf Name column added after Name
   static const _widths = [
     120.0,  // SKU
-    160.0, // Barcode
-    170.0, // Name
-    70.0,  // Unit
-    110.0, // Cost Price
-    110.0, // Sale Price
-    110.0, // Wholesale
-    60.0,  // Tax
-    90.0,  // Discount
-    100.0, // Min Stock
-    100.0, // Max Stock
-    90.0,  // Quantity
-    90.0,  // Actions
+    160.0,  // Barcode
+    170.0,  // Name
+    120.0,  // Shelf Name  ✅ NEW
+    70.0,   // Unit
+    110.0,  // Cost Price
+    110.0,  // Sale Price
+    110.0,  // Wholesale
+    60.0,   // Tax
+    90.0,   // Discount
+    100.0,  // Min Stock
+    100.0,  // Max Stock
+    90.0,   // Quantity
+    90.0,   // Actions
   ];
 
   static const _headers = [
-    'SKU', 'Barcode', 'Name', 'Unit',
-    'Cost Price', 'Sale Price', 'Wholesale',
+    'SKU', 'Barcode', 'Name', 'Shelf Name', // ✅ NEW
+    'Unit', 'Cost Price', 'Sale Price', 'Wholesale',
     'Tax', 'Discount', 'Min Stock', 'Max Stock',
-    'Quantity',
-    'Actions',
+    'Quantity', 'Actions',
   ];
 
   static double get _totalWidth => _widths.fold(0.0, (s, w) => s + w) + 32;
@@ -533,7 +532,7 @@ class _InventoryTable extends ConsumerWidget {
                         widths: _widths,
                         auth:   auth,
                         onEdit: () =>
-                            _openEditDialog(context, rows[i]),
+                            _openEditDialog(context, rows[i], auth),
                         onDelete: () =>
                             _openDeleteDialog(context, rows[i]),
                         onDenied: (action) =>
@@ -548,11 +547,12 @@ class _InventoryTable extends ConsumerWidget {
     });
   }
 
-  void _openEditDialog(BuildContext ctx, BranchStockModel p) =>
+  // ✅ auth pass karo taake dialog mein role pata ho
+  void _openEditDialog(BuildContext ctx, BranchStockModel p, dynamic auth) =>
       showDialog(
         context:            ctx,
         barrierDismissible: false,
-        builder: (_) => EditStockDialog(product: p),
+        builder: (_) => EditStockDialog(product: p, auth: auth),
       );
 
   void _openDeleteDialog(BuildContext ctx, BranchStockModel p) =>
@@ -597,17 +597,26 @@ class _DataRow extends ConsumerWidget {
     required this.onDenied,
   });
 
-  // FIXED: int → double format helper
   static String _fmt(double v) {
     if (v == v.truncateToDouble()) return v.toInt().toString();
     return v.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
   }
 
   @override
-  Widget build(BuildContext context,WidgetRef ref) {
-    final isEven = index.isEven;
-    final qtyColor = row.isOutOfStock ? AppColor.error : row.isLowStock ? AppColor.warning : AppColor.success;
-    final auth = ref.watch(authProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isEven    = index.isEven;
+    final qtyColor  = row.isOutOfStock
+        ? AppColor.error
+        : row.isLowStock
+        ? AppColor.warning
+        : AppColor.success;
+    final auth      = ref.watch(authProvider);
+
+    // ✅ Role-based access
+    final isOwner   = auth.isOwner;
+    final isManager = auth.isManager;
+    // cashier ko koi access nahi
+
     return Container(
       height: 52,
       color: isEven ? Colors.white : const Color(0xFFFAFAFF),
@@ -652,9 +661,33 @@ class _DataRow extends ConsumerWidget {
               ],
             ),
           ),
-          // Unit
+          // Shelf Name ✅ NEW
           SizedBox(
             width: widths[3],
+            child: row.shelfName != null && row.shelfName!.isNotEmpty
+                ? Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color:        AppColor.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                row.shelfName!,
+                style: const TextStyle(
+                    fontSize:   11,
+                    fontWeight: FontWeight.w600,
+                    color:      AppColor.primary),
+                overflow: TextOverflow.ellipsis,
+              ),
+            )
+                : const Text('—',
+                style: TextStyle(
+                    fontSize: 13, color: AppColor.textSecondary)),
+          ),
+          // Unit
+          SizedBox(
+            width: widths[4],
             child: Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: 8, vertical: 4),
@@ -669,31 +702,31 @@ class _DataRow extends ConsumerWidget {
                       color:      AppColor.textSecondary)),
             ),
           ),
-          // Cost Price — FIXED via model getter
+          // Cost Price
           SizedBox(
-            width: widths[4],
+            width: widths[5],
             child: Text(row.costPriceLabel,
                 style: const TextStyle(fontSize: 13)),
           ),
-          // Sale Price — FIXED via model getter
+          // Sale Price
           SizedBox(
-            width: widths[5],
+            width: widths[6],
             child: Text(row.sellingPriceLabel,
                 style: const TextStyle(
                     fontSize:   13,
                     fontWeight: FontWeight.w700,
                     color:      AppColor.primary)),
           ),
-          // Wholesale — FIXED via model getter
+          // Wholesale
           SizedBox(
-            width: widths[6],
+            width: widths[7],
             child: Text(row.wholesalePriceLabel,
                 style: const TextStyle(
                     fontSize: 13, color: AppColor.textSecondary)),
           ),
           // Tax
           SizedBox(
-            width: widths[7],
+            width: widths[8],
             child: row.taxRate > 0
                 ? _Badge(value: row.taxRateLabel, color: AppColor.info)
                 : const Text('—',
@@ -702,34 +735,34 @@ class _DataRow extends ConsumerWidget {
           ),
           // Discount
           SizedBox(
-            width: widths[8],
+            width: widths[9],
             child: row.discount > 0
                 ? _Badge(value: row.discountLabel, color: AppColor.warning)
                 : const Text('—',
                 style: TextStyle(
                     fontSize: 13, color: AppColor.textSecondary)),
           ),
-          // Min Stock — FIXED: int.toString() → double aware
+          // Min Stock
           SizedBox(
-            width: widths[9],
+            width: widths[10],
             child: Text(
               '${row.minStockLevel} ${row.unitOfMeasure}',
               style: const TextStyle(
                   fontSize: 12, color: AppColor.textSecondary),
             ),
           ),
-          // Max Stock — FIXED
+          // Max Stock
           SizedBox(
-            width: widths[10],
+            width: widths[11],
             child: Text(
               '${row.maxStockLevel} ${row.unitOfMeasure}',
               style: const TextStyle(
                   fontSize: 12, color: AppColor.textSecondary),
             ),
           ),
-          // Quantity — FIXED: toStringAsFixed(2) → smart _fmt
+          // Quantity
           SizedBox(
-            width: widths[11],
+            width: widths[12],
             child: Text(
               _fmt(row.quantity),
               style: TextStyle(
@@ -738,27 +771,31 @@ class _DataRow extends ConsumerWidget {
                   color:      qtyColor),
             ),
           ),
-          // Actions
-          auth.user!.storeId  == "09ed6ad4-373d-4afb-a7fb-badb1e72e9e3" ?
-          SizedBox() :
+          // ✅ Actions — role-based
           SizedBox(
-            width: widths[12],
+            width: widths[13],
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CustomerActionButton(
-                  icon:    Icons.edit_outlined,
-                  color:   AppColor.primary,
-                  tooltip: 'Edit',
-                  onTap:   onEdit,
-                ),
-                const SizedBox(width: 6),
-                CustomerActionButton(
-                  icon:    Icons.delete_outline_rounded,
-                  color:   AppColor.error,
-                  tooltip: 'Delete',
-                  onTap:   onDelete,
-                ),
+                // Owner: full edit button
+                // Manager: shelf-only edit button
+                // Cashier: kuch nahi
+                if (isOwner || isManager)
+                  CustomerActionButton(
+                    icon:    Icons.edit_outlined,
+                    color:   AppColor.primary,
+                    tooltip: isOwner ? 'Edit' : 'Edit Shelf',
+                    onTap:   onEdit,
+                  ),
+                if (isOwner) ...[
+                  const SizedBox(width: 6),
+                  CustomerActionButton(
+                    icon:    Icons.delete_outline_rounded,
+                    color:   AppColor.error,
+                    tooltip: 'Delete',
+                    onTap:   onDelete,
+                  ),
+                ],
               ],
             ),
           ),

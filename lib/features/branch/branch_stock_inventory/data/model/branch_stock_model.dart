@@ -22,6 +22,7 @@ class BranchStockModel {
   final DateTime? lastCountedAt;
   final DateTime? lastMovementAt;
   final DateTime  updatedAt;
+  final String?  shelfName; // ✅ NEW
 
   const BranchStockModel({
     required this.id,
@@ -47,6 +48,7 @@ class BranchStockModel {
     this.lastCountedAt,
     this.lastMovementAt,
     required this.updatedAt,
+    this.shelfName, // ✅ NEW
   });
 
   // ── Getters ───────────────────────────────────────────────
@@ -62,9 +64,7 @@ class BranchStockModel {
     return 'In Stock';
   }
 
-  // ── FIXED: toStringAsFixed(0) → _fmt() jo 0.86 sahi dikhaye ──
   static String _fmt(double v) {
-    // 0.86 → "0.86" | 100.0 → "100" | 1.50 → "1.5"
     if (v == v.truncateToDouble()) return v.toInt().toString();
     return v.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
   }
@@ -103,6 +103,7 @@ class BranchStockModel {
       lastCountedAt:    _date(map['last_counted_at']),
       lastMovementAt:   _date(map['last_movement_at']),
       updatedAt:        _date(map['updated_at'])       ?? DateTime.now(),
+      shelfName:        _str(map['shelf_name']),       // ✅ NEW
     );
   }
 

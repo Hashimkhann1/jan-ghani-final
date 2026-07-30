@@ -104,7 +104,7 @@ class InventoryPageState {
   final int     totalCount;
   final int     pageSize;
   final bool    isLoading;
-  final bool    isMutating;   // edit / delete ke time true
+  final bool    isMutating;
   final String  searchQuery;
   final String  filterStatus;
   final String? errorMessage;
@@ -191,7 +191,7 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
 
   void refresh() => _load();
 
-  // ── Edit Product ─────────────────────────────────────────
+  // ── Full Edit Product (Owner only) ───────────────────────
   Future<bool> updateProduct(BranchStockInventory updated) async {
     state = state.copyWith(isMutating: true, errorMessage: null);
     try {
@@ -200,35 +200,36 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
       // POS provider bhi refresh karo
       _ref.read(branchStockProvider.notifier).load();
 
-      // Local list mein bhi update karo (instant UI response)
+      // Local list mein bhi update karo (instant UI)
       final updatedRows = state.rows.map((r) {
         if (r.id != updated.id) return r;
         return BranchStockModel.fromMap({
-          'inv_id':          r.id,
-          'store_id':        r.storeId,
-          'product_id':      r.productId,
-          'sku':             updated.sku,
-          'barcode':         updated.barcode.isNotEmpty
+          'inv_id':            r.id,
+          'store_id':          r.storeId,
+          'product_id':        r.productId,
+          'sku':               updated.sku,
+          'barcode':           updated.barcode.isNotEmpty
               ? updated.barcode.first
               : null,
-          'name':            updated.productName,
-          'description':     r.description,
-          'unit_of_measure': updated.unit,
-          'cost_price':      updated.purchasePrice,
-          'selling_price':   updated.salePrice,
-          'wholesale_price': updated.wholesalePrice,
-          'tax_rate':        r.taxRate,
-          'discount':        r.discount,
-          'min_stock_level': updated.minStock.toInt(),
-          'max_stock_level': updated.maxStock.toInt(),
-          'reorder_point':   r.reorderPoint,
-          'is_active':       r.isActive,
-          'is_track_stock':  r.isTrackStock,
-          'quantity':        updated.stock,
+          'name':              updated.productName,
+          'description':       r.description,
+          'unit_of_measure':   updated.unit,
+          'cost_price':        updated.purchasePrice,
+          'selling_price':     updated.salePrice,
+          'wholesale_price':   updated.wholesalePrice,
+          'tax_rate':          r.taxRate,
+          'discount':          r.discount,
+          'min_stock_level':   updated.minStock.toInt(),
+          'max_stock_level':   updated.maxStock.toInt(),
+          'reorder_point':     r.reorderPoint,
+          'is_active':         r.isActive,
+          'is_track_stock':    r.isTrackStock,
+          'quantity':          updated.stock,
           'reserved_quantity': r.reservedQuantity,
-          'last_counted_at': null,
-          'last_movement_at': null,
-          'updated_at':      DateTime.now().toIso8601String(),
+          'last_counted_at':   null,
+          'last_movement_at':  null,
+          'shelf_name':        updated.shelfName,   // ✅ NEW
+          'updated_at':        DateTime.now().toIso8601String(),
         });
       }).toList();
 
@@ -245,7 +246,69 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
     }
   }
 
-  // ── Delete Product ───────────────────────────────────────
+  // ── Shelf-only Update (Manager only) ─────────────────────
+  Future<bool> updateShelfOnly({
+    required String  productId,    // BranchStockModel.id (inv_id)
+    required String  storeId,
+    required String  productName,
+    required String? shelfName,
+  }) async {
+    state = state.copyWith(isMutating: true, errorMessage: null);
+    try {
+      await _ds.updateShelfName(
+        id:        productId,
+        storeId:   storeId,
+        shelfName: shelfName,
+      );
+
+      // POS provider bhi refresh karo
+      _ref.read(branchStockProvider.notifier).load();
+
+      // Local list mein update
+      final updatedRows = state.rows.map((r) {
+        if (r.id != productId) return r;
+        return BranchStockModel.fromMap({
+          'inv_id':            r.id,
+          'store_id':          r.storeId,
+          'product_id':        r.productId,
+          'sku':               r.sku,
+          'barcode':           r.barcode,
+          'name':              r.name,
+          'description':       r.description,
+          'unit_of_measure':   r.unitOfMeasure,
+          'cost_price':        r.costPrice,
+          'selling_price':     r.sellingPrice,
+          'wholesale_price':   r.wholesalePrice,
+          'tax_rate':          r.taxRate,
+          'discount':          r.discount,
+          'min_stock_level':   r.minStockLevel,
+          'max_stock_level':   r.maxStockLevel,
+          'reorder_point':     r.reorderPoint,
+          'is_active':         r.isActive,
+          'is_track_stock':    r.isTrackStock,
+          'quantity':          r.quantity,
+          'reserved_quantity': r.reservedQuantity,
+          'last_counted_at':   null,
+          'last_movement_at':  null,
+          'shelf_name':        shelfName,  // ✅ sirf yeh update
+          'updated_at':        DateTime.now().toIso8601String(),
+        });
+      }).toList();
+
+      state = state.copyWith(
+        rows:           updatedRows,
+        isMutating:     false,
+        successMessage: '$productName shelf updated successfully',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+          isMutating: false, errorMessage: 'Shelf update failed: $e');
+      return false;
+    }
+  }
+
+  // ── Delete Product (Owner only) ──────────────────────────
   Future<bool> deleteProduct(BranchStockModel product) async {
     state = state.copyWith(isMutating: true, errorMessage: null);
     try {

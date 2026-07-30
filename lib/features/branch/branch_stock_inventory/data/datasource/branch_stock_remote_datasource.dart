@@ -33,6 +33,7 @@ class BranchStockDataSource {
           true            AS is_track_stock,
           NULL            AS last_counted_at,
           NULL            AS last_movement_at,
+          shelf_name,
           updated_at
         FROM public.branch_stock_inventory
         WHERE store_id = @storeId
@@ -114,6 +115,7 @@ class BranchStockDataSource {
           true            AS is_track_stock,
           NULL            AS last_counted_at,
           NULL            AS last_movement_at,
+          shelf_name,
           updated_at
         FROM public.branch_stock_inventory
         WHERE $whereClause
@@ -129,7 +131,7 @@ class BranchStockDataSource {
     );
   }
 
-  // ── Product Update ──────────────────────────────────────────────
+  // ── Full Product Update (Owner only) ────────────────────────────────
   Future<void> updateProduct(BranchStockInventory p) async {
     final conn = await DataBaseService.getConnection();
     await conn.execute(
@@ -145,6 +147,7 @@ class BranchStockDataSource {
           min_stock       = @minStock,
           max_stock       = @maxStock,
           unit            = @unit,
+          shelf_name      = @shelfName,
           updated_at      = @updatedAt
         WHERE id = @id AND store_id = @storeId
       '''),
@@ -161,7 +164,31 @@ class BranchStockDataSource {
         'minStock':       p.minStock,
         'maxStock':       p.maxStock,
         'unit':           p.unit,
+        'shelfName':      p.shelfName,
         'updatedAt':      DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
+  // ── Shelf-only Update (Manager only) ───────────────────────────────
+  Future<void> updateShelfName({
+    required String id,
+    required String storeId,
+    required String? shelfName,
+  }) async {
+    final conn = await DataBaseService.getConnection();
+    await conn.execute(
+      Sql.named('''
+        UPDATE public.branch_stock_inventory SET
+          shelf_name = @shelfName,
+          updated_at = @updatedAt
+        WHERE id = @id AND store_id = @storeId
+      '''),
+      parameters: {
+        'id':        id,
+        'storeId':   storeId,
+        'shelfName': shelfName,
+        'updatedAt': DateTime.now().toIso8601String(),
       },
     );
   }
@@ -207,6 +234,7 @@ class BranchStockDataSource {
       'reserved_quantity': m['reserved_quantity'] ?? 0,
       'last_counted_at':   null,
       'last_movement_at':  null,
+      'shelf_name':        m['shelf_name']?.toString(),     // ✅ NEW
       'updated_at':        m['updated_at']?.toString()
           ?? DateTime.now().toIso8601String(),
     };
@@ -228,6 +256,7 @@ class BranchStockInventory {
   final double       minStock;
   final double       maxStock;
   final String       unit;
+  final String?      shelfName; // ✅ NEW
 
   BranchStockInventory({
     this.id,
@@ -243,6 +272,7 @@ class BranchStockInventory {
     this.minStock = 0,
     this.maxStock = 0,
     required this.unit,
+    this.shelfName, // ✅ NEW
   });
 
   Map<String, dynamic> toJson() => {
@@ -258,6 +288,7 @@ class BranchStockInventory {
     'min_stock':       minStock,
     'max_stock':       maxStock,
     'unit':            unit,
+    'shelf_name':      shelfName,  // ✅ NEW
     'updated_at':      DateTime.now().toIso8601String(),
   };
 }

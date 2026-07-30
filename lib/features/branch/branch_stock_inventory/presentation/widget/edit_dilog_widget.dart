@@ -9,7 +9,13 @@ import '../../data/model/branch_stock_model.dart';
 
 class EditStockDialog extends ConsumerStatefulWidget {
   final BranchStockModel product;
-  const EditStockDialog({super.key, required this.product});
+  final dynamic          auth; // AuthState
+
+  const EditStockDialog({
+    super.key,
+    required this.product,
+    required this.auth,
+  });
 
   @override
   ConsumerState<EditStockDialog> createState() => _EditStockDialogState();
@@ -30,9 +36,14 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
   late TextEditingController _minStockCtrl;
   late TextEditingController _maxStockCtrl;
   late TextEditingController _descriptionCtrl;
+  late TextEditingController _shelfNameCtrl; // ✅ NEW
   late String _selectedUnit;
 
   static const _units = ['pcs', 'kg', 'g', 'ltr', 'ml', 'box', 'dozen', 'pair'];
+
+  // ✅ Role helpers
+  bool get _isOwner   => widget.auth.isOwner   == true;
+  bool get _isManager => widget.auth.isManager == true;
 
   @override
   void initState() {
@@ -52,6 +63,7 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
     _minStockCtrl       = TextEditingController(text: p.minStockLevel.toString());
     _maxStockCtrl       = TextEditingController(text: p.maxStockLevel.toString());
     _descriptionCtrl    = TextEditingController(text: p.description ?? '');
+    _shelfNameCtrl      = TextEditingController(text: p.shelfName ?? ''); // ✅ NEW
     _selectedUnit       = _units.contains(p.unitOfMeasure) ? p.unitOfMeasure : 'pcs';
   }
 
@@ -69,40 +81,64 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
     _minStockCtrl.dispose();
     _maxStockCtrl.dispose();
     _descriptionCtrl.dispose();
+    _shelfNameCtrl.dispose(); // ✅ NEW
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final updated = BranchStockInventory(
-      id:             widget.product.id,
-      storeId:        widget.product.storeId,
-      productId:      widget.product.productId,
-      barcode:        _barcodeCtrl.text.trim().isEmpty
-          ? []
-          : [_barcodeCtrl.text.trim()],
-      sku:            _skuCtrl.text.trim(),
-      productName:    _nameCtrl.text.trim(),
-      purchasePrice:  double.tryParse(_costPriceCtrl.text)      ?? 0,
-      salePrice:      double.tryParse(_salePriceCtrl.text)      ?? 0,
-      wholesalePrice: double.tryParse(_wholesalePriceCtrl.text) ?? 0,
-      stock:          double.tryParse(_quantityCtrl.text)       ?? 0,
-      minStock:       double.tryParse(_minStockCtrl.text)       ?? 0,
-      maxStock:       double.tryParse(_maxStockCtrl.text)       ?? 0,
-      unit:           _selectedUnit,
-    );
+    final notifier = ref.read(inventoryPageProvider.notifier);
+    bool success   = false;
 
-    final success = await ref.read(inventoryPageProvider.notifier).updateProduct(updated);
+    if (_isOwner) {
+      // ── Owner: full update ─────────────────────────────────
+      final updated = BranchStockInventory(
+        id:             widget.product.id,
+        storeId:        widget.product.storeId,
+        productId:      widget.product.productId,
+        barcode:        _barcodeCtrl.text.trim().isEmpty
+            ? []
+            : [_barcodeCtrl.text.trim()],
+        sku:            _skuCtrl.text.trim(),
+        productName:    _nameCtrl.text.trim(),
+        purchasePrice:  double.tryParse(_costPriceCtrl.text)      ?? 0,
+        salePrice:      double.tryParse(_salePriceCtrl.text)      ?? 0,
+        wholesalePrice: double.tryParse(_wholesalePriceCtrl.text) ?? 0,
+        stock:          double.tryParse(_quantityCtrl.text)       ?? 0,
+        minStock:       double.tryParse(_minStockCtrl.text)       ?? 0,
+        maxStock:       double.tryParse(_maxStockCtrl.text)       ?? 0,
+        unit:           _selectedUnit,
+        shelfName:      _shelfNameCtrl.text.trim().isEmpty
+            ? null
+            : _shelfNameCtrl.text.trim(), // ✅ NEW
+      );
+      success = await notifier.updateProduct(updated);
+    } else if (_isManager) {
+      // ── Manager: sirf shelf name update ───────────────────
+      success = await notifier.updateShelfOnly(
+        productId:   widget.product.id,
+        storeId:     widget.product.storeId,
+        productName: widget.product.name,
+        shelfName:   _shelfNameCtrl.text.trim().isEmpty
+            ? null
+            : _shelfNameCtrl.text.trim(),
+      );
+    }
 
     if (mounted) {
       Navigator.pop(context);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:         Text('${updated.productName} updated successfully'),
+          content: Text(
+            _isOwner
+                ? '${widget.product.name} updated successfully'
+                : '${widget.product.name} shelf updated successfully',
+          ),
           backgroundColor: AppColor.success,
           behavior:        SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
         ));
       }
     }
@@ -118,7 +154,10 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
       insetPadding:
       const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 700),
+        constraints: BoxConstraints(
+          // Manager ko sirf shelf field — dialog chota
+          maxWidth: _isOwner ? 700 : 400,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -136,12 +175,14 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
                 const Icon(Icons.edit_outlined,
                     size: 20, color: AppColor.primary),
                 const SizedBox(width: 10),
-                const Expanded(
-                  child: Text('Edit Product',
-                      style: TextStyle(
-                          fontSize:   16,
-                          fontWeight: FontWeight.w700,
-                          color:      AppColor.textPrimary)),
+                Expanded(
+                  child: Text(
+                    _isOwner ? 'Edit Product' : 'Edit Shelf Location',
+                    style: const TextStyle(
+                        fontSize:   16,
+                        fontWeight: FontWeight.w700,
+                        color:      AppColor.textPrimary),
+                  ),
                 ),
                 IconButton(
                   onPressed:
@@ -159,152 +200,9 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
                 padding: const EdgeInsets.all(24),
                 child: Form(
                   key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-
-                      _SectionLabel('Basic Information'),
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        Expanded(
-                          flex: 3,
-                          child: _Field(
-                            label: 'Product Name *',
-                            ctrl:  _nameCtrl,
-                            enabled: false,
-                            validator: (v) =>
-                            (v == null || v.trim().isEmpty)
-                                ? 'Name required'
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                            flex: 2,
-                            child: _Field(label: 'SKU', ctrl: _skuCtrl)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                            flex: 2,
-                            child: _Field(
-                                label: 'Barcode', ctrl: _barcodeCtrl)),
-                      ]),
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        Expanded(
-                          child: _Field(
-                            label:    'Description',
-                            ctrl:     _descriptionCtrl,
-                            maxLines: 2,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 130,
-                          child: _DropdownField(
-                            label:     'Unit',
-                            value:     _selectedUnit,
-                            items:     _units,
-                            onChanged: (v) =>
-                                setState(() => _selectedUnit = v!),
-                          ),
-                        ),
-                      ]),
-
-                      const SizedBox(height: 20),
-                      const Divider(height: 1, color: AppColor.grey200),
-                      const SizedBox(height: 20),
-
-                      _SectionLabel('Pricing'),
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        Expanded(
-                          child: _Field(
-                            label:    'Cost Price (Rs) *',
-                            ctrl:     _costPriceCtrl,
-                            isNumber: true,
-                            validator: (v) =>
-                            (v == null || v.trim().isEmpty)
-                                ? 'Required'
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Field(
-                            label:    'Sale Price (Rs) *',
-                            ctrl:     _salePriceCtrl,
-                            isNumber: true,
-                            validator: (v) =>
-                            (v == null || v.trim().isEmpty)
-                                ? 'Required'
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Field(
-                            label:    'Wholesale Price (Rs)',
-                            ctrl:     _wholesalePriceCtrl,
-                            isNumber: true,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Field(
-                            label:    'Tax Rate (%)',
-                            ctrl:     _taxRateCtrl,
-                            isNumber: true,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Field(
-                            label:    'Discount (%)',
-                            ctrl:     _discountCtrl,
-                            isNumber: true,
-                          ),
-                        ),
-                      ]),
-
-                      const SizedBox(height: 20),
-                      const Divider(height: 1, color: AppColor.grey200),
-                      const SizedBox(height: 20),
-
-                      _SectionLabel('Stock'),
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        Expanded(
-                          child: _Field(
-                            label:    'Quantity *',
-                            ctrl:     _quantityCtrl,
-                            isNumber: true,
-                            validator: (v) =>
-                            (v == null || v.trim().isEmpty)
-                                ? 'Required'
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Field(
-                            label:  'Min Stock Level',
-                            ctrl:   _minStockCtrl,
-                            isNumber: true,
-                            isInt:  true,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Field(
-                            label:  'Max Stock Level',
-                            ctrl:   _maxStockCtrl,
-                            isNumber: true,
-                            isInt:  true,
-                          ),
-                        ),
-                      ]),
-                    ],
-                  ),
+                  child: _isOwner
+                      ? _buildOwnerForm()   // full form
+                      : _buildManagerForm(), // sirf shelf
                 ),
               ),
             ),
@@ -367,8 +265,194 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
       ),
     );
   }
+
+  // ── Manager Form: sirf shelf name ─────────────────────────────
+  Widget _buildManagerForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Product info (read-only display)
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color:        AppColor.grey100,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(children: [
+            const Icon(Icons.inventory_2_outlined,
+                size: 16, color: AppColor.textSecondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                widget.product.name,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 14),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        _Field(
+          label: 'Shelf Name / Location',
+          ctrl:  _shelfNameCtrl,
+          hint:  'e.g. A1, Row 3, Aisle 2...',
+        ),
+      ],
+    );
+  }
+
+  // ── Owner Form: full edit ──────────────────────────────────────
+  Widget _buildOwnerForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        _SectionLabel('Basic Information'),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            flex: 3,
+            child: _Field(
+              label: 'Product Name *',
+              ctrl:  _nameCtrl,
+              enabled: false,
+              validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Name required' : null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+              flex: 2,
+              child: _Field(label: 'SKU', ctrl: _skuCtrl)),
+          const SizedBox(width: 12),
+          Expanded(
+              flex: 2,
+              child: _Field(label: 'Barcode', ctrl: _barcodeCtrl)),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: _Field(
+              label:    'Description',
+              ctrl:     _descriptionCtrl,
+              maxLines: 2,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 130,
+            child: _DropdownField(
+              label:     'Unit',
+              value:     _selectedUnit,
+              items:     _units,
+              onChanged: (v) => setState(() => _selectedUnit = v!),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // ✅ Shelf Name — owner ke form mein bhi
+          Expanded(
+            child: _Field(
+              label: 'Shelf Name / Location',
+              ctrl:  _shelfNameCtrl,
+              hint:  'e.g. A1, Row 3...',
+            ),
+          ),
+        ]),
+
+        const SizedBox(height: 20),
+        const Divider(height: 1, color: AppColor.grey200),
+        const SizedBox(height: 20),
+
+        _SectionLabel('Pricing'),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: _Field(
+              label:    'Cost Price (Rs) *',
+              ctrl:     _costPriceCtrl,
+              isNumber: true,
+              validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _Field(
+              label:    'Sale Price (Rs) *',
+              ctrl:     _salePriceCtrl,
+              isNumber: true,
+              validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _Field(
+              label:    'Wholesale Price (Rs)',
+              ctrl:     _wholesalePriceCtrl,
+              isNumber: true,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _Field(
+              label:    'Tax Rate (%)',
+              ctrl:     _taxRateCtrl,
+              isNumber: true,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _Field(
+              label:    'Discount (%)',
+              ctrl:     _discountCtrl,
+              isNumber: true,
+            ),
+          ),
+        ]),
+
+        const SizedBox(height: 20),
+        const Divider(height: 1, color: AppColor.grey200),
+        const SizedBox(height: 20),
+
+        _SectionLabel('Stock'),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: _Field(
+              label:    'Quantity *',
+              ctrl:     _quantityCtrl,
+              isNumber: true,
+              validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _Field(
+              label:    'Min Stock Level',
+              ctrl:     _minStockCtrl,
+              isNumber: true,
+              isInt:    true,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _Field(
+              label:    'Max Stock Level',
+              ctrl:     _maxStockCtrl,
+              isNumber: true,
+              isInt:    true,
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
 }
 
+// ── Section Label ─────────────────────────────────────────────────
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
@@ -381,38 +465,51 @@ class _SectionLabel extends StatelessWidget {
           letterSpacing: 0.4));
 }
 
+// ── Text Field ────────────────────────────────────────────────────
 class _Field extends StatelessWidget {
   final String                     label;
   final TextEditingController      ctrl;
   final bool                       isNumber;
   final bool                       isInt;
   final int                        maxLines;
+  final String?                    hint;
   final String? Function(String?)? validator;
-  final bool? enabled;
+  final bool?                      enabled;
 
   const _Field({
     required this.label,
     required this.ctrl,
-    this.enabled = true,
+    this.enabled   = true,
     this.isNumber  = false,
     this.isInt     = false,
     this.maxLines  = 1,
+    this.hint,
     this.validator,
   });
 
   @override
   Widget build(BuildContext context) => TextFormField(
     controller:   ctrl,
-    keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-    inputFormatters: isInt ? [FilteringTextInputFormatter.digitsOnly] : isNumber ? [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))] : null,
+    keyboardType: isNumber
+        ? const TextInputType.numberWithOptions(decimal: true)
+        : TextInputType.text,
+    inputFormatters: isInt
+        ? [FilteringTextInputFormatter.digitsOnly]
+        : isNumber
+        ? [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))]
+        : null,
     maxLines:    maxLines,
     validator:   validator,
     style:       const TextStyle(fontSize: 13),
     cursorHeight: 14,
-    enabled: enabled,
+    enabled:     enabled,
     decoration: InputDecoration(
       labelText:  label,
-      labelStyle: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
+      hintText:   hint,
+      labelStyle: const TextStyle(
+          fontSize: 12, color: AppColor.textSecondary),
+      hintStyle:  const TextStyle(
+          fontSize: 12, color: AppColor.textHint),
       filled:    true,
       fillColor: AppColor.grey100,
       contentPadding:
@@ -436,6 +533,7 @@ class _Field extends StatelessWidget {
   );
 }
 
+// ── Dropdown Field ────────────────────────────────────────────────
 class _DropdownField extends StatelessWidget {
   final String                label;
   final String                value;
