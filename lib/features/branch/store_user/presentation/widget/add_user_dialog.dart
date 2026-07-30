@@ -5,6 +5,7 @@ import 'package:jan_ghani_final/features/branch/counter/data/model/counter_model
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/model/user_model.dart';
 import '../provider/user_provider.dart';
 
@@ -22,11 +23,11 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
   final _username = TextEditingController();
   final _phone    = TextEditingController();
   final _password = TextEditingController();
-  String  _role          = 'cashier';
-  bool    _isActive      = true;
-  bool    _isSaving      = false;
-  bool    _showPass      = false;
-  CounterModel? _selectedCounter; // ← new
+  String        _role            = 'cashier';
+  bool          _isActive        = true;
+  bool          _isSaving        = false;
+  bool          _showPass        = false;
+  CounterModel? _selectedCounter;
 
   bool get _isEdit => widget.user != null;
 
@@ -42,13 +43,12 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
       _isActive      = u.isActive;
     }
 
-    // Edit mein counter pre-select karo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (u?.counterId != null) {
         final counters = ref.read(counterProvider).counters;
         try {
-          _selectedCounter = counters
-              .firstWhere((c) => c.id == u!.counterId);
+          _selectedCounter =
+              counters.firstWhere((c) => c.id == u!.counterId);
           setState(() {});
         } catch (_) {}
       }
@@ -79,8 +79,8 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
               : _phone.text.trim(),
           role:         _role,
           isActive:     _isActive,
-          counterId:    _selectedCounter?.id,  // ← new
-          clearCounter: _selectedCounter == null, // ← null set karo
+          counterId:    _selectedCounter?.id,
+          clearCounter: _selectedCounter == null,
           passwordHash: _password.text.isNotEmpty
               ? _password.text
               : widget.user!.passwordHash,
@@ -90,10 +90,12 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
           username:  _username.text.trim(),
           password:  _password.text,
           fullName:  _fullName.text.trim(),
-          phone:     _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          phone:     _phone.text.trim().isEmpty
+              ? null
+              : _phone.text.trim(),
           role:      _role,
           isActive:  _isActive,
-          counterId: _selectedCounter?.id,     // ← new
+          counterId: _selectedCounter?.id,
         );
       }
 
@@ -106,10 +108,13 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final counters = ref.watch(counterProvider).counters;
+    final counters  = ref.watch(counterProvider).counters;
+    final auth      = ref.watch(authProvider);
+
+    // ✅ Manager sirf lower roles de sakta hai
+    final isManager = auth.isManager;
 
     final counterItems = [
-      // None option
       const DropdownItem<CounterModel?>(
         value: null,
         label: 'No Counter',
@@ -188,10 +193,10 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                   children: [
                     Expanded(
                       child: _Field(
-                        label:     'Full Name *',
+                        label:      'Full Name *',
                         controller: _fullName,
-                        hint:      'Ahmad Khan',
-                        validator: (v) =>
+                        hint:       'Ahmad Khan',
+                        validator:  (v) =>
                         (v == null || v.trim().isEmpty)
                             ? 'Name required hai'
                             : null,
@@ -237,7 +242,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                     return null;
                   },
                   decoration: InputDecoration(
-                    hintText:  _isEdit
+                    hintText: _isEdit
                         ? 'Naya password (optional)'
                         : '••••••••',
                     hintStyle: const TextStyle(
@@ -313,7 +318,18 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                         borderSide: const BorderSide(
                             color: AppColor.primary, width: 1.5)),
                   ),
-                  items: const [
+                  // ✅ Manager: sirf cashier + stock_officer
+                  // Owner: sab roles
+                  items: isManager
+                      ? const [
+                    DropdownMenuItem(
+                        value: 'cashier',
+                        child: Text('Cashier')),
+                    DropdownMenuItem(
+                        value: 'stock_officer',
+                        child: Text('Stock Officer')),
+                  ]
+                      : const [
                     DropdownMenuItem(
                         value: 'store_owner',
                         child: Text('Store Owner')),
