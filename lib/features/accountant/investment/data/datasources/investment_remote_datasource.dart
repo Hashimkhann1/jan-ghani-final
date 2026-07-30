@@ -44,7 +44,7 @@ class InvestmentRemoteDatasourceImpl implements InvestmentRemoteDatasource {
     String? note,
   }) async {
     try {
-      // Sirf insert — trigger khud counter update karega
+      // Sirf insert — DB trigger khud janghani_net_amount update karega
       await _client.from('accountant_investments').insert({
         'accountant_id': accountantId,
         'name':          name,
@@ -52,7 +52,7 @@ class InvestmentRemoteDatasourceImpl implements InvestmentRemoteDatasource {
         'note':          note,
       });
 
-      print('✅ Investment inserted');
+      print('✅ Investment inserted — trigger will update janghani_net_amount');
     } catch (e) {
       print('❌ addInvestment error: $e');
       rethrow;
