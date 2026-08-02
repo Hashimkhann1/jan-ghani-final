@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
-
-import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:postgres/postgres.dart';
 import 'package:supabase/supabase.dart';
 
@@ -19,6 +17,8 @@ class SyncConfig {
 
   // ── Supabase ──────────────────────────────────────────────
   static const String supabaseUrl = "https://kjjtqfruxhjcxwvxwffz.supabase.co";
+  // static const String supabaseUrl = "https://fngvbieiwilypecznwcl.supabase.co";
+  // static const String supabaseKey = "sb_publishable_z-6QD20dfck8hoG9_NzSZw_063NHmS4";
   static const String supabaseKey = "sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS";
 
   // ── Sync interval (seconds) ───────────────────────────────
@@ -86,7 +86,7 @@ class SyncConfig {
     'sale_return_items'     : 'created_at',
     'sale_return_payments'  : 'created_at',
     'branch_stock_damage'   : 'created_at',
-    'customer_logs'          : 'changed_at',   // ← ADD
+    'customer_logs'          : 'created_at',   // ← ADD
   };
 
   // ── Har table ka conflict (primary key) column ────────────
