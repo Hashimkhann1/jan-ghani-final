@@ -33,17 +33,17 @@ class ServiceModel {
   }
 
   factory ServiceModel.fromMap(Map<String, dynamic> map) => ServiceModel(
-        id:          map['id'].toString(),
-        storeId:     map['store_id'].toString(),
-        name:        map['name'].toString(),
-        serviceType: map['service_type'].toString(),
-        perAmount:   double.parse(map['per_amount'].toString()),
-        feeAmount:   double.parse(map['fee_amount'].toString()),
-        isActive:    map['is_active'] as bool? ?? true,
-        notes:       map['notes'] as String?,
-        createdAt:   DateTime.parse(map['created_at'].toString()),
-        updatedAt:   DateTime.parse(map['updated_at'].toString()),
-      );
+    id:          map['id'].toString(),
+    storeId:     map['store_id'].toString(),
+    name:        map['name'].toString(),
+    serviceType: map['service_type'].toString(),
+    perAmount:   double.parse(map['per_amount'].toString()),
+    feeAmount:   double.parse(map['fee_amount'].toString()),
+    isActive:    map['is_active'] as bool? ?? true,
+    notes:       map['notes'] as String?,
+    createdAt:   DateTime.parse(map['created_at'].toString()),
+    updatedAt:   DateTime.parse(map['updated_at'].toString()),
+  );
 
   ServiceModel copyWith({
     String? name,
@@ -73,23 +73,28 @@ class ServiceCartItem {
   final ServiceModel service;
   final double       amount;
   final double       calculatedFee;
+  final double       discount;       // ← NEW
 
   const ServiceCartItem({
     required this.cartId,
     required this.service,
     required this.amount,
     required this.calculatedFee,
+    this.discount = 0,               // ← NEW
   });
 
-  double get total => amount + calculatedFee;
+  // total = amount + fee - discount
+  double get total => (amount + calculatedFee - discount).clamp(0, double.infinity);
 
-  ServiceCartItem copyWith({double? amount}) {
-    final newAmount = amount ?? this.amount;
+  ServiceCartItem copyWith({double? amount, double? discount}) {
+    final newAmount   = amount   ?? this.amount;
+    final newDiscount = discount ?? this.discount;
     return ServiceCartItem(
       cartId:        cartId,
       service:       service,
       amount:        newAmount,
       calculatedFee: service.calculateFee(newAmount),
+      discount:      newDiscount,
     );
   }
 }
@@ -99,6 +104,12 @@ class ServicePaymentEntry {
   final String method; // 'cash' | 'credit'
   final double amount;
   const ServicePaymentEntry({required this.method, required this.amount});
+}
+
+// ── Cash Transfer Type ─────────────────────────────────────────
+enum CashTransferType {
+  cashToBank,   // branch cash gaya bank mein (customer ne bank se receive kiya)
+  bankToCash,   // customer ne bank se bheja, branch ne cash diya
 }
 
 // ── Service Invoice State ──────────────────────────────────────
@@ -129,9 +140,10 @@ class ServiceInvoiceState {
     this.notes,
   });
 
-  double get totalAmount => cartItems.fold(0, (s, i) => s + i.amount);
-  double get totalFee    => cartItems.fold(0, (s, i) => s + i.calculatedFee);
-  double get grandTotal  => totalAmount + totalFee;
+  double get totalAmount   => cartItems.fold(0, (s, i) => s + i.amount);
+  double get totalFee      => cartItems.fold(0, (s, i) => s + i.calculatedFee);
+  double get totalDiscount => cartItems.fold(0, (s, i) => s + i.discount); // ← NEW
+  double get grandTotal    => totalAmount + totalFee - totalDiscount;       // ← NEW
 
   bool get hasCustomer => customerId != null;
   bool get isCartEmpty => cartItems.isEmpty;

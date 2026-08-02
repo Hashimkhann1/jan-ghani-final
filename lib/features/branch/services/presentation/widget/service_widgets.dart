@@ -11,13 +11,14 @@ import '../provideer/service_provider.dart';
 
 
 // ════════════════════════════════════════════════════════════
-//  1. SERVICE CART ITEM WIDGET
+//  1. SERVICE CART ITEM WIDGET  (discount field added)
 // ════════════════════════════════════════════════════════════
 class ServiceCartItemWidget extends StatefulWidget {
   final ServiceCartItem      item;
   final NumberFormat         formatter;
   final VoidCallback         onRemove;
   final ValueChanged<double> onAmountChanged;
+  final ValueChanged<double> onDiscountChanged;   // ← NEW
 
   const ServiceCartItemWidget({
     super.key,
@@ -25,6 +26,7 @@ class ServiceCartItemWidget extends StatefulWidget {
     required this.formatter,
     required this.onRemove,
     required this.onAmountChanged,
+    required this.onDiscountChanged,              // ← NEW
   });
 
   @override
@@ -33,7 +35,9 @@ class ServiceCartItemWidget extends StatefulWidget {
 
 class _ServiceCartItemWidgetState extends State<ServiceCartItemWidget> {
   late TextEditingController _amountCtrl;
-  bool _amountFocused = false;
+  late TextEditingController _discountCtrl;        // ← NEW
+  bool _amountFocused   = false;
+  bool _discountFocused = false;                   // ← NEW
 
   @override
   void initState() {
@@ -41,6 +45,11 @@ class _ServiceCartItemWidgetState extends State<ServiceCartItemWidget> {
     _amountCtrl = TextEditingController(
       text: widget.item.amount > 0
           ? widget.item.amount.toStringAsFixed(0)
+          : '',
+    );
+    _discountCtrl = TextEditingController(        // ← NEW
+      text: widget.item.discount > 0
+          ? widget.item.discount.toStringAsFixed(0)
           : '',
     );
   }
@@ -53,11 +62,17 @@ class _ServiceCartItemWidgetState extends State<ServiceCartItemWidget> {
           ? widget.item.amount.toStringAsFixed(0)
           : '';
     }
+    if (!_discountFocused && old.item.discount != widget.item.discount) {  // ← NEW
+      _discountCtrl.text = widget.item.discount > 0
+          ? widget.item.discount.toStringAsFixed(0)
+          : '';
+    }
   }
 
   @override
   void dispose() {
     _amountCtrl.dispose();
+    _discountCtrl.dispose();   // ← NEW
     super.dispose();
   }
 
@@ -76,7 +91,7 @@ class _ServiceCartItemWidgetState extends State<ServiceCartItemWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // ── Header ────────────────────────────────────
             Row(
               children: [
                 Container(
@@ -117,147 +132,207 @@ class _ServiceCartItemWidgetState extends State<ServiceCartItemWidget> {
 
             const SizedBox(height: 10),
 
-            // Amount | Fee | Total
+            // ── Row 1: Amount | Service Fee | Total ───────
             Row(
               children: [
                 // Amount (editable)
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Amount',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: AppColor.textSecondary)),
-                      const SizedBox(height: 4),
-                      Focus(
-                        onFocusChange: (focused) {
-                          setState(() => _amountFocused = focused);
-                          if (!focused) {
-                            final val =
-                                double.tryParse(_amountCtrl.text) ?? 0;
-                            widget.onAmountChanged(val);
-                          }
-                        },
-                        child: TextFormField(
-                          controller:   _amountCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'[\d.]')),
-                          ],
-                          decoration: InputDecoration(
-                            prefixText: 'Rs ',
-                            isDense:    true,
-                            contentPadding:
-                            const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          onTap: () => _amountCtrl.selection =
-                              TextSelection(
-                                baseOffset:   0,
-                                extentOffset: _amountCtrl.text.length,
-                              ),
-                          onFieldSubmitted: (v) {
-                            final val = double.tryParse(v) ?? 0;
-                            widget.onAmountChanged(val);
-                          },
-                        ),
+                  child: _FieldLabel(
+                    label: 'Amount',
+                    child: Focus(
+                      onFocusChange: (focused) {
+                        setState(() => _amountFocused = focused);
+                        if (!focused) {
+                          final val =
+                              double.tryParse(_amountCtrl.text) ?? 0;
+                          widget.onAmountChanged(val);
+                        }
+                      },
+                      child: TextFormField(
+                        controller:   _amountCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[\d.]')),
+                        ],
+                        decoration: _inputDeco('Rs '),
+                        onTap: () => _selectAll(_amountCtrl),
+                        onFieldSubmitted: (v) =>
+                            widget.onAmountChanged(
+                                double.tryParse(v) ?? 0),
                       ),
-                    ],
+                    ),
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
 
-                // Fee (read-only)
+                // Service Fee (read-only)
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Service Fee',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: AppColor.textSecondary)),
-                      const SizedBox(height: 4),
-                      Container(
-                        width:   double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
-                        decoration: BoxDecoration(
-                          color:        Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Text(
-                          'Rs ${widget.formatter.format(item.calculatedFee)}',
-                          style: TextStyle(
-                            fontSize:   13,
-                            color:      AppColor.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: _FieldLabel(
+                    label: 'Service Fee',
+                    child: _ReadOnlyBox(
+                      value: 'Rs ${widget.formatter.format(item.calculatedFee)}',
+                      color: AppColor.primary,
+                    ),
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
 
-                // Total (read-only)
+                // Total (read-only, green)
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Total',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: AppColor.textSecondary)),
-                      const SizedBox(height: 4),
-                      Container(
-                        width:   double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
-                        decoration: BoxDecoration(
-                          color:        Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: Text(
-                          'Rs ${widget.formatter.format(item.total)}',
-                          style: TextStyle(
-                            fontSize:   13,
-                            color:      Colors.green.shade700,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: _FieldLabel(
+                    label: 'Total',
+                    child: _ReadOnlyBox(
+                      value: 'Rs ${widget.formatter.format(item.total)}',
+                      color: Colors.green.shade700,
+                      bgColor: Colors.green.shade50,
+                    ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 6),
-            Text(
-              'Fee rule: Rs ${widget.formatter.format(item.service.perAmount)} '
-                  'per → Rs ${widget.formatter.format(item.service.feeAmount)} fee',
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
+            const SizedBox(height: 10),
+
+            // ── Row 2: Discount ───────────────────────────
+            Row(
+              children: [
+                // Discount (editable)
+                Expanded(
+                  flex: 1,
+                  child: _FieldLabel(
+                    label: 'Discount',
+                    child: Focus(
+                      onFocusChange: (focused) {
+                        setState(() => _discountFocused = focused);
+                        if (!focused) {
+                          final val =
+                              double.tryParse(_discountCtrl.text) ?? 0;
+                          widget.onDiscountChanged(val);
+                        }
+                      },
+                      child: TextFormField(
+                        controller:   _discountCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[\d.]')),
+                        ],
+                        decoration: _inputDeco('Rs ', hintText: '0'),
+                        onTap: () => _selectAll(_discountCtrl),
+                        onFieldSubmitted: (v) =>
+                            widget.onDiscountChanged(
+                                double.tryParse(v) ?? 0),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                // Fee rule info
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 18),
+                    child: Text(
+                      'Fee rule: Rs ${widget.formatter.format(item.service.perAmount)}'
+                          ' per → Rs ${widget.formatter.format(item.service.feeAmount)} fee',
+                      style: TextStyle(
+                          fontSize: 11, color: Colors.grey.shade500),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+
+  InputDecoration _inputDeco(String prefix, {String? hintText}) =>
+      InputDecoration(
+        prefixText:     prefix,
+        hintText:       hintText,
+        isDense:        true,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10, vertical: 8),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      );
+
+  void _selectAll(TextEditingController ctrl) =>
+      ctrl.selection = TextSelection(
+        baseOffset:   0,
+        extentOffset: ctrl.text.length,
+      );
+}
+
+// ── Small helpers ──────────────────────────────────────────
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  final Widget child;
+  const _FieldLabel({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label,
+          style: const TextStyle(
+              fontSize: 11, color: AppColor.textSecondary)),
+      const SizedBox(height: 4),
+      child,
+    ],
+  );
+}
+
+class _ReadOnlyBox extends StatelessWidget {
+  final String color;
+  final Color  bgColor;
+  final String value;
+
+  const _ReadOnlyBox({
+    required this.value,
+    required Color color,
+    Color? bgColor,
+  })  : color   = '',
+        bgColor = const Color(0x00000000),
+        _color  = color,
+        _bgColor = bgColor ?? const Color(0xFFF5F5F5);
+
+  final Color _color;
+  final Color _bgColor;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width:   double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    decoration: BoxDecoration(
+      color:        _bgColor,
+      borderRadius: BorderRadius.circular(8),
+      border:       Border.all(color: Colors.grey.shade300),
+    ),
+    child: Text(
+      value,
+      style: TextStyle(
+        fontSize:   13,
+        color:      _color,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
 }
 
 
 // ════════════════════════════════════════════════════════════
-//  2. SERVICE PAYMENT DIALOG
+//  2. SERVICE PAYMENT DIALOG  (unchanged)
 // ════════════════════════════════════════════════════════════
 class ServicePaymentDialog extends StatefulWidget {
   final String              method;
@@ -277,7 +352,6 @@ class ServicePaymentDialog extends StatefulWidget {
 
 class _ServicePaymentDialogState extends State<ServicePaymentDialog> {
   late TextEditingController _ctrl;
-  final _fmt = NumberFormat('#,##0.00');
 
   @override
   void initState() {
@@ -296,30 +370,30 @@ class _ServicePaymentDialogState extends State<ServicePaymentDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(
-        '${widget.method == 'cash' ? 'Cash' : 'Credit'} Payment',
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        widget.method == 'cash' ? 'Cash Payment' : 'Credit Payment',
+        style: const TextStyle(
+            fontSize: 16, fontWeight: FontWeight.bold),
       ),
       content: Column(
-        mainAxisSize:       MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Grand Total: Rs ${_fmt.format(widget.grandTotal)}',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            'Grand Total: Rs ${NumberFormat('#,##0.00').format(widget.grandTotal)}',
+            style: const TextStyle(
+                fontSize: 14, color: AppColor.textSecondary),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller:   _ctrl,
             autofocus:    true,
-            keyboardType: const TextInputType.numberWithOptions(
-                decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
             ],
             decoration: InputDecoration(
               labelText:  'Amount',
               prefixText: 'Rs ',
-              border: OutlineInputBorder(
+              border:     OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
             onTap: () => _ctrl.selection = TextSelection(
@@ -336,9 +410,9 @@ class _ServicePaymentDialogState extends State<ServicePaymentDialog> {
         ),
         ElevatedButton(
           onPressed: () {
-            final val = double.tryParse(_ctrl.text) ?? 0;
-            if (val <= 0) return;
-            widget.onConfirm(val);
+            final amount = double.tryParse(_ctrl.text) ?? 0;
+            if (amount <= 0) return;
+            widget.onConfirm(amount);
             Navigator.pop(context);
           },
           style: ElevatedButton.styleFrom(
@@ -353,16 +427,308 @@ class _ServicePaymentDialogState extends State<ServicePaymentDialog> {
 
 
 // ════════════════════════════════════════════════════════════
-//  3. SERVICE FORM DIALOG  (Add + Edit) — public, used directly
-//     from ServiceScreen's "Add Service" button
+//  3. CASH TRANSFER DIALOG  (NEW)
+//
+//  Do modes:
+//  - Cash → Bank: customer ne bank transfer bheja, branch ne
+//    us ko cash diya. Branch ka cash NIKLA, bank AAYA.
+//  - Bank → Cash: branch ne cash bank mein dala. Branch ka
+//    cash NIKLA, bank GAYA.
+// ════════════════════════════════════════════════════════════
+class CashTransferDialog extends ConsumerStatefulWidget {
+  const CashTransferDialog({super.key});
+
+  @override
+  ConsumerState<CashTransferDialog> createState() =>
+      _CashTransferDialogState();
+}
+
+class _CashTransferDialogState extends ConsumerState<CashTransferDialog> {
+  final _formKey    = GlobalKey<FormState>();
+  final _amountCtrl = TextEditingController();
+  final _descCtrl   = TextEditingController();
+
+  // 'bank_to_cash' = customer ne bank se bheja, branch ne cash diya
+  // 'cash_to_bank' = branch ne cash diya aur bank se liya
+  String _transferType = 'bank_to_cash';
+  bool   _saving       = false;
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0');
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.swap_horiz_rounded,
+              color: AppColor.primary, size: 22),
+          const SizedBox(width: 8),
+          const Text(
+            'Cash Transfer',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize:       MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+
+              // ── Transfer Type Toggle ───────────────────
+              const Text(
+                'Transfer Type',
+                style: TextStyle(
+                    fontSize: 12, color: AppColor.textSecondary),
+              ),
+              const SizedBox(height: 8),
+
+              // Bank → Cash card
+              _TransferTypeCard(
+                title:       'Bank → Cash',
+                subtitle:    'Customer ne bank se bheja,\nbranch ne cash diya',
+                icon:        Icons.account_balance_outlined,
+                iconColor:   Colors.blue,
+                selected:    _transferType == 'bank_to_cash',
+                onTap:       () => setState(
+                        () => _transferType = 'bank_to_cash'),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Cash → Bank card
+              _TransferTypeCard(
+                title:       'Cash → Bank',
+                subtitle:    'Branch ka cash bank mein gaya\n(outgoing)',
+                icon:        Icons.upload_outlined,
+                iconColor:   Colors.orange,
+                selected:    _transferType == 'cash_to_bank',
+                onTap:       () => setState(
+                        () => _transferType = 'cash_to_bank'),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Amount ────────────────────────────────
+              TextFormField(
+                controller:   _amountCtrl,
+                autofocus:    true,
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                ],
+                decoration: InputDecoration(
+                  labelText:  'Amount',
+                  prefixText: 'Rs ',
+                  border:     OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                validator: (v) {
+                  final val = double.tryParse(v ?? '') ?? 0;
+                  if (val <= 0) return 'Valid amount enter karein';
+                  return null;
+                },
+                onTap: () => _amountCtrl.selection = TextSelection(
+                  baseOffset:   0,
+                  extentOffset: _amountCtrl.text.length,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Description ───────────────────────────
+              TextFormField(
+                controller: _descCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Description (optional)',
+                  border:    OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Info Box ──────────────────────────────
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color:        _transferType == 'bank_to_cash'
+                      ? Colors.blue.shade50
+                      : Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _transferType == 'bank_to_cash'
+                        ? Colors.blue.shade200
+                        : Colors.orange.shade200,
+                  ),
+                ),
+                child: Text(
+                  _transferType == 'bank_to_cash'
+                      ? '✅ Cash counter mein IZAFA hoga\n'
+                      '(cash_in badhe ga, total_amount badhe ga)'
+                      : '⬇️ Cash counter se GHATA hoga\n'
+                      '(cash_out badhe ga, total_amount ghate ga)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _transferType == 'bank_to_cash'
+                        ? Colors.blue.shade800
+                        : Colors.orange.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton.icon(
+          onPressed: _saving ? null : _submit,
+          icon:  _saving
+              ? const SizedBox(
+              height: 16, width: 16,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.check, size: 18, color: Colors.white),
+          label: const Text('Save Transfer',
+              style: TextStyle(color: Colors.white)),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: AppColor.primary),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+
+    final amount = double.parse(_amountCtrl.text);
+    final desc   = _descCtrl.text.trim().isEmpty
+        ? null
+        : _descCtrl.text.trim();
+
+    final ok = await ref
+        .read(serviceInvoiceProvider.notifier)
+        .saveCashTransfer(
+      amount:       amount,
+      transferType: _transferType,
+      description:  desc,
+    );
+
+    if (mounted) {
+      setState(() => _saving = false);
+      if (ok) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _transferType == 'bank_to_cash'
+                  ? 'Bank → Cash transfer saved!'
+                  : 'Cash → Bank transfer saved!',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+}
+
+// ── Transfer Type Card ─────────────────────────────────────
+class _TransferTypeCard extends StatelessWidget {
+  final String     title;
+  final String     subtitle;
+  final IconData   icon;
+  final Color      iconColor;
+  final bool       selected;
+  final VoidCallback onTap;
+
+  const _TransferTypeCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.iconColor,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding:  const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color:        selected
+              ? AppColor.primary.withOpacity(0.08)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? AppColor.primary : Colors.grey.shade300,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: selected ? AppColor.primary : iconColor,
+                size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize:   13,
+                      color: selected ? AppColor.primary : null,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              Icon(Icons.check_circle,
+                  color: AppColor.primary, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  4. SERVICE FORM DIALOG  (unchanged)
 // ════════════════════════════════════════════════════════════
 class ServiceFormDialog extends ConsumerStatefulWidget {
   final ServiceModel? existing;
-  const ServiceFormDialog({super.key, this.existing});
+  const ServiceFormDialog({super.key, required this.existing});
 
   @override
-  ConsumerState<ServiceFormDialog> createState() =>
-      _ServiceFormDialogState();
+  ConsumerState<ServiceFormDialog> createState() => _ServiceFormDialogState();
 }
 
 class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
@@ -379,6 +745,8 @@ class _ServiceFormDialogState extends ConsumerState<ServiceFormDialog> {
     'mobile_package',
     'pay_bill',
     'money_transfer',
+    'bank_to_cash',
+    'cash_to_bank',
     'other',
   ];
 

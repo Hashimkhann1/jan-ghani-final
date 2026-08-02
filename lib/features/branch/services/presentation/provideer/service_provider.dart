@@ -98,7 +98,7 @@ class ServiceListNotifier
 
 final serviceListProvider = StateNotifierProvider.autoDispose<
     ServiceListNotifier, AsyncValue<List<ServiceModel>>>(
-  (ref) => ServiceListNotifier(
+      (ref) => ServiceListNotifier(
     ServiceDatasource(),
     ref.read(authProvider).storeId,
   ),
@@ -115,10 +115,10 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
   ServiceInvoiceNotifier(this._ref)
       : _ds = ServiceDatasource(),
         super(ServiceInvoiceState(
-          invoiceNo: 'INV-...',
-          date:      DateTime.now(),
-          cartItems: [],
-        )) {
+        invoiceNo: 'INV-...',
+        date:      DateTime.now(),
+        cartItems: [],
+      )) {
     _initInvoiceNo();
   }
 
@@ -134,7 +134,7 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
       final now = DateTime.now();
       state = state.copyWith(
         invoiceNo:
-            'INV-${now.year}-${now.millisecondsSinceEpoch.toString().substring(7)}',
+        'INV-${now.year}-${now.millisecondsSinceEpoch.toString().substring(7)}',
       );
     }
   }
@@ -171,6 +171,7 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
           service:       service,
           amount:        0,
           calculatedFee: 0,
+          discount:      0,
         ),
       ],
       clearError: true,
@@ -189,7 +190,21 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
     state = state.copyWith(
       cartItems: state.cartItems.map((i) {
         if (i.cartId != cartId) return i;
-        return i.copyWith(amount: amount);   // ← sirf amount, calculatedFee wahi purana (0) reh jata hai
+        return i.copyWith(amount: amount);
+      }).toList(),
+      clearPayment: true,
+    );
+  }
+
+  // ── Discount per cart item ────────────────────────────────
+  void updateDiscount(String cartId, double discount) {
+    if (discount < 0) return;
+    state = state.copyWith(
+      cartItems: state.cartItems.map((i) {
+        if (i.cartId != cartId) return i;
+        // discount cannot exceed amount + fee
+        final maxDiscount = i.amount + i.calculatedFee;
+        return i.copyWith(discount: discount.clamp(0, maxDiscount));
       }).toList(),
       clearPayment: true,
     );
@@ -213,7 +228,7 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
   void setNotes(String value) =>
       state = state.copyWith(notes: value.isEmpty ? null : value);
 
-  // ── Save ──────────────────────────────────────────────────
+  // ── Save Invoice ──────────────────────────────────────────
 
   Future<bool> saveInvoice() async {
     if (state.isCartEmpty) {
@@ -230,6 +245,15 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
       state = state.copyWith(errorMessage: 'Payment method select karein');
       return false;
     }
+    // card payment sirf transfer services pe allowed hai
+    final isTransfer = state.cartItems.any((i) =>
+    i.service.serviceType == 'bank_to_cash' ||
+        i.service.serviceType == 'cash_to_bank');
+    if (state.payment!.method == 'card' && !isTransfer) {
+      state = state.copyWith(
+          errorMessage: 'Card payment sirf Bank Transfer services ke liye hai');
+      return false;
+    }
     if (_counterId == null || _counterId!.isEmpty) {
       state = state.copyWith(
           errorMessage: 'Counter assign nahi — login karein');
@@ -238,9 +262,9 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
 
     final prevBalance = state.customerBalance;
     final newBalance  =
-        (state.hasCustomer && state.payment!.method == 'credit')
-            ? (prevBalance ?? 0) + state.grandTotal
-            : prevBalance;
+    (state.hasCustomer && state.payment!.method == 'credit')
+        ? (prevBalance ?? 0) + state.grandTotal
+        : prevBalance;
 
     state = state.copyWith(isSaving: true);
     try {
@@ -271,6 +295,40 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
     }
   }
 
+  // ── Cash Transfer ─────────────────────────────────────────
+
+  Future<bool> saveCashTransfer({
+    required double amount,
+    required String transferType,   // 'cash_to_bank' | 'bank_to_cash'
+    String?         description,
+  }) async {
+    if (_counterId == null || _counterId!.isEmpty) {
+      state = state.copyWith(
+          errorMessage: 'Counter assign nahi — login karein');
+      return false;
+    }
+    if (amount <= 0) {
+      state = state.copyWith(errorMessage: 'Amount enter karein');
+      return false;
+    }
+
+    try {
+      await _ds.saveCashTransfer(
+        storeId:      _storeId,
+        counterId:    _counterId!,
+        userId:       _userId,
+        amount:       amount,
+        transferType: transferType,
+        description:  description,
+      );
+      _ref.read(cashCounterProvider.notifier).loadRecords();
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Transfer error: $e');
+      return false;
+    }
+  }
+
   Future<void> _clearAndReset() async {
     final no = await _ds.generateInvoiceNo(_storeId);
     state = ServiceInvoiceState(
@@ -295,6 +353,6 @@ class ServiceInvoiceNotifier extends StateNotifier<ServiceInvoiceState> {
 }
 
 final serviceInvoiceProvider =
-    StateNotifierProvider<ServiceInvoiceNotifier, ServiceInvoiceState>(
-  (ref) => ServiceInvoiceNotifier(ref),
+StateNotifierProvider<ServiceInvoiceNotifier, ServiceInvoiceState>(
+      (ref) => ServiceInvoiceNotifier(ref),
 );

@@ -12,6 +12,13 @@ import '../../data/model/service_model.dart';
 import '../provideer/service_provider.dart';
 import '../widget/service_widgets.dart';
 
+// ── Helper: kya cart mein bank transfer service hai? ───────────
+bool _isTransferCart(List<ServiceCartItem> items) =>
+    items.isNotEmpty &&
+        items.any((i) =>
+        i.service.serviceType == 'bank_to_cash' ||
+            i.service.serviceType == 'cash_to_bank');
+
 class ServiceScreen extends ConsumerStatefulWidget {
   const ServiceScreen({super.key});
 
@@ -50,6 +57,15 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> {
           TextButton.icon(
             onPressed: () => showDialog(
               context: context,
+              builder: (_) => const CashTransferDialog(),
+            ),
+            icon:  const Icon(Icons.swap_horiz_rounded, size: 18),
+            label: const Text('Cash Transfer'),
+          ),
+          const SizedBox(width: 4),
+          TextButton.icon(
+            onPressed: () => showDialog(
+              context: context,
               builder: (_) => const ServiceFormDialog(existing: null),
             ),
             icon:  const Icon(Icons.add_circle_outline, size: 18),
@@ -65,7 +81,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> {
   }
 }
 
-// ── Wide Layout: Services list (left) | Cart panel (right, big) ──
+// ── Wide Layout ────────────────────────────────────────────────
 class _WideLayout extends ConsumerWidget {
   final NumberFormat formatter;
   const _WideLayout({required this.formatter});
@@ -101,8 +117,7 @@ class _NarrowLayout extends ConsumerWidget {
 }
 
 // ════════════════════════════════════════════════════════════
-//  SERVICE LIST PANEL (left side — like the Products list)
-//  Tap a service -> adds it to the cart on the right.
+//  SERVICE LIST PANEL
 // ════════════════════════════════════════════════════════════
 class _ServiceListPanel extends ConsumerWidget {
   @override
@@ -130,10 +145,9 @@ class _ServiceListPanel extends ConsumerWidget {
         Expanded(
           child: servicesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
-            data: (services) {
+            error:   (e, _) => Center(child: Text('Error: $e')),
+            data:    (services) {
               final active = services.where((s) => s.isActive).toList();
-
               if (active.isEmpty) {
                 return Center(
                   child: Column(
@@ -152,23 +166,29 @@ class _ServiceListPanel extends ConsumerWidget {
                   ),
                 );
               }
-
               return ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                itemCount: active.length,
+                padding:          const EdgeInsets.symmetric(vertical: 4),
+                itemCount:        active.length,
                 separatorBuilder: (_, __) =>
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 itemBuilder: (_, i) {
                   final s = active[i];
+                  // Transfer services ke liye alag icon/color
+                  final isTransfer = s.serviceType == 'bank_to_cash' ||
+                      s.serviceType == 'cash_to_bank';
                   return ListTile(
                     onTap: () => ref
                         .read(serviceInvoiceProvider.notifier)
                         .addService(s),
                     leading: CircleAvatar(
-                      backgroundColor: AppColor.primary.withOpacity(0.1),
+                      backgroundColor: isTransfer
+                          ? Colors.blue.withOpacity(0.1)
+                          : AppColor.primary.withOpacity(0.1),
                       child: Icon(
-                        Icons.miscellaneous_services_outlined,
-                        color: AppColor.primary,
+                        isTransfer
+                            ? Icons.swap_horiz_rounded
+                            : Icons.miscellaneous_services_outlined,
+                        color: isTransfer ? Colors.blue : AppColor.primary,
                         size: 20,
                       ),
                     ),
@@ -227,7 +247,8 @@ class _ServiceListPanel extends ConsumerWidget {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: const Text('Delete',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -236,9 +257,7 @@ class _ServiceListPanel extends ConsumerWidget {
 }
 
 // ════════════════════════════════════════════════════════════
-//  CART PANEL (right side — big, full height)
-//  Customer selector on top, cart items in the middle (scrollable),
-//  totals + payment + save sticky at the bottom.
+//  CART PANEL
 // ════════════════════════════════════════════════════════════
 class _CartPanel extends ConsumerWidget {
   final NumberFormat formatter;
@@ -246,41 +265,42 @@ class _CartPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(serviceInvoiceProvider);
+    final state    = ref.watch(serviceInvoiceProvider);
+    final notifier = ref.read(serviceInvoiceProvider.notifier);
 
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: _CustomerSelector(),
         ),
-        const Divider(height: 1),
-
         Expanded(
-          child: state.cartItems.isEmpty
+          child: state.isCartEmpty
               ? _EmptyCart()
-              : ListView.separated(
-            padding:          const EdgeInsets.all(16),
-            itemCount:        state.cartItems.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (_, i) => ServiceCartItemWidget(
-              key:      ValueKey(state.cartItems[i].cartId),
-              item:     state.cartItems[i],
-              formatter: formatter,
-              onRemove: () => ref
-                  .read(serviceInvoiceProvider.notifier)
-                  .removeService(state.cartItems[i].cartId),
-              onAmountChanged: (val) => ref
-                  .read(serviceInvoiceProvider.notifier)
-                  .updateAmount(state.cartItems[i].cartId, val),
-            ),
+              : ListView.builder(
+            padding:   const EdgeInsets.all(12),
+            itemCount: state.cartItems.length,
+            itemBuilder: (_, i) {
+              final item = state.cartItems[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ServiceCartItemWidget(
+                  key:               ValueKey(item.cartId),
+                  item:              item,
+                  formatter:         formatter,
+                  onRemove:          () =>
+                      notifier.removeService(item.cartId),
+                  onAmountChanged:   (v) =>
+                      notifier.updateAmount(item.cartId, v),
+                  onDiscountChanged: (v) =>
+                      notifier.updateDiscount(item.cartId, v),
+                ),
+              );
+            },
           ),
         ),
-
-        if (!state.isCartEmpty) ...[
-          const Divider(height: 1),
-          _CartFooter(formatter: formatter),
-        ],
+        const Divider(height: 1),
+        _CartFooter(formatter: formatter),
       ],
     );
   }
@@ -317,7 +337,7 @@ class _EmptyCart extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════
-//  CART FOOTER — totals + payment + save (sticky bottom)
+//  CART FOOTER
 // ════════════════════════════════════════════════════════════
 class _CartFooter extends ConsumerWidget {
   final NumberFormat formatter;
@@ -325,7 +345,16 @@ class _CartFooter extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(serviceInvoiceProvider);
+    final state         = ref.watch(serviceInvoiceProvider);
+    final isTransfer    = _isTransferCart(state.cartItems);
+    final transferType  = isTransfer
+        ? state.cartItems
+        .firstWhere((i) =>
+    i.service.serviceType == 'bank_to_cash' ||
+        i.service.serviceType == 'cash_to_bank')
+        .service
+        .serviceType
+        : null;
 
     return Container(
       width:   double.infinity,
@@ -335,6 +364,8 @@ class _CartFooter extends ConsumerWidget {
         mainAxisSize:       MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+
+          // ── Totals ──────────────────────────────────────
           _SummaryRow(
             label: 'Service Amount',
             value: formatter.format(state.totalAmount),
@@ -345,6 +376,14 @@ class _CartFooter extends ConsumerWidget {
             value: formatter.format(state.totalFee),
             color: AppColor.primary,
           ),
+          if (state.totalDiscount > 0) ...[
+            const SizedBox(height: 6),
+            _SummaryRow(
+              label: 'Discount',
+              value: '- ${formatter.format(state.totalDiscount)}',
+              color: Colors.red.shade600,
+            ),
+          ],
           const Divider(height: 20),
           _SummaryRow(
             label:  'Grand Total',
@@ -354,39 +393,102 @@ class _CartFooter extends ConsumerWidget {
 
           const SizedBox(height: 14),
 
+          // ── Transfer Info Banner (bank_to_cash / cash_to_bank) ──
+          if (isTransfer) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: transferType == 'bank_to_cash'
+                    ? Colors.blue.shade50
+                    : Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: transferType == 'bank_to_cash'
+                      ? Colors.blue.shade200
+                      : Colors.orange.shade200,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    transferType == 'bank_to_cash'
+                        ? Icons.account_balance_outlined
+                        : Icons.upload_outlined,
+                    size: 16,
+                    color: transferType == 'bank_to_cash'
+                        ? Colors.blue.shade700
+                        : Colors.orange.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    transferType == 'bank_to_cash'
+                        ? 'Bank → Cash: Customer ne bank se bheja'
+                        : 'Cash → Bank: Branch ka cash bank gaya',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: transferType == 'bank_to_cash'
+                          ? Colors.blue.shade700
+                          : Colors.orange.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // ── Payment Label ────────────────────────────────
           const Text(
             'Payment',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _PayBtn(
-                  label:    'Cash',
-                  icon:     Icons.payments_outlined,
-                  selected: state.payment?.method == 'cash',
-                  onTap:    () => _showPaymentDialog(context, ref, 'cash'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _PayBtn(
-                  label:    'Credit',
-                  icon:     Icons.person_outline,
-                  selected: state.payment?.method == 'credit',
-                  enabled:  state.hasCustomer,
-                  onTap:    () => _showPaymentDialog(context, ref, 'credit'),
-                ),
-              ),
-            ],
-          ),
 
+          // ── Payment Buttons ──────────────────────────────
+          // Transfer services → sirf Card button
+          // Normal services   → Cash + Credit buttons
+          if (isTransfer) ...[
+            _PayBtn(
+              label:    'Card / Bank Transfer',
+              icon:     Icons.credit_card_outlined,
+              selected: state.payment?.method == 'card',
+              onTap:    () => _showPaymentDialog(context, ref, 'card'),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _PayBtn(
+                    label:    'Cash',
+                    icon:     Icons.payments_outlined,
+                    selected: state.payment?.method == 'cash',
+                    onTap:    () =>
+                        _showPaymentDialog(context, ref, 'cash'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _PayBtn(
+                    label:    'Credit',
+                    icon:     Icons.person_outline,
+                    selected: state.payment?.method == 'credit',
+                    enabled:  state.hasCustomer,
+                    onTap:    () =>
+                        _showPaymentDialog(context, ref, 'credit'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          // ── Selected Payment Chip ────────────────────────
           if (state.payment != null) ...[
             const SizedBox(height: 8),
             Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color:        Colors.green.shade50,
                 borderRadius: BorderRadius.circular(8),
@@ -413,28 +515,27 @@ class _CartFooter extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
+          // ── Save / Clear ─────────────────────────────────
           Row(
             children: [
               Expanded(
                 flex: 3,
                 child: ElevatedButton(
-                  onPressed:
-                  state.isSaving ? null : () => _save(context, ref),
+                  onPressed: state.isSaving
+                      ? null
+                      : () => _save(context, ref),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   child: state.isSaving
                       ? const SizedBox(
                     height: 20,
                     width:  20,
                     child:  CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color:       Colors.white,
-                    ),
+                        strokeWidth: 2, color: Colors.white),
                   )
                       : const Text(
                     'Save Invoice',
@@ -455,8 +556,7 @@ class _CartFooter extends ConsumerWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text('Clear'),
                 ),
@@ -485,9 +585,8 @@ class _CartFooter extends ConsumerWidget {
       builder: (_) => ServicePaymentDialog(
         method:     method,
         grandTotal: state.grandTotal,
-        onConfirm:  (amount) => ref
-            .read(serviceInvoiceProvider.notifier)
-            .setPayment(method, amount),
+        onConfirm:  (amount) =>
+            ref.read(serviceInvoiceProvider.notifier).setPayment(method, amount),
       ),
     );
   }
@@ -505,7 +604,7 @@ class _CartFooter extends ConsumerWidget {
   }
 }
 
-// ── Customer Selector ────────────────────────────────────────────
+// ── Customer Selector ──────────────────────────────────────────
 class _CustomerSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -544,7 +643,7 @@ class _CustomerSelector extends ConsumerWidget {
             value:      selected,
             hint:       'Walk-in (Cash)',
             prefixIcon: Icons.person_outline,
-            onChanged: (c) => ref
+            onChanged:  (c) => ref
                 .read(serviceInvoiceProvider.notifier)
                 .selectCustomer(c),
           ),
@@ -642,7 +741,9 @@ class _PayBtn extends StatelessWidget {
               size:  20,
               color: selected
                   ? Colors.white
-                  : (enabled ? AppColor.textSecondary : Colors.grey.shade300),
+                  : (enabled
+                  ? AppColor.textSecondary
+                  : Colors.grey.shade300),
             ),
             const SizedBox(height: 4),
             Text(
@@ -652,7 +753,9 @@ class _PayBtn extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: selected
                     ? Colors.white
-                    : (enabled ? AppColor.textPrimary : Colors.grey.shade300),
+                    : (enabled
+                    ? AppColor.textPrimary
+                    : Colors.grey.shade300),
               ),
             ),
           ],

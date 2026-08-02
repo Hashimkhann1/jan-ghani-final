@@ -112,9 +112,9 @@ class ServiceDatasource {
   }
 
   // ────────────────────────────────────────────────────────
-  // SAVE SERVICE INVOICE
+  // SAVE SERVICE INVOICE  (discount support added)
   //   service_invoices      → header
-  //   service_invoice_items → line items
+  //   service_invoice_items → line items (discount per item)
   //   service_invoice_payments → payment
   // ────────────────────────────────────────────────────────
 
@@ -135,9 +135,10 @@ class ServiceDatasource {
     final conn = await DataBaseService.getConnection();
     late String invoiceId;
 
-    final totalAmount = items.fold<double>(0, (s, i) => s + i.amount);
-    final totalFee    = items.fold<double>(0, (s, i) => s + i.calculatedFee);
-    final grandTotal  = totalAmount + totalFee;
+    final totalAmount   = items.fold<double>(0, (s, i) => s + i.amount);
+    final totalFee      = items.fold<double>(0, (s, i) => s + i.calculatedFee);
+    final totalDiscount = items.fold<double>(0, (s, i) => s + i.discount); // ← NEW
+    final grandTotal    = totalAmount + totalFee - totalDiscount;           // ← NEW
 
     await conn.runTx((tx) async {
 
@@ -185,12 +186,12 @@ class ServiceDatasource {
               invoice_id, service_id,
               service_name, service_type,
               amount, per_amount, fee_amount,
-              calculated_fee, total
+              calculated_fee, total, discount
             ) VALUES (
               @invoiceId::uuid, @serviceId::uuid,
               @serviceName, @serviceType,
               @amount, @perAmount, @feeAmount,
-              @calculatedFee, @total
+              @calculatedFee, @total, @discount
             )
           '''),
           parameters: {
@@ -203,6 +204,7 @@ class ServiceDatasource {
             'feeAmount':    item.service.feeAmount,
             'calculatedFee': item.calculatedFee,
             'total':        item.total,
+            'discount':     item.discount,            // ← NEW
           },
         );
       }
@@ -231,6 +233,130 @@ class ServiceDatasource {
     });
 
     return invoiceId;
+  }
+
+  // ────────────────────────────────────────────────────────
+  // CASH TRANSFER  (Cash ↔ Bank)
+  //
+  //  cashToBank: customer ko cash dena tha, woh bank se bheja
+  //              → branch cash gaya OUT (cash_out), bank aaya IN (card_sale+)
+  //
+  //  bankToCash: customer ne cash diya, branch bank mein dalegi
+  //              → branch cash aaya IN (cash_in), bank gaya OUT (card_sale-)
+  //
+  //  Dono cases mein branch_cash_transaction record banta hai
+  //  aur branch_cash_counter update hota hai.
+  // ────────────────────────────────────────────────────────
+
+  Future<void> saveCashTransfer({
+    required String storeId,
+    required String counterId,
+    required String userId,
+    required double amount,
+    required String transferType,   // 'cash_to_bank' | 'bank_to_cash'
+    String?         description,
+  }) async {
+    final conn = await DataBaseService.getConnection();
+
+    await conn.runTx((tx) async {
+
+      // ── 1. Current cash amount lo ──────────────────────
+      final counterResult = await tx.execute(
+        Sql.named('''
+          SELECT total_amount FROM public.branch_cash_counter
+          WHERE store_id    = @storeId::uuid
+            AND counter_id  = @counterId::uuid
+            AND counter_date = CURRENT_DATE
+        '''),
+        parameters: {'storeId': storeId, 'counterId': counterId},
+      );
+
+      final previousAmount = counterResult.isEmpty
+          ? 0.0
+          : double.parse(
+          counterResult.first.toColumnMap()['total_amount'].toString());
+
+      final remainingAmount = transferType == 'cash_to_bank'
+          ? previousAmount - amount   // cash nikla
+          : previousAmount + amount;  // cash aaya
+
+      // ── 2. branch_cash_transaction INSERT ─────────────
+      await tx.execute(
+        Sql.named('''
+          INSERT INTO public.branch_cash_transaction (
+            store_id, counter_id, user_id,
+            previous_amount, cash_out_amount, remaining_amount,
+            transaction_type, description
+          ) VALUES (
+            @storeId::uuid, @counterId::uuid, @userId::uuid,
+            @previousAmount, @amount, @remainingAmount,
+            @txType, @description
+          )
+        '''),
+        parameters: {
+          'storeId':         storeId,
+          'counterId':       counterId,
+          'userId':          userId,
+          'previousAmount':  previousAmount,
+          'amount':          amount,
+          'remainingAmount': remainingAmount,
+          'txType':          transferType,
+          'description':     description ??
+              (transferType == 'cash_to_bank'
+                  ? 'Cash to Bank Transfer'
+                  : 'Bank to Cash Transfer'),
+        },
+      );
+
+      // ── 3. branch_cash_counter UPDATE ──────────────────
+      if (transferType == 'cash_to_bank') {
+        // Cash gaya bahar → cash_out badha, total_amount ghata
+        await tx.execute(
+          Sql.named('''
+            INSERT INTO public.branch_cash_counter (
+              store_id, counter_id, counter_date,
+              cash_sale, card_sale, credit_sale,
+              installment, total_amount, cash_in, cash_out, total_sale
+            ) VALUES (
+              @storeId::uuid, @counterId::uuid, CURRENT_DATE,
+              0, 0, 0, 0, -@amount, 0, @amount, 0
+            )
+            ON CONFLICT (store_id, counter_id, counter_date) DO UPDATE SET
+              cash_out     = branch_cash_counter.cash_out     + @amount,
+              total_amount = branch_cash_counter.total_amount - @amount,
+              updated_at   = NOW()
+          '''),
+          parameters: {
+            'storeId':   storeId,
+            'counterId': counterId,
+            'amount':    amount,
+          },
+        );
+      } else {
+        // Bank se cash aaya → cash_in badha, total_amount badha
+        await tx.execute(
+          Sql.named('''
+            INSERT INTO public.branch_cash_counter (
+              store_id, counter_id, counter_date,
+              cash_sale, card_sale, credit_sale,
+              installment, total_amount, cash_in, cash_out, total_sale
+            ) VALUES (
+              @storeId::uuid, @counterId::uuid, CURRENT_DATE,
+              0, 0, 0, 0, @amount, @amount, 0, 0
+            )
+            ON CONFLICT (store_id, counter_id, counter_date) DO UPDATE SET
+              cash_in      = branch_cash_counter.cash_in      + @amount,
+              total_amount = branch_cash_counter.total_amount + @amount,
+              updated_at   = NOW()
+          '''),
+          parameters: {
+            'storeId':   storeId,
+            'counterId': counterId,
+            'amount':    amount,
+          },
+        );
+      }
+    });
   }
 
   // ────────────────────────────────────────────────────────
