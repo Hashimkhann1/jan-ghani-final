@@ -24,27 +24,27 @@ void main() async {
 // // BELOW IS TESTING SUPABASE IDS ////
 // ////////////////////////////////////
 //
-  await Supabase.initialize(
-    url: 'https://fngvbieiwilypecznwcl.supabase.co',
-    anonKey: 'sb_publishable_z-6QD20dfck8hoG9_NzSZw_063NHmS4',
-    realtimeClientOptions: const RealtimeClientOptions(
-      logLevel: RealtimeLogLevel.info,
-    ),
-  );
-  kIsTestingDatabase = true; // ← TESTING DB active (banner dikhega)
+//   await Supabase.initialize(
+//     url: 'https://fngvbieiwilypecznwcl.supabase.co',
+//     anonKey: 'sb_publishable_z-6QD20dfck8hoG9_NzSZw_063NHmS4',
+//     realtimeClientOptions: const RealtimeClientOptions(
+//       logLevel: RealtimeLogLevel.info,
+//     ),
+//   );
+//   kIsTestingDatabase = true; // ← TESTING DB active (banner dikhega)
 //
 // ////////////////////////////////////////////////
 // /////// BELOW IS THE PRODUCTION DB IDS /////////
 // ////////////////////////////////////////////////
 
-  // await Supabase.initialize(
-  //   url: 'https://kjjtqfruxhjcxwvxwffz.supabase.co',
-  //   anonKey: 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS',
-  //   realtimeClientOptions: const RealtimeClientOptions(
-  //     logLevel: RealtimeLogLevel.info,
-  //   ),
-  // );
-  // kIsTestingDatabase = false; // ← PRODUCTION DB active (koi banner nahi)
+  await Supabase.initialize(
+    url: 'https://kjjtqfruxhjcxwvxwffz.supabase.co',
+    anonKey: 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS',
+    realtimeClientOptions: const RealtimeClientOptions(
+      logLevel: RealtimeLogLevel.info,
+    ),
+  );
+  kIsTestingDatabase = false; // ← PRODUCTION DB active (koi banner nahi)
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
