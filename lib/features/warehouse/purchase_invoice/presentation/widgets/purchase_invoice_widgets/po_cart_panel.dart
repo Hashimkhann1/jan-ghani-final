@@ -229,8 +229,15 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                     const SizedBox(height: 4),
                     DropdownSearch<PoSupplier>(
                       items: (f, _) => state.suppliers,
-                      filterFn: (s, f) =>
-                          s.name.toLowerCase().contains(f.toLowerCase()),
+                      // Naam + company + phone teeno par search (list mein
+                      // company prominent dikhti hai, isliye sirf name par
+                      // match karne se "No Data" aata tha)
+                      filterFn: (s, f) {
+                        final q = f.toLowerCase().trim();
+                        return s.name.toLowerCase().contains(q) ||
+                            s.company.toLowerCase().contains(q) ||
+                            s.phone.toLowerCase().contains(q);
+                      },
                       selectedItem: state.selectedSupplier,
                       compareFn: (a, b) => a.id == b.id,
                       itemAsString: (s) => s.name,
@@ -264,6 +271,7 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                       popupProps: PopupProps.menu(
                         showSearchBox: true,
                         searchFieldProps: TextFieldProps(
+                          autofocus: true,
                           cursorHeight: 14,
                           decoration: InputDecoration(
                             hintText: 'Search supplier...',

@@ -1,8 +1,10 @@
 // =============================================================
 // purchase_invoice_provider.dart
-// FIX: updateSubTotal → customSubTotal save karta hai (persist hota hai)
-//      updateQuantity/Price/Tax/Discount → clearCustomSubTotal: true
-//      Taake formula wapas active ho jab user manually qty/price change kare
+// SubTotal → QTY model:
+//   • updateSubTotal  → qty = subTotal / price (price fix), customSubTotal set
+//   • updatePurchasePrice (subtotal anchor ON) → qty = subTotal / newPrice
+//   • updateQuantity  → clearCustomSubTotal (qty anchor, subtotal = price×qty)
+//   • Price 0 par subtotal se qty derive nahi hoti (UI "Purchase Price daalein")
 // =============================================================
 
 import 'dart:math';
@@ -244,29 +246,35 @@ class PurchaseInvoiceNotifier
 
   void updateQuantity(String cartId, double qty) {
     if (qty <= 0) return;
-    _update(cartId, (i) {
-      if (i.customSubTotal != null) {
-        // subTotal anchor hai — price recalculate karo, subTotal constant rahe
-        return i.copyWith(
-          quantity:      qty,
-          purchasePrice: i.customSubTotal! / qty,
-        );
-      } else {
-        // price anchor hai — formula se subTotal recalculate hoga
-        return i.copyWith(
+    // User ne qty explicitly di → qty anchor ban gaya.
+    // subTotal = price × qty (formula), koi custom subtotal nahi.
+    _update(cartId, (i) => i.copyWith(
           quantity:            qty,
           clearCustomSubTotal: true,
-        );
-      }
-    });
+        ));
   }
 
   void updatePurchasePrice(String cartId, double price) {
     if (price < 0) return;
-    _update(cartId, (i) => i.copyWith(
-      purchasePrice:      price,
-      clearCustomSubTotal: true, // price anchor ban gaya, formula active
-    ));
+    _update(cartId, (i) {
+      // Agar subTotal anchor ON hai (user ne subtotal diya tha) → subtotal
+      // ko paisa maan kar constant rakho aur QTY dobara derive karo.
+      if (i.customSubTotal != null) {
+        if (price <= 0) {
+          // Div-by-zero se bachao — qty as-is, anchor intact rahe
+          return i.copyWith(purchasePrice: price);
+        }
+        return i.copyWith(
+          purchasePrice: price,
+          quantity:      i.customSubTotal! / price, // qty = subtotal / newPrice
+        );
+      }
+      // qty anchor — formula se subtotal (price × qty)
+      return i.copyWith(
+        purchasePrice:       price,
+        clearCustomSubTotal: true,
+      );
+    });
   }
 
   void updateSalePrice(String cartId, double price) {
@@ -294,11 +302,13 @@ class PurchaseInvoiceNotifier
   void updateSubTotal(String cartId, double newSubTotal) {
     if (newSubTotal < 0) return;
     _update(cartId, (i) {
-      // subTotal se purchasePrice derive karo: price = subTotal / qty
-      final newPrice = i.quantity > 0 ? newSubTotal / i.quantity : i.purchasePrice;
+      // Naya rule: subTotal se QTY derive karo → qty = subTotal / price
+      // (price fix rahe). Price 0 ho to derive na karo (UI message dikhata hai).
+      if (i.purchasePrice <= 0) return i;
+      final newQty = newSubTotal / i.purchasePrice;
       return i.copyWith(
-        purchasePrice:  newPrice,
-        customSubTotal: newSubTotal, // anchor set — qty change pe subTotal constant rahe
+        quantity:       newQty,
+        customSubTotal: newSubTotal, // anchor: subtotal fix, price fix, qty derived
       );
     });
   }

@@ -16,7 +16,7 @@ class DashboardRemoteDatasourceImpl implements DashboardRemoteDatasource {
     try {
       final res = await _client
           .from('janghani_net_amount')
-          .select('cash_in_hand')
+          .select('cash_in_hand, cash_reserved')
           .maybeSingle();
 
       print('✅ Janghani amount: $res');

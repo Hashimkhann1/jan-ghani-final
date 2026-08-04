@@ -9,11 +9,43 @@ import '../provider/warehouse_cash_requests_provider.dart';
 // Har request pe Accept / Reject. Accept par local cash_in_hand
 // barhta hai (sync up) aur accountant ka cash minus hota hai.
 // =============================================================
-class WarehouseCashRequestsScreen extends ConsumerWidget {
+class WarehouseCashRequestsScreen extends ConsumerStatefulWidget {
   const WarehouseCashRequestsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WarehouseCashRequestsScreen> createState() =>
+      _WarehouseCashRequestsScreenState();
+}
+
+class _WarehouseCashRequestsScreenState
+    extends ConsumerState<WarehouseCashRequestsScreen> {
+  // Notifier initState mein capture (dispose ke waqt "ref" use nahi kar sakte).
+  // StateProvider global hai → controller dispose ke baad bhi valid rehta hai.
+  StateController<bool>? _activeCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeCtrl = ref.read(cashRequestsScreenActiveProvider.notifier);
+    // Is screen par global cash dialog suppress (yahan pehle se cards hain)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _activeCtrl?.state = true;
+    });
+  }
+
+  @override
+  void dispose() {
+    // Screen band → global dialog dobara allow. ref use nahi karte;
+    // captured controller par microtask se clear (unmount frame ke bahar).
+    final ctrl = _activeCtrl;
+    if (ctrl != null) {
+      Future.microtask(() => ctrl.state = false);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final requestsAsync = ref.watch(pendingCashRequestsProvider);
 
     return Scaffold(

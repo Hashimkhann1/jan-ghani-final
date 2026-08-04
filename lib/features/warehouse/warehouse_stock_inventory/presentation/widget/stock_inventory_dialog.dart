@@ -816,6 +816,7 @@ class _CategoryDropdown extends StatelessWidget {
           popupProps: PopupProps.menu(
             showSearchBox: true,
             searchFieldProps: TextFieldProps(
+              autofocus: true,
               decoration: InputDecoration(
                 hintText:   'Search category...',
                 prefixIcon: const Icon(Icons.search, size: 18),
@@ -924,6 +925,7 @@ class _CompanyDropdown extends StatelessWidget {
           popupProps: PopupProps.menu(
             showSearchBox: true,
             searchFieldProps: TextFieldProps(
+              autofocus: true,
               decoration: InputDecoration(
                 hintText:   'Search company...',
                 prefixIcon: const Icon(Icons.search, size: 18),

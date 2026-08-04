@@ -166,6 +166,22 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
   void _commitSub() {
     final val = double.tryParse(_subCtrl.text.trim());
     if (val != null && val >= 0) {
+      // SubTotal se qty derive hoti hai (qty = subTotal / price).
+      // Price 0/khali ho to derive nahi ho sakti → message + revert.
+      if (widget.cartItem.purchasePrice <= 0) {
+        _subCtrl.text = _fmtPrice(widget.cartItem.subTotal); // revert
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Pehle Purchase Price daalein'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Color(0xFFF59E0B),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        return;
+      }
       ref.read(purchaseInvoiceProvider.notifier)
           .updateSubTotal(widget.cartItem.cartId, val);
     } else {

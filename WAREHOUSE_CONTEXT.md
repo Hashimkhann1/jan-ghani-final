@@ -821,6 +821,131 @@ Same file → `update()`: `qtyDiff = newQty − oldQty` != 0 → `adjustment` mo
 
 ---
 
+## Accountant Cash Transfer — Reserve-on-Send Model (Session 8) ⭐
+
+> **Maqsad:** Accountant jab warehouse ko cash bhejta tha, purane model mein cash **accept par** minus hota tha (DB trigger se) — send par kuch nahi hota tha, isliye accountant ek hi cash ko baar baar "commit" kar sakta tha. Ab stock-transfer wale reserve model (Session 5) ki tarah **send par hi reserve + minus** ho jata hai.
+
+### ⚠️ Ye poora flow SUPABASE-ONLY hai (LOCAL DB untouched)
+- Teeno janghani tables **sirf Supabase par** hain — local warehouse postgres schema (`v3.9.sql`) mein maujood NAHI, aur warehouse sync service ke `_allTables` mein bhi NAHI.
+  - `janghani_net_amount` — singleton cash balance (`cash_in_hand`, **`cash_reserved`** ⭐ S8, `updated_at`, `created_at`)
+  - `janghani_net_amount_transaction_history` — cash ledger (type CHECK: `from_store/to_warehouse/cash_in/cash_out/`**`refund`** ⭐ S8)
+  - `janghani_warehouse_cash_transfers` — accountant→warehouse requests (status: pending/accepted/rejected)
+- Accountant app (send) + Warehouse app (accept/reject) dono **seedha `Supabase.instance.client`** se read/write karte hain. Isliye saara cash math ek **Supabase DB trigger** mein rakha (single source of truth, atomic, race-safe).
+
+### Reserve model (bilkul stock transfer jaisa)
+| Event | Kahan | `cash_in_hand` | `cash_reserved` | Ledger |
+|---|---|---|---|---|
+| **Send** | Accountant `sendCash()` (insert pending) | **− amount** | **+ amount** | `to_warehouse` |
+| **Accept** | Warehouse `accept()` (pending→accepted) | *(same)* | **− amount → 0** | — (cash nahi hila) |
+| **Reject** | Warehouse `reject()` (pending→rejected) | **+ amount (wapas)** | **− amount → 0** | `refund` |
+
+### DB migration (Supabase test + production dono par run — file: `janghani_cash_reserve_migration.sql`)
+1. **PART 1** — 3 janghani tables `CREATE TABLE IF NOT EXISTS` (sirf jis DB mein missing thi, e.g. test org). `cash_reserved` create mein shamil.
+2. **PART 2** — `janghani_net_amount.cash_reserved numeric(12,2) NOT NULL DEFAULT 0` (jahan table pehle se thi).
+3. **PART 3** — history `type` CHECK mein `'refund'` add.
+4. **PART 4** — purana `trg_janghani_transfer_accepted` (+ `fn_janghani_transfer_accepted`) **DROP**, naya **`fn_janghani_cash_transfer()`** + **`trg_janghani_cash_transfer` (AFTER INSERT OR UPDATE)**:
+   - `INSERT` (pending) → `cash_in_hand -= amount`, `cash_reserved += amount`, `to_warehouse` history
+   - `UPDATE` pending→accepted → `cash_reserved = greatest(0, cash_reserved - amount)`
+   - `UPDATE` pending→rejected → `cash_in_hand += amount`, `cash_reserved = greatest(0, …)`, `refund` history
+   - Singleton row `FOR UPDATE` lock; `SECURITY DEFINER`; `search_path = public`
+5. **PART 5 (optional, EK BAAR)** — purane pending transfers ko reserve karne ke liye (agar migration se pehle koi pending ho). Idempotent NAHI — sirf ek baar.
+
+> ⚠️ **Double-deduction se bacha:** deduction ab SEND par hai, isliye purana accept-minus trigger hatana **zaroori** tha warna cash 2 baar minus hota.
+
+### Files (Session 8)
+| File | Change |
+|---|---|
+| `accountant/dashboard/data/model/dashboard_model.dart` | `JanghaniAmountModel` mein `cashReserved` (default 0) |
+| `accountant/dashboard/data/datasource/dashboard_remote_datasource.dart` | select `'cash_in_hand, cash_reserved'` |
+| `accountant/dashboard/presentation/screen/dashboard_screen.dart` | `_CashCard` par **🔒 "Reserved Rs. X" chip** (sirf jab `cashReserved > 0`) |
+| `accountant/accountant_warehouse_dashboard/presentation/widget/send_cash_dialog.dart` | Send ke baad `janghaniAmountProvider` + `janghaniCashInHandProvider` invalidate (cash minus + reserved foran update). Logic waise ka waisa — sirf insert. |
+| `warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart` | `reject()` mein `.select()` + rowcount guard (accept jaisa) → trigger exactly-once, double-refund nahi |
+
+### Zaroori design points
+- **Deduction SEND par** (pehle accept par tha) → agla send khud reduced `cash_in_hand` dekhta hai → over-commit nahi hota.
+- **Exactly-once:** accept/reject dono `.eq('status','pending').select()` se guarded (rowcount check) → trigger ek hi baar fire.
+- **`greatest(0, …)`** reserved par → negative reserve nahi.
+- **Ledger net-zero:** send `to_warehouse` (−), reject `refund` (+); accept par cash_in_hand nahi hilta isliye koi history nahi.
+- **Reserved UI:** abhi sirf accountant **dashboard cash card** par (purple card, reserved chip). Aur jagah chahiye to add karna baaqi.
+
+### Context: All Warehouses + Cash Transfer features (read-only samajh)
+- **`accountant_all_warehouses`** — Supabase `warehouses` list (read-only). Tile tap → `AccountantWarehouseDashboardScreen(warehouseId)`. Yahi ka `accAllWarehousesProvider` send-cash dialog ke warehouse dropdown ko bhi feed karta hai.
+- **`accountant_cash_transfer`** — `sendCash()` (pending insert) + `cash_transfers_screen` (read-only status list, date-range filter, `myCashTransfersProvider` / `warehouseCashTransfersProvider(id)`). Send dialog `accountant_warehouse_dashboard/.../send_cash_dialog.dart` mein hai.
+
+---
+
+## Global Cash Request Card + Offline Handling (Session 9) ⭐
+
+> **Maqsad:** Accountant se aayi pending cash request pehle sirf dedicated **Cash Requests screen** (finance se `Navigator.push`) par cards ke roop mein dikhti thi — user doosri screen par ho to miss ho jati thi. Ab warehouse ki **HAR screen** ke top-right corner par ek **non-blocking card** dikhta hai (Accept/Reject), aur offline accept/reject ka hang bhi fix.
+
+### Card (non-modal, top-right) — SideBar overlay
+- **File:** `warehouse_cash_requests/presentation/widget/cash_request_dialog.dart` — class **`CashRequestCard`** (file naam wahi purana). Compact card: amount, "From", date, Reject/Accept.
+- **Kahan render hota hai:** `core/widget/sidebar/sidebar_widget.dart` (warehouse shell `SideBar`) → naya **`_wrapWithCashCard(Widget child)`** — `ref.watch(pendingCashRequestsProvider)` + `Stack` + `Positioned(top:16, right:16, width:380)`. Dono return paths (Reports shell + normal layout) is se wrap hain.
+- **Non-blocking:** `showDialog` (modal) navigation block karta — isliye **modal se overlay Stack card** par shift kiya. User peeche baaki screens/nav par navigate kar sakta hai.
+- **Auto-hide + one-at-a-time:** accept/reject par realtime se pending list update → card khud gayab; agla pending ho to `list.first` (key `ValueKey(req.id)` se fresh state). Success par card `_busy` true hi rehta (double-tap rok) — realtime remove kar deta hai.
+- **Suppress:** dedicated Cash Requests screen khuli ho to card nahi (wahan pehle se cards). Naya `cashRequestsScreenActiveProvider` (`StateProvider<bool>`) — screen `initState` par true, `dispose` par false.
+
+### ⚠️ REALTIME zaroori (warna sirf dedicated screen par dikhta hai)
+`pendingCashRequestsProvider` Supabase `.stream()` par hai. SideBar launch par subscribe karta hai (khali) → naya insert **live push** tabhi aata jab table `supabase_realtime` publication mein ho. Warna dedicated screen (fresh subscribe → initial snapshot) par to dikhta hai lekin global overlay par nahi. **Har naye DB par ye lazmi:**
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.janghani_warehouse_cash_transfers;
+```
+(Source/prod DB par pehle se ON tha; migration se banaye naye table par manually add karna parta hai.)
+
+### Offline accept/reject (hang fix)
+- Pehle `accept()`/`reject()` par koi timeout nahi tha → offline mein Supabase update **HANG** (throw nahi karta) → button atak jata.
+- Fix: `provider` mein shared **`_updateStatusGuarded()`** — Supabase update par **6s `.timeout()` + `_isNetworkError()`** (assign_stock pattern). Offline/timeout par friendly "Internet nahi — online hokar dobara koshish karein", request pending rehti, koi hang nahi. `pending`-guard + exactly-once barqarar.
+- Sacha offline-accept mumkin nahi (janghani cash Supabase trigger par + realtime stream ko net chahiye) → block-with-message hi sahi.
+
+### Files (Session 9)
+| File | Change |
+|---|---|
+| `warehouse_cash_requests/presentation/widget/cash_request_dialog.dart` | Naya `CashRequestCard` (non-modal compact card; pehla modal `CashRequestDialog` replace) |
+| `core/widget/sidebar/sidebar_widget.dart` | `_wrapWithCashCard()` (Stack overlay, top-right) — dono layouts wrap; purana `ref.listen`+`showDialog` hataya |
+| `warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart` | `_updateStatusGuarded()` (timeout+network), `_isNetworkError()`, naya `cashRequestsScreenActiveProvider` |
+| `warehouse_cash_requests/presentation/screen/warehouse_cash_requests_screen.dart` | ConsumerStatefulWidget → suppress flag set/clear |
+
+### ⚠️ Session 9 ke lessons (yaad rakho)
+1. **`dispose()` mein `ref` use NAHI** — "Cannot use ref after widget disposed" throw hota. Notifier `initState` mein **capture** karo (`StateController<bool>? _activeCtrl`), `dispose` mein captured controller par `Future.microtask(() => ctrl.state = false)` (global StateProvider ka controller dispose ke baad bhi valid).
+2. **Non-blocking overlay = `showDialog` nahi** — modal barrier navigation rokta. Declarative `Stack`+`Positioned`+`ref.watch` use karo (auto-update, auto-hide, non-blocking).
+3. **`.stream()` global listener ko live inserts chahiye = REALTIME ON** (upar publication line). Warna sirf fresh-subscribe screens par snapshot dikhta.
+4. **Card Scaffold ke bahar (Stack sibling)** → buttons ke liye khud `Material` root deना; `ScaffoldMessenger.of` MaterialApp ka root messenger use karta (snackbar chalti).
+
+---
+
+## Session 10 — Searchable dropdowns · Finance date filter · PO supplier-change balance fix · SubTotal→QTY ⭐
+
+### 1. Searchable dropdowns (autofocus search)
+- **Inventory screen** ([warehouse_stock_inventory_screen.dart](lib/features/warehouse/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart)) — **All Categories** + **All Companies** filter dropdowns ab searchable. `_CategoryFilterDropdown`/`_CompanyFilterDropdown` thin wrappers → shared **`_SearchableFilterDropdown`** (package-free `showMenu` + `_MenuSearchBody` autofocus TextField + live-filter list). Closed field ka look purane jaisa (border color: category=purple, company=green).
+- **Stock Inventory dialog** ([stock_inventory_dialog.dart](lib/features/warehouse/warehouse_stock_inventory/presentation/widget/stock_inventory_dialog.dart)) — Category + Company `DropdownSearch` (package) ke `searchFieldProps: TextFieldProps` mein `autofocus: true`.
+- **Purchase Invoice supplier** ([po_cart_panel.dart](lib/features/warehouse/purchase_invoice/presentation/widgets/purchase_invoice_widgets/po_cart_panel.dart)) — `DropdownSearch` mein `autofocus: true` + **filter fix**: pehle `filterFn` sirf `s.name` par match karta tha (list mein `company` prominent dikhti hai → "No Data Found"). Ab **name + company + phone** teeno par match.
+> **DropdownSearch v7 (dropdown_search ^7.0.0):** search field autofocus ke liye `TextFieldProps(autofocus: true)`.
+
+### 2. Warehouse Finance — Date range filter (default last 30 din)
+- [warehouse_finance_repository.dart](lib/features/warehouse/warehouse_finance/data/warehouse_finance_repository.dart) `getTransactions()` mein `fromDate`/`toDate` params — **server-side** dynamic WHERE (`created_at >= from AND < to`), limit 1000.
+- [Provider](lib/features/warehouse/warehouse_finance/presentation/provider/warehouse_finance_provider/warehouse_finance_provider.dart): state mein `fromDate`/`toDate`, default **last 30 din** (`today-29 → today`), `loadData()` range pass karta hai (pura "to" din inclusive = agli midnight se pehle), naya `onDateRangeChanged()`.
+- [Screen](lib/features/warehouse/warehouse_finance/presentation/screens/warehouse_finance_screen/warehouse_finance_screen.dart): Transactions heading mein `_DateRangeField` (`showDateRangePicker`, `dd/mm/yyyy – dd/mm/yyyy`). Local day boundaries respect (Pakistan TZ). Summary cards (Today/Month) waise hi.
+
+### 3. Purchase Invoice — PO update par supplier CHANGE = balance reconcile ⭐ (bug fix)
+> **Masla:** already-received PO edit karke supplier badalne par naye supplier ka balance +amount nahi hota tha, purane ka -amount nahi hota tha.
+- **Root cause:** `updatePO()` ka `alreadyReceived` ledger block sirf `UPDATE supplier_ledger SET amount WHERE po_id` karta tha — `supplier_id` nahi badalta tha. Trigger `fn_update_supplier_balance` (`COALESCE(NEW.supplier_id, OLD.supplier_id)`) sirf row ke (purane) supplier ko recompute karta → naya supplier untouched.
+- **Fix** ([purchase_order_remote_datasource.dart](lib/features/warehouse/purchase_invoice/data/datasource/purchase_order_remote_datasource.dart) `updatePO` alreadyReceived block):
+  1. Ledger `UPDATE` ab `supplier_id = @newSupplierId` bhi set karta hai (+ amount, same row id → **sync-safe**, `RETURNING id`) → trigger naye supplier ko +amount.
+  2. Supplier badla → **purane supplier ka balance explicitly recompute** (`UPDATE suppliers SET outstanding_balance = SUM(...) WHERE id = @oldSupplierId`) — trigger UPDATE par sirf `NEW.supplier_id` chhuta hai.
+  3. Edge: koi 'purchase' ledger row na ho → naye supplier ke liye INSERT (upsert fallback).
+- Amount = `remainingAmount` (baqaya) — fully-paid PO par kuch move nahi (sahi). `becomingReceived`/draft paths unaffected.
+
+### 4. Purchase Invoice — SubTotal → QTY auto (flip)
+> Pehle subTotal dene par **price** derive hoti thi (`price = subtotal/qty`). Ab **qty** derive hoti hai (`qty = subtotal/price`, price fix).
+- [purchase_invoice_provider.dart](lib/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart) — `customSubTotal` anchor mechanism wahi, sirf kya derive hota hai woh flip:
+  - `updateSubTotal` → `qty = subTotal / price` + `customSubTotal` set. Price ≤ 0 par no-op.
+  - `updatePurchasePrice` (subtotal anchor ON) → `qty = customSubTotal / newPrice` (subtotal preserve). Warna formula (`clearCustomSubTotal`).
+  - `updateQuantity` → hamesha `clearCustomSubTotal` (qty anchor).
+- [po_cart_row_widget.dart](lib/features/warehouse/purchase_invoice/presentation/widgets/purchase_invoice_widgets/po_cart_row_widget.dart) `_commitSub`: price ≤ 0 par subtotal revert + orange snackbar **"Pehle Purchase Price daalein"**.
+- Qty **exact decimal** (Option A, fractional allowed) — `subtotal, price, qty` teeno consistent. Reload/save consistent (qty saved, unitCost=price, totalCost=subtotal).
+
+---
+
 ## Project Path
 ```
 /Users/hashimkhan/Desktop/programming/jan_ghani_final/
@@ -828,5 +953,5 @@ Same file → `update()`: `qtyDiff = newQty − oldQty` != 0 → `adjustment` mo
 
 ## Schema Path
 ```
-/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.8.sql
+/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.9.sql
 ```

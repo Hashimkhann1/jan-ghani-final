@@ -13,6 +13,9 @@ import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/screens/warehouse_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/presentation/screens/warehouse_expense_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentation/screens/warehouse_finance_screen/warehouse_finance_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/data/model/warehouse_cash_request_model.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/widget/cash_request_dialog.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/presentation/screens/warehouse_reports_shell.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/screens/user_screen.dart';
@@ -214,6 +217,34 @@ class _SideBarState extends ConsumerState<SideBar> {
     }
   }
 
+  // Accountant se aayi pending cash request → warehouse ki KISI bhi screen ke
+  // top-right corner par non-blocking card (user peeche navigate kar sakta hai).
+  // Dedicated Cash Requests screen par suppress (wahan pehle se cards hain).
+  Widget _wrapWithCashCard(Widget child) {
+    final async = ref.watch(pendingCashRequestsProvider);
+    final onCashScreen = ref.watch(cashRequestsScreenActiveProvider);
+    final list = async.valueOrNull ?? const <WarehouseCashRequestModel>[];
+    final req = (list.isEmpty || onCashScreen) ? null : list.first;
+
+    return Stack(
+      children: [
+        child,
+        if (req != null)
+          Positioned(
+            top: 16,
+            right: 16,
+            child: SizedBox(
+              width: 380,
+              child: CashRequestCard(
+                key: ValueKey(req.id),
+                request: req,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
@@ -223,7 +254,7 @@ class _SideBarState extends ConsumerState<SideBar> {
 
     // Reports screen: no main sidebar — full width shell
     if (isReports) {
-      return Scaffold(
+      return _wrapWithCashCard(Scaffold(
         backgroundColor: _kBg,
         body: WarehouseReportsShell(
           onBack: () => setState(() {
@@ -231,11 +262,11 @@ class _SideBarState extends ConsumerState<SideBar> {
             _settingsOpen = false;
           }),
         ),
-      );
+      ));
     }
 
     // Normal layout: sidebar + content
-    return Scaffold(
+    return _wrapWithCashCard(Scaffold(
       backgroundColor: _kBg,
       body: Row(
         children: [
@@ -297,6 +328,6 @@ class _SideBarState extends ConsumerState<SideBar> {
           Expanded(child: currentItem.screen),
         ],
       ),
-    );
+    ));
   }
 }

@@ -17,6 +17,8 @@ class WarehouseFinanceState {
   final bool                      isLoading;
   final String?                   errorMessage;
   final String                    activeFilter;  // all / cash_in / purchase / supplier_payment / expense
+  final DateTime?                 fromDate;      // date filter — start (inclusive)
+  final DateTime?                 toDate;        // date filter — end (inclusive din)
 
   const WarehouseFinanceState({
     this.finance,
@@ -25,6 +27,8 @@ class WarehouseFinanceState {
     this.isLoading     = false,
     this.errorMessage,
     this.activeFilter  = 'all',
+    this.fromDate,
+    this.toDate,
   });
 
   // Filter apply karo
@@ -42,6 +46,8 @@ class WarehouseFinanceState {
     bool?                     isLoading,
     String?                   errorMessage,
     String?                   activeFilter,
+    DateTime?                 fromDate,
+    DateTime?                 toDate,
   }) {
     return WarehouseFinanceState(
       finance:      finance      ?? this.finance,
@@ -50,6 +56,8 @@ class WarehouseFinanceState {
       isLoading:    isLoading    ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
       activeFilter: activeFilter ?? this.activeFilter,
+      fromDate:     fromDate     ?? this.fromDate,
+      toDate:       toDate       ?? this.toDate,
     );
   }
 }
@@ -62,17 +70,38 @@ class WarehouseFinanceNotifier
   final WarehouseFinanceRepository _repo;
 
   WarehouseFinanceNotifier(this._repo)
-      : super(const WarehouseFinanceState()) {
+      : super(WarehouseFinanceState(
+          fromDate: _defaultFrom(), // default: last 30 din
+          toDate:   _today(),
+        )) {
     loadData();
   }
 
-  // ── Sab data load karo ───────────────────────────────────
+  // Date helpers (date-only, midnight)
+  static DateTime _today() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
+  }
+
+  static DateTime _defaultFrom() =>
+      _today().subtract(const Duration(days: 29)); // last 30 din (inclusive)
+
+  // ── Sab data load karo (date range ke saath) ─────────────
   Future<void> loadData() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
+      final from = state.fromDate ?? _defaultFrom();
+      final to   = state.toDate   ?? _today();
+
       final results = await Future.wait([
         _repo.getOrCreate(),
-        _repo.getTransactions(),
+        _repo.getTransactions(
+          fromDate: DateTime(from.year, from.month, from.day),
+          // pura "to" din shamil → agle din ki midnight se pehle
+          toDate: DateTime(to.year, to.month, to.day)
+              .add(const Duration(days: 1)),
+          limit: 1000,
+        ),
         _repo.getSummary(),
       ]);
 
@@ -93,6 +122,12 @@ class WarehouseFinanceNotifier
   // ── Filter change karo ───────────────────────────────────
   void onFilterChanged(String filter) =>
       state = state.copyWith(activeFilter: filter);
+
+  // ── Date range change → reload ───────────────────────────
+  void onDateRangeChanged(DateTime from, DateTime to) {
+    state = state.copyWith(fromDate: from, toDate: to);
+    loadData();
+  }
 
   // ── Cash In entry ────────────────────────────────────────
   Future<void> addCashIn({

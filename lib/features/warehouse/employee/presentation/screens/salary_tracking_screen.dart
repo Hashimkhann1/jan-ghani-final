@@ -335,14 +335,14 @@ class _EmployeeRow extends StatelessWidget {
                       DateFormat('dd MMM yyyy · hh:mm a')
                           .format(p.createdAt.toLocal()),
                       style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
-                  GestureDetector(
-                    onTap: () => onDeletePayment(p),
-                    child: const Padding(
-                      padding: EdgeInsets.only(left: 8),
-                      child: Icon(Icons.delete_outline_rounded,
-                          size: 15, color: AppColor.error),
-                    ),
-                  ),
+                  // GestureDetector(
+                  //   onTap: () => onDeletePayment(p),
+                  //   child: const Padding(
+                  //     padding: EdgeInsets.only(left: 8),
+                  //     child: Icon(Icons.delete_outline_rounded,
+                  //         size: 15, color: AppColor.error),
+                  //   ),
+                  // ),
                 ]),
               )),
         ],

@@ -712,6 +712,31 @@ class _CashCard extends StatelessWidget {
                   letterSpacing: -1,
                 )),
             const SizedBox(height: 6),
+            if ((amount?.cashReserved ?? 0) > 0) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color:        Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock_clock_rounded,
+                        color: Colors.white.withOpacity(0.9), size: 13),
+                    const SizedBox(width: 5),
+                    Text('Reserved  ${_fmt(amount?.cashReserved)}',
+                        style: const TextStyle(
+                          color:      Colors.white,
+                          fontSize:   12,
+                          fontWeight: FontWeight.w600,
+                        )),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             Row(children: [
               Icon(Icons.account_balance_wallet_rounded,
                   color: Colors.white.withOpacity(0.6), size: 13),

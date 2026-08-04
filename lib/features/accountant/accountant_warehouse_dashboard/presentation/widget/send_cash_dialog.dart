@@ -7,6 +7,7 @@ import '../../../accountant_all_warehouses/data/model/accountant_warehouse_model
 import '../../../accountant_all_warehouses/presentation/provider/accountant_warehouse_provider.dart';
 import '../../../accountant_cash_transfer/presentation/provider/cash_transfer_provider.dart';
 import '../../../accountant_cash_transfer/presentation/screen/cash_transfers_screen.dart';
+import '../../../dashboard/presentation/provider/dashboard_provider.dart';
 import '../provider/janghani_net_amount_provider.dart';
 
 // =============================================================
@@ -97,8 +98,10 @@ class _SendCashDialogState extends ConsumerState<SendCashDialog> {
             sentByName: (session?['name'] as String?) ?? 'Accountant',
           );
 
-      // List refresh
+      // List + balance refresh (send par cash minus + reserved barh gaya)
       ref.invalidate(myCashTransfersProvider);
+      ref.invalidate(janghaniCashInHandProvider);
+      ref.invalidate(janghaniAmountProvider);
 
       if (!mounted) return;
       Navigator.pop(context);

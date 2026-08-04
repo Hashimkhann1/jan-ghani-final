@@ -778,32 +778,105 @@ class PurchaseOrderRemoteDataSource {
           supplierId != null &&
           supplierId.isNotEmpty) {
         // ── Already-received PO edit: ledger/balance reconcile ──
-        // Pehle yeh case ledger/balance ko bilkul update nahi karta tha →
-        // supplier balance purane amount par atka reh jata tha.
+        // Pehle yeh case sirf amount SET karta tha, supplier_id ko haath nahi
+        // lagata tha → supplier CHANGE par:
+        //   • naye supplier ka balance +amount nahi hota tha
+        //   • purane supplier ka balance -amount nahi hota tha
         //
-        // Fix: existing 'purchase' ledger row ka amount ko PO ke naye
-        // remaining ke barabar SET karo (delete+insert NAHI — taake same id
-        // Supabase par upsert ho, koi orphan/duplicate nahi). Har edit par
-        // chalta hai, is liye purane out-of-sync POs bhi save karte hi
-        // khud-ba-khud durust ho jate hain (self-heal). Trigger
-        // fn_update_supplier_balance khud outstanding_balance = SUM(amount)
-        // recompute kar dega → koi double-count nahi.
-        await conn.execute(
+        // Fix: same 'purchase' ledger row ko naye supplier par shift + amount
+        // SET (delete+insert NAHI — same id, Supabase upsert clean, koi
+        // orphan/duplicate nahi). Trigger fn_update_supplier_balance UPDATE par
+        // sirf NEW.supplier_id recompute karta hai → naya supplier khud theek.
+        // Purane supplier ko trigger touch nahi karta → neeche uski balance
+        // explicitly recompute karte hain. Har edit par chalta hai →
+        // out-of-sync POs bhi save karte hi self-heal ho jate hain.
+        final oldSupplierId = oldPo?.supplierId;
+
+        // Naye supplier par shift + amount (RETURNING se pata chale row thi ya nahi)
+        final updatedLedger = await conn.execute(
           Sql.named('''
             UPDATE supplier_ledger
-            SET amount    = @amount,
-                is_synced = false
+            SET supplier_id = @supplierId,
+                amount      = @amount,
+                is_synced   = false
             WHERE po_id      = @poId
               AND entry_type = 'purchase'
+            RETURNING id
           '''),
           parameters: {
+            'supplierId': supplierId,
             'amount': remainingAmount,
             'poId': poId,
           },
         );
 
-        // balance_after column ko naye outstanding se refresh (trigger upar
-        // chal chuka, ab suppliers.outstanding_balance updated hai).
+        // Edge: is PO ki koi 'purchase' ledger row hi nahi thi → naye supplier
+        // ke liye bana do (warna uska balance na barhe).
+        if (updatedLedger.isEmpty) {
+          final balRes = await conn.execute(
+            Sql.named(
+              'SELECT outstanding_balance FROM suppliers WHERE id = @supplierId',
+            ),
+            parameters: {'supplierId': supplierId},
+          );
+          final curBal = balRes.isNotEmpty
+              ? _toDouble(balRes.first.toColumnMap()['outstanding_balance'])
+              : 0.0;
+
+          final poRow = await conn.execute(
+            Sql.named('SELECT po_number FROM purchase_orders WHERE id = @poId'),
+            parameters: {'poId': poId},
+          );
+          final poNumber = poRow.isNotEmpty
+              ? poRow.first.toColumnMap()['po_number']
+              : poId;
+
+          await conn.execute(
+            Sql.named('''
+              INSERT INTO supplier_ledger (
+                warehouse_id, supplier_id, po_id,
+                entry_type, amount, balance_before,
+                balance_after, notes, created_by
+              ) VALUES (
+                @warehouseId, @supplierId, @poId,
+                'purchase', @amount, @balanceBefore,
+                @balanceAfter, @notes, @createdBy
+              )
+            '''),
+            parameters: {
+              'warehouseId': warehouseId,
+              'supplierId': supplierId,
+              'poId': poId,
+              'amount': remainingAmount,
+              'balanceBefore': curBal,
+              'balanceAfter': curBal + remainingAmount,
+              'notes': 'PO $poNumber — purchase ledger (edit reconcile)',
+              'createdBy': updatedBy,
+            },
+          );
+        }
+
+        // Supplier badla → purane supplier ka balance explicitly recompute
+        // (trigger UPDATE par sirf naya supplier chhuta hai, purana nahi).
+        if (oldSupplierId != null &&
+            oldSupplierId.isNotEmpty &&
+            oldSupplierId != supplierId) {
+          await conn.execute(
+            Sql.named('''
+              UPDATE suppliers
+              SET outstanding_balance = (
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM supplier_ledger
+                    WHERE supplier_id = @oldSupplierId
+                  ),
+                  is_synced = false
+              WHERE id = @oldSupplierId
+            '''),
+            parameters: {'oldSupplierId': oldSupplierId},
+          );
+        }
+
+        // balance_after column ko naye supplier ke updated outstanding se refresh.
         await conn.execute(
           Sql.named('''
             UPDATE supplier_ledger sl

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
@@ -22,14 +24,25 @@ final pendingCashRequestsProvider =
           .toList());
 });
 
+// ── Dedicated Cash Requests screen abhi khuli hai? ───────────────────────────
+// Screen initState par true, dispose par false. SideBar ka global listener
+// isko dekh kar usi screen par dobara global dialog nahi dikhata (wahan
+// pehle se cards mojood hote hain).
+final cashRequestsScreenActiveProvider = StateProvider<bool>((ref) => false);
+
 // ── Accept / Reject actions ──────────────────────────────────────────────────
 final cashRequestActionProvider = Provider((ref) => CashRequestAction());
 
 class CashRequestAction {
   final _client = Supabase.instance.client;
 
+  // Offline mein Supabase HTTP client throw nahi karta — HANG karta hai,
+  // isliye status update par timeout zaroori (warna Accept/Reject button
+  // hamesha atka rehta). assign_stock jaisa 6s pattern.
+  static const _kRemoteTimeout = Duration(seconds: 6);
+
   // ── ACCEPT ──────────────────────────────────────────────────
-  // 1) Supabase status = accepted (guarded) → trigger accountant cash minus
+  // 1) Supabase status = accepted (guarded) → trigger reserve release
   // 2) Local warehouse_cash_transactions cash_in → local cash_in_hand plus,
   //    is_synced = false (baad mein Supabase sync ho jayega)
   Future<void> accept(WarehouseCashRequestModel req) async {
@@ -39,23 +52,13 @@ class CashRequestAction {
         user?['name']?.toString() ??
         'Warehouse';
 
-    // Step 1: Supabase status update (sirf agar abhi bhi pending hai)
-    final updated = await _client
-        .from('janghani_warehouse_cash_transfers')
-        .update({
-          'status':            'accepted',
-          'responded_by_id':   userId,
-          'responded_by_name': userName,
-          'responded_at':      DateTime.now().toIso8601String(),
-        })
-        .eq('id', req.id)
-        .eq('status', 'pending')
-        .select();
-
-    // Agar koi row update nahi hui (already accept/reject) to ruk jao
-    if ((updated as List).isEmpty) {
-      throw Exception('Yeh request pehle hi process ho chuki hai');
-    }
+    // Step 1: Supabase status update (guarded + offline-safe)
+    await _updateStatusGuarded(
+      req: req,
+      status: 'accepted',
+      userId: userId,
+      userName: userName,
+    );
 
     // Step 2: Local cash in hand barhao (trigger + sync handle karega)
     await WarehouseFinanceRepository.instance.addCashIn(
@@ -68,7 +71,8 @@ class CashRequestAction {
   }
 
   // ── REJECT ──────────────────────────────────────────────────
-  // Sirf status = rejected. Accountant ka cash minus hua hi nahi tha.
+  // Status = rejected (guarded). Trigger reserve release karega +
+  // accountant ka reserved cash wapas cash_in_hand mein plus karega.
   Future<void> reject(WarehouseCashRequestModel req) async {
     final user = await AuthLocalStorage.loadUser();
     final userId   = user?['id']?.toString();
@@ -76,15 +80,64 @@ class CashRequestAction {
         user?['name']?.toString() ??
         'Warehouse';
 
-    await _client
-        .from('janghani_warehouse_cash_transfers')
-        .update({
-          'status':            'rejected',
-          'responded_by_id':   userId,
-          'responded_by_name': userName,
-          'responded_at':      DateTime.now().toIso8601String(),
-        })
-        .eq('id', req.id)
-        .eq('status', 'pending');
+    await _updateStatusGuarded(
+      req: req,
+      status: 'rejected',
+      userId: userId,
+      userName: userName,
+    );
+  }
+
+  // ── Shared: status update (pending-guard + timeout + network detect) ──
+  // Sirf tab update karta hai jab row abhi bhi 'pending' ho → trigger
+  // exactly-once fire hota hai. Offline/timeout par friendly error, koi hang nahi.
+  Future<void> _updateStatusGuarded({
+    required WarehouseCashRequestModel req,
+    required String status,
+    required String? userId,
+    required String userName,
+  }) async {
+    List updated;
+    try {
+      updated = await _client
+          .from('janghani_warehouse_cash_transfers')
+          .update({
+            'status':            status,
+            'responded_by_id':   userId,
+            'responded_by_name': userName,
+            'responded_at':      DateTime.now().toIso8601String(),
+          })
+          .eq('id', req.id)
+          .eq('status', 'pending')
+          .select()
+          .timeout(_kRemoteTimeout) as List;
+    } on TimeoutException {
+      throw Exception('Internet nahi — online hokar dobara koshish karein');
+    } catch (e) {
+      if (_isNetworkError(e)) {
+        throw Exception('Internet nahi — online hokar dobara koshish karein');
+      }
+      rethrow;
+    }
+
+    // Koi row update nahi hui → already accept/reject ho chuki
+    if (updated.isEmpty) {
+      throw Exception('Yeh request pehle hi process ho chuki hai');
+    }
+  }
+
+  // Internet/connection error detect (SocketException, host lookup fail, etc.)
+  bool _isNetworkError(Object e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('socketexception') ||
+        s.contains('failed host lookup') ||
+        s.contains('clientexception') ||
+        s.contains('nodename nor servname') ||
+        s.contains('network is unreachable') ||
+        s.contains('connection closed') ||
+        s.contains('connection refused') ||
+        s.contains('connection timed out') ||
+        s.contains('errno = 8') ||
+        s.contains('errno = 7');
   }
 }

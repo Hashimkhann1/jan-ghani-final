@@ -223,7 +223,7 @@ class _Body extends StatelessWidget {
             const SizedBox(height: 16),
 
 
-            // Transactions heading
+            // Transactions heading + date range filter
             Row(
               children: [
                 const Text(
@@ -235,6 +235,14 @@ class _Body extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
+                _DateRangeField(
+                  from: state.fromDate ?? DateTime.now(),
+                  to:   state.toDate   ?? DateTime.now(),
+                  onChanged: (f, t) => ref
+                      .read(warehouseFinanceProvider.notifier)
+                      .onDateRangeChanged(f, t),
+                ),
+                const SizedBox(width: 12),
                 Text(
                   '${state.filteredTransactions.length} entries',
                   style: const TextStyle(
@@ -393,6 +401,72 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// DATE RANGE FIELD  (default: last 30 days)
+// ─────────────────────────────────────────────────────────────
+class _DateRangeField extends StatelessWidget {
+  final DateTime from;
+  final DateTime to;
+  final void Function(DateTime from, DateTime to) onChanged;
+
+  const _DateRangeField({
+    required this.from,
+    required this.to,
+    required this.onChanged,
+  });
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Future<void> _pick(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context:          context,
+      initialDateRange: DateTimeRange(start: from, end: to),
+      firstDate:        DateTime(2020),
+      lastDate:         DateTime(now.year, now.month, now.day), // aaj tak
+      helpText:         'Select date range',
+      saveText:         'Apply',
+    );
+    if (picked != null) onChanged(picked.start, picked.end);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap:        () => _pick(context),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color:        Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border:       Border.all(color: AppColor.grey200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.date_range_rounded,
+                size: 16, color: AppColor.textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              '${_fmt(from)}  –  ${_fmt(to)}',
+              style: const TextStyle(
+                fontSize:   13,
+                fontWeight: FontWeight.w600,
+                color:      AppColor.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: AppColor.textSecondary),
+          ],
+        ),
       ),
     );
   }

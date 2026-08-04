@@ -677,79 +677,13 @@ class _CategoryFilterDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final validIds = categories.map((c) => c.id).toSet();
-    final safeValue = (selectedCategoryId != 'all' &&
-        validIds.contains(selectedCategoryId))
-        ? selectedCategoryId
-        : 'all';
-
-    final isFiltered = safeValue != 'all'; // ✅ check
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // ── Dropdown ──────────────────────────────────
-        Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isFiltered
-                  ? const Color(0xFF6366F1) // selected ho to purple border
-                  : const Color(0xFF5BDD5B),
-              width: 1.3
-            ),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: safeValue,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 18, color: Color(0xFF6C7280)),
-              style: const TextStyle(
-                  fontSize: 13, color: Color(0xFF1A1D23)),
-              items: [
-                const DropdownMenuItem(
-                  value: 'all',
-                  child: Text('All Categories',
-                      style: TextStyle(fontSize: 15,fontWeight: FontWeight.w500, color: Color(
-                          0xFF717275))),
-                ),
-                ...categories.map((c) => DropdownMenuItem(
-                  value: c.id,
-                  child: Text(c.name,style: TextStyle(fontSize: 15,fontWeight: FontWeight.w500),),
-                )),
-              ],
-              onChanged: (v) => onChanged(v ?? 'all'),
-            ),
-          ),
-        ),
-
-        // ── Clear button — sirf tab dikhega jab filtered ho ──
-        if (isFiltered) ...[
-          const SizedBox(width: 6),
-          Tooltip(
-            message: 'All products show karo',
-            child: InkWell(
-              onTap: () => onChanged('all'), // ✅ ek click mein reset
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                height: 42,
-                width: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: const Color(0xFF6366F1).withOpacity(0.3)),
-                ),
-                child: const Icon(Icons.close_rounded,
-                    size: 16, color: Color(0xFF6366F1)),
-              ),
-            ),
-          ),
-        ],
-      ],
+    return _SearchableFilterDropdown(
+      allLabel:    'All Categories',
+      items:       categories.map((c) => (id: c.id, name: c.name)).toList(),
+      selectedId:  selectedCategoryId,
+      onChanged:   onChanged,
+      activeColor: const Color(0xFF6366F1),
+      clearBg:     const Color(0xFFEEF2FF),
     );
   }
 }
@@ -768,78 +702,296 @@ class _CompanyFilterDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final validIds = companies.map((c) => c.id).toSet();
-    final safeValue = (selectedCompanyId != 'all' &&
-            validIds.contains(selectedCompanyId))
-        ? selectedCompanyId
-        : 'all';
+    return _SearchableFilterDropdown(
+      allLabel:    'All Companies',
+      items:       companies.map((c) => (id: c.id, name: c.name)).toList(),
+      selectedId:  selectedCompanyId,
+      onChanged:   onChanged,
+      activeColor: const Color(0xFF16A34A),
+      clearBg:     const Color(0xFFF0FDF4),
+    );
+  }
+}
 
+// ── Searchable Filter Dropdown (Category + Company shared) ─────
+// Tap par anchored menu: autofocus search field + filtered list.
+// Package-free (showMenu). Closed field ka look purane dropdown jaisa.
+class _SearchableFilterDropdown extends StatefulWidget {
+  final String                            allLabel;   // "All Categories"/"All Companies"
+  final List<({String id, String name})>  items;
+  final String                            selectedId; // 'all' ya id
+  final ValueChanged<String>              onChanged;
+  final Color                             activeColor; // filtered border/check
+  final Color                             clearBg;
+
+  const _SearchableFilterDropdown({
+    required this.allLabel,
+    required this.items,
+    required this.selectedId,
+    required this.onChanged,
+    required this.activeColor,
+    required this.clearBg,
+  });
+
+  @override
+  State<_SearchableFilterDropdown> createState() =>
+      _SearchableFilterDropdownState();
+}
+
+class _SearchableFilterDropdownState extends State<_SearchableFilterDropdown> {
+  final _fieldKey = GlobalKey();
+
+  Future<void> _openMenu() async {
+    final ctx = _fieldKey.currentContext;
+    if (ctx == null) return;
+    final box        = ctx.findRenderObject() as RenderBox;
+    final overlayBox = Overlay.of(ctx).context.findRenderObject() as RenderBox;
+    final topLeft    = box.localToGlobal(Offset.zero, ancestor: overlayBox);
+    final size       = box.size;
+
+    final position = RelativeRect.fromLTRB(
+      topLeft.dx,
+      topLeft.dy + size.height + 4,
+      overlayBox.size.width - (topLeft.dx + size.width),
+      0,
+    );
+
+    final picked = await showMenu<String>(
+      context:  ctx,
+      position: position,
+      color:    Colors.white,
+      elevation: 8,
+      constraints: BoxConstraints.tightFor(
+          width: size.width < 240 ? 240 : size.width),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      items: [
+        PopupMenuItem<String>(
+          enabled: false,
+          padding: EdgeInsets.zero,
+          child: _MenuSearchBody(
+            allLabel:    widget.allLabel,
+            items:       widget.items,
+            selectedId:  widget.selectedId,
+            activeColor: widget.activeColor,
+            onPick:      (v) => Navigator.pop(ctx, v),
+          ),
+        ),
+      ],
+    );
+
+    if (picked != null) widget.onChanged(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final validIds = widget.items.map((e) => e.id).toSet();
+    final safeValue = (widget.selectedId != 'all' &&
+            validIds.contains(widget.selectedId))
+        ? widget.selectedId
+        : 'all';
     final isFiltered = safeValue != 'all';
+    final label = isFiltered
+        ? widget.items.firstWhere((e) => e.id == safeValue).name
+        : widget.allLabel;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-                color: isFiltered
-                    ? const Color(0xFF16A34A)
-                    : const Color(0xFF5BDD5B),
-                width: 1.3),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: safeValue,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 18, color: Color(0xFF6C7280)),
-              style: const TextStyle(fontSize: 13, color: Color(0xFF1A1D23)),
-              items: [
-                const DropdownMenuItem(
-                  value: 'all',
-                  child: Text('All Companies',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF717275))),
+        // ── Closed field (tap → searchable menu) ──
+        InkWell(
+          onTap: _openMenu,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            key: _fieldKey,
+            height: 46,
+            width: 175,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isFiltered ? widget.activeColor : const Color(0xFF5BDD5B),
+                width: 1.3,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: isFiltered
+                          ? const Color(0xFF1A1D23)
+                          : const Color(0xFF717275),
+                    ),
+                  ),
                 ),
-                ...companies.map((c) => DropdownMenuItem(
-                      value: c.id,
-                      child: Text(c.name,
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w500)),
-                    )),
+                const Icon(Icons.keyboard_arrow_down_rounded,
+                    size: 18, color: Color(0xFF6C7280)),
               ],
-              onChanged: (v) => onChanged(v ?? 'all'),
             ),
           ),
         ),
+
+        // ── Clear button — sirf filtered hone par ──
         if (isFiltered) ...[
           const SizedBox(width: 6),
           Tooltip(
             message: 'All products show karo',
             child: InkWell(
-              onTap: () => onChanged('all'),
+              onTap: () => widget.onChanged('all'),
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 42,
                 width: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: widget.clearBg,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: const Color(0xFF16A34A).withOpacity(0.3)),
+                  border: Border.all(color: widget.activeColor.withOpacity(0.3)),
                 ),
-                child: const Icon(Icons.close_rounded,
-                    size: 16, color: Color(0xFF16A34A)),
+                child: Icon(Icons.close_rounded,
+                    size: 16, color: widget.activeColor),
               ),
             ),
           ),
         ],
       ],
+    );
+  }
+}
+
+// ── Menu body: autofocus search + filtered list ───────────────
+class _MenuSearchBody extends StatefulWidget {
+  final String                            allLabel;
+  final List<({String id, String name})>  items;
+  final String                            selectedId;
+  final Color                             activeColor;
+  final ValueChanged<String>              onPick;
+
+  const _MenuSearchBody({
+    required this.allLabel,
+    required this.items,
+    required this.selectedId,
+    required this.activeColor,
+    required this.onPick,
+  });
+
+  @override
+  State<_MenuSearchBody> createState() => _MenuSearchBodyState();
+}
+
+class _MenuSearchBodyState extends State<_MenuSearchBody> {
+  final _ctrl = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _q.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? widget.items
+        : widget.items
+            .where((e) => e.name.toLowerCase().contains(q))
+            .toList();
+
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Search field (autofocus) ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+            child: TextField(
+              controller: _ctrl,
+              autofocus: true,
+              onChanged: (v) => setState(() => _q = v),
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Search...',
+                prefixIcon: const Icon(Icons.search_rounded,
+                    size: 18, color: Color(0xFF9CA3AF)),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: widget.activeColor, width: 1.3),
+                ),
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          // ── Options list ──
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 260),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              shrinkWrap: true,
+              children: [
+                if (q.isEmpty)
+                  _row(id: 'all', name: widget.allLabel, isAll: true),
+                ...filtered.map((e) => _row(id: e.id, name: e.name)),
+                if (filtered.isEmpty && q.isNotEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 18),
+                    child: Center(
+                      child: Text('Kuch nahi mila',
+                          style: TextStyle(
+                              fontSize: 13, color: Color(0xFF9CA3AF))),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row({required String id, required String name, bool isAll = false}) {
+    final selected = widget.selectedId == id;
+    return InkWell(
+      onTap: () => widget.onPick(id),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        color: selected ? const Color(0xFFF3F4F6) : null,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isAll
+                      ? const Color(0xFF717275)
+                      : const Color(0xFF1A1D23),
+                ),
+              ),
+            ),
+            if (selected)
+              Icon(Icons.check_rounded, size: 16, color: widget.activeColor),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -878,7 +1030,7 @@ class _SearchFieldState extends State<_SearchField> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 500,
+      width: 400,
       height: 46,
       child: TextFormField(
         controller: _ctrl,

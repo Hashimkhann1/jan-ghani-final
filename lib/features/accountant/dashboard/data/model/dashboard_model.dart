@@ -1,11 +1,16 @@
 class JanghaniAmountModel {
   final double cashInHand;
+  final double cashReserved;
 
-  const JanghaniAmountModel({required this.cashInHand});
+  const JanghaniAmountModel({
+    required this.cashInHand,
+    this.cashReserved = 0,
+  });
 
   factory JanghaniAmountModel.fromMap(Map<String, dynamic> map) {
     return JanghaniAmountModel(
-      cashInHand: (map['cash_in_hand'] as num?)?.toDouble() ?? 0,
+      cashInHand:   (map['cash_in_hand'] as num?)?.toDouble() ?? 0,
+      cashReserved: (map['cash_reserved'] as num?)?.toDouble() ?? 0,
     );
   }
 }

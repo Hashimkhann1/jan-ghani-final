@@ -69,15 +69,20 @@ class WarehouseFinanceRepository {
   // 2. Cash transactions list lo
   // ─────────────────────────────────────────────────────────
   Future<List<CashTransactionModel>> getTransactions({
-    String? entryType,
-    int     limit = 50,
+    String?   entryType,
+    int       limit = 50,
+    DateTime? fromDate,   // inclusive lower bound (created_at >= fromDate)
+    DateTime? toDate,     // exclusive upper bound (created_at <  toDate)
   }) async {
     final conn = await _db;
 
-    // Sql.named() mein Dart interpolation nahi chalti —
-    // alag queries use karo filter ke liye
-    final sql = entryType != null
-        ? '''
+    // WHERE conditions dynamically build karo (Sql.named + named params)
+    final where = StringBuffer('WHERE ct.warehouse_id = @wid');
+    if (entryType != null) where.write('\n            AND ct.entry_type = @entryType');
+    if (fromDate  != null) where.write('\n            AND ct.created_at >= @fromDate');
+    if (toDate    != null) where.write('\n            AND ct.created_at <  @toDate');
+
+    final sql = '''
           SELECT
             ct.id, ct.warehouse_id, ct.entry_type, ct.amount,
             ct.cash_in_hand_before, ct.cash_in_hand_after,
@@ -89,24 +94,7 @@ class WarehouseFinanceRepository {
           LEFT JOIN suppliers s
             ON s.id = ct.reference_id
            AND ct.entry_type = 'supplier_payment'
-          WHERE ct.warehouse_id = @wid
-            AND ct.entry_type   = @entryType
-          ORDER BY ct.created_at DESC
-          LIMIT @limit
-        '''
-        : '''
-          SELECT
-            ct.id, ct.warehouse_id, ct.entry_type, ct.amount,
-            ct.cash_in_hand_before, ct.cash_in_hand_after,
-            ct.reference_id, ct.notes, ct.created_by,
-            ct.created_by_name, ct.created_at,
-            ct.sync_id, ct.is_synced, ct.synced_at,
-            s.name AS supplier_name
-          FROM warehouse_cash_transactions ct
-          LEFT JOIN suppliers s
-            ON s.id = ct.reference_id
-           AND ct.entry_type = 'supplier_payment'
-          WHERE ct.warehouse_id = @wid
+          $where
           ORDER BY ct.created_at DESC
           LIMIT @limit
         ''';
@@ -114,9 +102,11 @@ class WarehouseFinanceRepository {
     final result = await conn.execute(
       Sql.named(sql),
       parameters: {
-        'wid':                                   _wid,
+        'wid':                             _wid,
         if (entryType != null) 'entryType': entryType,
-        'limit':                                 limit,
+        if (fromDate  != null) 'fromDate':  fromDate,
+        if (toDate    != null) 'toDate':    toDate,
+        'limit':                           limit,
       },
     );
 
