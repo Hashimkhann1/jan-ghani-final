@@ -84,23 +84,23 @@ class MockWarehouseFinanceRepository extends _i1.Mock
         )),
       ) as _i4.Future<_i2.WarehouseFinanceModel>);
 
-  @override
-  _i4.Future<List<_i2.CashTransactionModel>> getTransactions({
-    String? entryType,
-    int? limit = 50,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getTransactions,
-          [],
-          {
-            #entryType: entryType,
-            #limit: limit,
-          },
-        ),
-        returnValue: _i4.Future<List<_i2.CashTransactionModel>>.value(
-            <_i2.CashTransactionModel>[]),
-      ) as _i4.Future<List<_i2.CashTransactionModel>>);
+  // @override
+  // _i4.Future<List<_i2.CashTransactionModel>> getTransactions({
+  //   String? entryType,
+  //   int? limit = 50,
+  // }) =>
+  //     (super.noSuchMethod(
+  //       Invocation.method(
+  //         #getTransactions,
+  //         [],
+  //         {
+  //           #entryType: entryType,
+  //           #limit: limit,
+  //         },
+  //       ),
+  //       returnValue: _i4.Future<List<_i2.CashTransactionModel>>.value(
+  //           <_i2.CashTransactionModel>[]),
+  //     ) as _i4.Future<List<_i2.CashTransactionModel>>);
 
   @override
   _i4.Future<_i2.CashTransactionModel> addCashIn({
