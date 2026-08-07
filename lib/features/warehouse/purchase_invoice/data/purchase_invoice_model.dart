@@ -81,6 +81,7 @@ class PoSupplier {
 
   String get initials => name
       .split(' ')
+      .where((w) => w.isNotEmpty) // empty words skip (double/leading space se crash bachao)
       .take(2)
       .map((w) => w[0])
       .join()
