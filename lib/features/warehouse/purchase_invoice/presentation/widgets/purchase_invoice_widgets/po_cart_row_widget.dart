@@ -166,9 +166,10 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
   void _commitSub() {
     final val = double.tryParse(_subCtrl.text.trim());
     if (val != null && val >= 0) {
-      // SubTotal se qty derive hoti hai (qty = subTotal / price).
-      // Price 0/khali ho to derive nahi ho sakti → message + revert.
-      if (widget.cartItem.purchasePrice <= 0) {
+      // Continuous unit (kg/liter/...): qty = subTotal / price → price zaroori.
+      // Countable (pcs/...): price = subTotal / qty → price ki zaroorat nahi.
+      if (widget.cartItem.product.isContinuousUnit &&
+          widget.cartItem.purchasePrice <= 0) {
         _subCtrl.text = _fmtPrice(widget.cartItem.subTotal); // revert
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()

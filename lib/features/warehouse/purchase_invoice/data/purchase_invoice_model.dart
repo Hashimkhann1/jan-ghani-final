@@ -107,6 +107,7 @@ class PoProduct {
   final double purchasePrice;
   final double salePrice;
   final double stock;
+  final String unitOfMeasure; // pcs / kg / liter ... (default pcs)
 
   const PoProduct({
     required this.id,
@@ -116,7 +117,24 @@ class PoProduct {
     required this.purchasePrice,
     required this.salePrice,
     required this.stock,
+    this.unitOfMeasure = 'pcs',
   });
+
+  // Continuous (weight/volume/length) → subTotal se QTY auto-derive (decimal ok).
+  // Countable (pcs/box/pack/dozen/bottle/carton) → qty + subtotal independent
+  // (subTotal se PRICE derive, qty user-controlled — koi fractional qty nahi).
+  bool get isContinuousUnit {
+    switch (unitOfMeasure.toLowerCase()) {
+      case 'kg':
+      case 'g':
+      case 'liter':
+      case 'ml':
+      case 'meter':
+        return true;
+      default:
+        return false;
+    }
+  }
 }
 
 // ── Purchase Cart Item ────────────────────────────────────────

@@ -78,6 +78,7 @@ class PoProductListPanel extends ConsumerWidget {
                       purchasePrice: product.purchasePrice,
                       salePrice:     product.sellingPrice,
                       stock:         product.quantity,
+                      unitOfMeasure: product.unitOfMeasure,
                     );
                     poNotifier.addToCart(poProduct);
                   },

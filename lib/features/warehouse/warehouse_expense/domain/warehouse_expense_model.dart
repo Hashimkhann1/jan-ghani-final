@@ -77,7 +77,6 @@ class ExpenseStats {
 const kExpenseQuickSelect = [
   'Rent',
   'Bills',
-  'Salary',
   'Transport',
   'Maintenance',
   'Grocery',

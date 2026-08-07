@@ -228,15 +228,20 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                     ),
                     const SizedBox(height: 4),
                     DropdownSearch<PoSupplier>(
+                      // Suppliers async load hoti hain (local DB). Jab list
+                      // 0 → N par aaye to dropdown fresh recreate ho taake
+                      // empty-filter (pehli baar khulne par) bhi populated
+                      // list dikhaye — warna slow machine par grey reh jata tha.
+                      key: ValueKey(state.suppliers.length),
                       items: (f, _) => state.suppliers,
-                      // Naam + company + phone teeno par search (list mein
-                      // company prominent dikhti hai, isliye sirf name par
-                      // match karne se "No Data" aata tha)
+                      // Prefix search — jo typed text se SHURU ho (name/
+                      // company/phone). Empty query par sab dikhte hain
+                      // (startsWith('') == true).
                       filterFn: (s, f) {
                         final q = f.toLowerCase().trim();
-                        return s.name.toLowerCase().contains(q) ||
-                            s.company.toLowerCase().contains(q) ||
-                            s.phone.toLowerCase().contains(q);
+                        return s.name.toLowerCase().startsWith(q) ||
+                            s.company.toLowerCase().startsWith(q) ||
+                            s.phone.toLowerCase().startsWith(q);
                       },
                       selectedItem: state.selectedSupplier,
                       compareFn: (a, b) => a.id == b.id,

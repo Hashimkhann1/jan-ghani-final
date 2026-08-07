@@ -4,6 +4,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 
 class AssignStockCartSummary extends ConsumerWidget {
   const AssignStockCartSummary({super.key});
@@ -751,6 +752,12 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                         if (context.mounted) {
                           Navigator.of(context).pop();
                           if (success) {
+                            // Transfer ke baad products reload — reserved/
+                            // available qty inventory + assign dono screen par
+                            // foran update (manual refresh/restart ki zaroorat nahi).
+                            ref
+                                .read(productProvider.notifier)
+                                .loadProducts();
                             // Offline save hua to alag (info) message —
                             // transfer local mein safe hai, internet aate hi
                             // background sync store tak push kar degi.

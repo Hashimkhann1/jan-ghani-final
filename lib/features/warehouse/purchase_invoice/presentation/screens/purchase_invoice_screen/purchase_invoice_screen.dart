@@ -38,6 +38,12 @@ class _PurchaseInvoiceScreenState
   void initState() {
     super.initState();
 
+    // Suppliers jaldi load karo taake supplier dropdown khulte hi ready ho
+    // (warna slow machine par empty-filter par grey/empty reh jata tha).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(supplierProvider.notifier).loadSuppliers();
+    });
+
     // Edit mode: pehle frame ke baad data load karo
     if (widget.existingOrder != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
