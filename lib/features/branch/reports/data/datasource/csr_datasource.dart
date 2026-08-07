@@ -59,7 +59,7 @@ class CsrDatasource {
     if (invoiceResult.isEmpty) return [];
 
     final invoiceIds =
-    invoiceResult.map((r) => r.toColumnMap()['id'].toString()).toList();
+        invoiceResult.map((r) => r.toColumnMap()['id'].toString()).toList();
 
     final itemsResult = await conn.execute(
       Sql.named('''
@@ -174,7 +174,7 @@ class CsrDatasource {
     if (returnResult.isEmpty) return [];
 
     final returnIds =
-    returnResult.map((r) => r.toColumnMap()['id'].toString()).toList();
+        returnResult.map((r) => r.toColumnMap()['id'].toString()).toList();
 
     final itemsResult = await conn.execute(
       Sql.named('''
@@ -236,6 +236,72 @@ class CsrDatasource {
     }).toList();
   }
 
+  // ── Ledger Payments ───────────────────────────────────────
+  Future<List<CsrEntry>> getLedgerPayments({
+    required String storeId,
+    required DateTime fromDate,
+    required DateTime toDate,
+    required String customerId,
+  }) async {
+    final conn = await DataBaseService.getConnection();
+
+    final result = await conn.execute(
+      Sql.named('''
+        SELECT
+          cl.id,
+          cl.customer_name,
+          cl.previous_amount,
+          cl.pay_amount,
+          cl.new_amount,
+          cl.notes,
+          cl.created_at,
+          cl.counter_id,
+          co.counter_name,
+          bu.full_name AS cashier_name
+        FROM public.customer_ledger cl
+        LEFT JOIN public.branch_counter co ON co.id = cl.counter_id
+        LEFT JOIN public.branch_users   bu ON bu.id = cl.user_id
+        WHERE cl.store_id        = @storeId::uuid
+          AND cl.customer_id     = @customerId::uuid
+          AND cl.deleted_at      IS NULL
+          AND cl.created_at::date >= @fromDate
+          AND cl.created_at::date <= @toDate
+        ORDER BY cl.created_at DESC
+      '''),
+      parameters: {
+        'storeId': storeId,
+        'customerId': customerId,
+        'fromDate': fromDate.toIso8601String().substring(0, 10),
+        'toDate': toDate.toIso8601String().substring(0, 10),
+      },
+    );
+
+    return result.map((row) {
+      final m = row.toColumnMap();
+      final payAmt = _dbl(m['pay_amount']) ?? 0;
+      return CsrEntry(
+        id: 'ledger_${m['id']}', // prefix se sale IDs se clash nahi hoga
+        type: CsrType.ledgerPayment,
+        invoiceNo: 'PMT-${m['id'].toString().substring(0, 8).toUpperCase()}',
+        invoiceDate: m['created_at'] is DateTime
+            ? m['created_at'] as DateTime
+            : DateTime.tryParse(m['created_at'].toString()) ?? DateTime.now(),
+        notes: m['notes']?.toString(),
+        previousAmount: _dbl(m['previous_amount']) ?? 0,
+        payAmount: payAmt,
+        newAmount: _dbl(m['new_amount']) ?? 0,
+        status: 'completed',
+        totalAmount: payAmt,
+        totalDiscount: 0,
+        grandTotal: payAmt,
+        customerName: m['customer_name']?.toString(),
+        counterName: m['counter_name']?.toString(),
+        cashierName: m['cashier_name']?.toString(),
+        items: const [],
+      );
+    }).toList();
+  }
+
   // ── Combined ──────────────────────────────────────────────
   Future<List<CsrEntry>> getAll({
     required String storeId,
@@ -254,9 +320,14 @@ class CsrDatasource {
           fromDate: fromDate,
           toDate: toDate,
           customerId: customerId),
+      getLedgerPayments(
+          storeId: storeId,
+          fromDate: fromDate,
+          toDate: toDate,
+          customerId: customerId),
     ]);
 
-    final all = [...results[0], ...results[1]];
+    final all = [...results[0], ...results[1], ...results[2]];
     all.sort((a, b) => b.entryDate.compareTo(a.entryDate));
     return all;
   }

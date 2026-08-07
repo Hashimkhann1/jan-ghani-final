@@ -48,20 +48,20 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
   }
 
   Future<DateTime?> _pickDate(DateTime initial) => showDatePicker(
-    context: context,
-    initialDate: initial,
-    firstDate: DateTime(2024),
-    lastDate: DateTime.now().add(const Duration(days: 1)),
-    builder: (ctx, child) => Theme(
-      data: Theme.of(ctx).copyWith(
-        colorScheme: const ColorScheme.light(
-          primary: AppColor.primary,
-          onPrimary: Colors.white,
+        context: context,
+        initialDate: initial,
+        firstDate: DateTime(2024),
+        lastDate: DateTime.now().add(const Duration(days: 1)),
+        builder: (ctx, child) => Theme(
+          data: Theme.of(ctx).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColor.primary,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
         ),
-      ),
-      child: child!,
-    ),
-  );
+      );
 
   Future<void> _onStartDateTap() async {
     final state = ref.read(csrProvider);
@@ -80,7 +80,6 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
       ref.read(csrProvider.notifier).setDateRange(state.fromDate, picked);
     }
   }
-
 
   // ── Print All ────────────────────────────────────────────
   Future<void> _printAll() async {
@@ -118,9 +117,6 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
     _showSnack('Printing...', AppColor.primary);
     final auth = ref.read(authProvider);
     final branch = await ref.read(branchProvider(auth.storeId).future);
-    print("Branch name : ${branch?.name}");
-    print("phone : ${branch?.phone}");
-    print("address : ${branch?.address}");
     await CsrPrintService.printSingleEntry(
       storeName: branch?.name ?? '',
       branchAddress: branch?.address ?? '',
@@ -161,8 +157,8 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                     size: 15, color: AppColor.primary),
                 filled: true,
                 fillColor: AppColor.grey100,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -170,7 +166,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide:
-                  const BorderSide(color: AppColor.primary, width: 1.2),
+                      const BorderSide(color: AppColor.primary, width: 1.2),
                 ),
               ),
             ),
@@ -192,10 +188,10 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
         icon: Icons.people_outline_rounded,
       ),
       ...customers.map((c) => DropdownItem<String?>(
-        value: c.id,
-        label: c.name,
-        icon: Icons.person_outline_rounded,
-      )),
+            value: c.id,
+            label: c.name,
+            icon: Icons.person_outline_rounded,
+          )),
     ];
 
     ref.listen<CsrState>(csrProvider, (_, next) {
@@ -205,7 +201,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
           backgroundColor: AppColor.error,
           behavior: SnackBarBehavior.floating,
           shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           action: SnackBarAction(
             label: 'OK',
             textColor: Colors.white,
@@ -226,7 +222,6 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         actions: [
-          // ── Print All Button ─────────────────────────────
           if (state.hasCustomer && state.filteredEntries.isNotEmpty)
             IconButton(
               onPressed: _printAll,
@@ -239,7 +234,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',
             style:
-            IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
+                IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 12),
         ],
@@ -283,7 +278,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                     child: TextField(
                       controller: _searchCtrl,
                       onChanged:
-                      ref.read(csrProvider.notifier).onSearchChanged,
+                          ref.read(csrProvider.notifier).onSearchChanged,
                       style: const TextStyle(fontSize: 13),
                       cursorHeight: 14,
                       decoration: InputDecoration(
@@ -294,15 +289,15 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                             size: 18, color: AppColor.grey400),
                         suffixIcon: _searchCtrl.text.isNotEmpty
                             ? IconButton(
-                          icon: const Icon(Icons.clear,
-                              size: 16, color: AppColor.grey400),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            ref
-                                .read(csrProvider.notifier)
-                                .onSearchChanged('');
-                          },
-                        )
+                                icon: const Icon(Icons.clear,
+                                    size: 16, color: AppColor.grey400),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  ref
+                                      .read(csrProvider.notifier)
+                                      .onSearchChanged('');
+                                },
+                              )
                             : null,
                         filled: true,
                         fillColor: AppColor.grey100,
@@ -317,14 +312,13 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                   ),
                   const SizedBox(width: 12),
 
-                  // Sale / Return Toggle
+                  // Sale / Return / Ledger Toggle
                   _TypeToggle(
                     label: 'Sales',
                     active: state.showSales,
                     color: AppColor.success,
                     icon: Icons.receipt_long_outlined,
-                    onTap: () =>
-                        ref.read(csrProvider.notifier).toggleSales(),
+                    onTap: () => ref.read(csrProvider.notifier).toggleSales(),
                   ),
                   const SizedBox(width: 8),
                   _TypeToggle(
@@ -334,6 +328,15 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                     icon: Icons.assignment_return_outlined,
                     onTap: () =>
                         ref.read(csrProvider.notifier).toggleReturns(),
+                  ),
+                  const SizedBox(width: 8),
+                  _TypeToggle(
+                    label: 'Payments',
+                    active: state.showLedger,
+                    color: AppColor.info,
+                    icon: Icons.account_balance_wallet_outlined,
+                    onTap: () =>
+                        ref.read(csrProvider.notifier).toggleLedger(),
                   ),
                   const SizedBox(width: 12),
 
@@ -387,22 +390,32 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : !state.hasCustomer
-                  ? const _SelectCustomerPlaceholder()
-                  : state.filteredEntries.isEmpty
-                  ? _EmptyState(
-                  isSearching: state.searchQuery.isNotEmpty)
-                  : ListView.separated(
-                itemCount: state.filteredEntries.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 12),
-                itemBuilder: (_, i) => _CsrEntryCard(
-                  entry: state.filteredEntries[i],
-                  dateFmt: _dateFmt,
-                  timeFmt: _timeFmt,
-                  onPrint: () => _printEntry(
-                      state.filteredEntries[i]),
-                ),
-              ),
+                      ? const _SelectCustomerPlaceholder()
+                      : state.filteredEntries.isEmpty
+                          ? _EmptyState(
+                              isSearching: state.searchQuery.isNotEmpty)
+                          : ListView.separated(
+                              itemCount: state.filteredEntries.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (_, i) {
+                                final entry = state.filteredEntries[i];
+                                // Ledger payment alag card
+                                if (entry.type == CsrType.ledgerPayment) {
+                                  return _LedgerPaymentCard(
+                                    entry: entry,
+                                    dateFmt: _dateFmt,
+                                    timeFmt: _timeFmt,
+                                  );
+                                }
+                                return _CsrEntryCard(
+                                  entry: entry,
+                                  dateFmt: _dateFmt,
+                                  timeFmt: _timeFmt,
+                                  onPrint: () => _printEntry(entry),
+                                );
+                              },
+                            ),
             ),
           ],
         ),
@@ -426,7 +439,7 @@ class _CsrSummaryBanner extends StatelessWidget {
         // Customer name chip
         Container(
           padding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: AppColor.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
@@ -447,7 +460,7 @@ class _CsrSummaryBanner extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${state.saleCount} sales · ${state.returnCount} returns',
+                '${state.saleCount} sales · ${state.returnCount} returns · ${state.ledgerCount} payments',
                 style: const TextStyle(
                     fontSize: 12, color: AppColor.textSecondary),
               ),
@@ -476,6 +489,13 @@ class _CsrSummaryBanner extends StatelessWidget {
               value: 'Rs ${state.netAmount.toStringAsFixed(0)}',
               icon: Icons.account_balance_outlined,
               color: AppColor.primary,
+            ),
+            const SizedBox(width: 12),
+            SummaryCard(
+              title: 'Payments Rcvd',
+              value: 'Rs ${state.totalLedgerPaid.toStringAsFixed(0)}',
+              icon: Icons.account_balance_wallet_outlined,
+              color: AppColor.info,
             ),
             const SizedBox(width: 12),
             SummaryCard(
@@ -511,44 +531,330 @@ class _TypeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding:
-      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: active
-            ? color.withValues(alpha: 0.12)
-            : AppColor.grey100,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: active
-              ? color.withValues(alpha: 0.4)
-              : AppColor.grey300,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: active
+                ? color.withValues(alpha: 0.12)
+                : AppColor.grey100,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: active
+                  ? color.withValues(alpha: 0.4)
+                  : AppColor.grey300,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 14, color: active ? color : AppColor.textHint),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: active ? color : AppColor.textHint,
+                ),
+              ),
+            ],
+          ),
         ),
+      );
+}
+
+// ══════════════════════════════════════════════════════════════
+// Ledger Payment Card  ← NEW
+// ══════════════════════════════════════════════════════════════
+class _LedgerPaymentCard extends StatelessWidget {
+  final CsrEntry entry;
+  final DateFormat dateFmt;
+  final DateFormat timeFmt;
+
+  const _LedgerPaymentCard({
+    required this.entry,
+    required this.dateFmt,
+    required this.timeFmt,
+  });
+
+  static const _color = AppColor.info;
+
+  @override
+  Widget build(BuildContext context) {
+    final prev = entry.previousAmount ?? 0;
+    final paid = entry.payAmount ?? 0;
+    final remaining = entry.newAmount ?? 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: _color.withValues(alpha: 0.2)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
-          Icon(icon,
-              size: 14, color: active ? color : AppColor.textHint),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: active ? color : AppColor.textHint,
+          // ── Header ──────────────────────────────────────
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _color.withValues(alpha: 0.05),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(14)),
+              border: Border(
+                bottom: BorderSide(
+                    color: AppColor.grey300.withValues(alpha: 0.6)),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Type Badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.account_balance_wallet_outlined,
+                          size: 11, color: _color),
+                      SizedBox(width: 4),
+                      Text(
+                        'PAYMENT',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: _color,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  entry.entryNo,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: _color,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const Spacer(),
+                // Date/Time
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      dateFmt.format(entry.entryDate),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColor.textPrimary),
+                    ),
+                    Text(
+                      timeFmt.format(entry.entryDate),
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColor.textSecondary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // ── Meta Row ────────────────────────────────────
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                if (entry.cashierName != null) ...[
+                  const Icon(Icons.badge_outlined,
+                      size: 13, color: AppColor.textSecondary),
+                  const SizedBox(width: 5),
+                  Text(entry.cashierName!,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColor.textSecondary)),
+                  const SizedBox(width: 12),
+                ],
+                if (entry.counterName != null) ...[
+                  const Icon(Icons.point_of_sale_outlined,
+                      size: 13, color: AppColor.textSecondary),
+                  const SizedBox(width: 5),
+                  Text(entry.counterName!,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColor.textSecondary)),
+                ],
+              ],
+            ),
+          ),
+
+          // ── Notes ───────────────────────────────────────
+          if (entry.notes != null && entry.notes!.isNotEmpty)
+            Padding(
+              padding:
+                  const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.notes_outlined,
+                      size: 13, color: AppColor.textSecondary),
+                  const SizedBox(width: 6),
+                  const Text('Note: ',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColor.textSecondary)),
+                  Expanded(
+                    child: Text(
+                      entry.notes!,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColor.textPrimary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+          // ── Amount Breakdown ─────────────────────────────
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // 3 amount rows
+                _LedgerAmountRow(
+                  label: 'Previous Balance',
+                  value: 'Rs ${prev.toStringAsFixed(0)}',
+                  color: AppColor.grey500,
+                  icon: Icons.history_rounded,
+                ),
+                const SizedBox(height: 8),
+                _LedgerAmountRow(
+                  label: 'Amount Paid',
+                  value: 'Rs ${paid.toStringAsFixed(0)}',
+                  color: AppColor.success,
+                  icon: Icons.payments_outlined,
+                ),
+                const SizedBox(height: 10),
+                // Remaining — highlighted
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: remaining > 0
+                        ? AppColor.error.withValues(alpha: 0.07)
+                        : AppColor.success.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: remaining > 0
+                          ? AppColor.error.withValues(alpha: 0.25)
+                          : AppColor.success.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            remaining > 0
+                                ? Icons.account_balance_wallet_outlined
+                                : Icons.check_circle_outline_rounded,
+                            size: 14,
+                            color: remaining > 0
+                                ? AppColor.error
+                                : AppColor.success,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            remaining > 0
+                                ? 'Remaining Balance'
+                                : 'Fully Cleared',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: remaining > 0
+                                  ? AppColor.error
+                                  : AppColor.success,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Rs ${remaining.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: remaining > 0
+                              ? AppColor.error
+                              : AppColor.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _LedgerAmountRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  final IconData icon;
+
+  const _LedgerAmountRow({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 8),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 12, color: AppColor.textSecondary)),
+        const Spacer(),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: color)),
+      ],
+    );
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
-// Entry Card
+// Entry Card (Sale / Return)
 // ══════════════════════════════════════════════════════════════
 class _CsrEntryCard extends StatelessWidget {
   final CsrEntry entry;
@@ -570,7 +876,7 @@ class _CsrEntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double subtotal =
-    entry.items.fold(0.0, (s, i) => s + i.totalAmount);
+        entry.items.fold(0.0, (s, i) => s + i.totalAmount);
 
     return Container(
       decoration: BoxDecoration(
@@ -593,7 +899,7 @@ class _CsrEntryCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: _accentColor.withValues(alpha: 0.04),
               borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(14)),
+                  const BorderRadius.vertical(top: Radius.circular(14)),
               border: Border(
                 bottom: BorderSide(
                     color: AppColor.grey300.withValues(alpha: 0.6)),
@@ -719,7 +1025,7 @@ class _CsrEntryCard extends StatelessWidget {
               entry.returnReason!.isNotEmpty)
             Padding(
               padding:
-              const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                  const EdgeInsets.only(left: 16, right: 16, bottom: 8),
               child: Row(
                 children: [
                   const Icon(Icons.info_outline_rounded,
@@ -746,7 +1052,7 @@ class _CsrEntryCard extends StatelessWidget {
           if (_isSale && entry.notes != null && entry.notes!.isNotEmpty)
             Padding(
               padding:
-              const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                  const EdgeInsets.only(left: 16, right: 16, bottom: 8),
               child: Row(
                 children: [
                   const Icon(Icons.notes_outlined,
@@ -850,8 +1156,7 @@ class _CsrEntryCard extends StatelessWidget {
                                 width: 5,
                                 height: 5,
                                 decoration: BoxDecoration(
-                                  color: _accentColor
-                                      .withValues(alpha: 0.5),
+                                  color: _accentColor.withValues(alpha: 0.5),
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -898,7 +1203,7 @@ class _CsrEntryCard extends StatelessWidget {
                                 textAlign: TextAlign.right,
                                 style: TextStyle(
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                     color: _accentColor))),
                       ],
                     ),
@@ -925,6 +1230,19 @@ class _CsrEntryCard extends StatelessWidget {
                 ],
 
                 const SizedBox(height: 10),
+
+                // ── Customer Balance Section ──────────────
+                // Sirf credit payment wali sale invoices pe
+                if (_isSale &&
+                    entry.customerId != null &&
+                    (entry.previousAmount != null || entry.newAmount != null)) ...[
+                  _CsrBalanceSection(
+                    previousBalance: entry.previousAmount,
+                    creditAmount:    entry.grandTotal,
+                    currentBalance:  entry.newAmount,
+                  ),
+                  const SizedBox(height: 10),
+                ],
 
                 // Grand Total
                 Container(
@@ -981,28 +1299,28 @@ class _TotalRow extends StatelessWidget {
   final Color valueColor;
   const _TotalRow(
       {required this.label,
-        required this.value,
-        required this.valueColor});
+      required this.value,
+      required this.valueColor});
 
   @override
   Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.end,
-    children: [
-      Text('$label:',
-          style: const TextStyle(
-              fontSize: 12, color: AppColor.textSecondary)),
-      const SizedBox(width: 12),
-      SizedBox(
-        width: 110,
-        child: Text(value,
-            textAlign: TextAlign.right,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: valueColor)),
-      ),
-    ],
-  );
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text('$label:',
+              style: const TextStyle(
+                  fontSize: 12, color: AppColor.textSecondary)),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 110,
+            child: Text(value,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: valueColor)),
+          ),
+        ],
+      );
 }
 
 class _PaymentChip extends StatelessWidget {
@@ -1010,48 +1328,48 @@ class _PaymentChip extends StatelessWidget {
   const _PaymentChip({required this.type});
 
   Color get _color => const {
-    'cash': AppColor.success,
-    'card': AppColor.info,
-    'credit': AppColor.warning,
-  }[type] ??
+        'cash': AppColor.success,
+        'card': AppColor.info,
+        'credit': AppColor.warning,
+      }[type] ??
       AppColor.grey400;
 
   IconData get _icon => const {
-    'cash': Icons.payments_outlined,
-    'card': Icons.credit_card_outlined,
-    'credit': Icons.person_outline_rounded,
-  }[type] ??
+        'cash': Icons.payments_outlined,
+        'card': Icons.credit_card_outlined,
+        'credit': Icons.person_outline_rounded,
+      }[type] ??
       Icons.help_outline;
 
   String get _label => const {
-    'cash': 'Cash',
-    'card': 'Card',
-    'credit': 'Credit',
-  }[type] ??
+        'cash': 'Cash',
+        'card': 'Card',
+        'credit': 'Credit',
+      }[type] ??
       type;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding:
-    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: _color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: _color.withValues(alpha: 0.3)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(_icon, size: 11, color: _color),
-        const SizedBox(width: 4),
-        Text(_label,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: _color)),
-      ],
-    ),
-  );
+        padding:
+            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: _color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: _color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_icon, size: 11, color: _color),
+            const SizedBox(width: 4),
+            Text(_label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _color)),
+          ],
+        ),
+      );
 }
 
 class _StatusBadge extends StatelessWidget {
@@ -1060,26 +1378,26 @@ class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status, required this.color});
 
   String get _label => const {
-    'completed': 'Completed',
-    'cancelled': 'Cancelled',
-    'returned': 'Returned',
-  }[status] ??
+        'completed': 'Completed',
+        'cancelled': 'Cancelled',
+        'returned': 'Returned',
+      }[status] ??
       status;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding:
-    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Text(_label,
-        style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: color)),
-  );
+        padding:
+            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(_label,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color)),
+      );
 }
 
 class _SelectCustomerPlaceholder extends StatelessWidget {
@@ -1087,24 +1405,24 @@ class _SelectCustomerPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.person_search_outlined,
-            size: 64, color: AppColor.grey300),
-        const SizedBox(height: 16),
-        const Text('Customer Select Karein',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary)),
-        const SizedBox(height: 6),
-        const Text('Upar se customer choose karein report dekhne ke liye',
-            style:
-            TextStyle(fontSize: 13, color: AppColor.textHint)),
-      ],
-    ),
-  );
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_search_outlined,
+                size: 64, color: AppColor.grey300),
+            const SizedBox(height: 16),
+            const Text('Customer Select Karein',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.textSecondary)),
+            const SizedBox(height: 6),
+            const Text('Upar se customer choose karein report dekhne ke liye',
+                style:
+                    TextStyle(fontSize: 13, color: AppColor.textHint)),
+          ],
+        ),
+      );
 }
 
 class _EmptyState extends StatelessWidget {
@@ -1113,35 +1431,164 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          isSearching
-              ? Icons.search_off_rounded
-              : Icons.receipt_long_outlined,
-          size: 64,
-          color: AppColor.grey300,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSearching
+                  ? Icons.search_off_rounded
+                  : Icons.receipt_long_outlined,
+              size: 64,
+              color: AppColor.grey300,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isSearching
+                  ? 'Koi entry nahi mili'
+                  : 'Is customer ki koi entry nahi',
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColor.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              isSearching
+                  ? 'Filter change karein'
+                  : 'Date range change karein',
+              style: const TextStyle(
+                  fontSize: 13, color: AppColor.textHint),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        Text(
-          isSearching
-              ? 'Koi entry nahi mili'
-              : 'Is customer ki koi entry nahi',
-          style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColor.textSecondary),
+      );
+}
+
+// ══════════════════════════════════════════════════════════════
+// Customer Balance Section — CsrScreen ke liye
+// ══════════════════════════════════════════════════════════════
+class _CsrBalanceSection extends StatelessWidget {
+  final double? previousBalance;
+  final double  creditAmount;
+  final double? currentBalance;
+
+  const _CsrBalanceSection({
+    required this.previousBalance,
+    required this.creditAmount,
+    required this.currentBalance,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final prevBal = previousBalance ?? 0.0;
+    final currBal = currentBalance  ?? 0.0;
+    final isInDebt = currBal > 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColor.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColor.primary.withValues(alpha: 0.06),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              border: Border(
+                bottom: BorderSide(color: AppColor.primary.withValues(alpha: 0.15)),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.account_balance_wallet_outlined,
+                    size: 14, color: AppColor.primary),
+                SizedBox(width: 6),
+                Text('Customer account balance',
+                    style: TextStyle(
+                        fontSize:   11,
+                        fontWeight: FontWeight.w600,
+                        color:      AppColor.primary)),
+              ],
+            ),
+          ),
+
+          // Three columns
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _BalanceCell(
+                    label:       'Previous balance',
+                    value:       'Rs ${prevBal.toStringAsFixed(0)}',
+                    valueColor:  AppColor.textSecondary,
+                    showDivider: true,
+                  ),
+                ),
+                Expanded(
+                  child: _BalanceCell(
+                    label:       'This invoice credit',
+                    value:       '+ Rs ${creditAmount.toStringAsFixed(0)}',
+                    valueColor:  AppColor.info,
+                    showDivider: true,
+                  ),
+                ),
+                Expanded(
+                  child: _BalanceCell(
+                    label:       'New balance',
+                    value:       'Rs ${currBal.toStringAsFixed(0)}',
+                    valueColor:  isInDebt ? AppColor.error : AppColor.success,
+                    showDivider: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BalanceCell extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color  valueColor;
+  final bool   showDivider;
+
+  const _BalanceCell({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+    required this.showDivider,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          border: showDivider
+              ? const Border(right: BorderSide(color: Color(0xFFEEEEEE)))
+              : null,
         ),
-        const SizedBox(height: 6),
-        Text(
-          isSearching
-              ? 'Filter change karein'
-              : 'Date range change karein',
-          style: const TextStyle(
-              fontSize: 13, color: AppColor.textHint),
+        child: Column(
+          children: [
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 10,
+                    color:    AppColor.textSecondary,
+                    letterSpacing: 0.2)),
+            const SizedBox(height: 4),
+            Text(value,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize:   13,
+                    fontWeight: FontWeight.w600,
+                    color:      valueColor)),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }

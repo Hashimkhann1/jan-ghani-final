@@ -20,6 +20,7 @@ class CsrState {
   // Filter toggles
   final bool showSales;
   final bool showReturns;
+  final bool showLedger;
 
   CsrState({
     this.allEntries = const [],
@@ -32,6 +33,7 @@ class CsrState {
     this.errorMessage,
     this.showSales = true,
     this.showReturns = true,
+    this.showLedger = true,
   })  : fromDate = fromDate ?? _today(),
         toDate = toDate ?? _today();
 
@@ -50,6 +52,9 @@ class CsrState {
     if (!showReturns) {
       list = list.where((e) => e.type != CsrType.saleReturn).toList();
     }
+    if (!showLedger) {
+      list = list.where((e) => e.type != CsrType.ledgerPayment).toList();
+    }
 
     if (searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
@@ -58,6 +63,7 @@ class CsrState {
         if (e.cashierName?.toLowerCase().contains(q) ?? false) return true;
         if (e.paymentLabel.toLowerCase().contains(q)) return true;
         if (e.returnReason?.toLowerCase().contains(q) ?? false) return true;
+        if (e.notes?.toLowerCase().contains(q) ?? false) return true;
         if (e.items.any((i) => i.productName.toLowerCase().contains(q))) {
           return true;
         }
@@ -74,6 +80,9 @@ class CsrState {
   List<CsrEntry> get filteredReturns =>
       filteredEntries.where((e) => e.type == CsrType.saleReturn).toList();
 
+  List<CsrEntry> get filteredLedger =>
+      filteredEntries.where((e) => e.type == CsrType.ledgerPayment).toList();
+
   // ── Stats ─────────────────────────────────────────────────
   double get totalSaleAmount =>
       filteredSales.fold(0, (s, e) => s + e.grandTotal);
@@ -82,8 +91,11 @@ class CsrState {
   double get netAmount => totalSaleAmount - totalReturnAmount;
   double get totalDiscount =>
       filteredEntries.fold(0, (s, e) => s + e.totalDiscount);
+  double get totalLedgerPaid =>
+      filteredLedger.fold(0, (s, e) => s + e.grandTotal);
   int get saleCount => filteredSales.length;
   int get returnCount => filteredReturns.length;
+  int get ledgerCount => filteredLedger.length;
 
   double get cashSale => filteredSales
       .where((e) => e.paymentType?.contains('cash') ?? false)
@@ -110,6 +122,7 @@ class CsrState {
     bool clearError = false,
     bool? showSales,
     bool? showReturns,
+    bool? showLedger,
   }) =>
       CsrState(
         allEntries: allEntries ?? this.allEntries,
@@ -126,6 +139,7 @@ class CsrState {
         errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
         showSales: showSales ?? this.showSales,
         showReturns: showReturns ?? this.showReturns,
+        showLedger: showLedger ?? this.showLedger,
       );
 }
 
@@ -183,13 +197,9 @@ class CsrNotifier extends StateNotifier<CsrState> {
     setDateRange(today, today);
   }
 
-  void toggleSales() {
-    state = state.copyWith(showSales: !state.showSales);
-  }
-
-  void toggleReturns() {
-    state = state.copyWith(showReturns: !state.showReturns);
-  }
+  void toggleSales()   => state = state.copyWith(showSales: !state.showSales);
+  void toggleReturns() => state = state.copyWith(showReturns: !state.showReturns);
+  void toggleLedger()  => state = state.copyWith(showLedger: !state.showLedger);
 
   void onSearchChanged(String q) => state = state.copyWith(searchQuery: q);
   void clearError() => state = state.copyWith(clearError: true);
@@ -197,5 +207,5 @@ class CsrNotifier extends StateNotifier<CsrState> {
 
 // ── Provider ──────────────────────────────────────────────────
 final csrProvider = StateNotifierProvider<CsrNotifier, CsrState>(
-      (ref) => CsrNotifier(ref),
+  (ref) => CsrNotifier(ref),
 );

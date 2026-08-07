@@ -419,19 +419,21 @@ class _CounterCustomerLedgerScreenState
                                 // Actions
                                 DataCell(Row(
                                   children: [
-                                    CustomerActionButton(
-                                      icon: Icons.edit_outlined,
-                                      color: AppColor.primary,
-                                      tooltip: 'Edit',
-                                      onTap: () => _openEditDialog(context, l),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    CustomerActionButton(
-                                      icon: Icons.delete_outline_rounded,
-                                      color: AppColor.error,
-                                      tooltip: 'Delete',
-                                      onTap: () => _confirmDelete(context, l),
-                                    ),
+                                    if (auth.user?.role != 'cashier') ...[
+                                      CustomerActionButton(
+                                        icon: Icons.edit_outlined,
+                                        color: AppColor.primary,
+                                        tooltip: 'Edit',
+                                        onTap: () => _openEditDialog(context, l),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      CustomerActionButton(
+                                        icon: Icons.delete_outline_rounded,
+                                        color: AppColor.error,
+                                        tooltip: 'Delete',
+                                        onTap: () => _confirmDelete(context, l),
+                                      ),
+                                    ],
                                   ],
                                 )),
                               ],

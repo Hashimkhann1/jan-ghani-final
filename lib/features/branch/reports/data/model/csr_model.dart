@@ -1,6 +1,6 @@
 // lib/features/branch/reports/data/model/csr_model.dart
 
-enum CsrType { sale, saleReturn }
+enum CsrType { sale, saleReturn, ledgerPayment }
 
 class CsrItemDetail {
   final String productName;
@@ -28,14 +28,14 @@ class CsrItemDetail {
       : quantity.toStringAsFixed(2);
 
   static CsrItemDetail fromMap(Map<String, dynamic> m) => CsrItemDetail(
-    productName: m['product_name']?.toString() ?? '',
-    sku: m['sku']?.toString(),
-    salePrice: _dbl(m['sale_price']) ?? 0,
-    purchasePrice: _dbl(m['purchase_price']) ?? 0,
-    quantity: _dbl(m['quantity']) ?? 0,
-    discount: _dbl(m['discount']) ?? 0,
-    totalAmount: _dbl(m['total_amount']) ?? 0,
-  );
+        productName: m['product_name']?.toString() ?? '',
+        sku: m['sku']?.toString(),
+        salePrice: _dbl(m['sale_price']) ?? 0,
+        purchasePrice: _dbl(m['purchase_price']) ?? 0,
+        quantity: _dbl(m['quantity']) ?? 0,
+        discount: _dbl(m['discount']) ?? 0,
+        totalAmount: _dbl(m['total_amount']) ?? 0,
+      );
 
   static double? _dbl(dynamic v) {
     if (v == null) return null;
@@ -61,6 +61,11 @@ class CsrEntry {
   final String? returnReason;
   final String? invoiceId;
 
+  // Ledger Payment fields
+  final double? previousAmount;
+  final double? payAmount;
+  final double? newAmount;
+
   // Common
   final String status;
   final double totalAmount;
@@ -84,6 +89,9 @@ class CsrEntry {
     this.refundType,
     this.returnReason,
     this.invoiceId,
+    this.previousAmount,
+    this.payAmount,
+    this.newAmount,
     required this.status,
     required this.totalAmount,
     required this.totalDiscount,
@@ -97,15 +105,21 @@ class CsrEntry {
 
   DateTime get entryDate => type == CsrType.sale
       ? (invoiceDate ?? DateTime.now())
-      : (returnDate ?? DateTime.now());
+      : type == CsrType.saleReturn
+          ? (returnDate ?? DateTime.now())
+          : (invoiceDate ?? DateTime.now()); // ledgerPayment uses invoiceDate
 
   String get entryNo => type == CsrType.sale
       ? (invoiceNo ?? '')
-      : (returnNo ?? '');
+      : type == CsrType.saleReturn
+          ? (returnNo ?? '')
+          : (invoiceNo ?? ''); // ledgerPayment uses invoiceNo as receipt no
 
   String get paymentLabel => type == CsrType.sale
       ? (paymentType ?? 'cash')
-      : (refundType ?? 'cash');
+      : type == CsrType.saleReturn
+          ? (refundType ?? 'cash')
+          : 'cash';
 
   String get grandTotalLabel => 'Rs ${grandTotal.toStringAsFixed(0)}';
   String get discountLabel => 'Rs ${totalDiscount.toStringAsFixed(0)}';
