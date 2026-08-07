@@ -9,7 +9,8 @@ import '../model/customer_account_model.dart';
 class CustomerAccountDatasource {
   final _supabase = Supabase.instance.client;
 
-  // ── GET ALL CUSTOMERS (PostgreSQL) ────────────────────────
+  // ── GET CUSTOMERS FOR DROPDOWN (PostgreSQL) ────────────────
+  // store_id se filter, aur jo account ban chuke hain wo nahi aayenge
   Future<List<CustomerModel>> getCustomers(String storeId) async {
     final conn = await DataBaseService.getConnection();
 
@@ -28,12 +29,33 @@ class CustomerAccountDatasource {
       parameters: {'storeId': storeId},
     );
 
-    return result.map((row) => CustomerModel.fromMap(_pgToMap(row))).toList();
+    if (result.isEmpty) return [];
+
+    final allCustomers =
+    result.map((row) => CustomerModel.fromMap(_pgToMap(row))).toList();
+
+    // Jo customers ka Supabase mein account already hai unke IDs lo
+    final allIds = allCustomers.map((c) => c.id).toList();
+
+    final existingAccounts = await _supabase
+        .from('users')
+        .select('customer_token')
+        .eq('role', 'customer')
+        .inFilter('customer_token', allIds);
+
+    final existingTokens = (existingAccounts as List)
+        .map((row) => row['customer_token']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    // Account ban chuke customers ko dropdown se hatao
+    return allCustomers
+        .where((c) => !existingTokens.contains(c.id))
+        .toList();
   }
 
   // ── GET STORE CUSTOMER ACCOUNTS (Supabase) ────────────────
   Future<List<CustomerAccountModel>> getStoreAccounts(String storeId) async {
-    // Step 1: PostgreSQL se is store ke saare customer IDs lo
     final conn     = await DataBaseService.getConnection();
     final pgResult = await conn.execute(
       Sql.named('''
@@ -51,7 +73,6 @@ class CustomerAccountDatasource {
         .where((id) => id.isNotEmpty)
         .toList();
 
-    // Step 2: Supabase se customer_token IN customerIds wale users lo
     final sbResult = await _supabase
         .from('users')
         .select('id, full_name, email, password, customer_token, created_at, updated_at')
@@ -84,13 +105,13 @@ class CustomerAccountDatasource {
     required String password,
   }) async {
     await _supabase.from('users').insert({
-      'id':             _uuid(),       // manually generate karo
+      'id':             _uuid(),
       'full_name':      fullName,
       'email':          email,
       'role':           'customer',
       'branch_id':      null,
       'warehouse_id':   null,
-      'customer_token': customerId,    // customer.id yahan store hoga
+      'customer_token': customerId,
       'password':       password,
     });
   }
@@ -109,12 +130,12 @@ class CustomerAccountDatasource {
         .eq('id', userId);
   }
 
-  // ── UUID v4 generator (dart:math) ─────────────────────────
+  // ── UUID v4 generator ─────────────────────────────────────
   String _uuid() {
     final rng = Random.secure();
     final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
-    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
     String hex(int b) => b.toRadixString(16).padLeft(2, '0');
     final b = bytes.map(hex).toList();
     return '${b[0]}${b[1]}${b[2]}${b[3]}-'

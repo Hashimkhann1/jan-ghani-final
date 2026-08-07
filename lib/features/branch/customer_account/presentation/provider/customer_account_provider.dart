@@ -51,7 +51,8 @@ class CustomerAccountNotifier extends StateNotifier<CustomerAccountState> {
 
   final _ds = CustomerAccountDatasource();
 
-  // ── Load customers from PostgreSQL (for dropdown) ─────────
+  // ── Load customers for dropdown ───────────────────────────
+  // Account ban chuke customers automatically filter ho jaate hain
   Future<void> loadCustomers(String storeId) async {
     state = state.copyWith(loadingCustomers: true, error: null);
     try {
@@ -65,7 +66,7 @@ class CustomerAccountNotifier extends StateNotifier<CustomerAccountState> {
     }
   }
 
-  // ── Load existing accounts from Supabase ──────────────────
+  // ── Load existing accounts ────────────────────────────────
   Future<void> loadAccounts(String storeId) async {
     state = state.copyWith(loadingAccounts: true, error: null);
     try {
@@ -104,8 +105,11 @@ class CustomerAccountNotifier extends StateNotifier<CustomerAccountState> {
         password:   password,
       );
 
-      // Reload accounts list
-      await loadAccounts(storeId);
+      // Dono reload — naya account wala customer dropdown se hat jaayega
+      await Future.wait([
+        loadAccounts(storeId),
+        loadCustomers(storeId),
+      ]);
       state = state.copyWith(saving: false, success: true);
     } catch (e) {
       state = state.copyWith(
@@ -140,6 +144,6 @@ class CustomerAccountNotifier extends StateNotifier<CustomerAccountState> {
 
 // ── PROVIDER ───────────────────────────────────────────────
 final customerAccountProvider =
-    StateNotifierProvider.autoDispose<CustomerAccountNotifier, CustomerAccountState>(
-  (_) => CustomerAccountNotifier(),
+StateNotifierProvider.autoDispose<CustomerAccountNotifier, CustomerAccountState>(
+      (_) => CustomerAccountNotifier(),
 );
