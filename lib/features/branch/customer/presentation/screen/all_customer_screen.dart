@@ -447,27 +447,32 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                 DataCell(CustomerStatusBadge(isActive: c.isActive)),
 
                                 // Actions
+                                // Actions
                                 DataCell(Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
 
-                                    // Edit
-                                    CustomerActionButton(
-                                      icon: Icons.edit_outlined,
-                                      color: AppColor.primary,
-                                      tooltip: 'Edit',
-                                      onTap: () => _openDialog(context, customer: c),
-                                    ),
-                                    const SizedBox(width: 6),
+                                    // Edit — cashier ko nahi dikhega
+                                    if (auth.user?.role != 'cashier') ...[
+                                      CustomerActionButton(
+                                        icon: Icons.edit_outlined,
+                                        color: AppColor.primary,
+                                        tooltip: 'Edit',
+                                        onTap: () => _openDialog(context, customer: c),
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
 
-                                    // Delete
-                                    CustomerActionButton(
-                                      icon: Icons.delete_outline_rounded,
-                                      color: AppColor.error,
-                                      tooltip: 'Delete',
-                                      onTap: () => _confirmDelete(context, ref, c),
-                                    ),
-                                    const SizedBox(width: 6),
+                                    // Delete — cashier ko nahi dikhega
+                                    if (auth.user?.role != 'cashier') ...[
+                                      CustomerActionButton(
+                                        icon: Icons.delete_outline_rounded,
+                                        color: AppColor.error,
+                                        tooltip: 'Delete',
+                                        onTap: () => _confirmDelete(context, ref, c),
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
 
                                     // WhatsApp — sirf tab jab phone ho aur balance > 0
                                     if (hasPhone && hasBalance)
