@@ -122,118 +122,179 @@ class CsrPrintService {
           _dashedLine(),
 
           // ── Entries ──────────────────────────────────────
-          ...entries.map((entry) => pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-            children: [
-              pw.SizedBox(height: 4),
+          ...entries.map((entry) {
+            // ── Ledger Payment Entry ──────────────────────
+            if (entry.type == CsrType.ledgerPayment) {
+              final prev = entry.previousAmount ?? 0;
+              final paid = entry.payAmount ?? 0;
+              final remaining = entry.newAmount ?? 0;
 
-              // Entry header
-              pw.Row(
+              return pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(
-                        horizontal: 4, vertical: 2),
-                    decoration: pw.BoxDecoration(
-                      color: entry.type == CsrType.sale
-                          ? PdfColors.green100
-                          : PdfColors.red100,
-                      borderRadius:
-                      const pw.BorderRadius.all(pw.Radius.circular(3)),
-                    ),
-                    child: pw.Text(
-                      entry.type == CsrType.sale ? 'SALE' : 'RETURN',
-                      style: pw.TextStyle(
-                        fontSize: 7,
-                        fontWeight: pw.FontWeight.bold,
+                  pw.SizedBox(height: 4),
+                  pw.Row(
+                    children: [
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.blue100,
+                          borderRadius: const pw.BorderRadius.all(
+                              pw.Radius.circular(3)),
+                        ),
+                        child: pw.Text(
+                          'PAYMENT',
+                          style: pw.TextStyle(
+                            fontSize: 7,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.blue800,
+                          ),
+                        ),
+                      ),
+                      pw.SizedBox(width: 4),
+                      pw.Expanded(
+                        child: pw.Text(
+                          entry.entryNo,
+                          style: pw.TextStyle(
+                              fontSize: 8, fontWeight: pw.FontWeight.bold),
+                        ),
+                      ),
+                      pw.Text(
+                        dateFmt.format(entry.entryDate),
+                        style: const pw.TextStyle(fontSize: 7.5),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 2),
+                  _infoRow('TIME:', timeFmt.format(entry.entryDate)),
+                  if (entry.cashierName != null)
+                    _infoRow('CASHIER:', entry.cashierName!.toUpperCase()),
+                  if (entry.counterName != null)
+                    _infoRow('COUNTER:', entry.counterName!),
+                  if (entry.notes != null && entry.notes!.isNotEmpty)
+                    _infoRow('NOTE:', entry.notes!),
+                  pw.SizedBox(height: 3),
+                  _thinDashedLine(),
+                  _infoRow('PREV BALANCE:', _fmt(prev)),
+                  _infoRow('AMOUNT PAID:', _fmt(paid)),
+                  _infoRowBold(
+                    remaining > 0 ? 'REMAINING:' : 'CLEARED:',
+                    _fmt(remaining),
+                  ),
+                  _thinDashedLine(),
+                ],
+              );
+            }
+
+            // ── Sale / Return Entry ───────────────────────
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  children: [
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 2),
+                      decoration: pw.BoxDecoration(
                         color: entry.type == CsrType.sale
-                            ? PdfColors.green800
-                            : PdfColors.red800,
+                            ? PdfColors.green100
+                            : PdfColors.red100,
+                        borderRadius: const pw.BorderRadius.all(
+                            pw.Radius.circular(3)),
+                      ),
+                      child: pw.Text(
+                        entry.type == CsrType.sale ? 'SALE' : 'RETURN',
+                        style: pw.TextStyle(
+                          fontSize: 7,
+                          fontWeight: pw.FontWeight.bold,
+                          color: entry.type == CsrType.sale
+                              ? PdfColors.green800
+                              : PdfColors.red800,
+                        ),
                       ),
                     ),
-                  ),
-                  pw.SizedBox(width: 4),
-                  pw.Expanded(
-                    child: pw.Text(
-                      entry.entryNo,
-                      style: pw.TextStyle(
-                          fontSize: 8, fontWeight: pw.FontWeight.bold),
-                    ),
-                  ),
-                  pw.Text(
-                    dateFmt.format(entry.entryDate),
-                    style: const pw.TextStyle(fontSize: 7.5),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 2),
-              _infoRow('TIME:', timeFmt.format(entry.entryDate)),
-              if (entry.cashierName != null)
-                _infoRow('CASHIER:', entry.cashierName!.toUpperCase()),
-              if (entry.counterName != null)
-                _infoRow('COUNTER:', entry.counterName!),
-              if (entry.type == CsrType.saleReturn &&
-                  entry.returnReason != null &&
-                  entry.returnReason!.isNotEmpty)
-                _infoRow('REASON:', entry.returnReason!),
-
-              pw.SizedBox(height: 2),
-              _thinDashedLine(),
-              _itemsHeader(),
-              _thinDashedLine(),
-
-              // Items
-              ...entry.items.map((item) => pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 2),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
+                    pw.SizedBox(width: 4),
                     pw.Expanded(
-                      flex: 5,
-                      child: pw.Text(item.productName,
-                          style: const pw.TextStyle(fontSize: 7.5),
-                          maxLines: 2),
-                    ),
-                    pw.SizedBox(width: 2),
-                    pw.SizedBox(
-                      width: 22,
-                      child: pw.Text(item.qtyLabel,
-                          style: const pw.TextStyle(fontSize: 7.5),
-                          textAlign: pw.TextAlign.center),
-                    ),
-                    pw.SizedBox(
-                      width: 28,
                       child: pw.Text(
-                          item.salePrice.toStringAsFixed(0),
-                          style: const pw.TextStyle(fontSize: 7.5),
-                          textAlign: pw.TextAlign.center),
+                        entry.entryNo,
+                        style: pw.TextStyle(
+                            fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      ),
                     ),
-                    pw.SizedBox(
-                      width: 20,
-                      child: pw.Text(
-                          item.discount.toStringAsFixed(0),
-                          style: const pw.TextStyle(fontSize: 7.5),
-                          textAlign: pw.TextAlign.center),
-                    ),
-                    pw.SizedBox(
-                      width: 32,
-                      child: pw.Text(
-                          item.totalAmount.toStringAsFixed(0),
-                          style: const pw.TextStyle(fontSize: 7.5),
-                          textAlign: pw.TextAlign.right),
+                    pw.Text(
+                      dateFmt.format(entry.entryDate),
+                      style: const pw.TextStyle(fontSize: 7.5),
                     ),
                   ],
                 ),
-              )),
-
-              pw.SizedBox(height: 2),
-              _infoRow('DISCOUNT:', '-${_fmt(entry.totalDiscount)}'),
-              _infoRowBold(
-                entry.type == CsrType.sale ? 'TOTAL:' : 'REFUND:',
-                _fmt(entry.grandTotal),
-              ),
-              _thinDashedLine(),
-            ],
-          )),
+                pw.SizedBox(height: 2),
+                _infoRow('TIME:', timeFmt.format(entry.entryDate)),
+                if (entry.cashierName != null)
+                  _infoRow('CASHIER:', entry.cashierName!.toUpperCase()),
+                if (entry.counterName != null)
+                  _infoRow('COUNTER:', entry.counterName!),
+                if (entry.type == CsrType.saleReturn &&
+                    entry.returnReason != null &&
+                    entry.returnReason!.isNotEmpty)
+                  _infoRow('REASON:', entry.returnReason!),
+                pw.SizedBox(height: 2),
+                _thinDashedLine(),
+                _itemsHeader(),
+                _thinDashedLine(),
+                ...entry.items.map((item) => pw.Padding(
+                  padding: const pw.EdgeInsets.only(bottom: 2),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        flex: 5,
+                        child: pw.Text(item.productName,
+                            style: const pw.TextStyle(fontSize: 7.5),
+                            maxLines: 2),
+                      ),
+                      pw.SizedBox(width: 2),
+                      pw.SizedBox(
+                        width: 22,
+                        child: pw.Text(item.qtyLabel,
+                            style: const pw.TextStyle(fontSize: 7.5),
+                            textAlign: pw.TextAlign.center),
+                      ),
+                      pw.SizedBox(
+                        width: 28,
+                        child: pw.Text(
+                            item.salePrice.toStringAsFixed(0),
+                            style: const pw.TextStyle(fontSize: 7.5),
+                            textAlign: pw.TextAlign.center),
+                      ),
+                      pw.SizedBox(
+                        width: 20,
+                        child: pw.Text(
+                            item.discount.toStringAsFixed(0),
+                            style: const pw.TextStyle(fontSize: 7.5),
+                            textAlign: pw.TextAlign.center),
+                      ),
+                      pw.SizedBox(
+                        width: 32,
+                        child: pw.Text(
+                            item.totalAmount.toStringAsFixed(0),
+                            style: const pw.TextStyle(fontSize: 7.5),
+                            textAlign: pw.TextAlign.right),
+                      ),
+                    ],
+                  ),
+                )),
+                pw.SizedBox(height: 2),
+                _infoRow('DISCOUNT:', '-${_fmt(entry.totalDiscount)}'),
+                _infoRowBold(
+                  entry.type == CsrType.sale ? 'TOTAL:' : 'REFUND:',
+                  _fmt(entry.grandTotal),
+                ),
+                _thinDashedLine(),
+              ],
+            );
+          }),
 
           pw.SizedBox(height: 4),
           _dashedLine(),
@@ -246,8 +307,7 @@ class CsrPrintService {
           pw.Center(
             child: pw.Text(
               'SOFTWARE BY',
-              style:
-              pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+              style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
             ),
           ),
           pw.Center(
@@ -428,8 +488,7 @@ class CsrPrintService {
             pw.Center(
               child: pw.BarcodeWidget(
                 barcode: pw.Barcode.qrCode(),
-                data:
-                'https://janghani.netlify.app/${entry.customerId}',
+                data: 'https://janghani.netlify.app/${entry.customerId}',
                 width: 60,
                 height: 60,
               ),
