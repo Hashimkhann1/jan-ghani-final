@@ -30,7 +30,7 @@ class NavItem {
   final IconData  icon;
   final String    label;
   final Widget    screen;
-  final LogicalKeyboardKey? shortcutKey; // Alt+Key
+  final LogicalKeyboardKey? shortcutKey;
 
   const NavItem({
     required this.icon,
@@ -42,7 +42,8 @@ class NavItem {
 
 // ── Cashier Items ──────────────────────────────────────────────
 // Alt+D=Dashboard, Alt+S=Sale Invoice, Alt+C=Customer,
-// Alt+L=Ledger,   Alt+X=Cash Counter, Alt+T=Transactions, Alt+I=Stock
+// Alt+A=Customer Account, Alt+L=Ledger, Alt+X=Cash Counter,
+// Alt+T=Transactions, Alt+I=Stock, Alt+R=Sale Report
 final _cashierItems = <NavItem>[
   NavItem(
     icon: Icons.dashboard_rounded, label: 'Dashboard',
@@ -54,10 +55,6 @@ final _cashierItems = <NavItem>[
     screen: const SaleInvoiceScreen(),
     shortcutKey: LogicalKeyboardKey.keyS,
   ),
-  // NavItem(
-  //   icon: Icons.point_of_sale_rounded, label: 'Service',
-  //   screen: const ServiceScreen(),
-  // ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
@@ -66,6 +63,7 @@ final _cashierItems = <NavItem>[
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer account',
     screen: const CustomerAccountScreen(),
+    shortcutKey: LogicalKeyboardKey.keyA,
   ),
   NavItem(
     icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
@@ -107,14 +105,20 @@ final _cashierItems = <NavItem>[
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Sale Return Report',
     screen: const SaleReturnReportScreen(),
+    shortcutKey: LogicalKeyboardKey.keyN,
   ),
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
+    shortcutKey: LogicalKeyboardKey.keyG,
   ),
 ];
 
 // ── Manager Items ──────────────────────────────────────────────
+// Alt+D=Dashboard, Alt+U=Users, Alt+S=Sale Invoice, Alt+C=Customer,
+// Alt+A=Customer Account, Alt+L=Ledger, Alt+T=Difference,
+// Alt+X=Cash Counter, Alt+I=Branch Stock, Alt+R=Sale Invoice Report,
+// Alt+N=Sale Return Report, Alt+G=CS&R Report
 final _managerItems = <NavItem>[
   NavItem(
     icon: Icons.dashboard_rounded, label: 'Dashboard',
@@ -129,12 +133,8 @@ final _managerItems = <NavItem>[
   NavItem(
     icon: Icons.manage_accounts_rounded, label: 'Sale Invoice',
     screen: const SaleInvoiceScreen(),
-    shortcutKey: LogicalKeyboardKey.keyU,
+    shortcutKey: LogicalKeyboardKey.keyS,
   ),
-  // NavItem(
-  //   icon: Icons.point_of_sale_rounded, label: 'Service',
-  //   screen: const ServiceScreen(),
-  // ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
@@ -143,12 +143,8 @@ final _managerItems = <NavItem>[
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer account',
     screen: const CustomerAccountScreen(),
+    shortcutKey: LogicalKeyboardKey.keyA,
   ),
-  // NavItem(
-  //   icon: Icons.money_off_rounded, label: 'Expense',
-  //   screen: const AllExpenseScreen(),
-  //   shortcutKey: LogicalKeyboardKey.keyE,
-  // ),
   NavItem(
     icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
     screen: const CounterCustomerLedgerScreen(),
@@ -164,11 +160,6 @@ final _managerItems = <NavItem>[
     screen: const CashCounterScreen(),
     shortcutKey: LogicalKeyboardKey.keyX,
   ),
-  // NavItem(
-  //   icon: Icons.store_rounded, label: 'Store Summary',
-  //   screen: const StoreSummaryScreen(),
-  //   shortcutKey: LogicalKeyboardKey.keyM,
-  // ),
   NavItem(
     icon: Icons.inventory_2_rounded, label: 'Branch Stock',
     screen: const BranchStockInventoryScreen(),
@@ -198,18 +189,13 @@ final _managerItems = <NavItem>[
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'Sale Return Report',
     screen: const SaleReturnReportScreen(),
-    shortcutKey: LogicalKeyboardKey.keyR,
+    shortcutKey: LogicalKeyboardKey.keyN,
   ),
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
-    shortcutKey: LogicalKeyboardKey.keyR,
+    shortcutKey: LogicalKeyboardKey.keyG,
   ),
-  // NavItem(
-  //   icon: Icons.backup, label: 'Backup',
-  //   screen: const BackupScreen(),
-  //   shortcutKey: LogicalKeyboardKey.keyR,
-  // ),
 ];
 
 // ── BranchSideBar ──────────────────────────────────────────────
@@ -223,7 +209,7 @@ class BranchSideBar extends ConsumerStatefulWidget {
 class _SideBarState extends ConsumerState<BranchSideBar> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   int   _index        = 0;
-  bool  _showTooltip  = false; // Alt hint overlay
+  bool  _showTooltip  = false;
   OverlayEntry? _tooltipOverlay;
 
   List<NavItem> _getItems(String role) {
@@ -249,11 +235,9 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
     super.dispose();
   }
 
-  // ── Keyboard handler ─────────────────────────────────────────
   bool _onKey(KeyEvent event) {
     final pressed = HardwareKeyboard.instance.logicalKeysPressed;
 
-    // Alt key = Option (⌥) on Mac
     final alt = pressed.contains(LogicalKeyboardKey.altLeft) ||
         pressed.contains(LogicalKeyboardKey.altRight);
 
@@ -263,7 +247,6 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
     final auth  = ref.read(authProvider);
     final items = _getItems(auth.role);
 
-    // Alt+? pressed — find matching nav item
     for (int i = 0; i < items.length; i++) {
       if (items[i].shortcutKey == event.logicalKey) {
         _onTap(i, items);
@@ -275,7 +258,6 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
     return false;
   }
 
-  // ── Feedback toast ───────────────────────────────────────────
   void _showShortcutFeedback(String label) {
     _tooltipOverlay?.remove();
     _tooltipOverlay = OverlayEntry(
@@ -355,7 +337,6 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
                   onPressed: () {
                     Navigator.pop(ctx);
                     ref.read(authProvider.notifier).logout();
-
                   },
                   child: const Text('Logout'),
                 ),
@@ -480,7 +461,6 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
     );
   }
 
-  /// LogicalKeyboardKey → readable label
   String _keyLabel(LogicalKeyboardKey key) {
     final map = {
       LogicalKeyboardKey.keyA: 'A', LogicalKeyboardKey.keyB: 'B',
@@ -506,7 +486,7 @@ class _NavTile extends StatelessWidget {
   final IconData   icon;
   final String     label;
   final bool       isSelected;
-  final String?    shortcutHint;  // e.g. "⌥+D"
+  final String?    shortcutHint;
   final VoidCallback onTap;
 
   const _NavTile({
@@ -557,8 +537,6 @@ class _NavTile extends StatelessWidget {
                     color: isSelected ? _kPrimary : Colors.grey,
                   ),
                 ),
-                // Shortcut hint chip — sirf selected ya hover pe nahi,
-                // hamesha show karo (zyada visible)
                 if (shortcutHint != null) ...[
                   const SizedBox(height: 3),
                   Container(
