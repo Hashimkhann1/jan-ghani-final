@@ -48,20 +48,20 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
   }
 
   Future<DateTime?> _pickDate(DateTime initial) => showDatePicker(
-        context: context,
-        initialDate: initial,
-        firstDate: DateTime(2024),
-        lastDate: DateTime.now().add(const Duration(days: 1)),
-        builder: (ctx, child) => Theme(
-          data: Theme.of(ctx).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColor.primary,
-              onPrimary: Colors.white,
-            ),
-          ),
-          child: child!,
+    context: context,
+    initialDate: initial,
+    firstDate: DateTime(2024),
+    lastDate: DateTime.now().add(const Duration(days: 1)),
+    builder: (ctx, child) => Theme(
+      data: Theme.of(ctx).copyWith(
+        colorScheme: const ColorScheme.light(
+          primary: AppColor.primary,
+          onPrimary: Colors.white,
         ),
-      );
+      ),
+      child: child!,
+    ),
+  );
 
   Future<void> _onStartDateTap() async {
     final state = ref.read(csrProvider);
@@ -158,7 +158,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                 filled: true,
                 fillColor: AppColor.grey100,
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -166,7 +166,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide:
-                      const BorderSide(color: AppColor.primary, width: 1.2),
+                  const BorderSide(color: AppColor.primary, width: 1.2),
                 ),
               ),
             ),
@@ -188,10 +188,10 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
         icon: Icons.people_outline_rounded,
       ),
       ...customers.map((c) => DropdownItem<String?>(
-            value: c.id,
-            label: c.name,
-            icon: Icons.person_outline_rounded,
-          )),
+        value: c.id,
+        label: c.name,
+        icon: Icons.person_outline_rounded,
+      )),
     ];
 
     ref.listen<CsrState>(csrProvider, (_, next) {
@@ -201,7 +201,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
           backgroundColor: AppColor.error,
           behavior: SnackBarBehavior.floating,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           action: SnackBarAction(
             label: 'OK',
             textColor: Colors.white,
@@ -234,7 +234,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',
             style:
-                IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
+            IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 12),
         ],
@@ -278,7 +278,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                     child: TextField(
                       controller: _searchCtrl,
                       onChanged:
-                          ref.read(csrProvider.notifier).onSearchChanged,
+                      ref.read(csrProvider.notifier).onSearchChanged,
                       style: const TextStyle(fontSize: 13),
                       cursorHeight: 14,
                       decoration: InputDecoration(
@@ -289,15 +289,15 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                             size: 18, color: AppColor.grey400),
                         suffixIcon: _searchCtrl.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear,
-                                    size: 16, color: AppColor.grey400),
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  ref
-                                      .read(csrProvider.notifier)
-                                      .onSearchChanged('');
-                                },
-                              )
+                          icon: const Icon(Icons.clear,
+                              size: 16, color: AppColor.grey400),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            ref
+                                .read(csrProvider.notifier)
+                                .onSearchChanged('');
+                          },
+                        )
                             : null,
                         filled: true,
                         fillColor: AppColor.grey100,
@@ -390,32 +390,32 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : !state.hasCustomer
-                      ? const _SelectCustomerPlaceholder()
-                      : state.filteredEntries.isEmpty
-                          ? _EmptyState(
-                              isSearching: state.searchQuery.isNotEmpty)
-                          : ListView.separated(
-                              itemCount: state.filteredEntries.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (_, i) {
-                                final entry = state.filteredEntries[i];
-                                // Ledger payment alag card
-                                if (entry.type == CsrType.ledgerPayment) {
-                                  return _LedgerPaymentCard(
-                                    entry: entry,
-                                    dateFmt: _dateFmt,
-                                    timeFmt: _timeFmt,
-                                  );
-                                }
-                                return _CsrEntryCard(
-                                  entry: entry,
-                                  dateFmt: _dateFmt,
-                                  timeFmt: _timeFmt,
-                                  onPrint: () => _printEntry(entry),
-                                );
-                              },
-                            ),
+                  ? const _SelectCustomerPlaceholder()
+                  : state.filteredEntries.isEmpty
+                  ? _EmptyState(
+                  isSearching: state.searchQuery.isNotEmpty)
+                  : ListView.separated(
+                itemCount: state.filteredEntries.length,
+                separatorBuilder: (_, __) =>
+                const SizedBox(height: 12),
+                itemBuilder: (_, i) {
+                  final entry = state.filteredEntries[i];
+                  if (entry.type == CsrType.ledgerPayment) {
+                    return _LedgerPaymentCard(
+                      entry: entry,
+                      dateFmt: _dateFmt,
+                      timeFmt: _timeFmt,
+                      onPrint: () => _printEntry(entry),
+                    );
+                  }
+                  return _CsrEntryCard(
+                    entry: entry,
+                    dateFmt: _dateFmt,
+                    timeFmt: _timeFmt,
+                    onPrint: () => _printEntry(entry),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -436,10 +436,9 @@ class _CsrSummaryBanner extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Customer name chip
         Container(
           padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: AppColor.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
@@ -531,54 +530,56 @@ class _TypeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: active
-                ? color.withValues(alpha: 0.12)
-                : AppColor.grey100,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: active
-                  ? color.withValues(alpha: 0.4)
-                  : AppColor.grey300,
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding:
+      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: active
+            ? color.withValues(alpha: 0.12)
+            : AppColor.grey100,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: active
+              ? color.withValues(alpha: 0.4)
+              : AppColor.grey300,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon,
+              size: 14, color: active ? color : AppColor.textHint),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: active ? color : AppColor.textHint,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon,
-                  size: 14, color: active ? color : AppColor.textHint),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: active ? color : AppColor.textHint,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════
-// Ledger Payment Card  ← NEW
+// Ledger Payment Card
 // ══════════════════════════════════════════════════════════════
 class _LedgerPaymentCard extends StatelessWidget {
   final CsrEntry entry;
   final DateFormat dateFmt;
   final DateFormat timeFmt;
+  final VoidCallback onPrint;
 
   const _LedgerPaymentCard({
     required this.entry,
     required this.dateFmt,
     required this.timeFmt,
+    required this.onPrint,
   });
 
   static const _color = AppColor.info;
@@ -607,11 +608,11 @@ class _LedgerPaymentCard extends StatelessWidget {
           // ── Header ──────────────────────────────────────
           Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: _color.withValues(alpha: 0.05),
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
+              const BorderRadius.vertical(top: Radius.circular(14)),
               border: Border(
                 bottom: BorderSide(
                     color: AppColor.grey300.withValues(alpha: 0.6)),
@@ -622,7 +623,7 @@ class _LedgerPaymentCard extends StatelessWidget {
                 // Type Badge
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: _color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
@@ -656,6 +657,20 @@ class _LedgerPaymentCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
+                // ── Print Icon ───────────────────────────
+                GestureDetector(
+                  onTap: onPrint,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColor.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.print_outlined,
+                        size: 16, color: AppColor.primary),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 // Date/Time
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -681,7 +696,7 @@ class _LedgerPaymentCard extends StatelessWidget {
           // ── Meta Row ────────────────────────────────────
           Padding(
             padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
                 if (entry.cashierName != null) ...[
@@ -711,7 +726,7 @@ class _LedgerPaymentCard extends StatelessWidget {
           if (entry.notes != null && entry.notes!.isNotEmpty)
             Padding(
               padding:
-                  const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              const EdgeInsets.only(left: 16, right: 16, bottom: 8),
               child: Row(
                 children: [
                   const Icon(Icons.notes_outlined,
@@ -739,7 +754,6 @@ class _LedgerPaymentCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // 3 amount rows
                 _LedgerAmountRow(
                   label: 'Previous Balance',
                   value: 'Rs ${prev.toStringAsFixed(0)}',
@@ -754,7 +768,6 @@ class _LedgerPaymentCard extends StatelessWidget {
                   icon: Icons.payments_outlined,
                 ),
                 const SizedBox(height: 10),
-                // Remaining — highlighted
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
@@ -876,7 +889,7 @@ class _CsrEntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double subtotal =
-        entry.items.fold(0.0, (s, i) => s + i.totalAmount);
+    entry.items.fold(0.0, (s, i) => s + i.totalAmount);
 
     return Container(
       decoration: BoxDecoration(
@@ -899,7 +912,7 @@ class _CsrEntryCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: _accentColor.withValues(alpha: 0.04),
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
+              const BorderRadius.vertical(top: Radius.circular(14)),
               border: Border(
                 bottom: BorderSide(
                     color: AppColor.grey300.withValues(alpha: 0.6)),
@@ -1025,7 +1038,7 @@ class _CsrEntryCard extends StatelessWidget {
               entry.returnReason!.isNotEmpty)
             Padding(
               padding:
-                  const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              const EdgeInsets.only(left: 16, right: 16, bottom: 8),
               child: Row(
                 children: [
                   const Icon(Icons.info_outline_rounded,
@@ -1052,7 +1065,7 @@ class _CsrEntryCard extends StatelessWidget {
           if (_isSale && entry.notes != null && entry.notes!.isNotEmpty)
             Padding(
               padding:
-                  const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              const EdgeInsets.only(left: 16, right: 16, bottom: 8),
               child: Row(
                 children: [
                   const Icon(Icons.notes_outlined,
@@ -1232,14 +1245,14 @@ class _CsrEntryCard extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 // ── Customer Balance Section ──────────────
-                // Sirf credit payment wali sale invoices pe
                 if (_isSale &&
                     entry.customerId != null &&
-                    (entry.previousAmount != null || entry.newAmount != null)) ...[
+                    (entry.previousAmount != null ||
+                        entry.newAmount != null)) ...[
                   _CsrBalanceSection(
                     previousBalance: entry.previousAmount,
-                    creditAmount:    entry.grandTotal,
-                    currentBalance:  entry.newAmount,
+                    creditAmount: entry.grandTotal,
+                    currentBalance: entry.newAmount,
                   ),
                   const SizedBox(height: 10),
                 ],
@@ -1299,28 +1312,28 @@ class _TotalRow extends StatelessWidget {
   final Color valueColor;
   const _TotalRow(
       {required this.label,
-      required this.value,
-      required this.valueColor});
+        required this.value,
+        required this.valueColor});
 
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text('$label:',
-              style: const TextStyle(
-                  fontSize: 12, color: AppColor.textSecondary)),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 110,
-            child: Text(value,
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: valueColor)),
-          ),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.end,
+    children: [
+      Text('$label:',
+          style: const TextStyle(
+              fontSize: 12, color: AppColor.textSecondary)),
+      const SizedBox(width: 12),
+      SizedBox(
+        width: 110,
+        child: Text(value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: valueColor)),
+      ),
+    ],
+  );
 }
 
 class _PaymentChip extends StatelessWidget {
@@ -1328,48 +1341,48 @@ class _PaymentChip extends StatelessWidget {
   const _PaymentChip({required this.type});
 
   Color get _color => const {
-        'cash': AppColor.success,
-        'card': AppColor.info,
-        'credit': AppColor.warning,
-      }[type] ??
+    'cash': AppColor.success,
+    'card': AppColor.info,
+    'credit': AppColor.warning,
+  }[type] ??
       AppColor.grey400;
 
   IconData get _icon => const {
-        'cash': Icons.payments_outlined,
-        'card': Icons.credit_card_outlined,
-        'credit': Icons.person_outline_rounded,
-      }[type] ??
+    'cash': Icons.payments_outlined,
+    'card': Icons.credit_card_outlined,
+    'credit': Icons.person_outline_rounded,
+  }[type] ??
       Icons.help_outline;
 
   String get _label => const {
-        'cash': 'Cash',
-        'card': 'Card',
-        'credit': 'Credit',
-      }[type] ??
+    'cash': 'Cash',
+    'card': 'Card',
+    'credit': 'Credit',
+  }[type] ??
       type;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: _color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: _color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(_icon, size: 11, color: _color),
-            const SizedBox(width: 4),
-            Text(_label,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _color)),
-          ],
-        ),
-      );
+    padding:
+    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: _color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: _color.withValues(alpha: 0.3)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(_icon, size: 11, color: _color),
+        const SizedBox(width: 4),
+        Text(_label,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _color)),
+      ],
+    ),
+  );
 }
 
 class _StatusBadge extends StatelessWidget {
@@ -1378,26 +1391,26 @@ class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status, required this.color});
 
   String get _label => const {
-        'completed': 'Completed',
-        'cancelled': 'Cancelled',
-        'returned': 'Returned',
-      }[status] ??
+    'completed': 'Completed',
+    'cancelled': 'Cancelled',
+    'returned': 'Returned',
+  }[status] ??
       status;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(_label,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color)),
-      );
+    padding:
+    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(_label,
+        style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: color)),
+  );
 }
 
 class _SelectCustomerPlaceholder extends StatelessWidget {
@@ -1405,24 +1418,25 @@ class _SelectCustomerPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.person_search_outlined,
-                size: 64, color: AppColor.grey300),
-            const SizedBox(height: 16),
-            const Text('Customer Select Karein',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.textSecondary)),
-            const SizedBox(height: 6),
-            const Text('Upar se customer choose karein report dekhne ke liye',
-                style:
-                    TextStyle(fontSize: 13, color: AppColor.textHint)),
-          ],
-        ),
-      );
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.person_search_outlined,
+            size: 64, color: AppColor.grey300),
+        const SizedBox(height: 16),
+        const Text('Customer Select Karein',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColor.textSecondary)),
+        const SizedBox(height: 6),
+        const Text(
+            'Upar se customer choose karein report dekhne ke liye',
+            style:
+            TextStyle(fontSize: 13, color: AppColor.textHint)),
+      ],
+    ),
+  );
 }
 
 class _EmptyState extends StatelessWidget {
@@ -1431,45 +1445,45 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSearching
-                  ? Icons.search_off_rounded
-                  : Icons.receipt_long_outlined,
-              size: 64,
-              color: AppColor.grey300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              isSearching
-                  ? 'Koi entry nahi mili'
-                  : 'Is customer ki koi entry nahi',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColor.textSecondary),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              isSearching
-                  ? 'Filter change karein'
-                  : 'Date range change karein',
-              style: const TextStyle(
-                  fontSize: 13, color: AppColor.textHint),
-            ),
-          ],
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          isSearching
+              ? Icons.search_off_rounded
+              : Icons.receipt_long_outlined,
+          size: 64,
+          color: AppColor.grey300,
         ),
-      );
+        const SizedBox(height: 16),
+        Text(
+          isSearching
+              ? 'Koi entry nahi mili'
+              : 'Is customer ki koi entry nahi',
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColor.textSecondary),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          isSearching
+              ? 'Filter change karein'
+              : 'Date range change karein',
+          style: const TextStyle(
+              fontSize: 13, color: AppColor.textHint),
+        ),
+      ],
+    ),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════
-// Customer Balance Section — CsrScreen ke liye
+// Customer Balance Section
 // ══════════════════════════════════════════════════════════════
 class _CsrBalanceSection extends StatelessWidget {
   final double? previousBalance;
-  final double  creditAmount;
+  final double creditAmount;
   final double? currentBalance;
 
   const _CsrBalanceSection({
@@ -1481,7 +1495,7 @@ class _CsrBalanceSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final prevBal = previousBalance ?? 0.0;
-    final currBal = currentBalance  ?? 0.0;
+    final currBal = currentBalance ?? 0.0;
     final isInDebt = currBal > 0;
 
     return Container(
@@ -1493,12 +1507,15 @@ class _CsrBalanceSection extends StatelessWidget {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: AppColor.primary.withValues(alpha: 0.06),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(10)),
               border: Border(
-                bottom: BorderSide(color: AppColor.primary.withValues(alpha: 0.15)),
+                bottom: BorderSide(
+                    color: AppColor.primary.withValues(alpha: 0.15)),
               ),
             ),
             child: const Row(
@@ -1508,9 +1525,9 @@ class _CsrBalanceSection extends StatelessWidget {
                 SizedBox(width: 6),
                 Text('Customer account balance',
                     style: TextStyle(
-                        fontSize:   11,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color:      AppColor.primary)),
+                        color: AppColor.primary)),
               ],
             ),
           ),
@@ -1521,25 +1538,25 @@ class _CsrBalanceSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: _BalanceCell(
-                    label:       'Previous balance',
-                    value:       'Rs ${prevBal.toStringAsFixed(0)}',
-                    valueColor:  AppColor.textSecondary,
+                    label: 'Previous balance',
+                    value: 'Rs ${prevBal.toStringAsFixed(0)}',
+                    valueColor: AppColor.textSecondary,
                     showDivider: true,
                   ),
                 ),
                 Expanded(
                   child: _BalanceCell(
-                    label:       'This invoice credit',
-                    value:       '+ Rs ${creditAmount.toStringAsFixed(0)}',
-                    valueColor:  AppColor.info,
+                    label: 'This invoice credit',
+                    value: '+ Rs ${creditAmount.toStringAsFixed(0)}',
+                    valueColor: AppColor.info,
                     showDivider: true,
                   ),
                 ),
                 Expanded(
                   child: _BalanceCell(
-                    label:       'New balance',
-                    value:       'Rs ${currBal.toStringAsFixed(0)}',
-                    valueColor:  isInDebt ? AppColor.error : AppColor.success,
+                    label: 'New balance',
+                    value: 'Rs ${currBal.toStringAsFixed(0)}',
+                    valueColor: isInDebt ? AppColor.error : AppColor.success,
                     showDivider: false,
                   ),
                 ),
@@ -1555,8 +1572,8 @@ class _CsrBalanceSection extends StatelessWidget {
 class _BalanceCell extends StatelessWidget {
   final String label;
   final String value;
-  final Color  valueColor;
-  final bool   showDivider;
+  final Color valueColor;
+  final bool showDivider;
 
   const _BalanceCell({
     required this.label,
@@ -1567,28 +1584,30 @@ class _BalanceCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          border: showDivider
-              ? const Border(right: BorderSide(color: Color(0xFFEEEEEE)))
-              : null,
-        ),
-        child: Column(
-          children: [
-            Text(label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 10,
-                    color:    AppColor.textSecondary,
-                    letterSpacing: 0.2)),
-            const SizedBox(height: 4),
-            Text(value,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize:   13,
-                    fontWeight: FontWeight.w600,
-                    color:      valueColor)),
-          ],
-        ),
-      );
+    padding:
+    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    decoration: BoxDecoration(
+      border: showDivider
+          ? const Border(
+          right: BorderSide(color: Color(0xFFEEEEEE)))
+          : null,
+    ),
+    child: Column(
+      children: [
+        Text(label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 10,
+                color: AppColor.textSecondary,
+                letterSpacing: 0.2)),
+        const SizedBox(height: 4),
+        Text(value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: valueColor)),
+      ],
+    ),
+  );
 }
