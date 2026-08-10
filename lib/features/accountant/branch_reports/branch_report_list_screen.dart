@@ -3,6 +3,7 @@ import 'package:jan_ghani_final/features/accountant/branch_reports/account_branc
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_customer_ledger/presentation/screen/accountant_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/screen/accountant_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_discount_wise_sale_report/presentation/screen/accountant_discount_wise_sale_report_screen.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/pareto_report/presentation/screen/pareto_report_screen.dart';
 import '../../../../../../core/color/app_color.dart';
 import 'accountant_branch_transaction/presentation/screen/accountant_branch_transaction_report_screen.dart';
 import 'accountant_category_wise_sale_report/presentaion/screen/category_sale_report_screen.dart';
@@ -96,6 +97,12 @@ class BranchReportListScreen extends StatelessWidget {
       icon:     Icons.inventory_2_rounded,
       label:    'Inventory Stock Damage Report',
       subtitle: 'Show All damage Stock',
+      color:    Color(0xFF8B5CF6),
+    ),
+    _ReportItem(
+      icon:     Icons.inventory_2_rounded,
+      label:    'Pareto Principle Report',
+      subtitle: '',
       color:    Color(0xFF8B5CF6),
     ),
   ];
@@ -194,6 +201,10 @@ class BranchReportListScreen extends StatelessWidget {
       case 12:
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => AccountantBranchStockDamageReportScreen(branchId: branchId),
+        ));
+      case 13:
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => ParetoReportScreen(branchId: branchId),
         ));
         break;
     }
