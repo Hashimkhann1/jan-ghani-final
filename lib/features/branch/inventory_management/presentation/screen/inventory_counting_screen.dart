@@ -2,18 +2,38 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/model/inventory_countting_model.dart';
 import '../provider/inventory_counting_provider.dart';
 
 class InventoryCountingScreen extends ConsumerWidget {
-  static const String _storeId = '09ed6ad4-373d-4afb-a7fb-badb1e72e9e3';
+  /// Store id bahar se pass ho sakta hai (accountant/unified login se aaya
+  /// inventory_counter user — uska branch_id). Agar null/empty ho to branch
+  /// auth session se le lo.
+  final String? storeId;
 
-  const InventoryCountingScreen({super.key});
+  const InventoryCountingScreen({super.key, this.storeId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(inventoryCountingProvider(_storeId));
-    final notifier = ref.read(inventoryCountingProvider(_storeId).notifier);
+    final passed = storeId;
+    final storeId0 = (passed != null && passed.isNotEmpty)
+        ? passed
+        : ref.watch(authProvider).storeId;
+
+    if (storeId0.isEmpty) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'Store nahi mila — dobara login karein',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    final state = ref.watch(inventoryCountingProvider(storeId0));
+    final notifier = ref.read(inventoryCountingProvider(storeId0).notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -28,10 +48,10 @@ class InventoryCountingScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          // Reload: sirf tab show karo jab 50 complete hon
+          // Reload: sirf tab show karo jab 100 complete hon
           if (state.allCounted)
             IconButton(
-              tooltip: 'Load Next 50',
+              tooltip: 'Load Next 100',
               icon: const Icon(Icons.refresh),
               onPressed: state.isLoading ? null : () => notifier.loadPage(),
             ),
@@ -81,12 +101,12 @@ class InventoryCountingScreen extends ConsumerWidget {
             const Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
             const SizedBox(height: 16),
             const Text(
-              '50 products counted!',
+              '100 products counted!',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
-              'AppBar mein Reload button se next 50 load karo',
+              'AppBar mein Reload button se next 100 load karo',
               style: TextStyle(color: Colors.grey),
             ),
           ],
@@ -206,9 +226,9 @@ class _ProductListTileState extends State<_ProductListTile> {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: widget.product.barcodes.isNotEmpty
+      subtitle: (widget.product.shelfName?.isNotEmpty == true)
           ? Text(
-        widget.product.barcodes.join(', '),
+        widget.product.shelfName!,
         style: const TextStyle(fontSize: 12, color: Colors.grey),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,

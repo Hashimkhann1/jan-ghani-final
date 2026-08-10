@@ -11,6 +11,7 @@ import '../../../authentication/presentation/providers/accoutant_session_provide
 import '../../../branch_reports/accountant_branch/presentation/screen/accountant_branch_screen.dart';
 import '../../../branch_reports/customer_report/data/datasource/customer_report_datasource.dart';
 import '../../../branch_reports/customer_report/presentation/screen/customer_report_screen.dart';
+import 'package:jan_ghani_final/features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart';
 import '../../data/model/dashboard_model.dart';
 import '../provider/dashboard_provider.dart';
 
@@ -112,6 +113,24 @@ class _AccountantDashboardScreenState
           ],
         )
             : const BranchScreen(),
+      );
+    }
+
+    // Inventory counter → seedha inventory counting screen (uske store ka)
+    if (role == 'inventory_counter') {
+      return InventoryCountingScreen(storeId: user?.branchId);
+    }
+
+    // Kisi role ke liye koi nav item na ho to crash se bachao (empty list guard)
+    if (navItems.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F7),
+        body: Center(
+          child: Text(
+            'Is role ke liye koi screen available nahi',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
       );
     }
 

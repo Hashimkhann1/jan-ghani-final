@@ -5,6 +5,7 @@ class InventoryProductModel {
   final String productId;
   final String productName;
   final List<String> barcodes;
+  final String? shelfName;
   final double currentStock;
   final DateTime updatedAt;
   bool isCounted;
@@ -14,6 +15,7 @@ class InventoryProductModel {
     required this.productId,
     required this.productName,
     required this.barcodes,
+    this.shelfName,
     required this.currentStock,
     required this.updatedAt,
     this.isCounted = false,
@@ -27,6 +29,7 @@ class InventoryProductModel {
       barcodes: map['barcode'] != null
           ? List<String>.from(map['barcode'] as List)
           : [],
+      shelfName: map['shelf_name']?.toString(),
       currentStock: double.tryParse(map['stock'].toString()) ?? 0.0,
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
