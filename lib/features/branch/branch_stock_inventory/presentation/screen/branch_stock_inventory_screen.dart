@@ -79,10 +79,16 @@ class _BranchStockInventoryScreenState
 
             // ── Stat Cards ────────────────────────────────────────
             Builder(builder: (_) {
-              final products     = posState.allProducts;
-              final totalQty     = products.fold(0.0, (s, p) => s + p.quantity);
-              final totalCostVal = products.fold(0.0, (s, p) => s + p.costPrice * p.quantity);
-              final totalSaleVal = products.fold(0.0, (s, p) => s + p.sellingPrice * p.quantity);
+              final auth     = ref.watch(authProvider);
+              final products = posState.allProducts;
+              final totalQty = products.fold(0.0, (s, p) => s + p.quantity);
+              final totalCostVal = products.fold(
+                  0.0, (s, p) => s + p.costPrice * p.quantity);
+              final totalSaleVal = products.fold(
+                  0.0, (s, p) => s + p.sellingPrice * p.quantity);
+
+              // ✅ Cashier ko purchase price card nahi dikhana
+              final canSeeCost = auth.isOwner || auth.isManager;
 
               String fmtAmt(double v) {
                 if (v == v.truncateToDouble()) return 'Rs ${v.toInt()}';
@@ -104,13 +110,16 @@ class _BranchStockInventoryScreenState
                   icon:  Icons.layers_outlined,
                   color: AppColor.info,
                 ),
-                const SizedBox(width: 12),
-                SummaryCard(
-                  title: 'Total Purchase Price',
-                  value: fmtAmt(totalCostVal),
-                  icon:  Icons.shopping_bag_outlined,
-                  color: AppColor.warning,
-                ),
+                // ✅ Purchase price card — sirf owner/manager ko
+                if (canSeeCost) ...[
+                  const SizedBox(width: 12),
+                  SummaryCard(
+                    title: 'Total Purchase Price',
+                    value: fmtAmt(totalCostVal),
+                    icon:  Icons.shopping_bag_outlined,
+                    color: AppColor.warning,
+                  ),
+                ],
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Total Sale Price',
@@ -290,8 +299,8 @@ class _PaginationBar extends StatelessWidget {
 
 // ── Page Number Button ─────────────────────────────────────────────
 class _PageNumBtn extends StatelessWidget {
-  final int        page;
-  final bool       isCurrent;
+  final int          page;
+  final bool         isCurrent;
   final VoidCallback onTap;
 
   const _PageNumBtn({
@@ -310,13 +319,9 @@ class _PageNumBtn extends StatelessWidget {
         duration: const Duration(milliseconds: 120),
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: isCurrent
-              ? AppColor.primary
-              : Colors.transparent,
+          color: isCurrent ? AppColor.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          border: isCurrent
-              ? null
-              : Border.all(color: AppColor.grey200),
+          border: isCurrent ? null : Border.all(color: AppColor.grey200),
         ),
         alignment: Alignment.center,
         child: Text(
@@ -324,8 +329,7 @@ class _PageNumBtn extends StatelessWidget {
           style: TextStyle(
             fontSize:   12,
             fontWeight: FontWeight.w600,
-            color:
-            isCurrent ? Colors.white : AppColor.textPrimary,
+            color:      isCurrent ? Colors.white : AppColor.textPrimary,
           ),
         ),
       ),
@@ -354,12 +358,8 @@ class _NavBtn extends StatelessWidget {
       onPressed: enabled ? onPressed : null,
       icon:      Icon(icon, size: 20),
       style: IconButton.styleFrom(
-        backgroundColor: enabled
-            ? AppColor.grey100
-            : Colors.transparent,
-        foregroundColor: enabled
-            ? AppColor.textPrimary
-            : AppColor.grey300,
+        backgroundColor: enabled ? AppColor.grey100 : Colors.transparent,
+        foregroundColor: enabled ? AppColor.textPrimary : AppColor.grey300,
         fixedSize: const Size(32, 32),
         padding:   EdgeInsets.zero,
         shape: RoundedRectangleBorder(
@@ -417,9 +417,7 @@ class _PageJumperState extends State<_PageJumper> {
       controller:   _ctrl,
       textAlign:    TextAlign.center,
       keyboardType: TextInputType.number,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly
-      ],
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       style: const TextStyle(
           fontSize: 13, fontWeight: FontWeight.w600),
       cursorHeight: 14,
@@ -449,14 +447,13 @@ class _InventoryTable extends ConsumerWidget {
   final List<BranchStockModel> rows;
   const _InventoryTable({required this.rows});
 
-  // ✅ Shelf Name column added after Name
   static const _widths = [
     120.0,  // SKU
     160.0,  // Barcode
     170.0,  // Name
-    120.0,  // Shelf Name  ✅ NEW
+    120.0,  // Shelf Name
     70.0,   // Unit
-    110.0,  // Cost Price
+    110.0,  // Cost Price  ← sirf owner/manager dekhega
     110.0,  // Sale Price
     110.0,  // Wholesale
     60.0,   // Tax
@@ -468,22 +465,29 @@ class _InventoryTable extends ConsumerWidget {
   ];
 
   static const _headers = [
-    'SKU', 'Barcode', 'Name', 'Shelf Name', // ✅ NEW
+    'SKU', 'Barcode', 'Name', 'Shelf Name',
     'Unit', 'Cost Price', 'Sale Price', 'Wholesale',
     'Tax', 'Discount', 'Min Stock', 'Max Stock',
     'Quantity', 'Actions',
   ];
 
+  // Cost Price column index
+  static const _costPriceColIdx = 5;
+
   static double get _totalWidth => _widths.fold(0.0, (s, w) => s + w) + 32;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authProvider);
+    final auth        = ref.watch(authProvider);
+    final canSeeCost  = auth.isOwner || auth.isManager; // ✅
 
     return LayoutBuilder(builder: (context, constraints) {
-      final tableWidth = _totalWidth.clamp(constraints.maxWidth, double.infinity);
-      const headerH = 44.0;
-      final rowsH   = constraints.maxHeight - headerH - 1;
+      // ✅ Cost price column hide hone pe total width kam karo
+      final hiddenWidth = canSeeCost ? 0.0 : _widths[_costPriceColIdx];
+      final tableWidth  = (_totalWidth - hiddenWidth)
+          .clamp(constraints.maxWidth, double.infinity);
+      const headerH    = 44.0;
+      final rowsH      = constraints.maxHeight - headerH - 1;
 
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -494,17 +498,23 @@ class _InventoryTable extends ConsumerWidget {
 
               // ── Sticky header ──────────────────────────────────
               Container(
-                height: headerH,
-                color:  AppColor.grey100,
+                height:  headerH,
+                color:   AppColor.grey100,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: List.generate(_headers.length, (i) {
+                    // ✅ Cost Price column — cashier ko mat dikhao
+                    if (i == _costPriceColIdx && !canSeeCost) {
+                      return const SizedBox.shrink();
+                    }
                     final isLast = i == _headers.length - 1;
                     return SizedBox(
                       width: _widths[i],
                       child: Text(
                         _headers[i],
-                        textAlign: isLast ? TextAlign.center : TextAlign.left,
+                        textAlign: isLast
+                            ? TextAlign.center
+                            : TextAlign.left,
                         style: const TextStyle(
                           fontSize:   12,
                           fontWeight: FontWeight.w700,
@@ -525,19 +535,16 @@ class _InventoryTable extends ConsumerWidget {
                   itemCount: rows.length,
                   separatorBuilder: (_, __) =>
                   const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                  itemBuilder: (context, i) =>
-                      _DataRow(
-                        row:    rows[i],
-                        index:  i,
-                        widths: _widths,
-                        auth:   auth,
-                        onEdit: () =>
-                            _openEditDialog(context, rows[i], auth),
-                        onDelete: () =>
-                            _openDeleteDialog(context, rows[i]),
-                        onDenied: (action) =>
-                            _showDenied(context, ref, action),
-                      ),
+                  itemBuilder: (context, i) => _DataRow(
+                    row:         rows[i],
+                    index:       i,
+                    widths:      _widths,
+                    auth:        auth,
+                    canSeeCost:  canSeeCost, // ✅ pass karo
+                    onEdit:      () => _openEditDialog(context, rows[i], auth),
+                    onDelete:    () => _openDeleteDialog(context, rows[i]),
+                    onDenied:    (action) => _showDenied(context, ref, action),
+                  ),
                 ),
               ),
             ],
@@ -547,7 +554,6 @@ class _InventoryTable extends ConsumerWidget {
     });
   }
 
-  // ✅ auth pass karo taake dialog mein role pata ho
   void _openEditDialog(BuildContext ctx, BranchStockModel p, dynamic auth) =>
       showDialog(
         context:            ctx,
@@ -579,12 +585,13 @@ class _InventoryTable extends ConsumerWidget {
 
 // ── Single data row ───────────────────────────────────────────────
 class _DataRow extends ConsumerWidget {
-  final BranchStockModel row;
-  final int              index;
-  final List<double>     widths;
-  final dynamic          auth;
-  final VoidCallback     onEdit;
-  final VoidCallback     onDelete;
+  final BranchStockModel      row;
+  final int                   index;
+  final List<double>          widths;
+  final dynamic               auth;
+  final bool                  canSeeCost; // ✅ NEW
+  final VoidCallback          onEdit;
+  final VoidCallback          onDelete;
   final void Function(String) onDenied;
 
   const _DataRow({
@@ -592,6 +599,7 @@ class _DataRow extends ConsumerWidget {
     required this.index,
     required this.widths,
     required this.auth,
+    required this.canSeeCost,
     required this.onEdit,
     required this.onDelete,
     required this.onDenied,
@@ -604,22 +612,19 @@ class _DataRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isEven    = index.isEven;
-    final qtyColor  = row.isOutOfStock
+    final isEven   = index.isEven;
+    final qtyColor = row.isOutOfStock
         ? AppColor.error
         : row.isLowStock
         ? AppColor.warning
         : AppColor.success;
     final auth      = ref.watch(authProvider);
-
-    // ✅ Role-based access
     final isOwner   = auth.isOwner;
     final isManager = auth.isManager;
-    // cashier ko koi access nahi
 
     return Container(
-      height: 52,
-      color: isEven ? Colors.white : const Color(0xFFFAFAFF),
+      height:  52,
+      color:   isEven ? Colors.white : const Color(0xFFFAFAFF),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
@@ -661,7 +666,7 @@ class _DataRow extends ConsumerWidget {
               ],
             ),
           ),
-          // Shelf Name ✅ NEW
+          // Shelf Name
           SizedBox(
             width: widths[3],
             child: row.shelfName != null && row.shelfName!.isNotEmpty
@@ -702,12 +707,13 @@ class _DataRow extends ConsumerWidget {
                       color:      AppColor.textSecondary)),
             ),
           ),
-          // Cost Price
-          SizedBox(
-            width: widths[5],
-            child: Text(row.costPriceLabel,
-                style: const TextStyle(fontSize: 13)),
-          ),
+          // ✅ Cost Price — sirf owner/manager ko dikhao
+          if (canSeeCost)
+            SizedBox(
+              width: widths[5],
+              child: Text(row.costPriceLabel,
+                  style: const TextStyle(fontSize: 13)),
+            ),
           // Sale Price
           SizedBox(
             width: widths[6],
@@ -737,7 +743,8 @@ class _DataRow extends ConsumerWidget {
           SizedBox(
             width: widths[9],
             child: row.discount > 0
-                ? _Badge(value: row.discountLabel, color: AppColor.warning)
+                ? _Badge(
+                value: row.discountLabel, color: AppColor.warning)
                 : const Text('—',
                 style: TextStyle(
                     fontSize: 13, color: AppColor.textSecondary)),
@@ -771,22 +778,20 @@ class _DataRow extends ConsumerWidget {
                   color:      qtyColor),
             ),
           ),
-          // ✅ Actions — role-based
+          // Actions — role-based
           SizedBox(
             width: widths[13],
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Owner: full edit button
-                // Manager: shelf-only edit button
-                // Cashier: kuch nahi
-                if (isOwner || isManager)
-                  CustomerActionButton(
-                    icon:    Icons.edit_outlined,
-                    color:   AppColor.primary,
-                    tooltip: isOwner ? 'Edit' : 'Edit Shelf',
-                    onTap:   onEdit,
-                  ),
+                // ✅ Owner/Manager/Cashier — sab ko edit button
+                // Owner: full edit | Manager+Cashier: shelf only
+                CustomerActionButton(
+                  icon:    Icons.edit_outlined,
+                  color:   AppColor.primary,
+                  tooltip: isOwner ? 'Edit' : 'Edit Shelf',
+                  onTap:   onEdit,
+                ),
                 if (isOwner) ...[
                   const SizedBox(width: 6),
                   CustomerActionButton(
