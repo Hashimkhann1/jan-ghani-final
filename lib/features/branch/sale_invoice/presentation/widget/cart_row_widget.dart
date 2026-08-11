@@ -1,4 +1,3 @@
-//
 // import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,6 +70,7 @@
 //       _fn[c].addListener(() => onFocus(c, _fn[c].hasFocus));
 //     }
 //   }
+//
 //   @override
 //   void didUpdateWidget(CartItemRow old) {
 //     super.didUpdateWidget(old);
@@ -124,11 +124,9 @@
 //
 //   // ── Commit ────────────────────────────────────────────────────
 //
-//   // ✅ FIX: qty 0 pe item remove, invalid pe reset
 //   void _commitQty() {
 //     final v = double.tryParse(_qtyCtrl.text.trim());
 //     if (v == null || v <= 0) {
-//       // Qty 0 ya invalid → cart se hata do
 //       ref.read(saleInvoiceProvider.notifier)
 //           .removeFromCart(widget.cartItem.cartId);
 //     } else {
@@ -238,7 +236,6 @@
 //               controller:  _qtyCtrl,
 //               focusNode:   _fn[0],
 //               isNavActive: isNavRow && nav.col == 0,
-//               // ✅ FIX: >= 0 — 0 bhi state mein update hoga
 //               onChanged: (v) {
 //                 final val = double.tryParse(v);
 //                 if (val != null && val >= 0)
@@ -248,19 +245,16 @@
 //             ),
 //           ),
 //
-//           // Price
+//           // ✅ Price — readOnly: true, change nahi hoga
 //           Expanded(
 //             flex: 2,
 //             child: _CellTF(
 //               controller:  _priceCtrl,
 //               focusNode:   _fn[1],
-//               isNavActive: isNavRow && nav.col == 1,
-//               onChanged:   (v) {
-//                 final val = double.tryParse(v);
-//                 if (val != null && val >= 0)
-//                   notifier.updateSalePrice(item.cartId, val);
-//               },
-//               onSubmitted: (_) => _commitPrice(),
+//               isNavActive: false,      // nav highlight bhi nahi
+//               readOnly:    true,       // ← disabled
+//               onChanged:   (_) {},     // kuch nahi karta
+//               onSubmitted: (_) {},     // kuch nahi karta
 //             ),
 //           ),
 //
@@ -338,6 +332,7 @@
 //   final FocusNode             focusNode;
 //   final bool                  isNavActive;
 //   final bool                  highlighted;
+//   final bool                  readOnly;     // ← NEW: price disable ke liye
 //   final String?               prefix;
 //   final ValueChanged<String>  onChanged;
 //   final ValueChanged<String>  onSubmitted;
@@ -349,6 +344,7 @@
 //     required this.onSubmitted,
 //     this.isNavActive  = false,
 //     this.highlighted  = false,
+//     this.readOnly     = false,  // ← default false — baaki sab same rehte hain
 //     this.prefix,
 //   });
 //
@@ -359,7 +355,10 @@
 // class _CellTFState extends State<_CellTF> {
 //   @override
 //   Widget build(BuildContext context) {
-//     final Color activeColor = widget.isNavActive
+//     // ✅ readOnly ho toh grey color — visually disabled dikhega
+//     final Color activeColor = widget.readOnly
+//         ? AppColor.grey400
+//         : widget.isNavActive
 //         ? AppColor.primary
 //         : widget.highlighted
 //         ? AppColor.primary
@@ -372,23 +371,35 @@
 //         focusNode:       widget.focusNode,
 //         onChanged:       widget.onChanged,
 //         onSubmitted:     widget.onSubmitted,
-//         keyboardType:    const TextInputType.numberWithOptions(decimal: true),
-//         inputFormatters: [
-//           FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-//         ],
+//         readOnly:        widget.readOnly,   // ← TextField readOnly
+//         // ✅ readOnly ho toh keyboard mat kholo
+//         keyboardType:    widget.readOnly
+//             ? TextInputType.none
+//             : const TextInputType.numberWithOptions(decimal: true),
+//         inputFormatters: widget.readOnly
+//             ? []    // readOnly mein formatter ki zaroorat nahi
+//             : [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
 //         textAlign:    TextAlign.center,
 //         cursorHeight: 14,
 //         style: TextStyle(
 //           fontSize:   13,
 //           fontWeight: widget.highlighted ? FontWeight.w700 : FontWeight.w500,
-//           color: widget.highlighted ? AppColor.primary : AppColor.textPrimary,
+//           // ✅ readOnly ho toh text bhi grey
+//           color: widget.readOnly
+//               ? AppColor.textHint
+//               : widget.highlighted
+//               ? AppColor.primary
+//               : AppColor.textPrimary,
 //         ),
 //         decoration: InputDecoration(
 //           prefixText:  widget.prefix != null ? '${widget.prefix} ' : null,
 //           prefixStyle: const TextStyle(fontSize: 10, color: AppColor.textHint),
 //           isDense:     true,
 //           filled:      true,
-//           fillColor:   widget.isNavActive
+//           // ✅ readOnly ho toh fill color alag — grey200 (disabled feel)
+//           fillColor: widget.readOnly
+//               ? AppColor.grey200
+//               : widget.isNavActive
 //               ? AppColor.primary.withOpacity(0.08)
 //               : widget.highlighted
 //               ? AppColor.primary.withOpacity(0.07)
@@ -396,13 +407,17 @@
 //           contentPadding:
 //           const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
 //           border:        InputBorder.none,
-//           enabledBorder: widget.isNavActive
+//           enabledBorder: widget.readOnly
+//               ? InputBorder.none   // readOnly mein koi border nahi
+//               : widget.isNavActive
 //               ? OutlineInputBorder(
 //               borderRadius: BorderRadius.circular(6),
 //               borderSide: const BorderSide(
 //                   color: AppColor.primary, width: 1.2))
 //               : InputBorder.none,
-//           focusedBorder: OutlineInputBorder(
+//           focusedBorder: widget.readOnly
+//               ? InputBorder.none   // readOnly focus border bhi nahi
+//               : OutlineInputBorder(
 //             borderRadius: BorderRadius.circular(6),
 //             borderSide:   BorderSide(color: activeColor, width: 1.4),
 //           ),
@@ -454,6 +469,10 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
   bool _disFocused   = false;
   bool _subFocused   = false;
 
+  // ── Price validation state ─────────────────────────────────
+  bool   _priceError    = false; // inline error dikhane ke liye
+  String _priceErrorMsg = '';
+
   int _lastNavRow = -1;
   int _lastNavCol = -1;
 
@@ -474,6 +493,13 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
         case 2: setState(() { _taxFocused   = hasFocus; }); break;
         case 3: setState(() { _disFocused   = hasFocus; }); break;
         case 4: setState(() { _subFocused   = hasFocus; }); break;
+      }
+      // Price field se focus hat gaya — error clear karo
+      if (!hasFocus && col == 1) {
+        setState(() {
+          _priceError    = false;
+          _priceErrorMsg = '';
+        });
       }
       if (hasFocus && ref.read(cartNavProvider).isActive) {
         ref.read(cartNavProvider.notifier).jumpTo(widget.rowIndex, col);
@@ -537,7 +563,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     });
   }
 
-  // ── Commit ────────────────────────────────────────────────────
+  // ── Commit handlers ───────────────────────────────────────────
 
   void _commitQty() {
     final v = double.tryParse(_qtyCtrl.text.trim());
@@ -550,13 +576,32 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     }
   }
 
+  // ── Price commit — Enter ya focus-out pe ──────────────────────
   void _commitPrice() {
-    final v = double.tryParse(_priceCtrl.text.trim());
-    if (v != null && v >= 0) {
-      ref.read(saleInvoiceProvider.notifier).updateSalePrice(widget.cartItem.cartId, v);
-    } else {
+    final v         = double.tryParse(_priceCtrl.text.trim());
+    final costPrice = widget.cartItem.product.costPrice;
+
+    if (v == null || v < 0) {
+      // Invalid — original pe reset
       _priceCtrl.text = _fmtNum(widget.cartItem.salePrice);
+      setState(() { _priceError = false; _priceErrorMsg = ''; });
+      return;
     }
+
+    if (v < costPrice) {
+      // Below cost — reject, reset, error dikhao
+      _priceCtrl.text = _fmtNum(widget.cartItem.salePrice);
+      setState(() {
+        _priceError    = true;
+        _priceErrorMsg = 'Purchase price se kam nahi ho sakta';
+      });
+      return;
+    }
+
+    // Valid price
+    setState(() { _priceError = false; _priceErrorMsg = ''; });
+    ref.read(saleInvoiceProvider.notifier)
+        .updateSalePrice(widget.cartItem.cartId, v);
   }
 
   void _commitTax() {
@@ -588,9 +633,10 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
 
   @override
   Widget build(BuildContext context) {
-    final notifier = ref.read(saleInvoiceProvider.notifier);
-    final item     = widget.cartItem;
-    final nav      = ref.watch(cartNavProvider);
+    final notifier  = ref.read(saleInvoiceProvider.notifier);
+    final item      = widget.cartItem;
+    final nav       = ref.watch(cartNavProvider);
+    final costPrice = item.product.costPrice;
 
     final isNavRow = nav.isActive && nav.row == widget.rowIndex;
 
@@ -614,15 +660,19 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // # number
           Expanded(
             flex: 1,
-            child: Text(
-              '${widget.rowIndex + 1}',
-              textAlign: TextAlign.start,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColor.textPrimary,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 11),
+              child: Text(
+                '${widget.rowIndex + 1}',
+                textAlign: TextAlign.start,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColor.textPrimary,
+                ),
               ),
             ),
           ),
@@ -630,17 +680,20 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
           // Product Name + SKU
           Expanded(
             flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.product.name,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(item.product.sku,
-                    style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.product.name,
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600,
+                          color: AppColor.textPrimary),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(item.product.sku,
+                      style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+                ],
+              ),
             ),
           ),
 
@@ -653,23 +706,39 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
               isNavActive: isNavRow && nav.col == 0,
               onChanged: (v) {
                 final val = double.tryParse(v);
-                if (val != null && val >= 0)
+                // ✅ Live update — onChanged mein hi update karo
+                if (val != null && val > 0)
                   notifier.updateQuantity(item.cartId, val);
               },
               onSubmitted: (_) => _commitQty(),
             ),
           ),
 
-          // ✅ Price — readOnly: true, change nahi hoga
+          // ── Price — editable, inline validation ───────────────
           Expanded(
             flex: 2,
             child: _CellTF(
-              controller:  _priceCtrl,
-              focusNode:   _fn[1],
-              isNavActive: false,      // nav highlight bhi nahi
-              readOnly:    true,       // ← disabled
-              onChanged:   (_) {},     // kuch nahi karta
-              onSubmitted: (_) {},     // kuch nahi karta
+              controller:   _priceCtrl,
+              focusNode:    _fn[1],
+              isNavActive:  isNavRow && nav.col == 1,
+              hasError:     _priceError,
+              errorMessage: _priceErrorMsg,
+              onChanged: (v) {
+                final val = double.tryParse(v);
+                if (val == null) return;
+                if (val < costPrice) {
+                  // ── Below cost: error dikhao, provider update mat karo
+                  setState(() {
+                    _priceError    = true;
+                    _priceErrorMsg = 'Purchase price se kam nahi ho sakta';
+                  });
+                } else {
+                  // ── Valid: live total update + error clear
+                  setState(() { _priceError = false; _priceErrorMsg = ''; });
+                  notifier.updateSalePrice(item.cartId, val);
+                }
+              },
+              onSubmitted: (_) => _commitPrice(),
             ),
           ),
 
@@ -725,14 +794,17 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
           ),
 
           // Delete
-          GestureDetector(
-            onTap: () => notifier.removeFromCart(item.cartId),
-            child: Container(
-              width: 28, height: 28,
-              decoration: BoxDecoration(
-                  color: AppColor.errorLight,
-                  borderRadius: BorderRadius.circular(7)),
-              child: const Icon(Icons.delete_outline, size: 15, color: AppColor.error),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: GestureDetector(
+              onTap: () => notifier.removeFromCart(item.cartId),
+              child: Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                    color: AppColor.errorLight,
+                    borderRadius: BorderRadius.circular(7)),
+                child: const Icon(Icons.delete_outline, size: 15, color: AppColor.error),
+              ),
             ),
           ),
         ],
@@ -741,13 +813,15 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
   }
 }
 
-// ── Cell TextField ────────────────────────────────────────────────
+// ── Cell TextField ─────────────────────────────────────────────────
 class _CellTF extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode             focusNode;
   final bool                  isNavActive;
   final bool                  highlighted;
-  final bool                  readOnly;     // ← NEW: price disable ke liye
+  final bool                  readOnly;
+  final bool                  hasError;      // ← inline error state
+  final String                errorMessage;  // ← error text (purchase price mat dikhao)
   final String?               prefix;
   final ValueChanged<String>  onChanged;
   final ValueChanged<String>  onSubmitted;
@@ -759,7 +833,9 @@ class _CellTF extends StatefulWidget {
     required this.onSubmitted,
     this.isNavActive  = false,
     this.highlighted  = false,
-    this.readOnly     = false,  // ← default false — baaki sab same rehte hain
+    this.readOnly     = false,
+    this.hasError     = false,
+    this.errorMessage = '',
     this.prefix,
   });
 
@@ -770,8 +846,9 @@ class _CellTF extends StatefulWidget {
 class _CellTFState extends State<_CellTF> {
   @override
   Widget build(BuildContext context) {
-    // ✅ readOnly ho toh grey color — visually disabled dikhega
-    final Color activeColor = widget.readOnly
+    final Color activeColor = widget.hasError
+        ? AppColor.error
+        : widget.readOnly
         ? AppColor.grey400
         : widget.isNavActive
         ? AppColor.primary
@@ -779,64 +856,99 @@ class _CellTFState extends State<_CellTF> {
         ? AppColor.primary
         : AppColor.grey400;
 
+    final Color fillColor = widget.hasError
+        ? AppColor.error.withOpacity(0.06)
+        : widget.readOnly
+        ? AppColor.grey200
+        : widget.isNavActive
+        ? AppColor.primary.withOpacity(0.08)
+        : widget.highlighted
+        ? AppColor.primary.withOpacity(0.07)
+        : AppColor.grey100;
+
+    final Color textColor = widget.hasError
+        ? AppColor.error
+        : widget.readOnly
+        ? AppColor.textHint
+        : widget.highlighted
+        ? AppColor.primary
+        : AppColor.textPrimary;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
-      child: TextField(
-        controller:      widget.controller,
-        focusNode:       widget.focusNode,
-        onChanged:       widget.onChanged,
-        onSubmitted:     widget.onSubmitted,
-        readOnly:        widget.readOnly,   // ← TextField readOnly
-        // ✅ readOnly ho toh keyboard mat kholo
-        keyboardType:    widget.readOnly
-            ? TextInputType.none
-            : const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: widget.readOnly
-            ? []    // readOnly mein formatter ki zaroorat nahi
-            : [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
-        textAlign:    TextAlign.center,
-        cursorHeight: 14,
-        style: TextStyle(
-          fontSize:   13,
-          fontWeight: widget.highlighted ? FontWeight.w700 : FontWeight.w500,
-          // ✅ readOnly ho toh text bhi grey
-          color: widget.readOnly
-              ? AppColor.textHint
-              : widget.highlighted
-              ? AppColor.primary
-              : AppColor.textPrimary,
-        ),
-        decoration: InputDecoration(
-          prefixText:  widget.prefix != null ? '${widget.prefix} ' : null,
-          prefixStyle: const TextStyle(fontSize: 10, color: AppColor.textHint),
-          isDense:     true,
-          filled:      true,
-          // ✅ readOnly ho toh fill color alag — grey200 (disabled feel)
-          fillColor: widget.readOnly
-              ? AppColor.grey200
-              : widget.isNavActive
-              ? AppColor.primary.withOpacity(0.08)
-              : widget.highlighted
-              ? AppColor.primary.withOpacity(0.07)
-              : AppColor.grey100,
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
-          border:        InputBorder.none,
-          enabledBorder: widget.readOnly
-              ? InputBorder.none   // readOnly mein koi border nahi
-              : widget.isNavActive
-              ? OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(
-                  color: AppColor.primary, width: 1.2))
-              : InputBorder.none,
-          focusedBorder: widget.readOnly
-              ? InputBorder.none   // readOnly focus border bhi nahi
-              : OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide:   BorderSide(color: activeColor, width: 1.4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller:      widget.controller,
+            focusNode:       widget.focusNode,
+            onChanged:       widget.onChanged,
+            onSubmitted:     widget.onSubmitted,
+            readOnly:        widget.readOnly,
+            keyboardType:    widget.readOnly
+                ? TextInputType.none
+                : const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: widget.readOnly
+                ? []
+                : [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+            textAlign:    TextAlign.center,
+            cursorHeight: 14,
+            style: TextStyle(
+              fontSize:   13,
+              fontWeight: widget.highlighted ? FontWeight.w700 : FontWeight.w500,
+              color:      textColor,
+            ),
+            decoration: InputDecoration(
+              prefixText:  widget.prefix != null ? '${widget.prefix} ' : null,
+              prefixStyle: const TextStyle(fontSize: 10, color: AppColor.textHint),
+              isDense:     true,
+              filled:      true,
+              fillColor:   fillColor,
+              contentPadding:
+              const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
+              border:        InputBorder.none,
+              enabledBorder: widget.hasError
+                  ? OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(color: AppColor.error, width: 1.4))
+                  : widget.readOnly
+                  ? InputBorder.none
+                  : widget.isNavActive
+                  ? OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(
+                      color: AppColor.primary, width: 1.2))
+                  : InputBorder.none,
+              focusedBorder: widget.hasError
+                  ? OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(color: AppColor.error, width: 1.6))
+                  : widget.readOnly
+                  ? InputBorder.none
+                  : OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide:   BorderSide(color: activeColor, width: 1.4),
+              ),
+            ),
           ),
-        ),
+
+          // ── Inline error text — sirf error hone pe dikhao ──────
+          if (widget.hasError && widget.errorMessage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 3, left: 2),
+              child: Text(
+                widget.errorMessage,
+                style: const TextStyle(
+                  fontSize:  9,
+                  color:     AppColor.error,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+        ],
       ),
     );
   }
