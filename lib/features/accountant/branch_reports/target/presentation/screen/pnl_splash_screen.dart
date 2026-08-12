@@ -184,17 +184,22 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
   late final Animation<double>   _fadeAnim;
   late final Animation<double>   _progressAnim;
 
-  static const _green      = Color(0xFF2E7D32);
-  static const _greenLight = Color(0xFF4CAF50);
-  static const _greenDark  = Color(0xFF1B5E20);
-  static const _bg         = Color(0xFF0C1210);
-  static const _card       = Color(0xFF17211D);
-  static const _border     = Color(0xFF26332D);
-  static const _blue       = Color(0xFF42A5F5);
-  static const _orange     = Color(0xFFFFA726);
-  static const _purple     = Color(0xFFE040FB);
-  static const _red        = Color(0xFFEF5350);
-  static const _targetLine = Color(0xFFFF7043);
+  // ── Theme palette (aligned with app's LightTheme primary purple) ──
+  static const _accent      = Color(0xFF6C63FF); // LightTheme primary
+  static const _accentDark  = Color(0xFF3D35CC); // LightTheme primaryDark
+  static const _accentSoft  = Color(0xFF9D97FF); // LightTheme primaryLight
+  static const _greenText   = Color(0xFF27500A);
+  static const _bg          = Color(0xFFF5F5F5);
+  static const _card        = Color(0xFFFFFFFF);
+  static const _border      = Color(0xFFE0E0E0);
+  static const _textPrimary = Color(0xFF1A1A1A);
+  static const _textSecond  = Color(0xFF6B6B6B);
+  static const _textMuted   = Color(0xFF9A9A9A);
+  static const _blue        = Color(0xFF185FA5);
+  static const _orange      = Color(0xFF854F0B);
+  static const _purple      = Color(0xFF534AB7);
+  static const _red         = Color(0xFFA32D2D);
+  static const _targetLine  = Color(0xFFC0621A);
 
   final _amtFmt  = NumberFormat('#,##,###', 'en_IN');
   final _dateFmt = DateFormat('dd MMM');
@@ -253,20 +258,22 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 48),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _header(compact: true),
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
           _daysLeftCard(),
           const SizedBox(height: 14),
-          _targetCard(),
-          const SizedBox(height: 14),
           _todayTargetCard(),
-          const SizedBox(height: 14),
-          _miniStat(icon: Icons.point_of_sale_rounded, label: 'Total Sale (7 Jul – Today)',  value: _loading ? '...' : _fmt(_data?.totalSale  ?? 0), color: _blue),
+          const SizedBox(height: 18),
+          Row(children: [
+            Expanded(child: _miniStat(icon: Icons.point_of_sale_rounded, label: 'Total sale',   value: _loading ? '...' : _fmt(_data?.totalSale  ?? 0), color: _blue)),
+            const SizedBox(width: 10),
+            Expanded(child: _miniStat(icon: Icons.trending_up_rounded,   label: 'Total profit', value: _loading ? '...' : _fmt(_data?.totalProfit ?? 0), color: _greenText)),
+          ]),
           const SizedBox(height: 10),
-          _miniStat(icon: Icons.trending_up_rounded,   label: 'Total Profit (7 Jul – Today)', value: _loading ? '...' : _fmt(_data?.totalProfit ?? 0), color: _greenLight),
-          const SizedBox(height: 10),
-          _miniStat(icon: Icons.today_rounded,         label: 'Today Sale',   value: _loading ? '...' : _fmt(_data?.todaySale   ?? 0), color: _orange),
-          const SizedBox(height: 10),
-          _miniStat(icon: Icons.show_chart_rounded,    label: 'Today Profit', value: _loading ? '...' : _fmt(_data?.todayProfit ?? 0), color: _purple),
+          Row(children: [
+            Expanded(child: _miniStat(icon: Icons.today_rounded,      label: 'Today sale',   value: _loading ? '...' : _fmt(_data?.todaySale   ?? 0), color: _orange)),
+            const SizedBox(width: 10),
+            Expanded(child: _miniStat(icon: Icons.show_chart_rounded, label: 'Today profit', value: _loading ? '...' : _fmt(_data?.todayProfit ?? 0), color: _purple)),
+          ]),
           const SizedBox(height: 16),
           SizedBox(height: 300, child: _chart()),
           const SizedBox(height: 20),
@@ -286,25 +293,23 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 34),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             _header(compact: false),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             IntrinsicHeight(
               child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 _daysLeftCard(),
                 const SizedBox(width: 14),
-                Expanded(flex: 3, child: _targetCard()),
-                const SizedBox(width: 14),
-                Expanded(flex: 3, child: _todayTargetCard()),
+                Expanded(flex: 4, child: _todayTargetCard()),
                 const SizedBox(width: 14),
                 Expanded(flex: 2, child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  _miniStat(icon: Icons.point_of_sale_rounded, label: 'Total Sale',   value: _loading ? '...' : _fmt(_data?.totalSale  ?? 0), color: _blue),
+                  _miniStat(icon: Icons.point_of_sale_rounded, label: 'Total sale',   value: _loading ? '...' : _fmt(_data?.totalSale  ?? 0), color: _blue),
                   const SizedBox(height: 8),
-                  _miniStat(icon: Icons.trending_up_rounded,   label: 'Total Profit', value: _loading ? '...' : _fmt(_data?.totalProfit ?? 0), color: _greenLight),
+                  _miniStat(icon: Icons.trending_up_rounded,   label: 'Total profit', value: _loading ? '...' : _fmt(_data?.totalProfit ?? 0), color: _greenText),
                 ])),
                 const SizedBox(width: 14),
                 Expanded(flex: 2, child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  _miniStat(icon: Icons.today_rounded,      label: 'Today Sale',   value: _loading ? '...' : _fmt(_data?.todaySale   ?? 0), color: _orange),
+                  _miniStat(icon: Icons.today_rounded,      label: 'Today sale',   value: _loading ? '...' : _fmt(_data?.todaySale   ?? 0), color: _orange),
                   const SizedBox(height: 8),
-                  _miniStat(icon: Icons.show_chart_rounded, label: 'Today Profit', value: _loading ? '...' : _fmt(_data?.todayProfit ?? 0), color: _purple),
+                  _miniStat(icon: Icons.show_chart_rounded, label: 'Today profit', value: _loading ? '...' : _fmt(_data?.todayProfit ?? 0), color: _purple),
                 ])),
               ]),
             ),
@@ -329,18 +334,25 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
           Container(
             width: compact ? 36 : 44, height: compact ? 36 : 44,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_green, _greenDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [_accent, _accentDark],
+              ),
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(color: _accent.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 4)),
+              ],
             ),
             child: Icon(Icons.analytics_rounded, color: Colors.white, size: compact ? 18 : 22),
           ),
           const SizedBox(width: 10),
-          Text('PnL Dashboard',
-              style: TextStyle(color: Colors.white, fontSize: compact ? 22 : 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+          Text('3 Month Target',
+              style: TextStyle(color: _textPrimary, fontSize: compact ? 22 : 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
         ]),
         const SizedBox(height: 4),
-        Text('7 Jul 2025 – 7 Oct 2026  •  Daily Target: ${_fmt(_kDailyProfitTarget)}',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: compact ? 11 : 13)),
+        Text('7 Jul 2025 – 7 Oct 2026  •  Daily target: ${_fmt(_kDailyProfitTarget)}',
+            style: TextStyle(color: _textSecond, fontSize: compact ? 11 : 13)),
       ],
     );
   }
@@ -353,98 +365,55 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
     final elapsed = today.difference(_kCampaignStart).inDays.clamp(0, total);
 
     return Container(
-      width: 148,
-      padding: const EdgeInsets.all(16),
+      width: 158,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_green.withValues(alpha: 0.85), _greenDark.withValues(alpha: 0.95)],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_accent, _accentDark],
         ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _greenLight.withValues(alpha: 0.25)),
-        boxShadow: [BoxShadow(color: _green.withValues(alpha: 0.30), blurRadius: 18, offset: const Offset(0, 6))],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: _accent.withValues(alpha: 0.30), blurRadius: 18, offset: const Offset(0, 8)),
+        ],
       ),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Icon(Icons.hourglass_bottom_rounded, color: Colors.white70, size: 20),
-        const SizedBox(height: 8),
-        Text('$dLeft', style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, height: 1)),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: const Icon(Icons.hourglass_bottom_rounded, color: Colors.white, size: 18),
+        ),
+        const SizedBox(height: 12),
+        Text('$dLeft', style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900, height: 1)),
         const SizedBox(height: 2),
-        Text('days left', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 10),
+        const Text('days left', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: (elapsed / total).clamp(0.0, 1.0),
-            backgroundColor: Colors.white.withValues(alpha: 0.2),
+            backgroundColor: Colors.white.withValues(alpha: 0.22),
             valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
             minHeight: 5,
           ),
         ),
         const SizedBox(height: 6),
-        Text('Until 7 Oct 2026', style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 9)),
+        const Text('Until 7 Oct 2026', style: TextStyle(color: Colors.white60, fontSize: 9)),
       ]),
     );
   }
 
-  Widget _targetCard() {
-    if (_loading) return _shimmer(height: 130);
-    if (_data == null) return const SizedBox.shrink();
-
-    final achieved  = _data!.achievedPercent;
-    final isHit     = achieved >= 100;
-    final barColor  = isHit ? _greenLight : _red;
-    final cumTarget = _data!.cumulativeTarget;
-
-    return AnimatedBuilder(
-      animation: _progressAnim,
-      builder: (_, __) {
-        final animVal    = _progressAnim.value;
-        final displayPct = (achieved * animVal).clamp(0.0, 999.0);
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18), border: Border.all(color: _border)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('OVERALL TARGET', style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-                const SizedBox(height: 2),
-                Text('${_data!.daysElapsed} days × ${_fmt(_kDailyProfitTarget)}',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)),
-              ]),
-              _badge(isHit ? (achieved > 100 ? 'Exceeded' : 'On Track') : 'Behind', isHit ? _greenLight : _red),
-            ]),
-            const SizedBox(height: 8),
-            Text(_fmt(cumTarget), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: ((achieved / 100) * animVal).clamp(0.0, 1.0),
-                backgroundColor: Colors.white.withValues(alpha: 0.08),
-                valueColor: AlwaysStoppedAnimation<Color>(barColor),
-                minHeight: 10,
-              ),
-            ),
-            const SizedBox(height: 7),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('${displayPct.toStringAsFixed(1)}% achieved',
-                  style: TextStyle(color: barColor, fontSize: 12, fontWeight: FontWeight.w700)),
-              Text(_fmt(_data!.totalProfit),
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10)),
-            ]),
-          ]),
-        );
-      },
-    );
-  }
-
   Widget _todayTargetCard() {
-    if (_loading) return _shimmer(height: 130);
+    if (_loading) return _shimmer(height: 158);
     if (_data == null) return const SizedBox.shrink();
 
     final todayPct = _data!.todayAchievedPercent;
     final isHit    = todayPct >= 100;
-    final barColor = isHit ? _greenLight : _orange;
+    final barColor = isHit ? _greenText : _accent;
 
     return AnimatedBuilder(
       animation: _progressAnim,
@@ -452,40 +421,43 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
         final animVal    = _progressAnim.value;
         final displayPct = (todayPct * animVal).clamp(0.0, 999.0);
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: _card,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: isHit ? _greenLight.withValues(alpha: 0.3) : _border),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: isHit ? _greenText.withValues(alpha: 0.35) : _border, width: isHit ? 1.2 : 0.5),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6)),
+            ],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text("TODAY'S TARGET", style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-                const SizedBox(height: 2),
+                Text("TODAY'S TARGET", style: TextStyle(color: _textMuted, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+                const SizedBox(height: 3),
                 Text(DateFormat('dd MMM yyyy').format(DateTime.now()),
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)),
+                    style: TextStyle(color: _textMuted, fontSize: 10)),
               ]),
-              _badge(isHit ? 'Hit!' : 'In Progress', barColor),
+              _badge(isHit ? 'Hit' : 'In progress', barColor),
             ]),
-            const SizedBox(height: 8),
-            Text(_fmt(_kDailyProfitTarget), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
             const SizedBox(height: 10),
+            Text(_fmt(_kDailyProfitTarget), style: TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+            const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
                 value: ((todayPct / 100) * animVal).clamp(0.0, 1.0),
-                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                backgroundColor: _bg,
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
-                minHeight: 10,
+                minHeight: 11,
               ),
             ),
-            const SizedBox(height: 7),
+            const SizedBox(height: 9),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('${displayPct.toStringAsFixed(1)}% of today target',
+              Text('${displayPct.toStringAsFixed(1)}% of today\'s target',
                   style: TextStyle(color: barColor, fontSize: 12, fontWeight: FontWeight.w700)),
               Text(_fmt(_data!.todayProfit),
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10)),
+                  style: TextStyle(color: _textSecond, fontSize: 11, fontWeight: FontWeight.w600)),
             ]),
           ]),
         );
@@ -495,11 +467,11 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
 
   Widget _badge(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
     );
@@ -508,16 +480,23 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
   Widget _miniStat({required IconData icon, required String label, required String value, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(14), border: Border.all(color: _border)),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _border, width: 0.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 3)),
+        ],
+      ),
       child: Row(children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 10)),
+          Text(label, style: TextStyle(color: _textMuted, fontSize: 10)),
           const SizedBox(height: 2),
           Text(value, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800)),
         ])),
@@ -528,27 +507,34 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
   Widget _chart() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18), border: Border.all(color: _border)),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _border, width: 0.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.bar_chart_rounded, color: _greenLight, size: 16),
+          Icon(Icons.bar_chart_rounded, color: _accent, size: 16),
           const SizedBox(width: 8),
-          const Expanded(child: Text('Daily Sale & Profit  —  7 Jul to 7 Oct',
-              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700))),
+          Expanded(child: Text('Daily sale and profit — 7 Jul to 7 Oct',
+              style: TextStyle(color: _textPrimary, fontSize: 13, fontWeight: FontWeight.w700))),
           _dot('Sale',   _blue),
           const SizedBox(width: 10),
-          _dot('Profit', _greenLight),
+          _dot('Profit', _greenText),
           const SizedBox(width: 10),
           _dot('Target', _targetLine),
         ]),
         const SizedBox(height: 4),
-        Text('Tap a bar • Orange line = Rs 20,000/day target',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 9)),
+        Text('Tap a bar • orange line = Rs 20,000/day target',
+            style: TextStyle(color: _textMuted, fontSize: 9)),
         const SizedBox(height: 10),
         if (_loading)
-          const Expanded(child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _greenLight)))
+          Expanded(child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _accent)))
         else if (_data == null || _data!.chartPoints.isEmpty)
-          const Expanded(child: Center(child: Text('Data nahi mila', style: TextStyle(color: Colors.white38, fontSize: 13))))
+          Expanded(child: Center(child: Text('No data found', style: TextStyle(color: _textMuted, fontSize: 13))))
         else
           Expanded(
             child: _InteractiveChart(
@@ -566,7 +552,7 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Container(width: 8, height: 8, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
       const SizedBox(width: 4),
-      Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10)),
+      Text(label, style: TextStyle(color: _textSecond, fontSize: 10)),
     ]);
   }
 
@@ -577,16 +563,16 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
       onPressed: widget.onComplete,
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-        backgroundColor: Colors.white.withValues(alpha: 0.06),
+        backgroundColor: _card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          side: BorderSide(color: _border),
         ),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        const Text('Skip', style: TextStyle(color: Colors.white60, fontSize: 13)),
+        Text('Skip', style: TextStyle(color: _textSecond, fontSize: 13)),
         const SizedBox(width: 6),
-        const Icon(Icons.arrow_forward_rounded, color: Colors.white38, size: 16),
+        Icon(Icons.arrow_forward_rounded, color: _textMuted, size: 16),
       ]),
     );
   }
@@ -594,8 +580,8 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
   Widget _shimmer({required double height}) {
     return Container(
       height: height,
-      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18), border: Border.all(color: _border)),
-      child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _greenLight.withValues(alpha: 0.5))),
+      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(20), border: Border.all(color: _border, width: 0.5)),
+      child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _accent.withValues(alpha: 0.6))),
     );
   }
 }
@@ -730,7 +716,7 @@ class _Tooltip extends StatelessWidget {
 
     final achieved = dailyTarget == 0 ? 0.0 : (point.profit / dailyTarget * 100).clamp(0.0, 999.0);
     final isHit    = achieved >= 100;
-    final pctColor = isHit ? const Color(0xFF4CAF50) : const Color(0xFFEF5350);
+    final pctColor = isHit ? const Color(0xFF3B6D11) : const Color(0xFFA32D2D);
 
     const tipW = 170.0;
     double left = (centerX - tipW / 2).clamp(4.0, chartSize.width - tipW - 4);
@@ -744,38 +730,38 @@ class _Tooltip extends StatelessWidget {
           width: tipW,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E2D28),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF3A4F45)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 4))],
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 4))],
           ),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text(dateFmt.format(point.date),
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+                  style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 12, fontWeight: FontWeight.w800)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: pctColor.withValues(alpha: 0.15),
+                  color: pctColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: pctColor.withValues(alpha: 0.4)),
+                  border: Border.all(color: pctColor.withValues(alpha: 0.35)),
                 ),
                 child: Text('${achieved.toStringAsFixed(0)}%',
                     style: TextStyle(color: pctColor, fontSize: 9, fontWeight: FontWeight.w800)),
               ),
             ]),
             const SizedBox(height: 8),
-            _tRow(Icons.point_of_sale_rounded, 'Sale',   fmtAmt(point.sale),   const Color(0xFF42A5F5)),
+            _tRow(Icons.point_of_sale_rounded, 'Sale',   fmtAmt(point.sale),   const Color(0xFF185FA5)),
             const SizedBox(height: 4),
-            _tRow(Icons.trending_up_rounded,   'Profit', fmtAmt(point.profit), const Color(0xFF4CAF50)),
-            const Divider(height: 10, color: Color(0xFF3A4F45)),
-            _tRow(Icons.track_changes_rounded, 'Target', fmtAmt(dailyTarget),  const Color(0xFFFFA726)),
+            _tRow(Icons.trending_up_rounded,   'Profit', fmtAmt(point.profit), const Color(0xFF3B6D11)),
+            const Divider(height: 10, color: Color(0xFFE0E0E0)),
+            _tRow(Icons.track_changes_rounded, 'Target', fmtAmt(dailyTarget),  const Color(0xFF854F0B)),
             const SizedBox(height: 5),
             ClipRRect(
               borderRadius: BorderRadius.circular(3),
               child: LinearProgressIndicator(
                 value: (achieved / 100).clamp(0.0, 1.0),
-                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                backgroundColor: const Color(0xFFF5F5F5),
                 valueColor: AlwaysStoppedAnimation<Color>(pctColor),
                 minHeight: 4,
               ),
@@ -790,7 +776,7 @@ class _Tooltip extends StatelessWidget {
     return Row(children: [
       Icon(icon, color: color, size: 11),
       const SizedBox(width: 5),
-      Text('$label  ', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10)),
+      Text('$label  ', style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 10)),
       Expanded(child: Text(value, textAlign: TextAlign.right,
           style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700))),
     ]);
@@ -814,10 +800,12 @@ class _BarPainter extends CustomPainter {
     required this.hoveredIdx,
   });
 
-  static const _saleColor   = Color(0xFF42A5F5);
-  static const _profitGreen = Color(0xFF4CAF50);
-  static const _profitRed   = Color(0xFFEF5350);
-  static const _targetColor = Color(0xFFFF7043);
+  static const _saleColor   = Color(0xFF378ADD);
+  static const _profitGreen = Color(0xFF639922);
+  static const _profitRed   = Color(0xFFE24B4A);
+  static const _targetColor = Color(0xFFC0621A);
+  static const _gridColor   = Color(0xFFE8E8E8);
+  static const _axisColor   = Color(0xFF9A9A9A);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -835,7 +823,7 @@ class _BarPainter extends CustomPainter {
 
     // Grid lines
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..color = _gridColor
       ..strokeWidth = 1;
     for (int i = 1; i <= 4; i++) {
       final y = pt + chartH * (1 - i / 4);
@@ -857,19 +845,19 @@ class _BarPainter extends CustomPainter {
     labelTp.paint(canvas, Offset(pl + 4, targetY - 10));
 
     // Bars
-    final xAxisStyle = TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 8);
+    const xAxisStyle = TextStyle(color: _axisColor, fontSize: 8);
 
     for (int i = 0; i < n; i++) {
       final p          = points[i];
       final x          = pl + groupW * i + groupW / 2;
       final isHovered  = hoveredIdx == i;
-      final baseOpacity = hoveredIdx == null ? 0.75 : (isHovered ? 1.0 : 0.3);
+      final baseOpacity = hoveredIdx == null ? 0.85 : (isHovered ? 1.0 : 0.35);
 
       // Hover highlight
       if (isHovered) {
         canvas.drawRect(
           Rect.fromLTWH(x - barW - 4, pt, barW * 2 + 8, chartH),
-          Paint()..color = Colors.white.withValues(alpha: 0.04),
+          Paint()..color = const Color(0xFFF0F0F0),
         );
       }
 
@@ -891,7 +879,7 @@ class _BarPainter extends CustomPainter {
           Rect.fromLTWH(x + 2, pt + chartH - profitH, barW, profitH),
           topLeft: const Radius.circular(3), topRight: const Radius.circular(3),
         ),
-        Paint()..color = profitColor.withValues(alpha: isHovered ? 1.0 : (hoveredIdx == null ? 0.85 : 0.3)),
+        Paint()..color = profitColor.withValues(alpha: isHovered ? 1.0 : (hoveredIdx == null ? 0.9 : 0.35)),
       );
     }
 
