@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart' hide TextDirection;
-import 'dart:ui' as ui;
+import 'package:intl/intl.dart';
 import '../../data/model/customer_invoice_model.dart';
 import '../../data/model/customer_return_model.dart';
 import '../../data/model/specific_customer_ledger_model.dart';
@@ -12,37 +10,26 @@ import 'package:jan_ghani_final/core/service/session/accountant_session.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
 
 // ─────────────────────────────────────────────────────────────
-// Urdu notebook colors — ek jagah define
+// Light theme colors — defined in one place
 // ─────────────────────────────────────────────────────────────
-class _NbColor {
-  static const bg         = Color(0xFFFDFAF4);
-  static const bgHeader   = Color(0xFFF0E8D0);
-  static const bgAlt      = Color(0xFFFFFDF5);
-  static const bgPayment  = Color(0xFFF5F0E0);
-  static const bgBanner   = Color(0xFFFFF8E8);
-  static const border     = Color(0xFFD4C9A8);
-  static const borderGold = Color(0xFFB8A060);
-  static const textDark   = Color(0xFF2D1A00);
-  static const textMid    = Color(0xFF6B4C1A);
-  static const textMuted  = Color(0xFF9A7A50);
-  static const textGreen  = Color(0xFF1A4A1A);
-  static const textRed    = Color(0xFF8B1A1A);
-  static const colHead    = Color(0xFFE8DFC8);
-}
+class _Clr {
+  static const bg          = Color(0xFFF5F5F5);
+  static const card        = Color(0xFFFFFFFF);
+  static const border      = Color(0xFFE0E0E0);
+  static const borderSoft  = Color(0xFFEDEDED);
+  static const textPrimary = Color(0xFF1A1A1A);
+  static const textSecond  = Color(0xFF6B6B6B);
+  static const textMuted   = Color(0xFF9A9A9A);
 
-// ─────────────────────────────────────────────────────────────
-// Urdu font helper
-// ─────────────────────────────────────────────────────────────
-TextStyle _urdu({
-  double size = 13,
-  FontWeight weight = FontWeight.w400,
-  Color color = _NbColor.textDark,
-}) =>
-    GoogleFonts.notoNastaliqUrdu(
-      fontSize: size,
-      fontWeight: weight,
-      color: color,
-    );
+  // role colors
+  static const blueBg   = Color(0xFFE6F1FB);
+  static const blueText = Color(0xFF0C447C);
+  static const amberBg   = Color(0xFFFAEEDA);
+  static const amberText = Color(0xFF854F0B);
+  static const greenBg   = Color(0xFFEAF3DE);
+  static const greenText = Color(0xFF3B6D11);
+  static const redText   = Color(0xFFA32D2D);
+}
 
 // ─────────────────────────────────────────────────────────────
 // Feed types
@@ -139,7 +126,7 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
     lastDate:    DateTime.now(),
     builder: (ctx, child) => Theme(
       data: Theme.of(ctx).copyWith(
-        colorScheme: const ColorScheme.light(primary: Colors.black),
+        colorScheme: const ColorScheme.light(primary: _Clr.textPrimary),
       ),
       child: child!,
     ),
@@ -171,7 +158,7 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Export failed: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: _Clr.redText,
         ));
       }
     }
@@ -213,9 +200,9 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
     final hasBalance = widget.customerBalance > 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _Clr.bg,
       appBar: AppBar(
-        backgroundColor:           Colors.white,
+        backgroundColor:           _Clr.card,
         elevation:                 0,
         surfaceTintColor:          Colors.transparent,
         automaticallyImplyLeading: !widget.hideAppBarBack,
@@ -223,24 +210,24 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
             ? null
             : IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18, color: Colors.black),
+              size: 18, color: _Clr.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.customerName,
           style: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black),
+              fontSize: 15, fontWeight: FontWeight.w700, color: _Clr.textPrimary),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf_outlined,
-                size: 20, color: Colors.black),
+                size: 20, color: _Clr.textPrimary),
             tooltip:   'Export PDF',
             onPressed: _exportPdf,
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded,
-                size: 20, color: Colors.black),
+                size: 20, color: _Clr.textPrimary),
             tooltip:   'Logout',
             onPressed: _logout,
           ),
@@ -251,36 +238,37 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
         // ── Balance banner ──────────────────────────────────
         Container(
           width:   double.infinity,
-          color:   Colors.white,
+          color:   _Clr.card,
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color:        Colors.black.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(10),
-              border:       Border.all(color: Colors.black.withOpacity(0.15)),
+              color:        _Clr.bg,
+              borderRadius: BorderRadius.circular(12),
+              border:       Border.all(color: _Clr.border, width: 0.5),
             ),
             child: Row(children: [
               Icon(
                 hasBalance
                     ? Icons.warning_amber_rounded
                     : Icons.check_circle_outline_rounded,
-                size: 18, color: Colors.black,
+                size: 16, color: hasBalance ? _Clr.amberText : _Clr.greenText,
               ),
               const SizedBox(width: 8),
               Text(
-                hasBalance ? 'Outstanding: ' : 'Balance: ',
+                hasBalance ? 'Outstanding balance' : 'Balance',
                 style: const TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black54),
+                    fontWeight: FontWeight.w500,
+                    color: _Clr.textSecond),
               ),
+              const Spacer(),
               Text(
                 _fmt(widget.customerBalance.abs()),
                 style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: _Clr.textPrimary),
               ),
             ]),
           ),
@@ -288,12 +276,12 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
 
         // ── Date filter ─────────────────────────────────────
         Container(
-          color:   Colors.white,
+          color:   _Clr.card,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
           child: Row(children: [
             Expanded(
               child: _DateField(
-                label:      'Start',
+                label:      'Start date',
                 controller: _fromCtrl,
                 onTap: () async {
                   final p = await _pickDate(saleState.fromDate);
@@ -307,7 +295,7 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: _DateField(
-                label:      'End',
+                label:      'End date',
                 controller: _toCtrl,
                 onTap: () async {
                   final p = await _pickDate(saleState.toDate);
@@ -330,8 +318,9 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
                   _applyDateRange(t, t);
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  side:    const BorderSide(color: Colors.black),
+                  backgroundColor: _Clr.card,
+                  foregroundColor: _Clr.textPrimary,
+                  side:    const BorderSide(color: _Clr.textPrimary),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
                   shape:   RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
@@ -342,50 +331,38 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
           ]),
         ),
 
-        // ── Summary stats ───────────────────────────────────
+        // ── Summary stats (2-column grid) ───────────────────
         Container(
-          color:   Colors.white,
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
-          child: Row(children: [
-            Expanded(
-              child: _StatTile(
-                  label: 'Sales',
-                  value: '${saleState.invoiceCount}',
-                  icon: Icons.receipt_long_outlined),
-            ),
-            Container(
-                width: 1,
-                height: 36,
-                color: const Color(0xFFE5E7EB),
-                margin: const EdgeInsets.symmetric(horizontal: 4)),
-            Expanded(
-              child: _StatTile(
-                  label: 'Total Sale',
-                  value: _fmt(saleState.totalSale),
-                  icon: Icons.payments_outlined),
-            ),
-            Container(
-                width: 1,
-                height: 36,
-                color: const Color(0xFFE5E7EB),
-                margin: const EdgeInsets.symmetric(horizontal: 4)),
-            Expanded(
-              child: _StatTile(
-                  label: 'Total Return',
+          color:   _Clr.card,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(children: [
+            Row(children: [
+              Expanded(
+                child: _StatCard(label: 'Sales', value: '${saleState.invoiceCount}'),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _StatCard(label: 'Total sale', value: _fmt(saleState.totalSale)),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(
+                child: _StatCard(
+                  label: 'Returns',
                   value: _fmt(returnState.summary.totalAmount),
-                  icon: Icons.assignment_return_outlined),
-            ),
-            Container(
-                width: 1,
-                height: 36,
-                color: const Color(0xFFE5E7EB),
-                margin: const EdgeInsets.symmetric(horizontal: 4)),
-            Expanded(
-              child: _StatTile(
+                  valueColor: _Clr.redText,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _StatCard(
                   label: 'Paid',
                   value: _fmt(ledgerState.totalPaid),
-                  icon: Icons.account_balance_wallet_outlined),
-            ),
+                  valueColor: _Clr.greenText,
+                ),
+              ),
+            ]),
           ]),
         ),
 
@@ -393,11 +370,11 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
         Expanded(
           child: isLoading
               ? const Center(
-              child: CircularProgressIndicator(color: Colors.black))
+              child: CircularProgressIndicator(color: _Clr.textPrimary))
               : feed.isEmpty
               ? const _EmptyState(message: 'No records found')
               : RefreshIndicator(
-            color: Colors.black,
+            color: _Clr.textPrimary,
             onRefresh: () async {
               await Future.wait([
                 ref
@@ -414,33 +391,42 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
                     .load(),
               ]);
             },
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              itemCount:        feed.length,
-              separatorBuilder: (_, __) =>
-              const SizedBox(height: 10),
-              itemBuilder: (_, i) {
-                final item = feed[i];
-                return switch (item.type) {
-                  _FeedType.sale => _SaleCard(
-                    inv:     item.sale!,
-                    dateFmt: _dateFmt,
-                    timeFmt: _timeFmt,
-                    amtFmt:  _amtFmt,
-                  ),
-                  _FeedType.ret => _ReturnCard(
-                    ret:     item.ret!,
-                    dateFmt: _dateFmt,
-                    timeFmt: _timeFmt,
-                  ),
-                  _FeedType.ledger => _LedgerCard(
-                    entry:   item.ledger!,
-                    dateFmt: _dateFmt,
-                    timeFmt: _timeFmt,
-                    amtFmt:  _amtFmt,
-                  ),
-                };
-              },
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              children: [
+                Text('Activity',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _Clr.textMuted,
+                        letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                ...feed.map((item) {
+                  final card = switch (item.type) {
+                    _FeedType.sale => _SaleCard(
+                      inv:     item.sale!,
+                      dateFmt: _dateFmt,
+                      timeFmt: _timeFmt,
+                      amtFmt:  _amtFmt,
+                    ),
+                    _FeedType.ret => _ReturnCard(
+                      ret:     item.ret!,
+                      dateFmt: _dateFmt,
+                      timeFmt: _timeFmt,
+                    ),
+                    _FeedType.ledger => _LedgerCard(
+                      entry:   item.ledger!,
+                      dateFmt: _dateFmt,
+                      timeFmt: _timeFmt,
+                      amtFmt:  _amtFmt,
+                    ),
+                  };
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: card,
+                  );
+                }),
+              ],
             ),
           ),
         ),
@@ -450,152 +436,196 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
 }
 
 // ══════════════════════════════════════════════════════════════
-// Notebook wrapper — shared outer shell
+// Card shell — shared white raised card
 // ══════════════════════════════════════════════════════════════
-class _NbShell extends StatelessWidget {
+class _CardShell extends StatelessWidget {
   final Widget child;
-  const _NbShell({required this.child});
+  const _CardShell({required this.child});
 
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color:        _NbColor.bg,
+      color:        _Clr.card,
+      borderRadius: BorderRadius.circular(12),
+      border:       Border.all(color: _Clr.border, width: 0.5),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: child,
+  );
+}
+
+// ── Role badge (Invoice / Return / Ledger) ─────────────────
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color  bg;
+  final Color  text;
+  const _Badge({required this.label, required this.bg, required this.text});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+    child: Text(label,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: text)),
+  );
+}
+
+// ── Outlined tag (Credit / Cash / Card) ─────────────────────
+class _OutlineTag extends StatelessWidget {
+  final String label;
+  const _OutlineTag({required this.label});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+    decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(6),
-      border:       Border.all(color: _NbColor.border),
+      border:       Border.all(color: const Color(0xFFC9C9C9)),
     ),
-    child: Directionality(
-      textDirection: ui.TextDirection.rtl,
-      child: child,
-    ),
+    child: Text(label,
+        style: const TextStyle(
+            fontSize: 10, fontWeight: FontWeight.w500, color: _Clr.textSecond)),
   );
 }
 
-// ── Notebook column header row ─────────────────────────────
-class _NbColHead extends StatelessWidget {
-  final List<String> labels;
-  final List<int>    flexes;
-  const _NbColHead({required this.labels, required this.flexes});
+// ── Item table header ────────────────────────────────────────
+class _ItemTableHeader extends StatelessWidget {
+  const _ItemTableHeader();
 
   @override
-  Widget build(BuildContext context) => Container(
-    color:   _NbColor.colHead,
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-    child: Row(
-      children: List.generate(labels.length, (i) {
-        final isFirst = i == 0;
-        return Expanded(
-          flex: flexes[i],
-          child: Text(
-            labels[i],
-            textAlign: isFirst ? TextAlign.right : TextAlign.center,
-            style: _urdu(
-                size: 10,
-                weight: FontWeight.w700,
-                color: const Color(0xFF5A3E10)),
-          ),
-        );
-      }),
-    ),
-  );
-}
-
-// ── Notebook item row ──────────────────────────────────────
-class _NbItemRow extends StatelessWidget {
-  final String name;
-  final String qty;
-  final String price;
-  final String total;
-  final bool   isEven;
-  const _NbItemRow({
-    required this.name,
-    required this.qty,
-    required this.price,
-    required this.total,
-    this.isEven = false,
-  });
-
-  @override
-  Widget build(BuildContext context) => Container(
-    color:   isEven ? _NbColor.bgAlt : _NbColor.bg,
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    child: Row(children: [
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(children: const [
       Expanded(
         flex: 3,
-        child: Text(name,
-            textAlign: TextAlign.right,
-            style: _urdu(size: 12),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis),
+        child: Text('Product',
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted)),
       ),
       Expanded(
         flex: 1,
-        child: Text(qty,
+        child: Text('Qty',
             textAlign: TextAlign.center,
-            style: _urdu(size: 12, color: _NbColor.textMid)),
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted)),
       ),
       Expanded(
         flex: 2,
-        child: Text(price,
+        child: Text('Price',
             textAlign: TextAlign.center,
-            style: _urdu(size: 12, color: _NbColor.textMid)),
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted)),
       ),
       Expanded(
         flex: 2,
-        child: Text(total,
+        child: Text('Disc',
             textAlign: TextAlign.center,
-            style: _urdu(
-                size: 12,
-                weight: FontWeight.w700,
-                color: _NbColor.textGreen)),
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted)),
+      ),
+      Expanded(
+        flex: 2,
+        child: Text('Sub total',
+            textAlign: TextAlign.right,
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted)),
       ),
     ]),
   );
 }
 
-// ── Total / summary row ────────────────────────────────────
-class _NbTotalRow extends StatelessWidget {
+// ── Item row inside an expanded invoice/return (table style) ─
+class _ItemRow extends StatelessWidget {
+  final String name;
+  final String qty;
+  final String price;
+  final String discount;
+  final String total;
+  const _ItemRow({
+    required this.name,
+    required this.qty,
+    required this.price,
+    required this.discount,
+    required this.total,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(name,
+              style: const TextStyle(fontSize: 12, color: _Clr.textPrimary),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis),
+        ),
+        Expanded(
+          flex: 1,
+          child: Text(qty,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: _Clr.textSecond)),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text(price,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: _Clr.textSecond)),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text(discount,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: _Clr.textSecond)),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text(total,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600, color: _Clr.textPrimary)),
+        ),
+      ],
+    ),
+  );
+}
+
+// ── Total row (bold "Total bill" line) ──────────────────────
+class _TotalRow extends StatelessWidget {
   final String label;
   final String value;
   final Color  valueColor;
-  final bool   bold;
-  final bool   topBorder;
-  const _NbTotalRow({
+  const _TotalRow({
     required this.label,
     required this.value,
-    this.valueColor = _NbColor.textDark,
-    this.bold       = false,
-    this.topBorder  = false,
+    this.valueColor = _Clr.textPrimary,
   });
 
   @override
   Widget build(BuildContext context) => Container(
-    decoration: topBorder
-        ? const BoxDecoration(
-        border: Border(
-            top: BorderSide(color: _NbColor.borderGold, width: 1.5)))
-        : null,
-    padding: EdgeInsets.only(
-        top: topBorder ? 6 : 0, bottom: 4, left: 12, right: 12),
+    padding: const EdgeInsets.only(top: 8),
+    decoration: const BoxDecoration(
+      border: Border(top: BorderSide(color: _Clr.borderSoft, width: 0.5)),
+    ),
+    margin: const EdgeInsets.only(top: 6),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: _urdu(
-                size: bold ? 13 : 12,
-                weight: bold ? FontWeight.w700 : FontWeight.w400,
-                color: bold ? _NbColor.textDark : _NbColor.textMid)),
+            style: const TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600, color: _Clr.textPrimary)),
         Text(value,
-            style: _urdu(
-                size: bold ? 14 : 12,
-                weight: bold ? FontWeight.w700 : FontWeight.w700,
-                color: valueColor)),
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600, color: valueColor)),
       ],
     ),
   );
 }
 
 // ══════════════════════════════════════════════════════════════
-// Sale Card — Urdu notebook invoice
+// Sale Card
 // ══════════════════════════════════════════════════════════════
 class _SaleCard extends StatefulWidget {
   final CustomerInvoiceModel inv;
@@ -615,142 +645,112 @@ class _SaleCard extends StatefulWidget {
 class _SaleCardState extends State<_SaleCard> {
   bool _expanded = false;
 
-  String _fmt(double v) => '₨ ${widget.amtFmt.format(v.toInt())}';
+  String _fmt(double v) => 'Rs ${widget.amtFmt.format(v.toInt())}';
 
   @override
   Widget build(BuildContext context) {
     final inv      = widget.inv;
     final isCredit = inv.paymentType.contains('credit');
-    final payLabel = isCredit ? 'اُدھار' : inv.paymentType.contains('cash') ? 'نقد' : 'کارڈ';
+    final payLabel = isCredit
+        ? 'Credit'
+        : inv.paymentType.contains('cash')
+        ? 'Cash'
+        : 'Card';
 
-    return _NbShell(
+    return _CardShell(
       child: Column(children: [
-        // ── Header — tap to expand ──────────────────────────
         InkWell(
-          onTap:        () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.circular(6),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: _NbColor.bgHeader,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // right side — bill info
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Row(children: [
-                    _NbTag(label: 'بِل'),
-                    const SizedBox(width: 6),
-                    Text(inv.invoiceNo,
-                        style: _urdu(size: 13, weight: FontWeight.w700)),
-                  ]),
-                  const SizedBox(height: 3),
-                  Row(children: [
-                    _NbBadge(label: payLabel),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${widget.dateFmt.format(inv.invoiceDate)}  ${widget.timeFmt.format(inv.invoiceDate)}',
-                      style: _urdu(size: 10, color: _NbColor.textMuted),
-                    ),
-                  ]),
-                ]),
-                // left side — amount + chevron
-                Row(children: [
-                  AnimatedRotation(
-                    turns:    _expanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.keyboard_arrow_down,
-                        size: 18, color: _NbColor.textMid),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const _Badge(
+                            label: 'Invoice', bg: _Clr.blueBg, text: _Clr.blueText),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(inv.invoiceNo,
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _Clr.textPrimary),
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ]),
+                      const SizedBox(height: 5),
+                      Row(children: [
+                        _OutlineTag(label: payLabel),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${widget.dateFmt.format(inv.invoiceDate)}, ${widget.timeFmt.format(inv.invoiceDate)}',
+                          style: const TextStyle(fontSize: 11, color: _Clr.textMuted),
+                        ),
+                      ]),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(inv.grandTotalLabel,
-                      style: _urdu(
-                          size: 15,
-                          weight: FontWeight.w700,
-                          color: _NbColor.textGreen)),
-                ]),
+                ),
+                const SizedBox(width: 8),
+                Text(inv.grandTotalLabel,
+                    style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: _Clr.textPrimary)),
+                const SizedBox(width: 6),
+                AnimatedRotation(
+                  turns:    _expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down,
+                      size: 18, color: _Clr.textSecond),
+                ),
               ],
             ),
           ),
         ),
 
-        // ── Expanded body — notebook invoice ───────────────
         if (_expanded) ...[
-          Container(height: 1, color: _NbColor.borderGold),
-
-          // items table
-          _NbColHead(
-            labels: ['سامان', 'تعداد', 'قیمت', 'کُل'],
-            flexes: [3, 1, 2, 2],
-          ),
-          Container(height: 1, color: _NbColor.border),
-          ...inv.items.asMap().entries.map((e) => _NbItemRow(
-            name:   e.value.productName,
-            qty:    e.value.qtyLabel,
-            price:  e.value.salePriceLabel,
-            total:  e.value.totalLabel,
-            isEven: e.key.isEven,
-          )),
-
-          // totals
-          Container(height: 1, color: _NbColor.border),
-          const SizedBox(height: 6),
-          if (inv.totalDiscount > 0)
-            _NbTotalRow(
-              label:      'کل مال',
-              value:      _fmt(inv.grandTotal + inv.totalDiscount),
-              valueColor: _NbColor.textDark,
-            ),
-          if (inv.totalDiscount > 0)
-            _NbTotalRow(
-              label:      'چھوٹ (رعایت)',
-              value:      '- ${_fmt(inv.totalDiscount)}',
-              valueColor: _NbColor.textGreen,
-            ),
-          _NbTotalRow(
-            label:      'کُل بِل',
-            value:      inv.grandTotalLabel,
-            valueColor: _NbColor.textRed,
-            bold:       true,
-            topBorder:  true,
-          ),
-          const SizedBox(height: 6),
-
-          // payment section
-          Container(
-            color:   _NbColor.bgPayment,
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          Container(height: 0.5, color: _Clr.borderSoft),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
             child: Column(children: [
-              _NbTotalRow(
-                  label: 'پہلے سے باقی',
-                  value: inv.previousAmountLabel,
-                  valueColor: _NbColor.textRed),
-              _NbTotalRow(
-                  label: 'ابھی دیا',
-                  value: inv.payAmountLabel,
-                  valueColor: _NbColor.textGreen),
-              _NbTotalRow(
-                label:      'اب باقی ہے',
-                value:      inv.newAmountLabel,
-                valueColor: _NbColor.textRed,
-                bold:       true,
-                topBorder:  true,
-              ),
+              const _ItemTableHeader(),
+              Container(height: 0.5, color: _Clr.borderSoft),
+              ...inv.items.map((it) => _ItemRow(
+                name:     it.productName,
+                qty:      it.qtyLabel,
+                price:    it.salePriceLabel,
+                discount: it.discount > 0
+                    ? 'Rs ${it.discount.toStringAsFixed(0)}'
+                    : '—',
+                total:    it.totalLabel,
+              )),
+              _TotalRow(label: 'Total bill', value: inv.grandTotalLabel),
             ]),
           ),
 
-          // footer
+          // payment breakdown
           Container(
-            width:   double.infinity,
-            color:   _NbColor.bgHeader,
-            padding: const EdgeInsets.symmetric(vertical: 7),
-            child: Text(
-              'شکریہ — اللہ برکت دے',
-              textAlign: TextAlign.center,
-              style: _urdu(size: 11, color: _NbColor.textMuted),
-            ),
+            color:   _Clr.bg,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Column(children: [
+              _PaymentLine(label: 'Previous balance', value: inv.previousAmountLabel),
+              const SizedBox(height: 4),
+              _PaymentLine(
+                  label: 'Paid now',
+                  value: inv.payAmountLabel,
+                  valueColor: _Clr.greenText),
+              const SizedBox(height: 4),
+              _PaymentLine(
+                  label: 'Balance now',
+                  value: inv.newAmountLabel,
+                  valueColor: _Clr.redText,
+                  bold: true),
+            ]),
           ),
         ],
       ]),
@@ -758,8 +758,39 @@ class _SaleCardState extends State<_SaleCard> {
   }
 }
 
+// ── Small key/value row used in the payment breakdown ──────
+class _PaymentLine extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color  valueColor;
+  final bool   bold;
+  const _PaymentLine({
+    required this.label,
+    required this.value,
+    this.valueColor = _Clr.textSecond,
+    this.bold = false,
+  });
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(label,
+          style: TextStyle(
+              fontSize: 12,
+              color: bold ? _Clr.textPrimary : _Clr.textSecond,
+              fontWeight: bold ? FontWeight.w600 : FontWeight.w400)),
+      Text(value,
+          style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: valueColor)),
+    ],
+  );
+}
+
 // ══════════════════════════════════════════════════════════════
-// Return Card — Urdu notebook
+// Return Card
 // ══════════════════════════════════════════════════════════════
 class _ReturnCard extends StatefulWidget {
   final CustomerReturnInvoice ret;
@@ -781,93 +812,87 @@ class _ReturnCardState extends State<_ReturnCard> {
   Widget build(BuildContext context) {
     final ret = widget.ret;
 
-    return _NbShell(
+    return _CardShell(
       child: Column(children: [
-        // ── Header ─────────────────────────────────────────
         InkWell(
-          onTap:        () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.circular(6),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFF0E0),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Row(children: [
-                    _NbTag(label: 'واپسی', color: const Color(0xFFC0621A)),
-                    const SizedBox(width: 6),
-                    Text(ret.returnNo,
-                        style: _urdu(size: 13, weight: FontWeight.w700)),
-                  ]),
-                  const SizedBox(height: 3),
-                  Row(children: [
-                    _NbBadge(
-                        label: ret.paymentLabel,
-                        color: const Color(0xFFC0621A)),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${widget.dateFmt.format(ret.returnDate)}  ${widget.timeFmt.format(ret.returnDate)}',
-                      style: _urdu(size: 10, color: _NbColor.textMuted),
-                    ),
-                  ]),
-                ]),
-                Row(children: [
-                  AnimatedRotation(
-                    turns:    _expanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.keyboard_arrow_down,
-                        size: 18, color: _NbColor.textMid),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const _Badge(
+                            label: 'Return', bg: _Clr.amberBg, text: _Clr.amberText),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(ret.returnNo,
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _Clr.textPrimary),
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ]),
+                      const SizedBox(height: 5),
+                      Row(children: [
+                        _OutlineTag(label: ret.paymentLabel),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${widget.dateFmt.format(ret.returnDate)}, ${widget.timeFmt.format(ret.returnDate)}',
+                          style: const TextStyle(fontSize: 11, color: _Clr.textMuted),
+                        ),
+                      ]),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '₨ ${ret.grandTotal.toStringAsFixed(0)}',
-                    style: _urdu(
-                        size: 15,
-                        weight: FontWeight.w700,
-                        color: const Color(0xFFC0621A)),
-                  ),
-                ]),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Rs ${ret.grandTotal.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: _Clr.amberText),
+                ),
+                const SizedBox(width: 6),
+                AnimatedRotation(
+                  turns:    _expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down,
+                      size: 18, color: _Clr.textSecond),
+                ),
               ],
             ),
           ),
         ),
 
-        // ── Expanded body ───────────────────────────────────
         if (_expanded) ...[
-          Container(height: 1, color: const Color(0xFFD4A060)),
-
-          _NbColHead(
-            labels: ['سامان', 'تعداد', 'قیمت', 'کُل'],
-            flexes: [3, 1, 2, 2],
+          Container(height: 0.5, color: _Clr.borderSoft),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            child: Column(children: [
+              const _ItemTableHeader(),
+              Container(height: 0.5, color: _Clr.borderSoft),
+              ...ret.items.map((it) => _ItemRow(
+                name:     it.productName,
+                qty:      it.qtyLabel,
+                price:    it.salePriceLabel,
+                discount: it.discount > 0
+                    ? 'Rs ${it.discount.toStringAsFixed(0)}'
+                    : '—',
+                total:    'Rs ${it.totalAmount.toStringAsFixed(0)}',
+              )),
+              _TotalRow(
+                label:      'Total return',
+                value:      'Rs ${ret.grandTotal.toStringAsFixed(0)}',
+                valueColor: _Clr.amberText,
+              ),
+            ]),
           ),
-          Container(height: 1, color: _NbColor.border),
-          ...ret.items.asMap().entries.map((e) => _NbItemRow(
-            name:   e.value.productName,
-            qty:    e.value.qtyLabel,
-            price:  e.value.salePriceLabel,
-            total:  '₨ ${e.value.totalAmount.toStringAsFixed(0)}',
-            isEven: e.key.isEven,
-          )),
-
-          Container(height: 1, color: _NbColor.border),
-          const SizedBox(height: 6),
-          if (ret.totalDiscount > 0)
-            _NbTotalRow(
-                label:      'چھوٹ',
-                value:      '- ₨ ${ret.totalDiscount.toStringAsFixed(0)}',
-                valueColor: _NbColor.textGreen),
-          _NbTotalRow(
-            label:      'کُل واپسی',
-            value:      '₨ ${ret.grandTotal.toStringAsFixed(0)}',
-            valueColor: const Color(0xFFC0621A),
-            bold:       true,
-            topBorder:  true,
-          ),
-          const SizedBox(height: 8),
         ],
       ]),
     );
@@ -875,7 +900,7 @@ class _ReturnCardState extends State<_ReturnCard> {
 }
 
 // ══════════════════════════════════════════════════════════════
-// Ledger Card — Urdu notebook
+// Ledger Card
 // ══════════════════════════════════════════════════════════════
 class _LedgerCard extends StatelessWidget {
   final SpecificCustomerLedgerModel entry;
@@ -889,95 +914,85 @@ class _LedgerCard extends StatelessWidget {
     required this.amtFmt,
   });
 
-  String _fmt(double v) => '₨ ${amtFmt.format(v.toInt())}';
+  String _fmt(double v) => 'Rs ${amtFmt.format(v.toInt())}';
 
   @override
   Widget build(BuildContext context) {
     final isPayment = entry.isPayment;
-    final typeLabel = isPayment ? 'ادائیگی' : 'کریڈٹ';
-    final amtColor  = isPayment ? _NbColor.textGreen : _NbColor.textRed;
+    final typeLabel = isPayment ? 'Payment' : 'Credit';
+    final amtColor  = isPayment ? _Clr.greenText : _Clr.redText;
     final amtSign   = isPayment ? '- ' : '+ ';
-    final bgTop     = isPayment
-        ? const Color(0xFFE8F5E8)
-        : const Color(0xFFFFF0E0);
 
-    return _NbShell(
-      child: Column(children: [
-        // ── Header ─────────────────────────────────────────
-        Container(
-          decoration: BoxDecoration(
-            color:        bgTop,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return _CardShell(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Column(children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // right — label + date
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Row(children: [
-                  _NbTag(
-                      label: 'کھاتہ',
-                      color: isPayment
-                          ? _NbColor.textGreen
-                          : const Color(0xFFC0621A)),
-                  const SizedBox(width: 6),
-                  _NbBadge(
-                      label: typeLabel,
-                      color: isPayment
-                          ? _NbColor.textGreen
-                          : const Color(0xFFC0621A)),
-                ]),
-                const SizedBox(height: 3),
-                Text(
-                  '${dateFmt.format(entry.createdAt)}  ${timeFmt.format(entry.createdAt)}',
-                  style: _urdu(size: 10, color: _NbColor.textMuted),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      _Badge(
+                          label: 'Ledger', bg: _Clr.greenBg, text: _Clr.greenText),
+                      const SizedBox(width: 6),
+                      Text(typeLabel,
+                          style: const TextStyle(
+                              fontSize: 12, color: _Clr.textSecond)),
+                    ]),
+                    const SizedBox(height: 5),
+                    Text(
+                      '${dateFmt.format(entry.createdAt)}, ${timeFmt.format(entry.createdAt)}',
+                      style: const TextStyle(fontSize: 11, color: _Clr.textMuted),
+                    ),
+                    if (entry.notes != null && entry.notes!.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(entry.notes!,
+                          style: const TextStyle(fontSize: 11, color: _Clr.textMuted)),
+                    ],
+                  ],
                 ),
-                if (entry.notes != null && entry.notes!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(entry.notes!,
-                      style: _urdu(size: 11, color: _NbColor.textMuted)),
-                ],
-              ]),
-              // left — amount
+              ),
               Text(
                 '$amtSign${_fmt(entry.payAmount)}',
-                style: _urdu(
-                    size: 16, weight: FontWeight.w700, color: amtColor),
+                style: TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w600, color: amtColor),
               ),
             ],
           ),
-        ),
-
-        // ── Balance trail ───────────────────────────────────
-        Container(height: 1, color: _NbColor.border),
-        Container(
-          color:   _NbColor.bgPayment,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // previous → new  (RTL so new is on right)
-              Row(children: [
-                Text(_fmt(entry.newAmount),
-                    style: _urdu(
-                        size: 13,
-                        weight: FontWeight.w700,
-                        color: _NbColor.textRed)),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6),
-                  child:   Icon(Icons.arrow_forward_rounded,
-                      size: 14, color: _NbColor.textMid),
-                ),
-                Text(_fmt(entry.previousAmount),
-                    style: _urdu(size: 12, color: _NbColor.textMid)),
-              ]),
-              Text('باقی',
-                  style: _urdu(size: 11, color: _NbColor.textMuted)),
-            ],
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color:        _Clr.bg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(children: [
+                  Text(_fmt(entry.previousAmount),
+                      style: const TextStyle(fontSize: 12, color: _Clr.textSecond)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child:   Icon(Icons.arrow_forward_rounded,
+                        size: 13, color: _Clr.textMuted),
+                  ),
+                  Text(_fmt(entry.newAmount),
+                      style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _Clr.redText)),
+                ]),
+                const Text('Balance',
+                    style: TextStyle(fontSize: 10, color: _Clr.textMuted)),
+              ],
+            ),
           ),
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 }
@@ -986,73 +1001,39 @@ class _LedgerCard extends StatelessWidget {
 // Small shared widgets
 // ══════════════════════════════════════════════════════════════
 
-// Black filled tag — SALE / RETURN / LEDGER
-class _NbTag extends StatelessWidget {
-  final String label;
-  final Color  color;
-  const _NbTag({required this.label, this.color = _NbColor.textDark});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-    decoration: BoxDecoration(
-      color:        color,
-      borderRadius: BorderRadius.circular(4),
-    ),
-    child: Text(label,
-        style: _urdu(
-            size: 9, weight: FontWeight.w700, color: Colors.white)),
-  );
-}
-
-// Outlined badge
-class _NbBadge extends StatelessWidget {
-  final String label;
-  final Color  color;
-  const _NbBadge({required this.label, this.color = _NbColor.textDark});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-    decoration: BoxDecoration(
-      color:        color.withOpacity(0.08),
-      borderRadius: BorderRadius.circular(4),
-      border:       Border.all(color: color.withOpacity(0.35)),
-    ),
-    child: Text(label,
-        style: _urdu(size: 9, weight: FontWeight.w700, color: color)),
-  );
-}
-
-// ── Stat tile (top summary bar) ────────────────────────────
-class _StatTile extends StatelessWidget {
+// ── Stat card (2-column summary grid) ──────────────────────
+class _StatCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
-  const _StatTile(
-      {required this.label, required this.value, required this.icon});
+  final Color  valueColor;
+  const _StatCard({
+    required this.label,
+    required this.value,
+    this.valueColor = _Clr.textPrimary,
+  });
 
   @override
-  Widget build(BuildContext context) => Column(children: [
-    Container(
-      padding: const EdgeInsets.all(7),
-      decoration: BoxDecoration(
-          color:        Colors.black.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(8)),
-      child: Icon(icon, size: 15, color: Colors.black),
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color:        _Clr.bg,
+      borderRadius: BorderRadius.circular(10),
+      border:       Border.all(color: _Clr.border, width: 0.5),
     ),
-    const SizedBox(height: 5),
-    Text(value,
-        style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: Colors.black),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis),
-    const SizedBox(height: 2),
-    Text(label,
-        style: const TextStyle(fontSize: 9, color: Colors.black45)),
-  ]);
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(fontSize: 11, color: _Clr.textMuted)),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w600, color: valueColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
+      ],
+    ),
+  );
 }
 
 // ── Date field ─────────────────────────────────────────────
@@ -1072,24 +1053,24 @@ class _DateField extends StatelessWidget {
     onTap:      onTap,
     cursorHeight: 14,
     style: const TextStyle(
-        fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black),
+        fontSize: 12, fontWeight: FontWeight.w600, color: _Clr.textPrimary),
     decoration: InputDecoration(
       labelText:  label,
-      labelStyle: const TextStyle(fontSize: 11, color: Colors.black54),
+      labelStyle: const TextStyle(fontSize: 11, color: _Clr.textSecond),
       prefixIcon: const Icon(Icons.calendar_today_outlined,
-          size: 14, color: Colors.black),
+          size: 14, color: _Clr.textPrimary),
       filled:         true,
-      fillColor:      const Color(0xFFF2F2F2),
+      fillColor:      _Clr.card,
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none),
+          borderSide: const BorderSide(color: _Clr.border)),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFDDDDDD))),
+          borderSide: const BorderSide(color: _Clr.border)),
       focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.black)),
+          borderSide: const BorderSide(color: _Clr.textPrimary)),
     ),
   );
 }
@@ -1108,17 +1089,18 @@ class _EmptyState extends StatelessWidget {
           width:  80,
           height: 80,
           decoration: BoxDecoration(
-              color:        const Color(0xFFF2F2F2),
+              color:        _Clr.card,
+              border: Border.all(color: _Clr.border),
               borderRadius: BorderRadius.circular(20)),
           child: const Icon(Icons.inbox_outlined,
-              size: 36, color: Colors.black38),
+              size: 36, color: _Clr.textMuted),
         ),
         const SizedBox(height: 16),
         Text(message,
             style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Colors.black45)),
+                color: _Clr.textSecond)),
       ]),
     ),
   );

@@ -97,10 +97,10 @@ class CustomerReportDatasource {
     required DateTime fromDate,
     required DateTime toDate,
   }) async {
-    final fromStr = fromDate.toIso8601String().substring(0, 10);
-    final toStr   = toDate.toIso8601String().substring(0, 10);
+    final fromStart = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final toEnd = DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59);
 
-    print('🔍 fetchInvoices: customerId=$customerId from=$fromStr to=$toStr');
+    print('🔍 fetchInvoices: customerId=$customerId from=$fromStart to=$toEnd');
 
     final invoiceResult = await _client
         .from('sale_invoices')
@@ -115,9 +115,8 @@ class CustomerReportDatasource {
         ''')
         .eq('customer_id', customerId)
         .isFilter('deleted_at', null)
-    // TODO: date filter — pehle bina filter ke test karo, phir uncomment karo
-    // .gte('invoice_date', fromStr)
-    // .lte('invoice_date', toStr)
+        .gte('invoice_date', fromStart.toIso8601String())
+        .lte('invoice_date', toEnd.toIso8601String())
         .order('invoice_date', ascending: false);
 
     print('📦 fetchInvoices result count: ${invoiceResult.length}');
