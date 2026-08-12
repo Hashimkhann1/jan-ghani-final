@@ -66,8 +66,9 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
     );
 
     try {
-      // Server-side RPC: 100 products jo last 6 din mein count nahi huay
-      final products = await _datasource.fetchUncountedProducts(storeId);
+      // Aaj ka daily batch (fixed 100) — batch minus aaj-counted. Reopen par
+      // naye products add nahi hote (strictly 100 per day).
+      final products = await _datasource.fetchDailyBatchProducts(storeId);
       // Aaj tak (aaj ke din) kitne count huay — counter/serial ke liye
       final countedToday = await _datasource.fetchCountedTodayCount(storeId);
 

@@ -16,12 +16,14 @@ class InventoryCountingRemoteDatasource {
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
-  /// 100 products jo last 6 din mein count NAHI huay — server-side RPC
-  /// (NOT EXISTS + ORDER BY name + LIMIT). Client-side fetch-all nahi.
-  Future<List<InventoryProductModel>> fetchUncountedProducts(
+  /// Aaj ke DAILY BATCH ke products (jo abhi count nahi huay). Server-side RPC:
+  /// pehli baar din ka batch (100 uncounted) EK BAAR banata hai, phir hamesha
+  /// usi batch mein se aaj-uncounted return karta hai — reopen par koi naya
+  /// product fill nahi hota (strictly 100 per day).
+  Future<List<InventoryProductModel>> fetchDailyBatchProducts(
       String storeId) async {
     final response = await _client.rpc(
-      'get_uncounted_products',
+      'get_daily_counting_products',
       params: {
         'p_store_id': storeId,
         'p_days': _cooldownDays,
