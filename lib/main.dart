@@ -162,8 +162,6 @@ import 'core/service/db/db_service.dart';
 import 'core/service/sync/sync_service.dart';
 import 'core/widget/sidebar/branch_sidebar_widget.dart';
 import 'features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
-import 'features/accountant/authentication/presentation/screen/login_screen.dart';
-import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
 
 final supabase = Supabase.instance.client;
@@ -209,10 +207,11 @@ class MyApp extends ConsumerWidget {
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
-      home: session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
+      home:
+      // session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
       // InventoryCountingScreen(),
       // session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
-      // _resolveHome(session, auth),
+      _resolveHome(session, auth),
     );
   }
 

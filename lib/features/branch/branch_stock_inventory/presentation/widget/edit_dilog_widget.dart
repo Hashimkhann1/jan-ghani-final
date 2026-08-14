@@ -111,11 +111,11 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
         unit:           _selectedUnit,
         shelfName:      _shelfNameCtrl.text.trim().isEmpty
             ? null
-            : _shelfNameCtrl.text.trim(), // ✅ NEW
+            : _shelfNameCtrl.text.trim(),
       );
       success = await notifier.updateProduct(updated);
-    } else if (_isManager) {
-      // ── Manager: sirf shelf name update ───────────────────
+    } else {
+      // ── Manager + Cashier: sirf shelf name update ─────────
       success = await notifier.updateShelfOnly(
         productId:   widget.product.id,
         storeId:     widget.product.storeId,

@@ -132,6 +132,7 @@ class BranchStockDataSource {
   }
 
   // ── Full Product Update (Owner only) ────────────────────────────────
+  // ✅ barcode column update nahi karta — text[] array literal issue se bachne ke liye
   Future<void> updateProduct(BranchStockInventory p) async {
     final conn = await DataBaseService.getConnection();
     await conn.execute(
@@ -139,7 +140,6 @@ class BranchStockDataSource {
         UPDATE public.branch_stock_inventory SET
           product_name    = @productName,
           sku             = @sku,
-          barcode         = @barcode,
           purchase_price  = @purchasePrice,
           sale_price      = @salePrice,
           wholesale_price = @wholesalePrice,
@@ -156,7 +156,6 @@ class BranchStockDataSource {
         'storeId':        p.storeId,
         'productName':    p.productName,
         'sku':            p.sku,
-        'barcode':        p.barcode,
         'purchasePrice':  p.purchasePrice,
         'salePrice':      p.salePrice,
         'wholesalePrice': p.wholesalePrice,

@@ -24,12 +24,174 @@ class BranchStockInventoryScreen extends ConsumerStatefulWidget {
 
 class _BranchStockInventoryScreenState
     extends ConsumerState<BranchStockInventoryScreen> {
-  final _searchCtrl = TextEditingController();
+  final _searchCtrl    = TextEditingController();
+  final _scrollCtrl    = ScrollController();
+  final _searchKbFocus = FocusNode(skipTraversal: true);
+
+  // highlighted row index (rows list mein)
+  int _highlightedIndex = -1;
+
+  // feedback overlay (ProductListPanel jaisa)
+  OverlayEntry? _feedbackOverlay;
+
+  // row height — _DataRow height: 52
+  static const double _rowHeight = 52.0;
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _scrollCtrl.dispose();
+    _searchKbFocus.dispose();
+    _feedbackOverlay?.remove();
     super.dispose();
+  }
+
+  // ── Barcode / SKU exact match dhundho ─────────────────────────
+  // branchStockProvider.allProducts use karta hai (saare products loaded)
+  // phir current page rows mein index dhundta hai
+  bool _tryBarcodeHighlight(String query) {
+    if (query.isEmpty) return false;
+
+    final allProducts = ref.read(branchStockProvider).allProducts;
+    final rows        = ref.read(inventoryPageProvider).rows;
+
+    // Step 1: exact barcode ya SKU match
+    BranchStockModel? match = allProducts.cast<BranchStockModel?>().firstWhere(
+          (p) =>
+      (p!.barcode != null &&
+          p.barcode!.toLowerCase().trim() == query.toLowerCase().trim()) ||
+          p.sku.toLowerCase().trim() == query.toLowerCase().trim(),
+      orElse: () => null,
+    );
+
+    // Step 2: agar exact nahi mila, single filtered result
+    if (match == null) {
+      final filtered = allProducts.where((p) =>
+      p.name.toLowerCase().contains(query.toLowerCase()) ||
+          p.sku.toLowerCase().contains(query.toLowerCase()) ||
+          (p.barcode?.toLowerCase().contains(query.toLowerCase()) ?? false))
+          .toList();
+      if (filtered.length == 1) match = filtered.first;
+    }
+
+    if (match == null) return false;
+
+    // Step 3: current page rows mein index dhundho
+    final matchId = match.id;
+    final idx = rows.indexWhere((r) => r.id == matchId);
+
+    if (idx == -1) {
+      // Product found lekin current page pe nahi —
+      // normal search trigger karo taake page load ho
+      return false;
+    }
+
+    // Step 4: highlight + scroll
+    setState(() => _highlightedIndex = idx);
+    _scrollToRow(idx);
+    _showFoundFeedback(match!.name);
+    return true;
+  }
+
+  void _scrollToRow(int index) {
+    if (!_scrollCtrl.hasClients) return;
+    final offset = index * _rowHeight;
+    _scrollCtrl.animateTo(
+      offset.clamp(0.0, _scrollCtrl.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 250),
+      curve:    Curves.easeOut,
+    );
+  }
+
+  // ── Search field key events (↑↓ navigation + Escape) ──────────
+  void _handleSearchKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return;
+    final key  = event.logicalKey;
+    final rows = ref.read(inventoryPageProvider).rows;
+
+    if (key == LogicalKeyboardKey.escape && event is KeyDownEvent) {
+      if (_searchCtrl.text.isNotEmpty) {
+        _searchCtrl.clear();
+        ref.read(inventoryPageProvider.notifier).onSearchChanged('');
+        setState(() => _highlightedIndex = -1);
+      }
+      return;
+    }
+
+    if (key == LogicalKeyboardKey.arrowDown) {
+      if (rows.isEmpty) return;
+      setState(() =>
+      _highlightedIndex = (_highlightedIndex + 1).clamp(0, rows.length - 1));
+      _scrollToRow(_highlightedIndex);
+      return;
+    }
+
+    if (key == LogicalKeyboardKey.arrowUp) {
+      if (rows.isEmpty) return;
+      setState(() =>
+      _highlightedIndex = (_highlightedIndex - 1).clamp(0, rows.length - 1));
+      _scrollToRow(_highlightedIndex);
+      return;
+    }
+  }
+
+  // ── Submit: barcode exact match try karo, warna normal search ──
+  void _onSearchSubmitted(String value) {
+    final query = value.trim();
+    if (query.isEmpty) return;
+
+    final highlighted = _tryBarcodeHighlight(query);
+    if (!highlighted) {
+      // Normal search — existing debounce wala call
+      ref.read(inventoryPageProvider.notifier).onSearchChanged(query);
+      setState(() => _highlightedIndex = -1);
+    }
+  }
+
+  // ── Search field onChange: clear highlight, normal DB search ───
+  void _onSearchChanged(String q) {
+    setState(() => _highlightedIndex = -1);
+    ref.read(inventoryPageProvider.notifier).onSearchChanged(q);
+  }
+
+  // ── Feedback overlay (ProductListPanel jaisa style) ────────────
+  void _showFoundFeedback(String name) {
+    _feedbackOverlay?.remove();
+    _feedbackOverlay = OverlayEntry(
+      builder: (_) => Positioned(
+        top: 80, right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color:        AppColor.primary,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.15), blurRadius: 8),
+              ],
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.search_rounded, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                name,
+                style: const TextStyle(
+                    color:      Colors.white,
+                    fontSize:   13,
+                    fontWeight: FontWeight.w600),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_feedbackOverlay!);
+    Future.delayed(const Duration(milliseconds: 1600), () {
+      _feedbackOverlay?.remove();
+      _feedbackOverlay = null;
+    });
   }
 
   @override
@@ -37,6 +199,12 @@ class _BranchStockInventoryScreenState
     final state    = ref.watch(inventoryPageProvider);
     final notifier = ref.read(inventoryPageProvider.notifier);
     final posState = ref.watch(branchStockProvider);
+
+    // highlight index out of range guard
+    if (_highlightedIndex >= state.rows.length && state.rows.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback(
+              (_) => setState(() => _highlightedIndex = state.rows.length - 1));
+    }
 
     ref.listen<InventoryPageState>(inventoryPageProvider, (_, next) {
       if (next.errorMessage != null) {
@@ -87,7 +255,6 @@ class _BranchStockInventoryScreenState
               final totalSaleVal = products.fold(
                   0.0, (s, p) => s + p.sellingPrice * p.quantity);
 
-              // ✅ Cashier ko purchase price card nahi dikhana
               final canSeeCost = auth.isOwner || auth.isManager;
 
               String fmtAmt(double v) {
@@ -110,7 +277,6 @@ class _BranchStockInventoryScreenState
                   icon:  Icons.layers_outlined,
                   color: AppColor.info,
                 ),
-                // ✅ Purchase price card — sirf owner/manager ko
                 if (canSeeCost) ...[
                   const SizedBox(width: 12),
                   SummaryCard(
@@ -138,34 +304,45 @@ class _BranchStockInventoryScreenState
               child: Row(children: [
                 SizedBox(
                   width: 280,
-                  child: TextField(
-                    controller: _searchCtrl,
-                    onChanged:  notifier.onSearchChanged,
-                    style:        const TextStyle(fontSize: 13),
-                    cursorHeight: 14,
-                    decoration: InputDecoration(
-                      hintText: 'Search by name, SKU, barcode...',
-                      hintStyle: const TextStyle(
-                          color: AppColor.textHint, fontSize: 13),
-                      prefixIcon: const Icon(Icons.search,
-                          size: 18, color: AppColor.grey400),
-                      suffixIcon: _searchCtrl.text.isNotEmpty
-                          ? IconButton(
-                        icon: const Icon(Icons.close_rounded,
-                            size: 16, color: AppColor.grey400),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          notifier.onSearchChanged('');
-                        },
-                      )
-                          : null,
-                      filled:    true,
-                      fillColor: AppColor.grey100,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:   BorderSide.none,
+                  child: KeyboardListener(
+                    focusNode:  _searchKbFocus,
+                    onKeyEvent: _handleSearchKey,
+                    child: TextField(
+                      controller:  _searchCtrl,
+                      onChanged:   _onSearchChanged,
+                      onSubmitted: _onSearchSubmitted,
+                      style:        const TextStyle(fontSize: 13),
+                      cursorHeight: 14,
+                      decoration: InputDecoration(
+                        hintText: 'Search ya barcode scan karo...',
+                        hintStyle: const TextStyle(
+                            color: AppColor.textHint, fontSize: 13),
+                        prefixIcon: const Icon(Icons.qr_code_scanner_rounded,
+                            size: 18, color: AppColor.grey400),
+                        suffixIcon: _searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                          icon: const Icon(Icons.close_rounded,
+                              size: 16, color: AppColor.grey400),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            _onSearchChanged('');
+                            setState(() => _highlightedIndex = -1);
+                          },
+                        )
+                            : null,
+                        filled:    true,
+                        fillColor: AppColor.grey100,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:   BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: AppColor.primary, width: 1.2),
+                        ),
                       ),
                     ),
                   ),
@@ -185,6 +362,16 @@ class _BranchStockInventoryScreenState
                     onTap:         notifier.onFilterStatusChanged,
                   ),
                 )),
+
+                // ── Hint text ──────────────────────────────────
+                const SizedBox(width: 8),
+                const Icon(Icons.info_outline_rounded,
+                    size: 12, color: AppColor.textHint),
+                const SizedBox(width: 4),
+                const Text(
+                  'Barcode scan → row highlight  |  ↑↓ navigate  |  Esc clear',
+                  style: TextStyle(fontSize: 10, color: AppColor.textHint),
+                ),
               ]),
             ),
 
@@ -200,9 +387,14 @@ class _BranchStockInventoryScreenState
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : state.rows.isEmpty
-                  ? _EmptyState(
-                  isSearching: state.searchQuery.isNotEmpty)
-                  : _InventoryTable(rows: state.rows),
+                  ? _EmptyState(isSearching: state.searchQuery.isNotEmpty)
+                  : _InventoryTable(
+                rows:             state.rows,
+                scrollCtrl:       _scrollCtrl,
+                highlightedIndex: _highlightedIndex,
+                onRowTap: (idx) =>
+                    setState(() => _highlightedIndex = idx),
+              ),
             ),
 
             const SizedBox(height: 8),
@@ -444,8 +636,17 @@ class _PageJumperState extends State<_PageJumper> {
 
 // ── Inventory Table ───────────────────────────────────────────────
 class _InventoryTable extends ConsumerWidget {
-  final List<BranchStockModel> rows;
-  const _InventoryTable({required this.rows});
+  final List<BranchStockModel>   rows;
+  final ScrollController          scrollCtrl;
+  final int                       highlightedIndex;
+  final void Function(int index)  onRowTap;
+
+  const _InventoryTable({
+    required this.rows,
+    required this.scrollCtrl,
+    required this.highlightedIndex,
+    required this.onRowTap,
+  });
 
   static const _widths = [
     120.0,  // SKU
@@ -453,7 +654,7 @@ class _InventoryTable extends ConsumerWidget {
     170.0,  // Name
     120.0,  // Shelf Name
     70.0,   // Unit
-    110.0,  // Cost Price  ← sirf owner/manager dekhega
+    110.0,  // Cost Price
     110.0,  // Sale Price
     110.0,  // Wholesale
     60.0,   // Tax
@@ -471,18 +672,16 @@ class _InventoryTable extends ConsumerWidget {
     'Quantity', 'Actions',
   ];
 
-  // Cost Price column index
   static const _costPriceColIdx = 5;
 
   static double get _totalWidth => _widths.fold(0.0, (s, w) => s + w) + 32;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth        = ref.watch(authProvider);
-    final canSeeCost  = auth.isOwner || auth.isManager; // ✅
+    final auth       = ref.watch(authProvider);
+    final canSeeCost = auth.isOwner || auth.isManager;
 
     return LayoutBuilder(builder: (context, constraints) {
-      // ✅ Cost price column hide hone pe total width kam karo
       final hiddenWidth = canSeeCost ? 0.0 : _widths[_costPriceColIdx];
       final tableWidth  = (_totalWidth - hiddenWidth)
           .clamp(constraints.maxWidth, double.infinity);
@@ -503,7 +702,6 @@ class _InventoryTable extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: List.generate(_headers.length, (i) {
-                    // ✅ Cost Price column — cashier ko mat dikhao
                     if (i == _costPriceColIdx && !canSeeCost) {
                       return const SizedBox.shrink();
                     }
@@ -532,18 +730,21 @@ class _InventoryTable extends ConsumerWidget {
               SizedBox(
                 height: rowsH,
                 child: ListView.separated(
-                  itemCount: rows.length,
+                  controller: scrollCtrl,
+                  itemCount:  rows.length,
                   separatorBuilder: (_, __) =>
                   const Divider(height: 1, color: Color(0xFFF3F4F6)),
                   itemBuilder: (context, i) => _DataRow(
-                    row:         rows[i],
-                    index:       i,
-                    widths:      _widths,
-                    auth:        auth,
-                    canSeeCost:  canSeeCost, // ✅ pass karo
-                    onEdit:      () => _openEditDialog(context, rows[i], auth),
-                    onDelete:    () => _openDeleteDialog(context, rows[i]),
-                    onDenied:    (action) => _showDenied(context, ref, action),
+                    row:          rows[i],
+                    index:        i,
+                    widths:       _widths,
+                    auth:         auth,
+                    canSeeCost:   canSeeCost,
+                    isHighlighted: i == highlightedIndex,
+                    onTap:        () => onRowTap(i),
+                    onEdit:       () => _openEditDialog(context, rows[i], auth),
+                    onDelete:     () => _openDeleteDialog(context, rows[i]),
+                    onDenied:     (action) => _showDenied(context, ref, action),
                   ),
                 ),
               ),
@@ -589,7 +790,9 @@ class _DataRow extends ConsumerWidget {
   final int                   index;
   final List<double>          widths;
   final dynamic               auth;
-  final bool                  canSeeCost; // ✅ NEW
+  final bool                  canSeeCost;
+  final bool                  isHighlighted;   // ← NEW
+  final VoidCallback          onTap;           // ← NEW
   final VoidCallback          onEdit;
   final VoidCallback          onDelete;
   final void Function(String) onDenied;
@@ -600,6 +803,8 @@ class _DataRow extends ConsumerWidget {
     required this.widths,
     required this.auth,
     required this.canSeeCost,
+    required this.isHighlighted,
+    required this.onTap,
     required this.onEdit,
     required this.onDelete,
     required this.onDenied,
@@ -620,191 +825,215 @@ class _DataRow extends ConsumerWidget {
         : AppColor.success;
     final auth      = ref.watch(authProvider);
     final isOwner   = auth.isOwner;
-    final isManager = auth.isManager;
 
-    return Container(
-      height:  52,
-      color:   isEven ? Colors.white : const Color(0xFFFAFAFF),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          // SKU
-          SizedBox(
-            width: widths[0],
-            child: Text(row.sku,
-                style: const TextStyle(
-                    fontSize: 12, color: AppColor.textSecondary)),
-          ),
-          // Barcode
-          SizedBox(
-            width: widths[1],
-            child: Text(
-              BranchStockDataSource().parseBarcode(row.barcode) ?? '—',
-              style: const TextStyle(
-                  fontSize: 12, color: AppColor.textSecondary),
-              overflow: TextOverflow.ellipsis,
+    // Highlighted row ka background + border
+    Color rowBg;
+    if (isHighlighted) {
+      rowBg = AppColor.primary.withOpacity(0.10);
+    } else {
+      rowBg = isEven ? Colors.white : const Color(0xFFFAFAFF);
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height:  52,
+        color:   rowBg,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            // SKU
+            SizedBox(
+              width: widths[0],
+              child: Text(row.sku,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isHighlighted
+                          ? AppColor.primary
+                          : AppColor.textSecondary,
+                      fontWeight: isHighlighted
+                          ? FontWeight.w700
+                          : FontWeight.normal)),
             ),
-          ),
-          // Name
-          SizedBox(
-            width: widths[2],
-            child: Column(
-              mainAxisAlignment:  MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(row.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1),
-                if (row.description != null)
-                  Text(row.description!,
-                      style: const TextStyle(
-                          fontSize: 10, color: AppColor.textSecondary),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1),
-              ],
-            ),
-          ),
-          // Shelf Name
-          SizedBox(
-            width: widths[3],
-            child: row.shelfName != null && row.shelfName!.isNotEmpty
-                ? Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color:        AppColor.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(6),
-              ),
+            // Barcode
+            SizedBox(
+              width: widths[1],
               child: Text(
-                row.shelfName!,
-                style: const TextStyle(
-                    fontSize:   11,
-                    fontWeight: FontWeight.w600,
-                    color:      AppColor.primary),
+                BranchStockDataSource().parseBarcode(row.barcode) ?? '—',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: isHighlighted
+                        ? AppColor.primary
+                        : AppColor.textSecondary),
                 overflow: TextOverflow.ellipsis,
               ),
-            )
-                : const Text('—',
-                style: TextStyle(
-                    fontSize: 13, color: AppColor.textSecondary)),
-          ),
-          // Unit
-          SizedBox(
-            width: widths[4],
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color:        AppColor.grey100,
-                borderRadius: BorderRadius.circular(6),
+            ),
+            // Name
+            SizedBox(
+              width: widths[2],
+              child: Column(
+                mainAxisAlignment:  MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(row.name,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize:   13,
+                          color: isHighlighted
+                              ? AppColor.primary
+                              : AppColor.textPrimary),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1),
+                  if (row.description != null)
+                    Text(row.description!,
+                        style: const TextStyle(
+                            fontSize: 10, color: AppColor.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1),
+                ],
               ),
-              child: Text(row.unitOfMeasure,
+            ),
+            // Shelf Name
+            SizedBox(
+              width: widths[3],
+              child: row.shelfName != null && row.shelfName!.isNotEmpty
+                  ? Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color:        AppColor.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  row.shelfName!,
                   style: const TextStyle(
                       fontSize:   11,
                       fontWeight: FontWeight.w600,
-                      color:      AppColor.textSecondary)),
+                      color:      AppColor.primary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              )
+                  : const Text('—',
+                  style: TextStyle(
+                      fontSize: 13, color: AppColor.textSecondary)),
             ),
-          ),
-          // ✅ Cost Price — sirf owner/manager ko dikhao
-          if (canSeeCost)
+            // Unit
             SizedBox(
-              width: widths[5],
-              child: Text(row.costPriceLabel,
-                  style: const TextStyle(fontSize: 13)),
+              width: widths[4],
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color:        AppColor.grey100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(row.unitOfMeasure,
+                    style: const TextStyle(
+                        fontSize:   11,
+                        fontWeight: FontWeight.w600,
+                        color:      AppColor.textSecondary)),
+              ),
             ),
-          // Sale Price
-          SizedBox(
-            width: widths[6],
-            child: Text(row.sellingPriceLabel,
+            // Cost Price — sirf owner/manager
+            if (canSeeCost)
+              SizedBox(
+                width: widths[5],
+                child: Text(row.costPriceLabel,
+                    style: const TextStyle(fontSize: 13)),
+              ),
+            // Sale Price
+            SizedBox(
+              width: widths[6],
+              child: Text(row.sellingPriceLabel,
+                  style: TextStyle(
+                      fontSize:   13,
+                      fontWeight: FontWeight.w700,
+                      color: isHighlighted
+                          ? AppColor.primary
+                          : AppColor.primary)),
+            ),
+            // Wholesale
+            SizedBox(
+              width: widths[7],
+              child: Text(row.wholesalePriceLabel,
+                  style: const TextStyle(
+                      fontSize: 13, color: AppColor.textSecondary)),
+            ),
+            // Tax
+            SizedBox(
+              width: widths[8],
+              child: row.taxRate > 0
+                  ? _Badge(value: row.taxRateLabel, color: AppColor.info)
+                  : const Text('—',
+                  style: TextStyle(
+                      fontSize: 13, color: AppColor.textSecondary)),
+            ),
+            // Discount
+            SizedBox(
+              width: widths[9],
+              child: row.discount > 0
+                  ? _Badge(
+                  value: row.discountLabel, color: AppColor.warning)
+                  : const Text('—',
+                  style: TextStyle(
+                      fontSize: 13, color: AppColor.textSecondary)),
+            ),
+            // Min Stock
+            SizedBox(
+              width: widths[10],
+              child: Text(
+                '${row.minStockLevel} ${row.unitOfMeasure}',
                 style: const TextStyle(
+                    fontSize: 12, color: AppColor.textSecondary),
+              ),
+            ),
+            // Max Stock
+            SizedBox(
+              width: widths[11],
+              child: Text(
+                '${row.maxStockLevel} ${row.unitOfMeasure}',
+                style: const TextStyle(
+                    fontSize: 12, color: AppColor.textSecondary),
+              ),
+            ),
+            // Quantity
+            SizedBox(
+              width: widths[12],
+              child: Text(
+                _fmt(row.quantity),
+                style: TextStyle(
                     fontSize:   13,
                     fontWeight: FontWeight.w700,
-                    color:      AppColor.primary)),
-          ),
-          // Wholesale
-          SizedBox(
-            width: widths[7],
-            child: Text(row.wholesalePriceLabel,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColor.textSecondary)),
-          ),
-          // Tax
-          SizedBox(
-            width: widths[8],
-            child: row.taxRate > 0
-                ? _Badge(value: row.taxRateLabel, color: AppColor.info)
-                : const Text('—',
-                style: TextStyle(
-                    fontSize: 13, color: AppColor.textSecondary)),
-          ),
-          // Discount
-          SizedBox(
-            width: widths[9],
-            child: row.discount > 0
-                ? _Badge(
-                value: row.discountLabel, color: AppColor.warning)
-                : const Text('—',
-                style: TextStyle(
-                    fontSize: 13, color: AppColor.textSecondary)),
-          ),
-          // Min Stock
-          SizedBox(
-            width: widths[10],
-            child: Text(
-              '${row.minStockLevel} ${row.unitOfMeasure}',
-              style: const TextStyle(
-                  fontSize: 12, color: AppColor.textSecondary),
+                    color:      qtyColor),
+              ),
             ),
-          ),
-          // Max Stock
-          SizedBox(
-            width: widths[11],
-            child: Text(
-              '${row.maxStockLevel} ${row.unitOfMeasure}',
-              style: const TextStyle(
-                  fontSize: 12, color: AppColor.textSecondary),
-            ),
-          ),
-          // Quantity
-          SizedBox(
-            width: widths[12],
-            child: Text(
-              _fmt(row.quantity),
-              style: TextStyle(
-                  fontSize:   13,
-                  fontWeight: FontWeight.w700,
-                  color:      qtyColor),
-            ),
-          ),
-          // Actions — role-based
-          SizedBox(
-            width: widths[13],
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // ✅ Owner/Manager/Cashier — sab ko edit button
-                // Owner: full edit | Manager+Cashier: shelf only
-                CustomerActionButton(
-                  icon:    Icons.edit_outlined,
-                  color:   AppColor.primary,
-                  tooltip: isOwner ? 'Edit' : 'Edit Shelf',
-                  onTap:   onEdit,
-                ),
-                if (isOwner) ...[
-                  const SizedBox(width: 6),
+            // Actions — role-based
+            SizedBox(
+              width: widths[13],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                   CustomerActionButton(
-                    icon:    Icons.delete_outline_rounded,
-                    color:   AppColor.error,
-                    tooltip: 'Delete',
-                    onTap:   onDelete,
+                    icon:    Icons.edit_outlined,
+                    color:   AppColor.primary,
+                    tooltip: isOwner ? 'Edit' : 'Edit Shelf',
+                    onTap:   onEdit,
                   ),
+                  if (isOwner) ...[
+                    const SizedBox(width: 6),
+                    CustomerActionButton(
+                      icon:    Icons.delete_outline_rounded,
+                      color:   AppColor.error,
+                      tooltip: 'Delete',
+                      onTap:   onDelete,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

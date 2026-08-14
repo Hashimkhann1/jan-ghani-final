@@ -55,6 +55,11 @@ final _cashierItems = <NavItem>[
     screen: const SaleInvoiceScreen(),
     shortcutKey: LogicalKeyboardKey.keyS,
   ),
+  // NavItem(
+  //   icon: Icons.point_of_sale_rounded, label: 'Service',
+  //   screen: const ServiceScreen(),
+  //   shortcutKey: LogicalKeyboardKey.keyS,
+  // ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
@@ -135,6 +140,11 @@ final _managerItems = <NavItem>[
     screen: const SaleInvoiceScreen(),
     shortcutKey: LogicalKeyboardKey.keyS,
   ),
+  // NavItem(
+  //   icon: Icons.point_of_sale_rounded, label: 'Service',
+  //   screen: const ServiceScreen(),
+  //   shortcutKey: LogicalKeyboardKey.keyS,
+  // ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
