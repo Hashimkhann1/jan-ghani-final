@@ -162,6 +162,7 @@ import 'core/service/db/db_service.dart';
 import 'core/service/sync/sync_service.dart';
 import 'core/widget/sidebar/branch_sidebar_widget.dart';
 import 'features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
+
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
 
 final supabase = Supabase.instance.client;

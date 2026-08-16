@@ -116,7 +116,8 @@ class BranchStockModel {
   static int?      _int(dynamic v) {
     if (v == null) return null;
     if (v is int)  return v;
-    return int.tryParse(v.toString());
+    if (v is num)  return v.toInt();
+    return int.tryParse(v.toString()) ?? double.tryParse(v.toString())?.toInt();
   }
   static DateTime? _date(dynamic v) {
     if (v == null)     return null;
