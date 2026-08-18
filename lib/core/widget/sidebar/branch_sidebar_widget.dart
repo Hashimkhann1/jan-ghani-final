@@ -41,10 +41,36 @@ class NavItem {
 }
 
 // ── Cashier Items ──────────────────────────────────────────────
+// Cashier only gets: Sale Invoice, Customer, Customer Account, Customer Ledger.
+// Alt+S=Sale Invoice, Alt+C=Customer, Alt+A=Customer Account, Alt+L=Ledger
+final _cashierItems = <NavItem>[
+  NavItem(
+    icon: Icons.point_of_sale_rounded, label: 'Sale Invoice',
+    screen: const SaleInvoiceScreen(),
+    shortcutKey: LogicalKeyboardKey.keyS,
+  ),
+  NavItem(
+    icon: Icons.people_alt_rounded, label: 'Customer',
+    screen: const AllCustomerScreen(),
+    shortcutKey: LogicalKeyboardKey.keyC,
+  ),
+  NavItem(
+    icon: Icons.people_alt_rounded, label: 'Customer account',
+    screen: const CustomerAccountScreen(),
+    shortcutKey: LogicalKeyboardKey.keyA,
+  ),
+  NavItem(
+    icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
+    screen: const CounterCustomerLedgerScreen(),
+    shortcutKey: LogicalKeyboardKey.keyL,
+  ),
+];
+
+// ── Stock Officer Items ──────────────────────────────────────────
 // Alt+D=Dashboard, Alt+S=Sale Invoice, Alt+C=Customer,
 // Alt+A=Customer Account, Alt+L=Ledger, Alt+X=Cash Counter,
 // Alt+T=Transactions, Alt+I=Stock, Alt+R=Sale Report
-final _cashierItems = <NavItem>[
+final _stockOfficerItems = <NavItem>[
   NavItem(
     icon: Icons.dashboard_rounded, label: 'Dashboard',
     screen: const DashboardScreen(),
@@ -225,8 +251,9 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
   List<NavItem> _getItems(String role) {
     switch (role) {
       case 'cashier':
-      case 'stock_officer':
         return _cashierItems;
+      case 'stock_officer':
+        return _stockOfficerItems;
       default:
         return _managerItems;
     }

@@ -213,9 +213,9 @@ class MyApp extends ConsumerWidget {
       home:
       // session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
       // InventoryCountingScreen(),
-      session.isEmpty ? AccountantLoginScreen() :
-      AccountantDashboardScreen()
-      // _resolveHome(session, auth),
+      // session.isEmpty ? AccountantLoginScreen() :
+      // AccountantDashboardScreen()
+      _resolveHome(session, auth),
     );
   }
 
