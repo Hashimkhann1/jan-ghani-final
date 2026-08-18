@@ -73,7 +73,7 @@ class CustomerReportDatasource {
       final results = await Future.wait([
         fetchInvoices(customerId: customerId, fromDate: fromDate, toDate: toDate),
         fetchReturns(customerId: customerId, fromDate: fromDate, toDate: toDate),
-        fetchLedger(customerId: customerId),
+        fetchLedger(customerId: customerId, fromDate: fromDate, toDate: toDate),
       ]);
 
       return CustomerFullReport(
@@ -250,13 +250,20 @@ class CustomerReportDatasource {
 
   // ── Ledger ───────────────────────────────────────────────────
   Future<List<SpecificCustomerLedgerModel>> fetchLedger({
-    required String customerId,
+    required String   customerId,
+    required DateTime fromDate,
+    required DateTime toDate,
   }) async {
+    final fromStart = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final toEnd = DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59);
+
     final result = await _client
         .from('customer_ledger')
         .select()
         .eq('customer_id', customerId)
         .isFilter('deleted_at', null)
+        .gte('created_at', fromStart.toIso8601String())
+        .lte('created_at', toEnd.toIso8601String())
         .order('created_at', ascending: false);
 
     return (result as List)
@@ -286,8 +293,10 @@ class CustomerReportDatasource {
   );
 
   Future<List<SpecificCustomerLedgerModel>> fetchLedgerPublic({
-    required String customerId,
-  }) => fetchLedger(customerId: customerId);
+    required String   customerId,
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) => fetchLedger(customerId: customerId, fromDate: fromDate, toDate: toDate);
 
   // ── Utility ──────────────────────────────────────────────────
   static double? _dbl(dynamic v) {

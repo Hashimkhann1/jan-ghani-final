@@ -5,7 +5,7 @@ import '../../data/model/customer_return_model.dart';
 import '../../data/model/specific_customer_ledger_model.dart';
 
 // ═════════════════════════════════════════════════════════════
-// 0. ARGS — customerId par based equality (customerName sirf carry hota hai)
+// 0. ARGS
 // ═════════════════════════════════════════════════════════════
 
 class CustomerReportArgs {
@@ -26,85 +26,88 @@ class CustomerReportArgs {
   int get hashCode => customerId.hashCode;
 }
 
+// ─── Shared date helpers ──────────────────────────────────────
+DateTime _today() {
+  final n = DateTime.now();
+  return DateTime(n.year, n.month, n.day);
+}
+
+/// Current month ka 1st day — default "from" date
+DateTime _monthStart() {
+  final n = DateTime.now();
+  return DateTime(n.year, n.month, 1);
+}
+
 // ═════════════════════════════════════════════════════════════
 // 1. INVOICE PROVIDER
 // ═════════════════════════════════════════════════════════════
 
 class CustomerReportInvoiceState {
   final List<CustomerInvoiceModel> invoices;
-  final String   customerId;
-  final String   customerName;
+  final String customerId;
+  final String customerName;
   final DateTime fromDate;
   final DateTime toDate;
-  final String   searchQuery;
-  final bool     isLoading;
-  final String?  errorMessage;
+  final String searchQuery;
+  final bool isLoading;
+  final String? errorMessage;
 
   CustomerReportInvoiceState({
-    this.invoices     = const [],
+    this.invoices = const [],
     required this.customerId,
     required this.customerName,
     DateTime? fromDate,
     DateTime? toDate,
-    this.searchQuery  = '',
-    this.isLoading    = false,
+    this.searchQuery = '',
+    this.isLoading = false,
     this.errorMessage,
-  })  : fromDate = fromDate ?? _monthStart(),
-        toDate   = toDate   ?? _today();
-
-  static DateTime _today() {
-    final n = DateTime.now();
-    return DateTime(n.year, n.month, n.day);
-  }
-
-  static DateTime _monthStart() {
-    // Default: 1 saal pehle se — taake purani invoices bhi aayein
-    final n = DateTime.now();
-    return DateTime(n.year - 1, n.month, n.day);
-  }
+  })  : fromDate = fromDate ?? _monthStart(), // ← current month
+        toDate = toDate ?? _today();
 
   List<CustomerInvoiceModel> get filtered {
     if (searchQuery.isEmpty) return invoices;
     final q = searchQuery.toLowerCase();
     return invoices.where((inv) {
-      if (inv.invoiceNo.toLowerCase().contains(q))                        return true;
-      if (inv.paymentType.toLowerCase().contains(q))                      return true;
-      if (inv.items.any((i) => i.productName.toLowerCase().contains(q)))  return true;
+      if (inv.invoiceNo.toLowerCase().contains(q)) return true;
+      if (inv.paymentType.toLowerCase().contains(q)) return true;
+      if (inv.items.any((i) => i.productName.toLowerCase().contains(q))) return true;
       return false;
     }).toList();
   }
 
-  double get totalSale     => filtered.fold(0, (s, i) => s + i.grandTotal);
+  double get totalSale => filtered.fold(0, (s, i) => s + i.grandTotal);
   double get totalDiscount => filtered.fold(0, (s, i) => s + i.totalDiscount);
-  double get totalProfit   => filtered.fold(0.0, (s, i) => s + i.totalProfit);
-  double get cashSale      => filtered
+  double get totalProfit => filtered.fold(0.0, (s, i) => s + i.totalProfit);
+  double get cashSale => filtered
       .where((i) => i.paymentType.contains('cash'))
       .fold(0, (s, i) => s + i.grandTotal);
-  double get creditSale    => filtered
+  double get creditSale => filtered
       .where((i) => i.paymentType.contains('credit'))
       .fold(0, (s, i) => s + i.grandTotal);
-  int    get invoiceCount  => filtered.length;
+  int get invoiceCount => filtered.length;
 
   CustomerReportInvoiceState copyWith({
     List<CustomerInvoiceModel>? invoices,
     DateTime? fromDate,
     DateTime? toDate,
-    String?   searchQuery,
-    bool?     isLoading,
-    String?   errorMessage,
-  }) => CustomerReportInvoiceState(
-    invoices:     invoices     ?? this.invoices,
-    customerId:   customerId,
-    customerName: customerName,
-    fromDate:     fromDate     ?? this.fromDate,
-    toDate:       toDate       ?? this.toDate,
-    searchQuery:  searchQuery  ?? this.searchQuery,
-    isLoading:    isLoading    ?? this.isLoading,
-    errorMessage: errorMessage,
-  );
+    String? searchQuery,
+    bool? isLoading,
+    String? errorMessage,
+  }) =>
+      CustomerReportInvoiceState(
+        invoices: invoices ?? this.invoices,
+        customerId: customerId,
+        customerName: customerName,
+        fromDate: fromDate ?? this.fromDate,
+        toDate: toDate ?? this.toDate,
+        searchQuery: searchQuery ?? this.searchQuery,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }
 
-class CustomerReportInvoiceNotifier extends StateNotifier<CustomerReportInvoiceState> {
+class CustomerReportInvoiceNotifier
+    extends StateNotifier<CustomerReportInvoiceState> {
   final CustomerReportDatasource _ds;
 
   CustomerReportInvoiceNotifier({
@@ -112,8 +115,11 @@ class CustomerReportInvoiceNotifier extends StateNotifier<CustomerReportInvoiceS
     required String customerName,
   })  : _ds = CustomerReportDatasource(),
         super(CustomerReportInvoiceState(
-        customerId:   customerId,
+        customerId: customerId,
         customerName: customerName,
+        // current month default
+        fromDate: _monthStart(),
+        toDate: _today(),
       )) {
     load();
   }
@@ -123,8 +129,8 @@ class CustomerReportInvoiceNotifier extends StateNotifier<CustomerReportInvoiceS
     try {
       final invoices = await _ds.fetchInvoicesPublic(
         customerId: state.customerId,
-        fromDate:   state.fromDate,
-        toDate:     state.toDate,
+        fromDate: state.fromDate,
+        toDate: state.toDate,
       );
       state = state.copyWith(invoices: invoices, isLoading: false);
     } catch (e) {
@@ -137,21 +143,19 @@ class CustomerReportInvoiceNotifier extends StateNotifier<CustomerReportInvoiceS
     load();
   }
 
-  void setToday() {
-    final today = CustomerReportInvoiceState._today();
-    setDateRange(today, today);
-  }
+  void setToday() => setDateRange(_today(), _today());
 
-  void onSearchChanged(String q) =>
-      state = state.copyWith(searchQuery: q);
+  void setThisMonth() => setDateRange(_monthStart(), _today());
+
+  void onSearchChanged(String q) => state = state.copyWith(searchQuery: q);
 }
 
-final customerReportInvoiceProvider = StateNotifierProvider.family
-<CustomerReportInvoiceNotifier,
+final customerReportInvoiceProvider = StateNotifierProvider.family<
+    CustomerReportInvoiceNotifier,
     CustomerReportInvoiceState,
     CustomerReportArgs>(
       (ref, args) => CustomerReportInvoiceNotifier(
-    customerId:   args.customerId,
+    customerId: args.customerId,
     customerName: args.customerName,
   ),
 );
@@ -162,32 +166,27 @@ final customerReportInvoiceProvider = StateNotifierProvider.family
 
 class CustomerReportReturnState {
   final List<CustomerReturnInvoice> returns;
-  final String   customerId;
-  final String   customerName;
+  final String customerId;
+  final String customerName;
   final DateTime fromDate;
   final DateTime toDate;
-  final bool     isLoading;
-  final String?  errorMessage;
+  final bool isLoading;
+  final String? errorMessage;
 
   CustomerReportReturnState({
-    this.returns      = const [],
+    this.returns = const [],
     required this.customerId,
     required this.customerName,
     DateTime? fromDate,
     DateTime? toDate,
-    this.isLoading    = false,
+    this.isLoading = false,
     this.errorMessage,
-  })  : fromDate = fromDate ?? _today(),
-        toDate   = toDate   ?? _today();
-
-  static DateTime _today() {
-    final n = DateTime.now();
-    return DateTime(n.year, n.month, n.day);
-  }
+  })  : fromDate = fromDate ?? _monthStart(), // ← current month
+        toDate = toDate ?? _today();
 
   CustomerReturnSummary get summary => CustomerReturnSummary(
-    totalReturns:  returns.length,
-    totalAmount:   returns.fold(0, (s, r) => s + r.grandTotal),
+    totalReturns: returns.length,
+    totalAmount: returns.fold(0, (s, r) => s + r.grandTotal),
     totalQuantity: returns.fold(0, (s, r) => s + r.totalQuantity),
     totalDiscount: returns.fold(0, (s, r) => s + r.totalDiscount),
   );
@@ -196,17 +195,18 @@ class CustomerReportReturnState {
     List<CustomerReturnInvoice>? returns,
     DateTime? fromDate,
     DateTime? toDate,
-    bool?     isLoading,
-    String?   errorMessage,
-  }) => CustomerReportReturnState(
-    returns:      returns      ?? this.returns,
-    customerId:   customerId,
-    customerName: customerName,
-    fromDate:     fromDate     ?? this.fromDate,
-    toDate:       toDate       ?? this.toDate,
-    isLoading:    isLoading    ?? this.isLoading,
-    errorMessage: errorMessage,
-  );
+    bool? isLoading,
+    String? errorMessage,
+  }) =>
+      CustomerReportReturnState(
+        returns: returns ?? this.returns,
+        customerId: customerId,
+        customerName: customerName,
+        fromDate: fromDate ?? this.fromDate,
+        toDate: toDate ?? this.toDate,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }
 
 class CustomerReportReturnNotifier
@@ -218,8 +218,10 @@ class CustomerReportReturnNotifier
     required String customerName,
   })  : _ds = CustomerReportDatasource(),
         super(CustomerReportReturnState(
-        customerId:   customerId,
+        customerId: customerId,
         customerName: customerName,
+        fromDate: _monthStart(),
+        toDate: _today(),
       )) {
     load();
   }
@@ -229,8 +231,8 @@ class CustomerReportReturnNotifier
     try {
       final returns = await _ds.fetchReturnsPublic(
         customerId: state.customerId,
-        fromDate:   state.fromDate,
-        toDate:     state.toDate,
+        fromDate: state.fromDate,
+        toDate: state.toDate,
       );
       state = state.copyWith(returns: returns, isLoading: false);
     } catch (e) {
@@ -238,29 +240,23 @@ class CustomerReportReturnNotifier
     }
   }
 
-  void setFromDate(DateTime d) {
-    state = state.copyWith(fromDate: d);
+  void setDateRange(DateTime from, DateTime to) {
+    state = state.copyWith(fromDate: from, toDate: to);
     load();
   }
 
-  void setToDate(DateTime d) {
-    state = state.copyWith(toDate: d);
-    load();
-  }
-
-  void setToday() {
-    final today = CustomerReportReturnState._today();
-    state = state.copyWith(fromDate: today, toDate: today);
-    load();
-  }
+  void setFromDate(DateTime d) => setDateRange(d, state.toDate);
+  void setToDate(DateTime d) => setDateRange(state.fromDate, d);
+  void setToday() => setDateRange(_today(), _today());
+  void setThisMonth() => setDateRange(_monthStart(), _today());
 }
 
-final customerReportReturnProvider = StateNotifierProvider.family
-<CustomerReportReturnNotifier,
+final customerReportReturnProvider = StateNotifierProvider.family<
+    CustomerReportReturnNotifier,
     CustomerReportReturnState,
     CustomerReportArgs>(
       (ref, args) => CustomerReportReturnNotifier(
-    customerId:   args.customerId,
+    customerId: args.customerId,
     customerName: args.customerName,
   ),
 );
@@ -271,33 +267,43 @@ final customerReportReturnProvider = StateNotifierProvider.family
 
 class CustomerReportLedgerState {
   final List<SpecificCustomerLedgerModel> ledger;
-  final String  customerId;
-  final String  customerName;
-  final bool    isLoading;
+  final String customerId;
+  final String customerName;
+  final DateTime fromDate;
+  final DateTime toDate;
+  final bool isLoading;
   final String? errorMessage;
 
-  const CustomerReportLedgerState({
-    this.ledger       = const [],
+  CustomerReportLedgerState({
+    this.ledger = const [],
     required this.customerId,
     required this.customerName,
-    this.isLoading    = false,
+    DateTime? fromDate,
+    DateTime? toDate,
+    this.isLoading = false,
     this.errorMessage,
-  });
+  })  : fromDate = fromDate ?? _monthStart(), // ← current month
+        toDate = toDate ?? _today();
 
-  double get totalPaid      => ledger.fold(0, (s, r) => s + r.payAmount);
+  double get totalPaid => ledger.fold(0, (s, r) => s + r.payAmount);
   double get currentBalance => ledger.isEmpty ? 0 : ledger.first.newAmount;
 
   CustomerReportLedgerState copyWith({
     List<SpecificCustomerLedgerModel>? ledger,
-    bool?   isLoading,
+    DateTime? fromDate,
+    DateTime? toDate,
+    bool? isLoading,
     String? errorMessage,
-  }) => CustomerReportLedgerState(
-    ledger:       ledger       ?? this.ledger,
-    customerId:   customerId,
-    customerName: customerName,
-    isLoading:    isLoading    ?? this.isLoading,
-    errorMessage: errorMessage,
-  );
+  }) =>
+      CustomerReportLedgerState(
+        ledger: ledger ?? this.ledger,
+        customerId: customerId,
+        customerName: customerName,
+        fromDate: fromDate ?? this.fromDate,
+        toDate: toDate ?? this.toDate,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }
 
 class CustomerReportLedgerNotifier
@@ -309,8 +315,10 @@ class CustomerReportLedgerNotifier
     required String customerName,
   })  : _ds = CustomerReportDatasource(),
         super(CustomerReportLedgerState(
-        customerId:   customerId,
+        customerId: customerId,
         customerName: customerName,
+        fromDate: _monthStart(),
+        toDate: _today(),
       )) {
     load();
   }
@@ -319,20 +327,30 @@ class CustomerReportLedgerNotifier
     state = state.copyWith(isLoading: true);
     try {
       final ledger = await _ds.fetchLedgerPublic(
-          customerId: state.customerId);
+        customerId: state.customerId,
+        fromDate: state.fromDate,
+        toDate: state.toDate,
+      );
       state = state.copyWith(ledger: ledger, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: 'Load error: $e');
     }
   }
+
+  void setDateRange(DateTime from, DateTime to) {
+    state = state.copyWith(fromDate: from, toDate: to);
+    load();
+  }
+
+  void setThisMonth() => setDateRange(_monthStart(), _today());
 }
 
-final customerReportLedgerProvider = StateNotifierProvider.family
-<CustomerReportLedgerNotifier,
+final customerReportLedgerProvider = StateNotifierProvider.family<
+    CustomerReportLedgerNotifier,
     CustomerReportLedgerState,
     CustomerReportArgs>(
       (ref, args) => CustomerReportLedgerNotifier(
-    customerId:   args.customerId,
+    customerId: args.customerId,
     customerName: args.customerName,
   ),
 );
