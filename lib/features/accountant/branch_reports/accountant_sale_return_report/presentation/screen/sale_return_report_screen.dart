@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/sale_return_report_model.dart';
 import '../provider/sale_return_report_provider.dart';
 
@@ -428,6 +429,14 @@ class _AccountantSaleReturnReportScreenState
               ),
             ),
           ),
+          if (!state.isLoading && state.returns.isNotEmpty)
+            BranchReportPaginationControls(
+              page:        state.pagination.page,
+              hasNextPage: state.pagination.hasNextPage,
+              isLoading:   state.pagination.isLoadingPage,
+              onNext:      notifier.nextPage,
+              onPrevious:  notifier.previousPage,
+            ),
         ],
       ),
     );

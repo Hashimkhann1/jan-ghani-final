@@ -326,6 +326,7 @@ class _InvoiceTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtotal      = transfer.subtotal;
+    final totalSale     = transfer.totalSaleValue;
     final totalDiscount = transfer.totalDiscount;
     final totalTax      = transfer.totalTax;
     final grandTotal    = transfer.grandTotal;
@@ -379,9 +380,13 @@ class _InvoiceTable extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: _headerStyle)),
                 Expanded(
-                    child: Text("Rate",
+                    child: Text("Purchase",
                         textAlign: TextAlign.right,
                         style: _headerStyle)),
+                Expanded(
+                    child: Text("Sale",
+                        textAlign: TextAlign.right,
+                        style: _saleHeaderStyle)),
                 Expanded(
                     child: Text("Disc",
                         textAlign: TextAlign.right,
@@ -456,13 +461,23 @@ class _InvoiceTable extends StatelessWidget {
                               color:      Color(0xFF6366F1))),
                     ),
                   ),
-                  // Rate
+                  // Purchase Price
                   Expanded(
                     child: Text(
                         "Rs.${item.purchasePrice.toStringAsFixed(0)}",
                         textAlign: TextAlign.right,
                         style: const TextStyle(
                             fontSize: 11, color: Color(0xFF6C7280))),
+                  ),
+                  // Sale Price
+                  Expanded(
+                    child: Text(
+                        "Rs.${item.salePrice.toStringAsFixed(0)}",
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w600,
+                            color:      Color(0xFF534AB7))),
                   ),
                   // Discount
                   Expanded(
@@ -498,8 +513,13 @@ class _InvoiceTable extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _summaryRow("Subtotal",
+                _summaryRow("Subtotal (Purchase)",
                     "Rs. ${subtotal.toStringAsFixed(0)}"),
+                const SizedBox(height: 6),
+                _summaryRow(
+                    "Total Sale Price",
+                    "Rs. ${totalSale.toStringAsFixed(0)}",
+                    color: const Color(0xFF534AB7)),
                 const SizedBox(height: 6),
                 _summaryRow(
                     "Total Discount",
@@ -567,6 +587,13 @@ const _headerStyle = TextStyle(
   fontSize:      10,
   fontWeight:    FontWeight.w700,
   color:         Color(0xFF6C7280),
+  letterSpacing: 0.3,
+);
+
+const _saleHeaderStyle = TextStyle(
+  fontSize:      10,
+  fontWeight:    FontWeight.w700,
+  color:         Color(0xFF534AB7),
   letterSpacing: 0.3,
 );
 

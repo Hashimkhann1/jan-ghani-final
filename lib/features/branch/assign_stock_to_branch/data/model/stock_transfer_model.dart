@@ -60,6 +60,8 @@ class StockTransfer {
 
   double get subtotal =>
       items.fold(0.0, (s, i) => s + (i.purchasePrice * i.quantitySent));
+  double get totalSaleValue =>
+      items.fold(0.0, (s, i) => s + (i.salePrice * i.quantitySent));
   double get totalDiscount =>
       items.fold(0.0, (s, i) => s + i.discountAmount);
   double get totalTax =>

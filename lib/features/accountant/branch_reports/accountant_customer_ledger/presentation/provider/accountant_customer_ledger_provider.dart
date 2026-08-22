@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../accountant_customer/data/model/accountant_customer_model.dart';
+import '../../../common/pagination/branch_report_pagination.dart';
 import '../../data/datasource/accountant_customer_ledger_datasource.dart';
 import '../../data/model/accountant_customer_ledger_model.dart';
 
@@ -14,6 +15,7 @@ class CustomerLedgerState {
   final String                              searchQuery;
   final DateTime?                           startDate;
   final DateTime?                           endDate;
+  final BranchReportPageState               pagination;
   final bool                                isLoadingCustomers;
   final bool                                isLoadingLedger;
   final String?                             errorMessage;
@@ -25,6 +27,7 @@ class CustomerLedgerState {
     this.searchQuery        = '',
     this.startDate,
     this.endDate,
+    this.pagination          = const BranchReportPageState(),
     this.isLoadingCustomers = false,
     this.isLoadingLedger    = false,
     this.errorMessage,
@@ -38,6 +41,18 @@ class CustomerLedgerState {
     e.customerName.toLowerCase().contains(q) ||
         (e.notes ?? '').toLowerCase().contains(q),
     ).toList();
+  }
+
+  // Search/date filtering already happened server-side (date range) and
+  // client-side (search text) above — pagination here just slices the
+  // resulting [filtered] list for display, no extra server round-trip.
+  List<CustomerLedgerModel> get pagedEntries {
+    final start = pagination.page * BranchReportPagination.pageSize;
+    final list  = filtered;
+    if (start >= list.length) return const [];
+    final end = (start + BranchReportPagination.pageSize)
+        .clamp(0, list.length);
+    return list.sublist(start, end);
   }
 
   double get totalPaid =>
@@ -56,6 +71,7 @@ class CustomerLedgerState {
     String?                              searchQuery,
     Object?  startDate         = _sentinel,
     Object?  endDate           = _sentinel,
+    BranchReportPageState?               pagination,
     bool?                                isLoadingCustomers,
     bool?                                isLoadingLedger,
     Object?  errorMessage      = _sentinel,
@@ -67,6 +83,7 @@ class CustomerLedgerState {
         searchQuery:        searchQuery        ?? this.searchQuery,
         startDate:          startDate         == _sentinel ? this.startDate  : startDate  as DateTime?,
         endDate:            endDate           == _sentinel ? this.endDate    : endDate    as DateTime?,
+        pagination:         pagination         ?? this.pagination,
         isLoadingCustomers: isLoadingCustomers ?? this.isLoadingCustomers,
         isLoadingLedger:    isLoadingLedger    ?? this.isLoadingLedger,
         errorMessage:       errorMessage      == _sentinel ? this.errorMessage : errorMessage as String?,
@@ -134,14 +151,44 @@ class CustomerLedgerNotifier
   }
 
   // ── Search ─────────────────────────────────────────────
-  void search(String q) =>
-      state = state.copyWith(searchQuery: q);
+  void search(String q) => state = state.copyWith(
+        searchQuery: q,
+        pagination:  const BranchReportPageState(),
+      );
 
   // ── Refresh ────────────────────────────────────────────
   Future<void> refresh() async => _fetchLedger();
 
   void clearError() =>
       state = state.copyWith(errorMessage: null);
+
+  // ── Pagination — a display slice over the already-fetched,
+  //    already-filtered [filtered] list (see CustomerLedgerState.pagedEntries) ──
+  void nextPage() {
+    if (!state.pagination.hasNextPage) return;
+    state = state.copyWith(
+      pagination: state.pagination.copyWith(page: state.pagination.page + 1),
+    );
+    _syncHasNextPage();
+  }
+
+  void previousPage() {
+    if (!state.pagination.hasPreviousPage) return;
+    state = state.copyWith(
+      pagination: state.pagination.copyWith(page: state.pagination.page - 1),
+    );
+    _syncHasNextPage();
+  }
+
+  void _syncHasNextPage() {
+    final page = state.pagination.page;
+    state = state.copyWith(
+      pagination: state.pagination.copyWith(
+        hasNextPage:
+            (page + 1) * BranchReportPagination.pageSize < state.filtered.length,
+      ),
+    );
+  }
 
   // ── Internal fetch ─────────────────────────────────────
   Future<void> _fetchLedger() async {
@@ -152,7 +199,14 @@ class CustomerLedgerNotifier
         startDate:  state.startDate,
         endDate:    state.endDate,
       );
-      state = state.copyWith(ledgerEntries: entries, isLoadingLedger: false);
+      state = state.copyWith(
+        ledgerEntries:   entries,
+        isLoadingLedger: false,
+        pagination: BranchReportPageState(
+          page:        0,
+          hasNextPage: entries.length > BranchReportPagination.pageSize,
+        ),
+      );
     } catch (e) {
       state = state.copyWith(isLoadingLedger: false, errorMessage: e.toString());
     }

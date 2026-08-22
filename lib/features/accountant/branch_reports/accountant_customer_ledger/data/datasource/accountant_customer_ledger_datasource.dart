@@ -15,7 +15,11 @@ class AccountantCustomerLedgerDatasource {
   Future<List<AccountantCustomerReportModel>> fetchCustomers() async {
     final rows = await _client
         .from('customer')
-        .select()
+        .select('''
+          id, code, name, phone, address,
+          customer_type, credit_limit, balance,
+          is_active, created_at
+        ''')
         .eq('store_id', branchId)
         .isFilter('deleted_at', null)
         .order('name', ascending: true);
@@ -34,7 +38,10 @@ class AccountantCustomerLedgerDatasource {
   }) async {
     var query = _client
         .from('customer_ledger')
-        .select()
+        .select('''
+          id, customer_id, previous_amount,
+          pay_amount, new_amount, notes, created_at
+        ''')
         .eq('store_id', branchId)
         .isFilter('deleted_at', null);
 
@@ -45,8 +52,7 @@ class AccountantCustomerLedgerDatasource {
       query = query.gte('created_at', startDate.toIso8601String());
     }
     if (endDate != null) {
-      final end = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
-      query = query.lte('created_at', end.toIso8601String());
+      query = query.lte('created_at', endDate.toIso8601String());
     }
 
     final rows = await query.order('created_at', ascending: false);

@@ -64,6 +64,11 @@ final _cashierItems = <NavItem>[
     screen: const CounterCustomerLedgerScreen(),
     shortcutKey: LogicalKeyboardKey.keyL,
   ),
+  NavItem(
+    icon: Icons.bar_chart_rounded, label: 'CS&R Report',
+    screen: const CsrScreen(),
+    shortcutKey: LogicalKeyboardKey.keyG,
+  ),
 ];
 
 // ── Stock Officer Items ──────────────────────────────────────────
@@ -209,10 +214,10 @@ final _managerItems = <NavItem>[
     icon: Icons.local_shipping_rounded, label: 'Branch Transactions',
     screen: BranchTransactionScreen(),
   ),
-  NavItem(
-    icon: Icons.point_of_sale_rounded, label: 'Counter',
-    screen: const AllCounterScreen(),
-  ),
+  // NavItem(
+  //   icon: Icons.point_of_sale_rounded, label: 'Counter',
+  //   screen: const AllCounterScreen(),
+  // ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Stock Damage',
     screen: const BranchStockDamageScreen(),

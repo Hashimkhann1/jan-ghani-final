@@ -1020,7 +1020,7 @@ class _DataRow extends ConsumerWidget {
                     tooltip: isOwner ? 'Edit' : 'Edit Shelf',
                     onTap:   onEdit,
                   ),
-                  if (isOwner) ...[
+                  if (isOwner || auth.isManager) ...[
                     const SizedBox(width: 6),
                     CustomerActionButton(
                       icon:    Icons.delete_outline_rounded,

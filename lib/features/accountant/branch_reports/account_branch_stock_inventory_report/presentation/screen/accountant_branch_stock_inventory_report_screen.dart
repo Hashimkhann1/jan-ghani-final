@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
 import '../../data/service/accountant_branch_inventory_pdf_service.dart';
 import '../provider/accountant_branch_stock_inventory_provider.dart';
@@ -332,8 +333,15 @@ class _DesktopLayout extends StatelessWidget {
               ? const Center(child: CircularProgressIndicator())
               : state.filtered.isEmpty
               ? const _EmptyState()
-              : _InventoryTable(items: state.filtered, fmtAmt: fmtAmt, fmtQty: fmtQty),
+              : _InventoryTable(items: state.pageItems, fmtAmt: fmtAmt, fmtQty: fmtQty),
         ),
+        if (!state.isLoading && state.filtered.isNotEmpty)
+          BranchReportPaginationControls(
+            page:        state.pagination.page,
+            hasNextPage: state.hasNextPage,
+            onNext:      notifier.nextPage,
+            onPrevious:  notifier.previousPage,
+          ),
       ],
     );
   }
@@ -820,12 +828,19 @@ class _MobileLayout extends StatelessWidget {
               onRefresh: notifier.load,
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                itemCount: state.filtered.length,
+                itemCount: state.pageItems.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (_, i) => _InventoryCard(item: state.filtered[i], fmtAmt: fmtAmt, fmtQty: fmtQty),
+                itemBuilder: (_, i) => _InventoryCard(item: state.pageItems[i], fmtAmt: fmtAmt, fmtQty: fmtQty),
               ),
             ),
           ),
+          if (!state.isLoading && state.filtered.isNotEmpty)
+            BranchReportPaginationControls(
+              page:        state.pagination.page,
+              hasNextPage: state.hasNextPage,
+              onNext:      notifier.nextPage,
+              onPrevious:  notifier.previousPage,
+            ),
         ],
       ),
     );

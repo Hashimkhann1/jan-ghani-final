@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../common/pagination/branch_report_pagination.dart';
 import '../../data/datasource/accountant_branch_stock_damage_datasource.dart';
 import '../../data/model/accountant_branch_stock_damage_model.dart';
 
@@ -12,6 +13,7 @@ class AccountantBranchStockDamageState {
   final String                                 searchQuery;
   final DateTime?                              startDate;
   final DateTime?                              endDate;
+  final BranchReportPageState                  pagination;
   final bool                                   isLoading;
   final String?                                errorMessage;
 
@@ -22,6 +24,7 @@ class AccountantBranchStockDamageState {
     this.searchQuery = '',
     this.startDate,
     this.endDate,
+    this.pagination  = const BranchReportPageState(),
     this.isLoading   = false,
     this.errorMessage,
   }) : summary = summary ?? const AccountantBranchStockDamageSummary(
@@ -31,6 +34,17 @@ class AccountantBranchStockDamageState {
     totalSaleLoss:     0,
   );
 
+  // Search/date filtering happens entirely client-side over [allItems], so
+  // pagination here just slices the already-filtered list for display —
+  // there's no server round-trip per page.
+  List<AccountantBranchStockDamageModel> get pagedItems {
+    final start = pagination.page * BranchReportPagination.pageSize;
+    if (start >= filtered.length) return const [];
+    final end = (start + BranchReportPagination.pageSize)
+        .clamp(0, filtered.length);
+    return filtered.sublist(start, end);
+  }
+
   AccountantBranchStockDamageState copyWith({
     List<AccountantBranchStockDamageModel>? allItems,
     List<AccountantBranchStockDamageModel>? filtered,
@@ -38,6 +52,7 @@ class AccountantBranchStockDamageState {
     String?                                 searchQuery,
     Object?                                 startDate    = _sentinel,
     Object?                                 endDate      = _sentinel,
+    BranchReportPageState?                  pagination,
     bool?                                   isLoading,
     Object?                                 errorMessage = _sentinel,
   }) =>
@@ -52,6 +67,7 @@ class AccountantBranchStockDamageState {
         endDate:      endDate == _sentinel
             ? this.endDate
             : endDate as DateTime?,
+        pagination:   pagination   ?? this.pagination,
         isLoading:    isLoading    ?? this.isLoading,
         errorMessage: errorMessage == _sentinel
             ? this.errorMessage
@@ -81,10 +97,11 @@ class AccountantBranchStockDamageNotifier
         state.endDate,
       );
       state = state.copyWith(
-        allItems:  items,
-        filtered:  filtered,
-        summary:   _buildSummary(filtered),
-        isLoading: false,
+        allItems:   items,
+        filtered:   filtered,
+        summary:    _buildSummary(filtered),
+        pagination: _firstPage(filtered),
+        isLoading:  false,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -102,6 +119,7 @@ class AccountantBranchStockDamageNotifier
       searchQuery: q,
       filtered:    filtered,
       summary:     _buildSummary(filtered),
+      pagination:  _firstPage(filtered),
     );
   }
 
@@ -114,9 +132,10 @@ class AccountantBranchStockDamageNotifier
       state.endDate,
     );
     state = state.copyWith(
-      startDate: date,
-      filtered:  filtered,
-      summary:   _buildSummary(filtered),
+      startDate:  date,
+      filtered:   filtered,
+      summary:    _buildSummary(filtered),
+      pagination: _firstPage(filtered),
     );
   }
 
@@ -129,9 +148,10 @@ class AccountantBranchStockDamageNotifier
       date,
     );
     state = state.copyWith(
-      endDate:  date,
-      filtered: filtered,
-      summary:  _buildSummary(filtered),
+      endDate:    date,
+      filtered:   filtered,
+      summary:    _buildSummary(filtered),
+      pagination: _firstPage(filtered),
     );
   }
 
@@ -144,10 +164,11 @@ class AccountantBranchStockDamageNotifier
       end,
     );
     state = state.copyWith(
-      startDate: start,
-      endDate:   end,
-      filtered:  filtered,
-      summary:   _buildSummary(filtered),
+      startDate:  start,
+      endDate:    end,
+      filtered:   filtered,
+      summary:    _buildSummary(filtered),
+      pagination: _firstPage(filtered),
     );
   }
 
@@ -159,10 +180,45 @@ class AccountantBranchStockDamageNotifier
       null,
     );
     state = state.copyWith(
-      startDate: null,
-      endDate:   null,
-      filtered:  filtered,
-      summary:   _buildSummary(filtered),
+      startDate:  null,
+      endDate:    null,
+      filtered:   filtered,
+      summary:    _buildSummary(filtered),
+      pagination: _firstPage(filtered),
+    );
+  }
+
+  // ── Pagination — purely a display slice over the already-filtered,
+  //    already in-memory list (see AccountantBranchStockDamageState.pagedItems) ──
+  BranchReportPageState _firstPage(
+      List<AccountantBranchStockDamageModel> filtered) {
+    return BranchReportPageState(
+      page:        0,
+      hasNextPage: filtered.length > BranchReportPagination.pageSize,
+    );
+  }
+
+  void nextPage() {
+    if (!state.pagination.hasNextPage) return;
+    final page = state.pagination.page + 1;
+    state = state.copyWith(
+      pagination: BranchReportPageState(
+        page: page,
+        hasNextPage:
+            (page + 1) * BranchReportPagination.pageSize < state.filtered.length,
+      ),
+    );
+  }
+
+  void previousPage() {
+    if (!state.pagination.hasPreviousPage) return;
+    final page = state.pagination.page - 1;
+    state = state.copyWith(
+      pagination: BranchReportPageState(
+        page: page,
+        hasNextPage:
+            (page + 1) * BranchReportPagination.pageSize < state.filtered.length,
+      ),
     );
   }
 

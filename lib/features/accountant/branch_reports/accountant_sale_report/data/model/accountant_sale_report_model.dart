@@ -82,6 +82,17 @@ class SaleReportSummary {
   });
 }
 
+/// One page of invoices plus whether another page exists after it.
+class PagedSaleReport {
+  final List<SaleReportInvoice> invoices;
+  final bool hasNextPage;
+
+  const PagedSaleReport({
+    required this.invoices,
+    required this.hasNextPage,
+  });
+}
+
 class CustomerOption {
   final String  id;
   final String  name;

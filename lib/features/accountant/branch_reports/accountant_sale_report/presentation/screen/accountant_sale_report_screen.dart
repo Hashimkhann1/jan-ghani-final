@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_sale_report_model.dart';
 import '../provider/accountant_sale_report_provider.dart';
 
@@ -17,11 +18,13 @@ class AccountantSaleReportScreen extends ConsumerStatefulWidget {
 
 class _AccountantSaleReportScreenState
     extends ConsumerState<AccountantSaleReportScreen> {
-  final _dateFmt  = DateFormat('dd MMM yyyy');
-  final _timeFmt  = DateFormat('hh:mm a');
-  final _fromCtrl = TextEditingController();
-  final _toCtrl   = TextEditingController();
-  final _amtFmt   = NumberFormat('#,##,###', 'en_IN');
+  final _dateFmt      = DateFormat('dd MMM yyyy');
+  final _timeFmt      = DateFormat('hh:mm a');
+  final _fromCtrl     = TextEditingController();
+  final _toCtrl       = TextEditingController();
+  final _fromTimeCtrl = TextEditingController();
+  final _toTimeCtrl   = TextEditingController();
+  final _amtFmt       = NumberFormat('#,##,###', 'en_IN');
 
   bool _isDesktop(BuildContext context) =>
       MediaQuery.of(context).size.width >= 800;
@@ -30,14 +33,18 @@ class _AccountantSaleReportScreenState
   void initState() {
     super.initState();
     final state = ref.read(accountantSaleReportProvider(widget.branchId));
-    _fromCtrl.text = _dateFmt.format(state.fromDate);
-    _toCtrl.text   = _dateFmt.format(state.toDate);
+    _fromCtrl.text     = _dateFmt.format(state.fromDate);
+    _toCtrl.text       = _dateFmt.format(state.toDate);
+    _fromTimeCtrl.text = _timeFmt.format(state.fromDate);
+    _toTimeCtrl.text   = _timeFmt.format(state.toDate);
   }
 
   @override
   void dispose() {
     _fromCtrl.dispose();
     _toCtrl.dispose();
+    _fromTimeCtrl.dispose();
+    _toTimeCtrl.dispose();
     super.dispose();
   }
 
@@ -64,22 +71,59 @@ class _AccountantSaleReportScreenState
     if (picked != null) {
       final notifier = ref.read(
           accountantSaleReportProvider(widget.branchId).notifier);
+      final combined = DateTime(
+        picked.year, picked.month, picked.day,
+        init.hour, init.minute, init.second,
+      );
       if (isFrom) {
-        _fromCtrl.text = _dateFmt.format(picked);
-        notifier.setFromDate(picked);
+        _fromCtrl.text = _dateFmt.format(combined);
+        notifier.setFromDate(combined);
       } else {
-        _toCtrl.text = _dateFmt.format(picked);
-        notifier.setToDate(picked);
+        _toCtrl.text = _dateFmt.format(combined);
+        notifier.setToDate(combined);
+      }
+    }
+  }
+
+  Future<void> _pickTime(BuildContext context, bool isFrom) async {
+    final state = ref.read(accountantSaleReportProvider(widget.branchId));
+    final init  = isFrom ? state.fromDate : state.toDate;
+    final picked = await showTimePicker(
+      context:     context,
+      initialTime: TimeOfDay.fromDateTime(init),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(primary: Colors.black),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      final notifier = ref.read(
+          accountantSaleReportProvider(widget.branchId).notifier);
+      final combined = DateTime(
+        init.year, init.month, init.day,
+        picked.hour, picked.minute,
+      );
+      if (isFrom) {
+        _fromTimeCtrl.text = _timeFmt.format(combined);
+        notifier.setFromDate(combined);
+      } else {
+        _toTimeCtrl.text = _timeFmt.format(combined);
+        notifier.setToDate(combined);
       }
     }
   }
 
   void _setToday(dynamic notifier) {
     notifier.setToday();
-    final today      = DateTime.now();
-    final todayClean = DateTime(today.year, today.month, today.day);
-    _fromCtrl.text   = _dateFmt.format(todayClean);
-    _toCtrl.text     = _dateFmt.format(todayClean);
+    final now        = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay   = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    _fromCtrl.text     = _dateFmt.format(startOfDay);
+    _toCtrl.text       = _dateFmt.format(endOfDay);
+    _fromTimeCtrl.text = _timeFmt.format(startOfDay);
+    _toTimeCtrl.text   = _timeFmt.format(endOfDay);
   }
 
   // ── Filter bottom sheet (mobile) ────────────────────────────────────────
@@ -157,6 +201,26 @@ class _AccountantSaleReportScreenState
                       label: 'End Date',
                       controller: _toCtrl,
                       onTap: () => _pickDate(ctx, false),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _TimeField(
+                      label: 'Start Time',
+                      controller: _fromTimeCtrl,
+                      onTap: () => _pickTime(ctx, true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _TimeField(
+                      label: 'End Time',
+                      controller: _toTimeCtrl,
+                      onTap: () => _pickTime(ctx, false),
                     ),
                   ),
                 ],
@@ -271,15 +335,21 @@ class _AccountantSaleReportScreenState
         summary:       summary,
         fromCtrl:      _fromCtrl,
         toCtrl:        _toCtrl,
+        fromTimeCtrl:  _fromTimeCtrl,
+        toTimeCtrl:    _toTimeCtrl,
         customerItems: customerItems,
         paymentItems:  paymentItems,
         dateFmt:       _dateFmt,
         timeFmt:       _timeFmt,
         fmtQty:        _fmtQty,
         fmtAmt:        _fmtAmt,
-        onPickFrom:    () => _pickDate(context, true),
-        onPickTo:      () => _pickDate(context, false),
+        onPickFrom:     () => _pickDate(context, true),
+        onPickTo:       () => _pickDate(context, false),
+        onPickFromTime: () => _pickTime(context, true),
+        onPickToTime:   () => _pickTime(context, false),
         onToday:       () => _setToday(notifier),
+        onNextPage:     notifier.nextPage,
+        onPreviousPage: notifier.previousPage,
       )
           : _MobileLayout(
         state:              state,
@@ -291,6 +361,8 @@ class _AccountantSaleReportScreenState
         fmtAmt:             _fmtAmt,
         onToday:            () => _setToday(notifier),
         activeFilterCount:  activeFilterCount,
+        onNextPage:         notifier.nextPage,
+        onPreviousPage:     notifier.previousPage,
         onOpenFilters: () => _showFilterSheet(
           state:         state,
           notifier:      notifier,
@@ -311,6 +383,8 @@ class _DesktopLayout extends StatelessWidget {
   final dynamic                     summary;
   final TextEditingController       fromCtrl;
   final TextEditingController       toCtrl;
+  final TextEditingController       fromTimeCtrl;
+  final TextEditingController       toTimeCtrl;
   final List<DropdownItem<String?>> customerItems;
   final List<DropdownItem<String?>> paymentItems;
   final DateFormat                  dateFmt;
@@ -319,7 +393,11 @@ class _DesktopLayout extends StatelessWidget {
   final String Function(double)     fmtAmt;
   final VoidCallback                onPickFrom;
   final VoidCallback                onPickTo;
+  final VoidCallback                onPickFromTime;
+  final VoidCallback                onPickToTime;
   final VoidCallback                onToday;
+  final VoidCallback                onNextPage;
+  final VoidCallback                onPreviousPage;
 
   const _DesktopLayout({
     required this.state,
@@ -327,6 +405,8 @@ class _DesktopLayout extends StatelessWidget {
     required this.summary,
     required this.fromCtrl,
     required this.toCtrl,
+    required this.fromTimeCtrl,
+    required this.toTimeCtrl,
     required this.customerItems,
     required this.paymentItems,
     required this.dateFmt,
@@ -335,7 +415,11 @@ class _DesktopLayout extends StatelessWidget {
     required this.fmtAmt,
     required this.onPickFrom,
     required this.onPickTo,
+    required this.onPickFromTime,
+    required this.onPickToTime,
     required this.onToday,
+    required this.onNextPage,
+    required this.onPreviousPage,
   });
 
   @override
@@ -418,44 +502,68 @@ class _DesktopLayout extends StatelessWidget {
         Container(
           color:   Colors.white,
           padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: _DateField(
-                  label:      'Start Date',
-                  controller: fromCtrl,
-                  onTap:      onPickFrom,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DateField(
+                      label:      'Start Date',
+                      controller: fromCtrl,
+                      onTap:      onPickFrom,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _TimeField(
+                      label:      'Start Time',
+                      controller: fromTimeCtrl,
+                      onTap:      onPickFromTime,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _DateField(
+                      label:      'End Date',
+                      controller: toCtrl,
+                      onTap:      onPickTo,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _TimeField(
+                      label:      'End Time',
+                      controller: toTimeCtrl,
+                      onTap:      onPickToTime,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _DateField(
-                  label:      'End Date',
-                  controller: toCtrl,
-                  onTap:      onPickTo,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: AppSearchableDropdown<String?>(
-                  items:      customerItems,
-                  value:      state.selectedCustomerId,
-                  hint:       'All Customers',
-                  fullWidth:  true,
-                  prefixIcon: Icons.person_outline_rounded,
-                  onChanged:  (v) => notifier.setCustomer(v),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: AppSearchableDropdown<String?>(
-                  items:      paymentItems,
-                  value:      state.selectedPaymentType,
-                  hint:       'All Payment Types',
-                  fullWidth:  true,
-                  prefixIcon: Icons.payment_outlined,
-                  onChanged:  (v) => notifier.setPaymentType(v),
-                ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppSearchableDropdown<String?>(
+                      items:      customerItems,
+                      value:      state.selectedCustomerId,
+                      hint:       'All Customers',
+                      fullWidth:  true,
+                      prefixIcon: Icons.person_outline_rounded,
+                      onChanged:  (v) => notifier.setCustomer(v),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppSearchableDropdown<String?>(
+                      items:      paymentItems,
+                      value:      state.selectedPaymentType,
+                      hint:       'All Payment Types',
+                      fullWidth:  true,
+                      prefixIcon: Icons.payment_outlined,
+                      onChanged:  (v) => notifier.setPaymentType(v),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -518,6 +626,14 @@ class _DesktopLayout extends StatelessWidget {
             ),
           ),
         ),
+        if (!state.isLoading && state.invoices.isNotEmpty)
+          BranchReportPaginationControls(
+            page:        state.pagination.page,
+            hasNextPage: state.pagination.hasNextPage,
+            isLoading:   state.pagination.isLoadingPage,
+            onNext:      onNextPage,
+            onPrevious:  onPreviousPage,
+          ),
       ],
     );
   }
@@ -537,6 +653,8 @@ class _MobileLayout extends StatelessWidget {
   final VoidCallback              onToday;
   final VoidCallback              onOpenFilters;
   final int                       activeFilterCount;
+  final VoidCallback              onNextPage;
+  final VoidCallback              onPreviousPage;
 
   const _MobileLayout({
     required this.state,
@@ -549,6 +667,8 @@ class _MobileLayout extends StatelessWidget {
     required this.onToday,
     required this.onOpenFilters,
     required this.activeFilterCount,
+    required this.onNextPage,
+    required this.onPreviousPage,
   });
 
   @override
@@ -681,6 +801,14 @@ class _MobileLayout extends StatelessWidget {
               ),
             ),
           ),
+          if (!state.isLoading && state.invoices.isNotEmpty)
+            BranchReportPaginationControls(
+              page:        state.pagination.page,
+              hasNextPage: state.pagination.hasNextPage,
+              isLoading:   state.pagination.isLoadingPage,
+              onNext:      onNextPage,
+              onPrevious:  onPreviousPage,
+            ),
         ],
       ),
     );
@@ -1170,6 +1298,63 @@ class _DateField extends StatelessWidget {
             fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black),
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.calendar_today_outlined,
+              size: 16, color: Colors.black),
+          filled:     true,
+          fillColor:  AppColor.grey100,
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide:   BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColor.grey200),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(
+                color: Colors.black, width: 1.5),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+class _TimeField extends StatelessWidget {
+  final String                label;
+  final TextEditingController controller;
+  final VoidCallback          onTap;
+
+  const _TimeField({
+    required this.label,
+    required this.controller,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize:   11,
+          fontWeight: FontWeight.w600,
+          color:      AppColor.textSecondary,
+        ),
+      ),
+      const SizedBox(height: 4),
+      TextField(
+        controller:   controller,
+        readOnly:     true,
+        onTap:        onTap,
+        cursorHeight: 14,
+        style: const TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.access_time_rounded,
               size: 16, color: Colors.black),
           filled:     true,
           fillColor:  AppColor.grey100,

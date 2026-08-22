@@ -246,19 +246,23 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
     }
   }
 
-  // ── Shelf-only Update (Manager only) ─────────────────────
+  // ── Shelf + Min/Max Stock Update (Manager & Cashier) ─────
   Future<bool> updateShelfOnly({
     required String  productId,    // BranchStockModel.id (inv_id)
     required String  storeId,
     required String  productName,
     required String? shelfName,
+    required double   minStock,
+    required double   maxStock,
   }) async {
     state = state.copyWith(isMutating: true, errorMessage: null);
     try {
-      await _ds.updateShelfName(
+      await _ds.updateShelfAndStockLimits(
         id:        productId,
         storeId:   storeId,
         shelfName: shelfName,
+        minStock:  minStock,
+        maxStock:  maxStock,
       );
 
       // POS provider bhi refresh karo
@@ -281,8 +285,8 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
           'wholesale_price':   r.wholesalePrice,
           'tax_rate':          r.taxRate,
           'discount':          r.discount,
-          'min_stock_level':   r.minStockLevel,
-          'max_stock_level':   r.maxStockLevel,
+          'min_stock_level':   minStock.toInt(),
+          'max_stock_level':   maxStock.toInt(),
           'reorder_point':     r.reorderPoint,
           'is_active':         r.isActive,
           'is_track_stock':    r.isTrackStock,
@@ -290,7 +294,7 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
           'reserved_quantity': r.reservedQuantity,
           'last_counted_at':   null,
           'last_movement_at':  null,
-          'shelf_name':        shelfName,  // ✅ sirf yeh update
+          'shelf_name':        shelfName,
           'updated_at':        DateTime.now().toIso8601String(),
         });
       }).toList();
@@ -298,12 +302,12 @@ class InventoryPageNotifier extends StateNotifier<InventoryPageState> {
       state = state.copyWith(
         rows:           updatedRows,
         isMutating:     false,
-        successMessage: '$productName shelf updated successfully',
+        successMessage: '$productName updated successfully',
       );
       return true;
     } catch (e) {
       state = state.copyWith(
-          isMutating: false, errorMessage: 'Shelf update failed: $e');
+          isMutating: false, errorMessage: 'Update failed: $e');
       return false;
     }
   }

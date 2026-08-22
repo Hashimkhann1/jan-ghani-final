@@ -259,7 +259,10 @@ class CustomerReportDatasource {
 
     final result = await _client
         .from('customer_ledger')
-        .select()
+        .select(
+          'id, store_id, customer_id, customer_name, counter_id, '
+          'previous_amount, pay_amount, new_amount, notes, created_at',
+        )
         .eq('customer_id', customerId)
         .isFilter('deleted_at', null)
         .gte('created_at', fromStart.toIso8601String())

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/pagination/branch_report_pagination.dart';
 import '../../data/datasource/accountant_discount_wise_sale_report_datasource.dart';
 import '../../data/model/accountant_discount_wise_sale_report_model.dart';
 
@@ -10,6 +11,7 @@ class DiscountWiseSaleReportState {
   final DateTime                             fromDate;
   final DateTime                             toDate;
   final String?                              selectedCustomerId;
+  final BranchReportPageState                pagination;
   final bool                                 isLoading;
   final bool                                 isLoadingCustomers;
   final String?                              errorMessage;
@@ -20,6 +22,7 @@ class DiscountWiseSaleReportState {
     DateTime?                fromDate,
     DateTime?                toDate,
     this.selectedCustomerId,
+    this.pagination          = const BranchReportPageState(),
     this.isLoading           = false,
     this.isLoadingCustomers  = false,
     this.errorMessage,
@@ -41,6 +44,20 @@ class DiscountWiseSaleReportState {
     totalDiscountAmount: products.fold(0, (s, p) => s + p.totalDiscount),
   );
 
+  // Products are already grouped/sorted from the full fetched dataset —
+  // ranking by total discount needs every matching invoice, so pagination
+  // here just windows the already-computed, already-sorted product list.
+  List<DiscountReportProduct> get pagedProducts {
+    final (start, end) = BranchReportPagination.range(pagination.page);
+    if (start >= products.length) return const [];
+    return products.sublist(
+        start, end + 1 > products.length ? products.length : end + 1);
+  }
+
+  bool get hasNextPage =>
+      (pagination.page + 1) * BranchReportPagination.pageSize <
+      products.length;
+
   DiscountWiseSaleReportState copyWith({
     List<DiscountReportProduct>?        products,
     List<DiscountReportCustomerOption>? customers,
@@ -48,6 +65,7 @@ class DiscountWiseSaleReportState {
     DateTime?                           toDate,
     String?                             selectedCustomerId,
     bool                                clearCustomer = false,
+    BranchReportPageState?              pagination,
     bool?                               isLoading,
     bool?                               isLoadingCustomers,
     String?                             errorMessage,
@@ -59,6 +77,7 @@ class DiscountWiseSaleReportState {
         toDate:              toDate              ?? this.toDate,
         selectedCustomerId:  clearCustomer
             ? null : (selectedCustomerId ?? this.selectedCustomerId),
+        pagination:          pagination          ?? this.pagination,
         isLoading:           isLoading           ?? this.isLoading,
         isLoadingCustomers:  isLoadingCustomers  ?? this.isLoadingCustomers,
         errorMessage:        errorMessage,
@@ -87,7 +106,10 @@ class DiscountWiseSaleReportNotifier
   }
 
   Future<void> load() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(
+      isLoading:  true,
+      pagination: const BranchReportPageState(),
+    );
     try {
       final products = await _ds.getReport(
         fromDate:   state.fromDate,
@@ -101,6 +123,22 @@ class DiscountWiseSaleReportNotifier
         errorMessage: 'Load error: $e',
       );
     }
+  }
+
+  // ── Page navigation — client-side windowing of `products`, no network
+  //    call needed since the whole grouped/sorted set is already in memory
+  void nextPage() {
+    if (!state.hasNextPage) return;
+    state = state.copyWith(
+      pagination: state.pagination.copyWith(page: state.pagination.page + 1),
+    );
+  }
+
+  void previousPage() {
+    if (!state.pagination.hasPreviousPage) return;
+    state = state.copyWith(
+      pagination: state.pagination.copyWith(page: state.pagination.page - 1),
+    );
   }
 
   void setFromDate(DateTime d) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_transaction_model.dart';
 import '../provider/accountant_branch_transaction_provider.dart';
 
@@ -339,7 +340,7 @@ class _DesktopLayout extends StatelessWidget {
               // Summary cards
               _DeskStatCard(
                 label: 'Total Transactions',
-                value: '${state.transactions.length}',
+                value: '${state.totalCount}',
                 icon:  Icons.receipt_long_rounded,
                 color: AppColor.primary,
               ),
@@ -367,6 +368,14 @@ class _DesktopLayout extends StatelessWidget {
             amtFmt:     amtFmt,
           ),
         ),
+        if (!state.isLoading && state.transactions.isNotEmpty)
+          BranchReportPaginationControls(
+            page:        state.pagination.page,
+            hasNextPage: state.pagination.hasNextPage,
+            isLoading:   state.pagination.isLoadingPage,
+            onNext:      notifier.nextPage,
+            onPrevious:  notifier.previousPage,
+          ),
       ],
     );
   }
@@ -811,7 +820,7 @@ class _MobileLayout extends StatelessWidget {
                 children: [
                   _MobileSummaryCard(
                     label: 'Transactions',
-                    value: '${state.transactions.length}',
+                    value: '${state.totalCount}',
                     icon:  Icons.receipt_long_rounded,
                     color: AppColor.primary,
                   ),
@@ -834,7 +843,7 @@ class _MobileLayout extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
               child: Row(children: [
-                Text('${state.transactions.length} transactions',
+                Text('${state.totalCount} transactions',
                     style: const TextStyle(
                         fontSize: 12,
                         color:    AppColor.textHint)),
@@ -863,6 +872,14 @@ class _MobileLayout extends StatelessWidget {
               ),
             ),
           ),
+          if (!state.isLoading && state.transactions.isNotEmpty)
+            BranchReportPaginationControls(
+              page:        state.pagination.page,
+              hasNextPage: state.pagination.hasNextPage,
+              isLoading:   state.pagination.isLoadingPage,
+              onNext:      notifier.nextPage,
+              onPrevious:  notifier.previousPage,
+            ),
         ],
       ),
     );

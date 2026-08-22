@@ -53,3 +53,26 @@ class BranchTransactionModel {
   bool get isCashIn  => type == 'cash_in';
   bool get isCashOut => type == 'cash_out';
 }
+
+/// One page of transactions plus whether another page exists after it.
+class PagedBranchTransactions {
+  final List<BranchTransactionModel> transactions;
+  final bool hasNextPage;
+
+  const PagedBranchTransactions({
+    required this.transactions,
+    required this.hasNextPage,
+  });
+}
+
+/// Aggregate totals across every transaction matching the current filters
+/// (not just the current page).
+class BranchTransactionTotals {
+  final int    totalCount;
+  final double totalCashOut;
+
+  const BranchTransactionTotals({
+    required this.totalCount,
+    required this.totalCashOut,
+  });
+}

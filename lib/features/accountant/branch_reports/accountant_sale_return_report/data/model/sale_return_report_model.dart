@@ -78,6 +78,17 @@ class SaleReturnSummary {
   });
 }
 
+/// One page of returns plus whether another page exists after it.
+class PagedSaleReturnReport {
+  final List<SaleReturnInvoice> returns;
+  final bool hasNextPage;
+
+  const PagedSaleReturnReport({
+    required this.returns,
+    required this.hasNextPage,
+  });
+}
+
 class CustomerOption {
   final String  id;
   final String  name;

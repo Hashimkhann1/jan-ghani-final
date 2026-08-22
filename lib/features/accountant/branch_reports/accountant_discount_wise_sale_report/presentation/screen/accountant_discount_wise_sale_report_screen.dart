@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_discount_wise_sale_report_model.dart';
 import '../provider/accountant_discount_wise_sale_report_provider.dart';
 
@@ -474,7 +475,7 @@ class _DesktopLayout extends StatelessWidget {
                     DataColumn(label: Text('Total Discount'), numeric: true),
                     DataColumn(label: Text('Net Sale'), numeric: true),
                   ],
-                  rows: state.products.map((p) {
+                  rows: state.pagedProducts.map((p) {
                     return DataRow(cells: [
                       DataCell(Text(p.productName,
                           style: const TextStyle(
@@ -497,6 +498,13 @@ class _DesktopLayout extends StatelessWidget {
             ),
           ),
         ),
+        if (!state.isLoading && state.products.isNotEmpty)
+          BranchReportPaginationControls(
+            page:        state.pagination.page,
+            hasNextPage: state.hasNextPage,
+            onNext:      notifier.nextPage,
+            onPrevious:  notifier.previousPage,
+          ),
       ],
     );
   }
@@ -643,11 +651,11 @@ class _MobileLayout extends StatelessWidget {
               onRefresh: notifier.load,
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                itemCount:        state.products.length,
+                itemCount:        state.pagedProducts.length,
                 separatorBuilder: (_, __) =>
                 const SizedBox(height: 10),
                 itemBuilder: (_, i) => _ProductCard(
-                  product: state.products[i],
+                  product: state.pagedProducts[i],
                   dateFmt: dateFmt,
                   fmtQty:  fmtQty,
                   fmtAmt:  fmtAmt,
@@ -655,6 +663,13 @@ class _MobileLayout extends StatelessWidget {
               ),
             ),
           ),
+          if (!state.isLoading && state.products.isNotEmpty)
+            BranchReportPaginationControls(
+              page:        state.pagination.page,
+              hasNextPage: state.hasNextPage,
+              onNext:      notifier.nextPage,
+              onPrevious:  notifier.previousPage,
+            ),
         ],
       ),
     );

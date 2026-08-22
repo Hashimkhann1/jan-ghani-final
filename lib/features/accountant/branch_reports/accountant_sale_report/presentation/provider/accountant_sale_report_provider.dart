@@ -1,46 +1,52 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../common/pagination/branch_report_pagination.dart';
 import '../../data/datasource/accountant_sale_report_datasource.dart';
 import '../../data/model/accountant_sale_report_model.dart';
 
 // ── State ─────────────────────────────────────────────────
 class AccountantSaleReportState {
   final List<SaleReportInvoice> invoices;
+  final SaleReportSummary       summary;
   final List<CustomerOption>    customers;
   final DateTime                fromDate;
   final DateTime                toDate;
   final String?                 selectedCustomerId;
   final String?                 selectedPaymentType;
+  final BranchReportPageState   pagination;
   final bool                    isLoading;
   final bool                    isLoadingCustomers;
   final String?                 errorMessage;
 
   AccountantSaleReportState({
     this.invoices           = const [],
+    this.summary            = const SaleReportSummary(
+      totalInvoices: 0, totalSale: 0, totalQuantity: 0, totalDiscount: 0,
+    ),
     this.customers          = const [],
     DateTime?               fromDate,
     DateTime?               toDate,
     this.selectedCustomerId,
     this.selectedPaymentType,
+    this.pagination          = const BranchReportPageState(),
     this.isLoading          = false,
     this.isLoadingCustomers = false,
     this.errorMessage,
-  })  : fromDate = fromDate ?? _today(),
-        toDate   = toDate   ?? _today();
+  })  : fromDate = fromDate ?? _startOfToday(),
+        toDate   = toDate   ?? _endOfToday();
 
-  static DateTime _today() {
+  static DateTime _startOfToday() {
     final n = DateTime.now();
     return DateTime(n.year, n.month, n.day);
   }
 
-  SaleReportSummary get summary => SaleReportSummary(
-    totalInvoices: invoices.length,
-    totalSale:     invoices.fold(0, (s, i) => s + i.grandTotal),
-    totalQuantity: invoices.fold(0, (s, i) => s + i.totalQuantity),
-    totalDiscount: invoices.fold(0, (s, i) => s + i.totalDiscount),
-  );
+  static DateTime _endOfToday() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day, 23, 59, 59);
+  }
 
   AccountantSaleReportState copyWith({
     List<SaleReportInvoice>? invoices,
+    SaleReportSummary?       summary,
     List<CustomerOption>?    customers,
     DateTime?                fromDate,
     DateTime?                toDate,
@@ -48,12 +54,14 @@ class AccountantSaleReportState {
     bool                     clearCustomer = false,
     String?                  selectedPaymentType,
     bool                     clearPayment  = false,
+    BranchReportPageState?   pagination,
     bool?                    isLoading,
     bool?                    isLoadingCustomers,
     String?                  errorMessage,
   }) =>
       AccountantSaleReportState(
         invoices:            invoices            ?? this.invoices,
+        summary:             summary             ?? this.summary,
         customers:           customers           ?? this.customers,
         fromDate:            fromDate            ?? this.fromDate,
         toDate:              toDate              ?? this.toDate,
@@ -61,6 +69,7 @@ class AccountantSaleReportState {
             ? null : (selectedCustomerId  ?? this.selectedCustomerId),
         selectedPaymentType: clearPayment
             ? null : (selectedPaymentType ?? this.selectedPaymentType),
+        pagination:          pagination          ?? this.pagination,
         isLoading:           isLoading           ?? this.isLoading,
         isLoadingCustomers:  isLoadingCustomers  ?? this.isLoadingCustomers,
         errorMessage:        errorMessage,
@@ -89,23 +98,87 @@ class AccountantSaleReportNotifier
     }
   }
 
-  // ── Load report ───────────────────────────────────────────
+  // ── Load report — resets to page 0 and refreshes the summary ───────────
   Future<void> load() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(
+      isLoading:  true,
+      pagination: const BranchReportPageState(),
+    );
     try {
-      final invoices = await _ds.getReport(
-        fromDate:    state.fromDate,
-        toDate:      state.toDate,
-        customerId:  state.selectedCustomerId,
-        paymentType: state.selectedPaymentType,
+      final results = await Future.wait([
+        _ds.getReportPage(
+          fromDate:    state.fromDate,
+          toDate:      state.toDate,
+          customerId:  state.selectedCustomerId,
+          paymentType: state.selectedPaymentType,
+          page:        0,
+        ),
+        _ds.getReportSummary(
+          fromDate:    state.fromDate,
+          toDate:      state.toDate,
+          customerId:  state.selectedCustomerId,
+          paymentType: state.selectedPaymentType,
+        ),
+      ]);
+      final paged   = results[0] as PagedSaleReport;
+      final summary = results[1] as SaleReportSummary;
+      state = state.copyWith(
+        invoices:   paged.invoices,
+        summary:    summary,
+        isLoading:  false,
+        pagination: BranchReportPageState(
+            page: 0, hasNextPage: paged.hasNextPage),
       );
-      state = state.copyWith(invoices: invoices, isLoading: false);
     } catch (e) {
       state = state.copyWith(
         isLoading:    false,
         errorMessage: 'Load error: $e',
       );
     }
+  }
+
+  // ── Page navigation — only re-fetches the invoice list, not the
+  //    date-range-wide summary totals ─────────────────────────────────────
+  Future<void> _loadPage(int page) async {
+    state = state.copyWith(
+      pagination: state.pagination.copyWith(isLoadingPage: true),
+    );
+    try {
+      final paged = await _ds.getReportPage(
+        fromDate:    state.fromDate,
+        toDate:      state.toDate,
+        customerId:  state.selectedCustomerId,
+        paymentType: state.selectedPaymentType,
+        page:        page,
+      );
+      state = state.copyWith(
+        invoices:   paged.invoices,
+        pagination: BranchReportPageState(
+          page:          page,
+          hasNextPage:   paged.hasNextPage,
+          isLoadingPage: false,
+        ),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        pagination:   state.pagination.copyWith(isLoadingPage: false),
+        errorMessage: 'Load error: $e',
+      );
+    }
+  }
+
+  Future<void> nextPage() async {
+    if (!state.pagination.hasNextPage || state.pagination.isLoadingPage) {
+      return;
+    }
+    await _loadPage(state.pagination.page + 1);
+  }
+
+  Future<void> previousPage() async {
+    if (!state.pagination.hasPreviousPage || state.pagination.isLoadingPage) {
+      return;
+    }
+    await _loadPage(state.pagination.page - 1);
   }
 
   void setFromDate(DateTime d) {
@@ -135,8 +208,10 @@ class AccountantSaleReportNotifier
   }
 
   void setToday() {
-    final today = AccountantSaleReportState._today();
-    state = state.copyWith(fromDate: today, toDate: today);
+    state = state.copyWith(
+      fromDate: AccountantSaleReportState._startOfToday(),
+      toDate:   AccountantSaleReportState._endOfToday(),
+    );
     load();
   }
 

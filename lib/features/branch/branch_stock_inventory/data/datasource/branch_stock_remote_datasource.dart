@@ -524,18 +524,20 @@ class BranchStockDataSource {
     );
   }
 
-  // ── Shelf-only Update (Manager only) ───────────────────────────────
-  Future<void> updateShelfName({
+  // ── Shelf + Min/Max Stock Update (Manager & Cashier) ────────────────
+  Future<void> updateShelfAndStockLimits({
     required String  id,
     required String  storeId,
     required String? shelfName,
+    required double   minStock,
+    required double   maxStock,
   }) async {
     final conn = await DataBaseService.getConnection();
 
-    // ── Pehle old shelf_name aur product info fetch karo ──
+    // ── Pehle old values aur product info fetch karo ──
     final oldResult = await conn.execute(
       Sql.named('''
-        SELECT product_id, product_name, shelf_name
+        SELECT product_id, product_name, shelf_name, min_stock, max_stock
         FROM public.branch_stock_inventory
         WHERE id = @id AND store_id = @storeId
       '''),
@@ -548,6 +550,8 @@ class BranchStockDataSource {
       Sql.named('''
         UPDATE public.branch_stock_inventory SET
           shelf_name = @shelfName,
+          min_stock  = @minStock,
+          max_stock  = @maxStock,
           updated_at = @updatedAt
         WHERE id = @id AND store_id = @storeId
       '''),
@@ -555,6 +559,8 @@ class BranchStockDataSource {
         'id':        id,
         'storeId':   storeId,
         'shelfName': shelfName,
+        'minStock':  minStock,
+        'maxStock':  maxStock,
         'updatedAt': DateTime.now().toIso8601String(),
       },
     );
@@ -564,10 +570,14 @@ class BranchStockDataSource {
       Sql.named('''
         INSERT INTO public.branch_stock_inventory_logs (
           store_id, product_id, product_name, change_type,
-          old_shelf_name, new_shelf_name
+          old_shelf_name, new_shelf_name,
+          old_min_stock,  new_min_stock,
+          old_max_stock,  new_max_stock
         ) VALUES (
-          @storeId, @productId, @productName, 'shelf_update',
-          @oldShelfName, @newShelfName
+          @storeId, @productId, @productName, 'shelf_and_limits_update',
+          @oldShelfName, @newShelfName,
+          @oldMinStock,  @newMinStock,
+          @oldMaxStock,  @newMaxStock
         )
       '''),
       parameters: {
@@ -576,6 +586,10 @@ class BranchStockDataSource {
         'productName':  old['product_name']?.toString() ?? '',
         'oldShelfName': old['shelf_name']?.toString(),
         'newShelfName': shelfName,
+        'oldMinStock':  old['min_stock'],
+        'newMinStock':  minStock,
+        'oldMaxStock':  old['max_stock'],
+        'newMaxStock':  maxStock,
       },
     );
   }

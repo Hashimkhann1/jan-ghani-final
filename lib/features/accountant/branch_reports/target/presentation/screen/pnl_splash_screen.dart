@@ -2,8 +2,8 @@
 
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,7 +15,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 const String _kBranchId          = '09ed6ad4-373d-4afb-a7fb-badb1e72e9e3';
 const double _kDailyProfitTarget = 20000;
 
-final DateTime _kCampaignStart = DateTime(2025, 7, 7);
+final DateTime _kCampaignStart = DateTime(2026, 7, 7);
 final DateTime _kCampaignEnd   = DateTime(2026, 10, 7);
 
 // ══════════════════════════════════════════════════════════════
@@ -144,6 +144,7 @@ Future<SplashData> _fetchSplashData() async {
 
   for (final key in allKeys) {
     final d = DateTime.parse(key);
+    if (d.isBefore(_kCampaignStart)) continue; // guard against any stray pre-campaign rows
     final s = dailySale[key]   ?? 0;
     final p = dailyProfit[key] ?? 0;
     totSale   += s;
@@ -178,6 +179,7 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
 
   SplashData? _data;
   bool _loading = true;
+  int? _selectedIdx;
 
   late final AnimationController _fadeCtrl;
   late final AnimationController _progressCtrl;
@@ -201,8 +203,7 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
   static const _red         = Color(0xFFA32D2D);
   static const _targetLine  = Color(0xFFC0621A);
 
-  final _amtFmt  = NumberFormat('#,##,###', 'en_IN');
-  final _dateFmt = DateFormat('dd MMM');
+  final _amtFmt = NumberFormat('#,##,###', 'en_IN');
 
   @override
   void initState() {
@@ -238,6 +239,27 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
 
   String _fmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
 
+  /// The day currently driving the top sale/profit mini-stats: the tapped
+  /// graph point if one is selected, otherwise today.
+  DayPoint? get _selectedPoint {
+    final points = _data?.chartPoints;
+    if (points == null || _selectedIdx == null) return null;
+    if (_selectedIdx! < 0 || _selectedIdx! >= points.length) return null;
+    return points[_selectedIdx!];
+  }
+
+  bool get _hasSelection => _selectedPoint != null;
+
+  double _displaySale()   => _selectedPoint?.sale   ?? _data?.todaySale   ?? 0;
+  double _displayProfit() => _selectedPoint?.profit ?? _data?.todayProfit ?? 0;
+
+  String _displayLabel() =>
+      _selectedPoint != null
+          ? DateFormat('d MMM').format(_selectedPoint!.date)
+          : 'Today';
+
+  void _clearSelection() => setState(() => _selectedIdx = null);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -263,19 +285,15 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
           const SizedBox(height: 14),
           _todayTargetCard(),
           const SizedBox(height: 18),
+          _selectedDayHeader(),
+          const SizedBox(height: 8),
           Row(children: [
-            Expanded(child: _miniStat(icon: Icons.point_of_sale_rounded, label: 'Total sale',   value: _loading ? '...' : _fmt(_data?.totalSale  ?? 0), color: _blue)),
+            Expanded(child: _miniStat(icon: Icons.today_rounded,      label: '${_displayLabel()} sale',   value: _loading ? '...' : _fmt(_displaySale()),   color: _orange)),
             const SizedBox(width: 10),
-            Expanded(child: _miniStat(icon: Icons.trending_up_rounded,   label: 'Total profit', value: _loading ? '...' : _fmt(_data?.totalProfit ?? 0), color: _greenText)),
-          ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: _miniStat(icon: Icons.today_rounded,      label: 'Today sale',   value: _loading ? '...' : _fmt(_data?.todaySale   ?? 0), color: _orange)),
-            const SizedBox(width: 10),
-            Expanded(child: _miniStat(icon: Icons.show_chart_rounded, label: 'Today profit', value: _loading ? '...' : _fmt(_data?.todayProfit ?? 0), color: _purple)),
+            Expanded(child: _miniStat(icon: Icons.show_chart_rounded, label: '${_displayLabel()} profit', value: _loading ? '...' : _fmt(_displayProfit()), color: _purple)),
           ]),
           const SizedBox(height: 16),
-          SizedBox(height: 300, child: _chart()),
+          SizedBox(height: 280, child: _lineChart()),
           const SizedBox(height: 20),
           Center(child: _skipBtn()),
           const SizedBox(height: 20),
@@ -300,21 +318,17 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
                 const SizedBox(width: 14),
                 Expanded(flex: 4, child: _todayTargetCard()),
                 const SizedBox(width: 14),
-                Expanded(flex: 2, child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  _miniStat(icon: Icons.point_of_sale_rounded, label: 'Total sale',   value: _loading ? '...' : _fmt(_data?.totalSale  ?? 0), color: _blue),
+                Expanded(flex: 2, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _selectedDayHeader(),
+                  const SizedBox(height: 6),
+                  _miniStat(icon: Icons.today_rounded,      label: '${_displayLabel()} sale',   value: _loading ? '...' : _fmt(_displaySale()),   color: _orange),
                   const SizedBox(height: 8),
-                  _miniStat(icon: Icons.trending_up_rounded,   label: 'Total profit', value: _loading ? '...' : _fmt(_data?.totalProfit ?? 0), color: _greenText),
-                ])),
-                const SizedBox(width: 14),
-                Expanded(flex: 2, child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  _miniStat(icon: Icons.today_rounded,      label: 'Today sale',   value: _loading ? '...' : _fmt(_data?.todaySale   ?? 0), color: _orange),
-                  const SizedBox(height: 8),
-                  _miniStat(icon: Icons.show_chart_rounded, label: 'Today profit', value: _loading ? '...' : _fmt(_data?.todayProfit ?? 0), color: _purple),
+                  _miniStat(icon: Icons.show_chart_rounded, label: '${_displayLabel()} profit', value: _loading ? '...' : _fmt(_displayProfit()), color: _purple),
                 ])),
               ]),
             ),
             const SizedBox(height: 16),
-            Expanded(child: _chart()),
+            Expanded(child: _lineChart()),
             const SizedBox(height: 16),
             Center(child: _skipBtn()),
           ]),
@@ -351,8 +365,12 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
               style: TextStyle(color: _textPrimary, fontSize: compact ? 22 : 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
         ]),
         const SizedBox(height: 4),
-        Text('7 Jul 2025 – 7 Oct 2026  •  Daily target: ${_fmt(_kDailyProfitTarget)}',
-            style: TextStyle(color: _textSecond, fontSize: compact ? 11 : 13)),
+        Text(
+          '${DateFormat('d MMM yyyy').format(_kCampaignStart)} – '
+              '${DateFormat('d MMM yyyy').format(_kCampaignEnd)}  •  '
+              'Daily target: ${_fmt(_kDailyProfitTarget)}',
+          style: TextStyle(color: _textSecond, fontSize: compact ? 11 : 13),
+        ),
       ],
     );
   }
@@ -402,7 +420,8 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
           ),
         ),
         const SizedBox(height: 6),
-        const Text('Until 7 Oct 2026', style: TextStyle(color: Colors.white60, fontSize: 9)),
+        Text('Until ${DateFormat('d MMM yyyy').format(_kCampaignEnd)}',
+            style: const TextStyle(color: Colors.white60, fontSize: 9)),
       ]),
     );
   }
@@ -504,7 +523,7 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
     );
   }
 
-  Widget _chart() {
+  Widget _lineChart() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -517,18 +536,24 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(Icons.bar_chart_rounded, color: _accent, size: 16),
+          Icon(Icons.show_chart_rounded, color: _accent, size: 16),
           const SizedBox(width: 8),
-          Expanded(child: Text('Daily sale and profit — 7 Jul to 7 Oct',
-              style: TextStyle(color: _textPrimary, fontSize: 13, fontWeight: FontWeight.w700))),
-          _dot('Sale',   _blue),
+          Expanded(
+            child: Text(
+              'Daily sale & profit — '
+                  '${DateFormat('d MMM').format(_kCampaignStart)} to '
+                  '${DateFormat('d MMM').format(_kCampaignEnd)}',
+              style: TextStyle(color: _textPrimary, fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ),
+          _dot('Sale', _blue),
           const SizedBox(width: 10),
           _dot('Profit', _greenText),
           const SizedBox(width: 10),
           _dot('Target', _targetLine),
         ]),
         const SizedBox(height: 4),
-        Text('Tap a bar • orange line = Rs 20,000/day target',
+        Text('Tap a point to see that day\'s sale & profit above',
             style: TextStyle(color: _textMuted, fontSize: 9)),
         const SizedBox(height: 10),
         if (_loading)
@@ -537,15 +562,44 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
           Expanded(child: Center(child: Text('No data found', style: TextStyle(color: _textMuted, fontSize: 13))))
         else
           Expanded(
-            child: _InteractiveChart(
+            child: _FlLineChart(
               points:      _data!.chartPoints,
               dailyTarget: _kDailyProfitTarget,
-              dateFmt:     _dateFmt,
-              fmtAmt:      _fmt,
+              selectedIdx: _selectedIdx,
+              onSelect:    (i) => setState(() => _selectedIdx = i),
             ),
           ),
       ]),
     );
+  }
+
+  /// Small label above the sale/profit mini-stats: shows the selected
+  /// day's full date and a clear-selection chip once a graph point has
+  /// been tapped; shows nothing while the stats are just "Today".
+  Widget _selectedDayHeader() {
+    if (!_hasSelection) return const SizedBox.shrink();
+    final point = _selectedPoint!;
+    final isHit = point.profit >= _kDailyProfitTarget;
+
+    return Row(children: [
+      Expanded(
+        child: Text(
+          DateFormat('EEEE, d MMM yyyy').format(point.date),
+          style: TextStyle(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+      ),
+      _badge(isHit ? 'Target hit' : 'Below target', isHit ? _greenText : _red),
+      const SizedBox(width: 6),
+      InkWell(
+        onTap: _clearSelection,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(8)),
+          child: Icon(Icons.close_rounded, size: 14, color: _textMuted),
+        ),
+      ),
+    ]);
   }
 
   Widget _dot(String label, Color color) {
@@ -587,347 +641,210 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
 }
 
 // ══════════════════════════════════════════════════════════════
-//  INTERACTIVE CHART WIDGET
+//  LINE CHART (fl_chart) — IMPROVED
+//  • Built-in load animation
+//  • Gradient + glow strokes, rounded caps
+//  • Combined sale+profit tooltip
+//  • Selection highlight (vertical marker + bold axis label)
+//  • Subtle horizontal grid + pill-style target label
 // ══════════════════════════════════════════════════════════════
 
-class _InteractiveChart extends StatefulWidget {
-  final List<DayPoint>          points;
-  final double                  dailyTarget;
-  final DateFormat              dateFmt;
-  final String Function(double) fmtAmt;
+class _FlLineChart extends StatelessWidget {
+  final List<DayPoint>    points;
+  final double            dailyTarget;
+  final int?              selectedIdx;
+  final ValueChanged<int> onSelect;
 
-  const _InteractiveChart({
+  const _FlLineChart({
     required this.points,
     required this.dailyTarget,
-    required this.dateFmt,
-    required this.fmtAmt,
+    required this.selectedIdx,
+    required this.onSelect,
   });
 
-  @override
-  State<_InteractiveChart> createState() => _InteractiveChartState();
-}
+  static const _saleColor     = Color(0xFF378ADD);
+  static const _saleColorLt   = Color(0xFF7CB4EE);
+  static const _profitColor   = Color(0xFF3B6D11);
+  static const _profitColorLt = Color(0xFF7BB84C);
+  static const _targetColor   = Color(0xFFC0621A);
+  static const _axisColor     = Color(0xFF9A9A9A);
 
-class _InteractiveChartState extends State<_InteractiveChart> with SingleTickerProviderStateMixin {
-
-  late final AnimationController _ctrl;
-  late final Animation<double>   _anim;
-  int? _hoveredIdx;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
-    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
-    _ctrl.forward();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  int? _indexAt(Offset local, Size size) {
-    const pl = 10.0, pt = 8.0, pb = 24.0;
-    final chartW = size.width - pl;
-    final chartH = size.height - pb - pt;
-    final n      = widget.points.length;
-    if (n == 0) return null;
-    final groupW = chartW / n;
-    final idx    = ((local.dx - pl) / groupW).floor();
-    if (idx < 0 || idx >= n) return null;
-    if (local.dy < pt || local.dy > pt + chartH) return null;
-    return idx;
-  }
+  static final _amtFmt = NumberFormat('#,##,###', 'en_IN');
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (_, cons) {
-      final size = Size(cons.maxWidth, cons.maxHeight);
-      return GestureDetector(
-        onTapDown: (d) {
-          final idx = _indexAt(d.localPosition, size);
-          setState(() => _hoveredIdx = (_hoveredIdx == idx) ? null : idx);
-        },
-        child: MouseRegion(
-          onHover: (d) {
-            final idx = _indexAt(d.localPosition, size);
-            if (idx != _hoveredIdx) setState(() => _hoveredIdx = idx);
-          },
-          onExit: (_) => setState(() => _hoveredIdx = null),
-          child: Stack(children: [
-            AnimatedBuilder(
-              animation: _anim,
-              builder: (_, __) => CustomPaint(
-                painter: _BarPainter(
-                  points:      widget.points,
-                  dailyTarget: widget.dailyTarget,
-                  progress:    _anim.value,
-                  hoveredIdx:  _hoveredIdx,
-                ),
-                child: const SizedBox.expand(),
-              ),
-            ),
-            if (_hoveredIdx != null)
-              _Tooltip(
-                point:       widget.points[_hoveredIdx!],
-                dailyTarget: widget.dailyTarget,
-                idx:         _hoveredIdx!,
-                total:       widget.points.length,
-                dateFmt:     widget.dateFmt,
-                fmtAmt:      widget.fmtAmt,
-                chartSize:   size,
-              ),
-          ]),
-        ),
-      );
-    });
-  }
-}
+    final n = points.length;
+    final saleSpots   = [for (int i = 0; i < n; i++) FlSpot(i.toDouble(), points[i].sale)];
+    final profitSpots = [for (int i = 0; i < n; i++) FlSpot(i.toDouble(), points[i].profit)];
 
-// ══════════════════════════════════════════════════════════════
-//  TOOLTIP
-// ══════════════════════════════════════════════════════════════
+    final maxSale   = points.map((p) => p.sale).fold(0.0, math.max);
+    final maxProfit = points.map((p) => p.profit).fold(0.0, math.max);
+    final rawMax    = [maxSale, maxProfit, dailyTarget].reduce(math.max);
+    final maxY      = (rawMax <= 0 ? 1.0 : rawMax) * 1.2;
+    final step      = math.max(1, (n / 6).ceil());
 
-class _Tooltip extends StatelessWidget {
-  final DayPoint                point;
-  final double                  dailyTarget;
-  final int                     idx;
-  final int                     total;
-  final DateFormat              dateFmt;
-  final String Function(double) fmtAmt;
-  final Size                    chartSize;
-
-  const _Tooltip({
-    required this.point,
-    required this.dailyTarget,
-    required this.idx,
-    required this.total,
-    required this.dateFmt,
-    required this.fmtAmt,
-    required this.chartSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const pl = 10.0, pt = 8.0;
-    final groupW  = (chartSize.width - pl) / total;
-    final centerX = pl + groupW * idx + groupW / 2;
-
-    final achieved = dailyTarget == 0 ? 0.0 : (point.profit / dailyTarget * 100).clamp(0.0, 999.0);
-    final isHit    = achieved >= 100;
-    final pctColor = isHit ? const Color(0xFF3B6D11) : const Color(0xFFA32D2D);
-
-    const tipW = 170.0;
-    double left = (centerX - tipW / 2).clamp(4.0, chartSize.width - tipW - 4);
-
-    return Positioned(
-      left: left,
-      top:  pt + 4,
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: tipW,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE0E0E0)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 4))],
+    return LineChart(
+      duration: const Duration(milliseconds: 650),
+      curve: Curves.easeOutCubic,
+      LineChartData(
+        minY: 0,
+        maxY: maxY,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxY / 4 == 0 ? 1 : maxY / 4,
+          getDrawingHorizontalLine: (_) => const FlLine(
+            color: Color(0xFFEDEDED),
+            strokeWidth: 1,
           ),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(dateFmt.format(point.date),
-                  style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 12, fontWeight: FontWeight.w800)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: pctColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: pctColor.withValues(alpha: 0.35)),
-                ),
-                child: Text('${achieved.toStringAsFixed(0)}%',
-                    style: TextStyle(color: pctColor, fontSize: 9, fontWeight: FontWeight.w800)),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles:  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:   const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              getTitlesWidget: (value, meta) {
+                final i = value.toInt();
+                if (i < 0 || i >= n || i % step != 0) return const SizedBox.shrink();
+                final p = points[i];
+                final isSelected = i == selectedIdx;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    '${p.date.day}/${p.date.month}',
+                    style: TextStyle(
+                      color: isSelected ? _saleColor : _axisColor,
+                      fontSize: 8,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w400,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        extraLinesData: ExtraLinesData(
+          verticalLines: [
+            if (selectedIdx != null)
+              VerticalLine(
+                x: selectedIdx!.toDouble(),
+                color: _saleColor.withValues(alpha: 0.25),
+                strokeWidth: 1.5,
+                dashArray: const [4, 4],
               ),
-            ]),
-            const SizedBox(height: 8),
-            _tRow(Icons.point_of_sale_rounded, 'Sale',   fmtAmt(point.sale),   const Color(0xFF185FA5)),
-            const SizedBox(height: 4),
-            _tRow(Icons.trending_up_rounded,   'Profit', fmtAmt(point.profit), const Color(0xFF3B6D11)),
-            const Divider(height: 10, color: Color(0xFFE0E0E0)),
-            _tRow(Icons.track_changes_rounded, 'Target', fmtAmt(dailyTarget),  const Color(0xFF854F0B)),
-            const SizedBox(height: 5),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: (achieved / 100).clamp(0.0, 1.0),
-                backgroundColor: const Color(0xFFF5F5F5),
-                valueColor: AlwaysStoppedAnimation<Color>(pctColor),
-                minHeight: 4,
+          ],
+          horizontalLines: [
+            HorizontalLine(
+              y: dailyTarget,
+              color: _targetColor,
+              strokeWidth: 2,
+              dashArray: const [8, 5],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  backgroundColor: _targetColor,
+                ),
+                labelResolver: (_) => '  Target: Rs ${dailyTarget ~/ 1000}k  ',
               ),
             ),
-          ]),
+          ],
         ),
+        lineTouchData: LineTouchData(
+          handleBuiltInTouches: true,
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => const Color(0xFF1A1A1A),
+            tooltipBorderRadius: BorderRadius.circular(12),
+            tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            getTooltipItems: (spots) {
+              final idx = spots.first.x.round();
+              if (idx < 0 || idx >= points.length) {
+                return spots.map((_) => null).toList();
+              }
+              final p = points[idx];
+              final dateStr = DateFormat('d MMM').format(p.date);
+              return spots.map((s) {
+                final isSaleLine = s.barIndex == 0;
+                if (!isSaleLine) return null; // suppress duplicate tooltip on 2nd line
+                return LineTooltipItem(
+                  '$dateStr\n',
+                  const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                  children: [
+                    TextSpan(
+                      text: 'Sale: Rs ${_amtFmt.format(p.sale.toInt())}\n',
+                      style: const TextStyle(color: _saleColorLt, fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                    TextSpan(
+                      text: 'Profit: Rs ${_amtFmt.format(p.profit.toInt())}',
+                      style: const TextStyle(color: _profitColorLt, fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                );
+              }).toList();
+            },
+          ),
+          touchCallback: (event, response) {
+            if (event is FlTapUpEvent || event is FlPanEndEvent || event is FlLongPressEnd) {
+              final spots = response?.lineBarSpots;
+              if (spots != null && spots.isNotEmpty) onSelect(spots.first.x.round());
+            }
+          },
+        ),
+        lineBarsData: [
+          _buildLine(saleSpots, _saleColor, _saleColorLt, isSale: true),
+          _buildLine(profitSpots, _profitColor, _profitColorLt, isSale: false),
+        ],
       ),
     );
   }
 
-  Widget _tRow(IconData icon, String label, String value, Color color) {
-    return Row(children: [
-      Icon(icon, color: color, size: 11),
-      const SizedBox(width: 5),
-      Text('$label  ', style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 10)),
-      Expanded(child: Text(value, textAlign: TextAlign.right,
-          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700))),
-    ]);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-//  CUSTOM PAINTER
-// ══════════════════════════════════════════════════════════════
-
-class _BarPainter extends CustomPainter {
-  final List<DayPoint> points;
-  final double         dailyTarget;
-  final double         progress;
-  final int?           hoveredIdx;
-
-  _BarPainter({
-    required this.points,
-    required this.dailyTarget,
-    required this.progress,
-    required this.hoveredIdx,
-  });
-
-  static const _saleColor   = Color(0xFF378ADD);
-  static const _profitGreen = Color(0xFF639922);
-  static const _profitRed   = Color(0xFFE24B4A);
-  static const _targetColor = Color(0xFFC0621A);
-  static const _gridColor   = Color(0xFFE8E8E8);
-  static const _axisColor   = Color(0xFF9A9A9A);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.isEmpty) return;
-
-    final maxSale = points.map((p) => p.sale).reduce(math.max);
-    final maxVal  = math.max(maxSale, dailyTarget) == 0 ? 1.0 : math.max(maxSale, dailyTarget);
-
-    const pl = 10.0, pb = 24.0, pt = 8.0;
-    final chartW = size.width  - pl;
-    final chartH = size.height - pb - pt;
-    final n      = points.length;
-    final groupW = chartW / n;
-    final barW   = (groupW * 0.35).clamp(3.0, 18.0);
-
-    // Grid lines
-    final gridPaint = Paint()
-      ..color = _gridColor
-      ..strokeWidth = 1;
-    for (int i = 1; i <= 4; i++) {
-      final y = pt + chartH * (1 - i / 4);
-      canvas.drawLine(Offset(pl, y), Offset(size.width, y), gridPaint);
-    }
-
-    // Target dashed line
-    final targetY = pt + chartH * (1 - (dailyTarget / maxVal).clamp(0.0, 1.0));
-    _dashedLine(canvas, Offset(pl, targetY), Offset(size.width, targetY), _targetColor, 1.5);
-
-    // Target label
-    final labelTp = TextPainter(
-      textDirection: ui.TextDirection.ltr,
-      text: TextSpan(
-        text: 'Target: Rs ${NumberFormat('#,##,###', 'en_IN').format(dailyTarget.toInt())}',
-        style: const TextStyle(color: _targetColor, fontSize: 7, fontWeight: FontWeight.w700),
+  LineChartBarData _buildLine(List<FlSpot> spots, Color color, Color colorLt, {required bool isSale}) {
+    return LineChartBarData(
+      spots: spots,
+      isCurved: true,
+      curveSmoothness: 0.3,
+      preventCurveOverShooting: true,
+      gradient: LinearGradient(colors: [color, colorLt]),
+      barWidth: isSale ? 3 : 2.4,
+      isStrokeCapRound: true,
+      isStrokeJoinRound: true,
+      shadow: Shadow(color: color.withValues(alpha: 0.35), blurRadius: 6),
+      dotData: FlDotData(
+        show: true,
+        getDotPainter: (spot, percent, bar, index) {
+          final isSelected = index == selectedIdx;
+          if (!isSelected) {
+            return FlDotCirclePainter(radius: 0, color: Colors.transparent, strokeWidth: 0);
+          }
+          return FlDotCirclePainter(
+            radius: 6,
+            color: color,
+            strokeWidth: 3,
+            strokeColor: Colors.white,
+          );
+        },
       ),
-    )..layout();
-    labelTp.paint(canvas, Offset(pl + 4, targetY - 10));
-
-    // Bars
-    const xAxisStyle = TextStyle(color: _axisColor, fontSize: 8);
-
-    for (int i = 0; i < n; i++) {
-      final p          = points[i];
-      final x          = pl + groupW * i + groupW / 2;
-      final isHovered  = hoveredIdx == i;
-      final baseOpacity = hoveredIdx == null ? 0.85 : (isHovered ? 1.0 : 0.35);
-
-      // Hover highlight
-      if (isHovered) {
-        canvas.drawRect(
-          Rect.fromLTWH(x - barW - 4, pt, barW * 2 + 8, chartH),
-          Paint()..color = const Color(0xFFF0F0F0),
-        );
-      }
-
-      // Sale bar
-      final saleH    = (p.sale / maxVal) * chartH * progress;
-      canvas.drawRRect(
-        RRect.fromRectAndCorners(
-          Rect.fromLTWH(x - barW - 2, pt + chartH - saleH, barW, saleH),
-          topLeft: const Radius.circular(3), topRight: const Radius.circular(3),
+      belowBarData: BarAreaData(
+        show: true,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            color.withValues(alpha: 0.28),
+            color.withValues(alpha: 0.08),
+            color.withValues(alpha: 0.0),
+          ],
+          stops: const [0.0, 0.5, 1.0],
         ),
-        Paint()..color = _saleColor.withValues(alpha: baseOpacity),
-      );
-
-      // Profit bar — green if target hit, red if not
-      final profitColor = p.profit >= dailyTarget ? _profitGreen : _profitRed;
-      final profitH     = (p.profit.clamp(0.0, maxVal) / maxVal) * chartH * progress;
-      canvas.drawRRect(
-        RRect.fromRectAndCorners(
-          Rect.fromLTWH(x + 2, pt + chartH - profitH, barW, profitH),
-          topLeft: const Radius.circular(3), topRight: const Radius.circular(3),
-        ),
-        Paint()..color = profitColor.withValues(alpha: isHovered ? 1.0 : (hoveredIdx == null ? 0.9 : 0.35)),
-      );
-    }
-
-    // X-axis date labels
-    final step = math.max(1, (n / 10).ceil());
-    for (int i = 0; i < n; i += step) {
-      final p     = points[i];
-      final x     = pl + groupW * i + groupW / 2;
-      final label = '${p.date.day}/${p.date.month}';
-      final tp    = TextPainter(
-        textDirection: ui.TextDirection.ltr,
-        text: TextSpan(text: label, style: xAxisStyle),
-      )..layout();
-      tp.paint(canvas, Offset(x - tp.width / 2, pt + chartH + 6));
-    }
-  }
-
-  void _dashedLine(Canvas canvas, Offset start, Offset end, Color color, double strokeWidth) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-    const dashLen = 6.0;
-    const gapLen  = 4.0;
-    final dx  = end.dx - start.dx;
-    final dy  = end.dy - start.dy;
-    final len = math.sqrt(dx * dx + dy * dy);
-    if (len == 0) return;
-    final ux = dx / len;
-    final uy = dy / len;
-    double dist   = 0;
-    bool drawing  = true;
-    while (dist < len) {
-      final seg = drawing ? math.min(dashLen, len - dist) : math.min(gapLen, len - dist);
-      if (drawing) {
-        canvas.drawLine(
-          Offset(start.dx + ux * dist,       start.dy + uy * dist),
-          Offset(start.dx + ux * (dist + seg), start.dy + uy * (dist + seg)),
-          paint,
-        );
-      }
-      dist    += seg;
-      drawing  = !drawing;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_BarPainter old) {
-    return old.progress != progress || old.hoveredIdx != hoveredIdx;
+      ),
+    );
   }
 }

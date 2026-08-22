@@ -14,7 +14,10 @@ import 'accountant_sale_report/presentation/screen/accountant_sale_report_screen
 import 'accountant_sale_return_report/presentation/screen/sale_return_report_screen.dart';
 import 'ai_chatbot_screen.dart';
 import 'branch_cash_counter_report/presentation/screen/branch_cash_counter_screen.dart';
+import 'branch_cash_difference/presentation/screen/branch_cash_difference_screen.dart';
 import 'branch_stock_damage_report/presentation/screen/accountant_branch_stock_damage_report_screen.dart';
+import 'branch_stock_inventory_logs/presentation/screen/branch_stock_inventory_logs_screen.dart';
+import 'customer_logs/presentation/screen/customer_logs_screen.dart';
 import 'inventory_counting/presentation/screen/inventory_counting_report_screen.dart';
 
 class BranchReportListScreen extends StatelessWidget {
@@ -111,6 +114,24 @@ class BranchReportListScreen extends StatelessWidget {
       label:    '3 Month Target',
       subtitle: '',
       color:    Color(0xFF8B5CF6),
+    ),
+    _ReportItem(
+      icon:     Icons.difference_rounded,
+      label:    'Cash Difference Report',
+      subtitle: 'Cash in/out transaction record',
+      color:    Color(0xFF0EA5E9),
+    ),
+    _ReportItem(
+      icon:     Icons.history_rounded,
+      label:    'Customer Logs',
+      subtitle: 'Customer balance change history',
+      color:    Color(0xFF7C3AED),
+    ),
+    _ReportItem(
+      icon:     Icons.inventory_2_outlined,
+      label:    'Stock Inventory Logs',
+      subtitle: 'Product stock and price change history',
+      color:    Color(0xFF0891B2),
     ),
   ];
 
@@ -218,6 +239,21 @@ class BranchReportListScreen extends StatelessWidget {
           builder: (_) => PnlSplashScreen(onComplete: () {
             Navigator.pop(context);
           },),
+        ));
+        break;
+      case 15:
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => BranchCashDifferenceScreen(branchId: branchId),
+        ));
+        break;
+      case 16:
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => CustomerLogsScreen(branchId: branchId),
+        ));
+        break;
+      case 17:
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => BranchStockInventoryLogsScreen(branchId: branchId),
         ));
         break;
     }

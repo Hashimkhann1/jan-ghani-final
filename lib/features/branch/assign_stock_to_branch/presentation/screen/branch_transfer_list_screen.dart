@@ -469,13 +469,45 @@ class _TransferCard extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 12, color: Color(0xFF6C7280)),
                 ),
-                const Spacer(),
-                Text(
-                  "Rs. ${transfer.totalCost.toStringAsFixed(0)}",
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1D23)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Purchase",
+                          style: TextStyle(
+                              fontSize: 10, color: Color(0xFF9CA3AF))),
+                      Text(
+                        "Rs. ${transfer.totalCost.toStringAsFixed(0)}",
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A1D23)),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text("Sale Price",
+                          style: TextStyle(
+                              fontSize: 10, color: Color(0xFF9CA3AF))),
+                      Text(
+                        "Rs. ${transfer.totalSalePrice.toStringAsFixed(0)}",
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF534AB7)),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

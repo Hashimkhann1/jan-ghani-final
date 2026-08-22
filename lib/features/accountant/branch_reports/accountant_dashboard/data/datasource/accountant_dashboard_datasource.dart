@@ -13,73 +13,130 @@ class AccountantBranchDashboardDatasource {
   AccountantBranchDashboardDatasource({required this.branchId});
 
   // ── Date helpers — timezone-safe ─────────────────────────
-  static String _fromStr(DateTime d) =>
-      DateTime(d.year, d.month, d.day, 0, 0, 0).toUtc().toIso8601String();
+  // fromDate/toDate ab exact time bhi carry karte hain (time filter),
+  // is liye yahan din ki shuruaat/aakhir force nahi ki jaati.
+  static String _fromStr(DateTime d) => d.toUtc().toIso8601String();
 
-  static String _toStr(DateTime d) =>
-      DateTime(d.year, d.month, d.day, 23, 59, 59).toUtc().toIso8601String();
-
-  static String _dateOnly(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-          '${d.month.toString().padLeft(2, '0')}-'
-          '${d.day.toString().padLeft(2, '0')}';
+  static String _toStr(DateTime d) => d.toUtc().toIso8601String();
 
   // ── Main method ──────────────────────────────────────────
   Future<AccountantBranchDashboardModel> getDashboard({
     required DateTime fromDate,
     required DateTime toDate,
   }) async {
-    final counter     = await _fetchCashCounter(fromDate, toDate);
+    final sales       = await _fetchSalesBreakdown(fromDate, toDate);
+    final installment = await _fetchInstallmentSale(fromDate, toDate);
     final returnAmt   = await _fetchSaleReturns(fromDate, toDate);
     final profit      = await _fetchGrossProfit(fromDate, toDate);
     final inventory   = await _fetchInventoryValue();
     final outstanding = await _fetchOutstandingReceivable();
 
     return AccountantBranchDashboardModel(
-      totalSale:             counter.totalSale,
-      cashSale:              counter.cashSale,
-      cardSale:              counter.cardSale,
-      creditSale:            counter.creditSale,
-      totalAmountReceived:   counter.totalAmount,
+      totalSale:             sales.totalSale,
+      cashSale:              sales.cashSale,
+      cardSale:              sales.cardSale,
+      creditSale:            sales.creditSale,
+      installmentSale:       installment,
+      // Actual cash/card/ledger collections during the window — excludes
+      // credit sale since that's unpaid (added to customer balance).
+      totalAmountReceived:   sales.cashSale + sales.cardSale + installment,
       totalSaleReturn:       returnAmt,
-      netSale:               counter.totalSale - returnAmt,
+      netSale:               sales.totalSale - returnAmt,
       grossProfit:           profit,
       inventoryValue:        inventory,
       outstandingReceivable: outstanding,
     );
   }
 
-  // ── 1. Cash Counter ──────────────────────────────────────
-  Future<_CashCounterTotals> _fetchCashCounter(
+  // ── 1. Sales breakdown (cash / card / credit / total) ────
+  // sale_invoices.invoice_date ek real timestamp hai, is liye yahan
+  // exact date+time range respect hoti hai (branch_cash_counter ke
+  // ulat, jo sirf date-level closing row hai).
+  Future<_SalesBreakdown> _fetchSalesBreakdown(
       DateTime fromDate,
       DateTime toDate,
       ) async {
-    final rows = await _client
-        .from('branch_cash_counter')
-        .select('cash_sale, card_sale, credit_sale, total_sale, total_amount')
-        .eq('store_id', branchId)
-        .isFilter('deleted_at', null)
-        .gte('counter_date', _dateOnly(fromDate))
-        .lte('counter_date', _dateOnly(toDate));
+    double cashSale = 0, cardSale = 0, creditSale = 0, totalSale = 0;
+    int    start    = 0;
+    const  pageSize = 1000;
+    bool   hasMore  = true;
 
-    double cashSale = 0, cardSale = 0, creditSale = 0;
-    double totalSale = 0, totalAmount = 0;
+    while (hasMore) {
+      final rows = await _client
+          .from('sale_invoices')
+          .select('grand_total, sale_invoice_payments (payment_method, amount)')
+          .eq('store_id', branchId)
+          .eq('status', 'completed')
+          .isFilter('deleted_at', null)
+          .gte('invoice_date', _fromStr(fromDate))
+          .lte('invoice_date', _toStr(toDate))
+          .range(start, start + pageSize - 1);
 
-    for (final r in (rows as List)) {
-      cashSale    += _dbl(r['cash_sale'])    ?? 0;
-      cardSale    += _dbl(r['card_sale'])    ?? 0;
-      creditSale  += _dbl(r['credit_sale'])  ?? 0;
-      totalSale   += _dbl(r['total_sale'])   ?? 0;
-      totalAmount += _dbl(r['total_amount']) ?? 0;
+      final page = rows as List;
+      for (final r in page) {
+        totalSale += _dbl(r['grand_total']) ?? 0;
+        final payments = (r['sale_invoice_payments'] as List? ?? []);
+        for (final p in payments) {
+          final amt = _dbl(p['amount']) ?? 0;
+          switch (p['payment_method']?.toString()) {
+            case 'cash':
+              cashSale += amt;
+              break;
+            case 'card':
+              cardSale += amt;
+              break;
+            case 'credit':
+              creditSale += amt;
+              break;
+          }
+        }
+      }
+
+      if (page.length < pageSize) hasMore = false;
+      else start += pageSize;
     }
 
-    return _CashCounterTotals(
-      cashSale:    cashSale,
-      cardSale:    cardSale,
-      creditSale:  creditSale,
-      totalSale:   totalSale,
-      totalAmount: totalAmount,
+    return _SalesBreakdown(
+      cashSale:   cashSale,
+      cardSale:   cardSale,
+      creditSale: creditSale,
+      totalSale:  totalSale,
     );
+  }
+
+  // ── 1b. Installment sale (customer ledger collections) ───
+  // "Installment" branch_cash_counter mein customer_ledger se trigger
+  // ke zariye aata hai (extra/ledger payments). customer_ledger mein
+  // real created_at timestamp hai, is liye yahan seedha wahi se sum
+  // karte hain — ab yeh time filter ko sahi respect karta hai.
+  Future<double> _fetchInstallmentSale(
+      DateTime fromDate,
+      DateTime toDate,
+      ) async {
+    double total   = 0;
+    int    start   = 0;
+    const  pageSize = 1000;
+    bool   hasMore = true;
+
+    while (hasMore) {
+      final rows = await _client
+          .from('customer_ledger')
+          .select('pay_amount')
+          .eq('store_id', branchId)
+          .isFilter('deleted_at', null)
+          .gte('created_at', _fromStr(fromDate))
+          .lte('created_at', _toStr(toDate))
+          .range(start, start + pageSize - 1);
+
+      final page = rows as List;
+      for (final r in page) {
+        total += _dbl(r['pay_amount']) ?? 0;
+      }
+
+      if (page.length < pageSize) hasMore = false;
+      else start += pageSize;
+    }
+    return total;
   }
 
   // ── 2. Sale Returns ──────────────────────────────────────
@@ -275,18 +332,16 @@ class AccountantBranchDashboardDatasource {
 }
 
 // ── Private helper class ──────────────────────────────────
-class _CashCounterTotals {
+class _SalesBreakdown {
   final double cashSale;
   final double cardSale;
   final double creditSale;
   final double totalSale;
-  final double totalAmount;
 
-  const _CashCounterTotals({
+  const _SalesBreakdown({
     required this.cashSale,
     required this.cardSale,
     required this.creditSale,
     required this.totalSale,
-    required this.totalAmount,
   });
 }

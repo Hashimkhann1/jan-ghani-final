@@ -115,7 +115,7 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
       );
       success = await notifier.updateProduct(updated);
     } else {
-      // ── Manager + Cashier: sirf shelf name update ─────────
+      // ── Manager + Cashier: shelf name + min/max stock update ──
       success = await notifier.updateShelfOnly(
         productId:   widget.product.id,
         storeId:     widget.product.storeId,
@@ -123,6 +123,10 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
         shelfName:   _shelfNameCtrl.text.trim().isEmpty
             ? null
             : _shelfNameCtrl.text.trim(),
+        minStock: double.tryParse(_minStockCtrl.text) ??
+            widget.product.minStockLevel.toDouble(),
+        maxStock: double.tryParse(_maxStockCtrl.text) ??
+            widget.product.maxStockLevel.toDouble(),
       );
     }
 
@@ -131,9 +135,7 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-            _isOwner
-                ? '${widget.product.name} updated successfully'
-                : '${widget.product.name} shelf updated successfully',
+            '${widget.product.name} updated successfully',
           ),
           backgroundColor: AppColor.success,
           behavior:        SnackBarBehavior.floating,
@@ -155,8 +157,8 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
       const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          // Manager ko sirf shelf field — dialog chota
-          maxWidth: _isOwner ? 700 : 400,
+          // Manager/Cashier: shelf + min/max stock fields
+          maxWidth: _isOwner ? 700 : 460,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -177,7 +179,7 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    _isOwner ? 'Edit Product' : 'Edit Shelf Location',
+                    _isOwner ? 'Edit Product' : 'Edit Shelf & Stock Levels',
                     style: const TextStyle(
                         fontSize:   16,
                         fontWeight: FontWeight.w700,
@@ -298,6 +300,26 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
           ctrl:  _shelfNameCtrl,
           hint:  'e.g. A1, Row 3, Aisle 2...',
         ),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(
+            child: _Field(
+              label:    'Min Stock Level',
+              ctrl:     _minStockCtrl,
+              isNumber: true,
+              isInt:    true,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _Field(
+              label:    'Max Stock Level',
+              ctrl:     _maxStockCtrl,
+              isNumber: true,
+              isInt:    true,
+            ),
+          ),
+        ]),
       ],
     );
   }

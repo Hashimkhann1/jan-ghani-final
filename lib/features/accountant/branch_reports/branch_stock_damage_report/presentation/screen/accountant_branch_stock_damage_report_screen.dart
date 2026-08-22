@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../../core/color/app_color.dart';
+import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_stock_damage_model.dart';
 import '../../data/service/accountant_branch_stock_damage_pdf_service.dart';
 import '../provider/accountant_branch_stock_damage_provider.dart';
@@ -445,8 +446,15 @@ class _DesktopLayout extends StatelessWidget {
               ? const Center(child: CircularProgressIndicator())
               : state.filtered.isEmpty
               ? const _EmptyState()
-              : _DamageTable(items: state.filtered, fmtAmt: fmtAmt, fmtQty: fmtQty, fmtDate: fmtDate),
+              : _DamageTable(items: state.pagedItems, fmtAmt: fmtAmt, fmtQty: fmtQty, fmtDate: fmtDate),
         ),
+        if (!state.isLoading && state.filtered.isNotEmpty)
+          BranchReportPaginationControls(
+            page:        state.pagination.page,
+            hasNextPage: state.pagination.hasNextPage,
+            onNext:      notifier.nextPage,
+            onPrevious:  notifier.previousPage,
+          ),
       ],
     );
   }
@@ -811,13 +819,20 @@ class _MobileLayout extends StatelessWidget {
               onRefresh: notifier.load,
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                itemCount: state.filtered.length,
+                itemCount: state.pagedItems.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (_, i) => _DamageCard(
-                    item: state.filtered[i], fmtAmt: fmtAmt, fmtQty: fmtQty, fmtDate: fmtDate),
+                    item: state.pagedItems[i], fmtAmt: fmtAmt, fmtQty: fmtQty, fmtDate: fmtDate),
               ),
             ),
           ),
+          if (!state.isLoading && state.filtered.isNotEmpty)
+            BranchReportPaginationControls(
+              page:        state.pagination.page,
+              hasNextPage: state.pagination.hasNextPage,
+              onNext:      notifier.nextPage,
+              onPrevious:  notifier.previousPage,
+            ),
         ],
       ),
     );

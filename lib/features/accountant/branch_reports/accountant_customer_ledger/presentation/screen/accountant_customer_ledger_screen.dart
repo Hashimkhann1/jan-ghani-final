@@ -4,9 +4,14 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../accountant_customer/data/model/accountant_customer_model.dart';
+import '../../../common/pagination/branch_report_pagination.dart';
+import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_customer_ledger_model.dart';
 import '../../data/service/customer_ledger_pdf_service.dart';
 import '../provider/accountant_customer_ledger_provider.dart';
+
+// Filter-chip range label — date + time, dono
+final _rangeFmt = DateFormat('dd MMM, hh:mm a');
 
 class AccountantCustomerLedgerScreen extends ConsumerStatefulWidget {
   const AccountantCustomerLedgerScreen(
@@ -23,6 +28,7 @@ class _AccountantCustomerLedgerScreenState
   final _searchCtrl = TextEditingController();
   final _amtFmt     = NumberFormat('#,##,###', 'en_IN');
   final _dateFmt    = DateFormat('dd MMM yyyy');
+  final _timeFmt    = DateFormat('hh:mm a');
 
   String _fmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
   String get _bid      => widget.branchId;
@@ -39,11 +45,10 @@ class _AccountantCustomerLedgerScreenState
   Future<void> _pickDate(BuildContext ctx, bool isStart) async {
     final notifier = ref.read(customerLedgerProvider(_bid).notifier);
     final state    = ref.read(customerLedgerProvider(_bid));
+    final current  = isStart ? state.startDate : state.endDate;
     final picked   = await showDatePicker(
       context:     ctx,
-      initialDate: isStart
-          ? (state.startDate ?? DateTime.now())
-          : (state.endDate   ?? DateTime.now()),
+      initialDate: current ?? DateTime.now(),
       firstDate:   DateTime(2020),
       lastDate:    DateTime.now(),
       builder: (ctx, child) => Theme(
@@ -55,10 +60,46 @@ class _AccountantCustomerLedgerScreenState
       ),
     );
     if (picked == null) return;
+    // Existing time-of-day preserve karein; pehli dafa set ho raha ho to
+    // start ke liye din ki shuruaat aur end ke liye din ka aakhri lamha.
+    final combined = current != null
+        ? DateTime(picked.year, picked.month, picked.day,
+        current.hour, current.minute, current.second)
+        : (isStart
+        ? DateTime(picked.year, picked.month, picked.day)
+        : DateTime(picked.year, picked.month, picked.day, 23, 59, 59));
     if (isStart) {
-      notifier.setStartDate(picked);
+      notifier.setStartDate(combined);
     } else {
-      notifier.setEndDate(picked);
+      notifier.setEndDate(combined);
+    }
+  }
+
+  Future<void> _pickTime(BuildContext ctx, bool isStart) async {
+    final notifier = ref.read(customerLedgerProvider(_bid).notifier);
+    final state    = ref.read(customerLedgerProvider(_bid));
+    final current  = isStart ? state.startDate : state.endDate;
+    final basis    = current ?? DateTime.now();
+    final picked   = await showTimePicker(
+      context:     ctx,
+      initialTime: TimeOfDay.fromDateTime(basis),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme:
+          ColorScheme.light(primary: AppColor.primary),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked == null) return;
+    final combined = DateTime(
+      basis.year, basis.month, basis.day,
+      picked.hour, picked.minute,
+    );
+    if (isStart) {
+      notifier.setStartDate(combined);
+    } else {
+      notifier.setEndDate(combined);
     }
   }
 
@@ -261,6 +302,34 @@ class _AccountantCustomerLedgerScreenState
                     ),
                   ],
                 ]),
+                const SizedBox(height: 8),
+
+                // Time range
+                Row(children: [
+                  Expanded(
+                    child: _TimeButton(
+                      label: 'Start Time',
+                      date:  state.startDate,
+                      fmt:   _timeFmt,
+                      onTap: () async {
+                        await _pickTime(ctx, true);
+                        setSheetState(() {});
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TimeButton(
+                      label: 'End Time',
+                      date:  state.endDate,
+                      fmt:   _timeFmt,
+                      onTap: () async {
+                        await _pickTime(ctx, false);
+                        setSheetState(() {});
+                      },
+                    ),
+                  ),
+                ]),
 
                 const SizedBox(height: 20),
                 SizedBox(
@@ -324,9 +393,12 @@ class _AccountantCustomerLedgerScreenState
         notifier:   notifier,
         fmt:        _fmt,
         dateFmt:    _dateFmt,
+        timeFmt:    _timeFmt,
         searchCtrl: _searchCtrl,
-        onPickStart: () => _pickDate(context, true),
-        onPickEnd:   () => _pickDate(context, false),
+        onPickStart:     () => _pickDate(context, true),
+        onPickEnd:       () => _pickDate(context, false),
+        onPickStartTime: () => _pickTime(context, true),
+        onPickEndTime:   () => _pickTime(context, false),
         onExportPdf: () => _exportPdf(context, state),
       )
           : _MobileLayout(
@@ -353,9 +425,12 @@ class _DesktopLayout extends StatelessWidget {
   final dynamic                 notifier;
   final String Function(double) fmt;
   final DateFormat              dateFmt;
+  final DateFormat              timeFmt;
   final TextEditingController   searchCtrl;
   final VoidCallback            onPickStart;
   final VoidCallback            onPickEnd;
+  final VoidCallback            onPickStartTime;
+  final VoidCallback            onPickEndTime;
   final VoidCallback            onExportPdf;
 
   const _DesktopLayout({
@@ -363,9 +438,12 @@ class _DesktopLayout extends StatelessWidget {
     required this.notifier,
     required this.fmt,
     required this.dateFmt,
+    required this.timeFmt,
     required this.searchCtrl,
     required this.onPickStart,
     required this.onPickEnd,
+    required this.onPickStartTime,
+    required this.onPickEndTime,
     required this.onExportPdf,
   });
 
@@ -453,8 +531,13 @@ class _DesktopLayout extends StatelessWidget {
         Container(
           color:   Colors.white,
           padding: const EdgeInsets.fromLTRB(28, 14, 28, 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+          Wrap(
+            spacing:    12,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
 
               // Customer dropdown
@@ -476,7 +559,6 @@ class _DesktopLayout extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
 
               // Start Date
               SizedBox(
@@ -488,7 +570,6 @@ class _DesktopLayout extends StatelessWidget {
                   onTap: onPickStart,
                 ),
               ),
-              const SizedBox(width: 8),
 
               // End Date
               SizedBox(
@@ -501,10 +582,31 @@ class _DesktopLayout extends StatelessWidget {
                 ),
               ),
 
+              // Start Time
+              SizedBox(
+                width: 130,
+                child: _TimeButton(
+                  label: 'Start Time',
+                  date:  state.startDate,
+                  fmt:   timeFmt,
+                  onTap: onPickStartTime,
+                ),
+              ),
+
+              // End Time
+              SizedBox(
+                width: 130,
+                child: _TimeButton(
+                  label: 'End Time',
+                  date:  state.endDate,
+                  fmt:   timeFmt,
+                  onTap: onPickEndTime,
+                ),
+              ),
+
               // Clear dates
               if (state.startDate != null ||
-                  state.endDate != null) ...[
-                const SizedBox(width: 8),
+                  state.endDate != null)
                 InkWell(
                   onTap:        notifier.clearDates,
                   borderRadius: BorderRadius.circular(8),
@@ -521,67 +623,60 @@ class _DesktopLayout extends StatelessWidget {
                         size: 18, color: AppColor.error),
                   ),
                 ),
-              ],
+            ],
+          ),
+          const SizedBox(height: 12),
 
-              const SizedBox(width: 16),
-              const SizedBox(
-                  height: 48,
-                  child: VerticalDivider(
-                      width: 1, color: Color(0xFFEEEEEE))),
-              const SizedBox(width: 16),
-
-              // Search
-              Expanded(
-                child: SizedBox(
-                  height: 42,
-                  child: TextField(
-                    controller: searchCtrl,
-                    onChanged:  notifier.search,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Notes ya naam se search karein...',
-                      hintStyle: const TextStyle(
-                          fontSize: 13,
-                          color:    AppColor.textHint),
-                      prefixIcon: const Icon(
-                          Icons.search_rounded,
-                          size:  18,
-                          color: AppColor.primary),
-                      suffixIcon: state.searchQuery.isNotEmpty
-                          ? IconButton(
-                        icon: const Icon(
-                            Icons.clear_rounded,
-                            size:  16,
-                            color: AppColor.textHint),
-                        onPressed: () {
-                          searchCtrl.clear();
-                          notifier.search('');
-                        },
-                      )
-                          : null,
-                      filled:    true,
-                      fillColor: AppColor.grey100,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:   BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color:  AppColor.primary,
-                            width: 1.5),
-                      ),
-                    ),
-                  ),
+          // Search
+          SizedBox(
+            height: 42,
+            child: TextField(
+              controller: searchCtrl,
+              onChanged:  notifier.search,
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Notes ya naam se search karein...',
+                hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color:    AppColor.textHint),
+                prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size:  18,
+                    color: AppColor.primary),
+                suffixIcon: state.searchQuery.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(
+                      Icons.clear_rounded,
+                      size:  16,
+                      color: AppColor.textHint),
+                  onPressed: () {
+                    searchCtrl.clear();
+                    notifier.search('');
+                  },
+                )
+                    : null,
+                filled:    true,
+                fillColor: AppColor.grey100,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:   BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                      color: AppColor.grey200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                      color:  AppColor.primary,
+                      width: 1.5),
                 ),
               ),
+            ),
+          ),
             ],
           ),
         ),
@@ -633,9 +728,9 @@ class _DesktopLayout extends StatelessWidget {
                             size: 14, color: AppColor.primary),
                         const SizedBox(width: 6),
                         Text(
-                          '${state.startDate != null ? dateFmt.format(state.startDate!) : '?'}'
+                          '${state.startDate != null ? _rangeFmt.format(state.startDate!) : '?'}'
                               '  –  '
-                              '${state.endDate != null ? dateFmt.format(state.endDate!) : '?'}',
+                              '${state.endDate != null ? _rangeFmt.format(state.endDate!) : '?'}',
                           style: const TextStyle(
                             fontSize:   12,
                             fontWeight: FontWeight.w600,
@@ -664,11 +759,20 @@ class _DesktopLayout extends StatelessWidget {
                 : 'Koi entry nahi mili',
           )
               : _LedgerTable(
-            items:  state.filtered,
+            items:      state.pagedEntries,
+            totalCount: state.filtered.length,
+            pageOffset: state.pagination.page * BranchReportPagination.pageSize,
             fmt:    fmt,
             dateFmt: DateFormat('dd MMM yyyy  hh:mm a'),
           ),
         ),
+        if (!state.isLoadingLedger && state.filtered.isNotEmpty)
+          BranchReportPaginationControls(
+            page:        state.pagination.page,
+            hasNextPage: state.pagination.hasNextPage,
+            onNext:      notifier.nextPage,
+            onPrevious:  notifier.previousPage,
+          ),
       ],
     );
   }
@@ -733,11 +837,15 @@ class _DeskStatCard extends StatelessWidget {
 // ── Ledger Table ───────────────────────────────────────────────────────────
 class _LedgerTable extends StatelessWidget {
   final List<CustomerLedgerModel> items;
+  final int                       totalCount;
+  final int                       pageOffset;
   final String Function(double)   fmt;
   final DateFormat                dateFmt;
 
   const _LedgerTable({
     required this.items,
+    required this.totalCount,
+    required this.pageOffset,
     required this.fmt,
     required this.dateFmt,
   });
@@ -773,7 +881,7 @@ class _LedgerTable extends StatelessWidget {
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             itemBuilder: (ctx, i) {
               final e         = items[i];
-              final rowNumber = items.length - i;
+              final rowNumber = totalCount - (pageOffset + i);
               final remaining = e.newAmount;
               final remColor  = remaining > 0
                   ? AppColor.error
@@ -1119,9 +1227,9 @@ class _MobileLayout extends StatelessWidget {
                             color: AppColor.primary),
                         const SizedBox(width: 4),
                         Text(
-                          '${state.startDate != null ? dateFmt.format(state.startDate!) : '?'}'
+                          '${state.startDate != null ? _rangeFmt.format(state.startDate!) : '?'}'
                               ' – '
-                              '${state.endDate != null ? dateFmt.format(state.endDate!) : '?'}',
+                              '${state.endDate != null ? _rangeFmt.format(state.endDate!) : '?'}',
                           style: const TextStyle(
                             fontSize:   11,
                             color:      AppColor.primary,
@@ -1152,17 +1260,25 @@ class _MobileLayout extends StatelessWidget {
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(
                     16, 4, 16, 24),
-                itemCount:        state.filtered.length,
+                itemCount:        state.pagedEntries.length,
                 separatorBuilder: (_, __) =>
                 const SizedBox(height: 10),
                 itemBuilder: (_, i) => _LedgerCard(
-                  entry:  state.filtered[i],
+                  entry:  state.pagedEntries[i],
                   fmtAmt: fmt,
-                  index:  state.filtered.length - i,
+                  index:  state.filtered.length -
+                      (state.pagination.page * BranchReportPagination.pageSize + i),
                 ),
               ),
             ),
           ),
+          if (!state.isLoadingLedger && state.filtered.isNotEmpty)
+            BranchReportPaginationControls(
+              page:        state.pagination.page,
+              hasNextPage: state.pagination.hasNextPage,
+              onNext:      notifier.nextPage,
+              onPrevious:  notifier.previousPage,
+            ),
         ],
       ),
     );
@@ -1393,6 +1509,75 @@ class _DateButton extends StatelessWidget {
         ),
         child: Row(children: [
           Icon(Icons.calendar_today_rounded,
+              size:  16,
+              color: isSet
+                  ? AppColor.primary
+                  : AppColor.textHint),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize:       MainAxisSize.min,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: isSet
+                            ? AppColor.primary
+                            : AppColor.textHint)),
+                Text(
+                  isSet ? fmt.format(date!) : 'Select',
+                  style: TextStyle(
+                    fontSize:   12,
+                    fontWeight: FontWeight.w600,
+                    color: isSet
+                        ? AppColor.primary
+                        : AppColor.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _TimeButton extends StatelessWidget {
+  final String       label;
+  final DateTime?    date;
+  final DateFormat   fmt;
+  final VoidCallback onTap;
+
+  const _TimeButton({
+    required this.label,
+    required this.date,
+    required this.fmt,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSet = date != null;
+    return InkWell(
+      onTap:        onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color:        isSet
+              ? AppColor.primary.withOpacity(0.07)
+              : AppColor.grey100,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSet ? AppColor.primary : AppColor.grey200,
+            width: isSet ? 1.5 : 1,
+          ),
+        ),
+        child: Row(children: [
+          Icon(Icons.access_time_rounded,
               size:  16,
               color: isSet
                   ? AppColor.primary

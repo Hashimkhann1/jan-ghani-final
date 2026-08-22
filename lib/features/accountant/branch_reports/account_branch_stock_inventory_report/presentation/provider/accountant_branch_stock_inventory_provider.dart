@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../common/pagination/branch_report_pagination.dart';
 import '../../data/datasource/accountant_branch_stock_inventory_datasource.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
 
@@ -14,6 +15,7 @@ class AccountantBranchInventoryState {
   final StockStatus?                         stockFilter;
   final String?                              categoryFilter;
   final bool                                 deadStockOnly;
+  final BranchReportPageState                pagination;
   final bool                                 isLoading;
   final String?                              errorMessage;
 
@@ -26,6 +28,7 @@ class AccountantBranchInventoryState {
     this.stockFilter,
     this.categoryFilter,
     this.deadStockOnly  = false,
+    this.pagination     = const BranchReportPageState(),
     this.isLoading      = false,
     this.errorMessage,
   }) : summary = summary ?? const AccountantBranchInventorySummary(
@@ -36,6 +39,21 @@ class AccountantBranchInventoryState {
     totalStockValue: 0,
   );
 
+  // The table/list only ever renders one page's worth of the (already
+  // fully loaded, client-side filtered/searched) `filtered` list — the
+  // full catalog has to stay in memory anyway for search + the summary
+  // cards, so pagination here just windows the already-fetched data.
+  List<AccountantBranchInventoryModel> get pageItems {
+    final (start, end) = BranchReportPagination.range(pagination.page);
+    if (start >= filtered.length) return const [];
+    return filtered.sublist(
+        start, end + 1 > filtered.length ? filtered.length : end + 1);
+  }
+
+  bool get hasNextPage =>
+      (pagination.page + 1) * BranchReportPagination.pageSize <
+      filtered.length;
+
   AccountantBranchInventoryState copyWith({
     List<AccountantBranchInventoryModel>? allItems,
     List<AccountantBranchInventoryModel>? filtered,
@@ -45,6 +63,7 @@ class AccountantBranchInventoryState {
     Object?                               stockFilter    = _sentinel,
     Object?                               categoryFilter = _sentinel,
     bool?                                 deadStockOnly,
+    BranchReportPageState?                pagination,
     bool?                                 isLoading,
     Object?                               errorMessage   = _sentinel,
   }) =>
@@ -61,6 +80,7 @@ class AccountantBranchInventoryState {
             ? this.categoryFilter
             : categoryFilter as String?,
         deadStockOnly:  deadStockOnly  ?? this.deadStockOnly,
+        pagination:     pagination     ?? this.pagination,
         isLoading:      isLoading      ?? this.isLoading,
         errorMessage:   errorMessage == _sentinel
             ? this.errorMessage
@@ -99,6 +119,7 @@ class AccountantBranchInventoryNotifier
           state.deadStockOnly,
         ),
         summary:    _buildSummary(items),
+        pagination: const BranchReportPageState(),
         isLoading:  false,
       );
     } catch (e) {
@@ -112,6 +133,7 @@ class AccountantBranchInventoryNotifier
       filtered:    _applyFilters(
         state.allItems, q, state.stockFilter, state.categoryFilter, state.deadStockOnly,
       ),
+      pagination:  const BranchReportPageState(),
     );
   }
 
@@ -121,6 +143,7 @@ class AccountantBranchInventoryNotifier
       filtered:    _applyFilters(
         state.allItems, state.searchQuery, filter, state.categoryFilter, state.deadStockOnly,
       ),
+      pagination:  const BranchReportPageState(),
     );
   }
 
@@ -130,6 +153,7 @@ class AccountantBranchInventoryNotifier
       filtered:       _applyFilters(
         state.allItems, state.searchQuery, state.stockFilter, categoryId, state.deadStockOnly,
       ),
+      pagination:     const BranchReportPageState(),
     );
   }
 
@@ -140,6 +164,23 @@ class AccountantBranchInventoryNotifier
       filtered:      _applyFilters(
         state.allItems, state.searchQuery, state.stockFilter, state.categoryFilter, next,
       ),
+      pagination:    const BranchReportPageState(),
+    );
+  }
+
+  // ── Page navigation — client-side windowing of `filtered`, no network
+  //    call needed since the whole catalog is already in memory ──────────
+  void nextPage() {
+    if (!state.hasNextPage) return;
+    state = state.copyWith(
+      pagination: state.pagination.copyWith(page: state.pagination.page + 1),
+    );
+  }
+
+  void previousPage() {
+    if (!state.pagination.hasPreviousPage) return;
+    state = state.copyWith(
+      pagination: state.pagination.copyWith(page: state.pagination.page - 1),
     );
   }
 

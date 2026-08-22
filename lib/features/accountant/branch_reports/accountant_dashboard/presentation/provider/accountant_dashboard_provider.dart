@@ -23,12 +23,17 @@ class AccountantBranchDashboardState {
     DateTime? toDate,
     this.isLoading    = false,
     this.errorMessage,
-  })  : fromDate = fromDate ?? _today(),
-        toDate   = toDate   ?? _today();
+  })  : fromDate = fromDate ?? _startOfToday(),
+        toDate   = toDate   ?? _endOfToday();
 
-  static DateTime _today() {
+  static DateTime _startOfToday() {
     final n = DateTime.now();
     return DateTime(n.year, n.month, n.day);
+  }
+
+  static DateTime _endOfToday() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day, 23, 59, 59);
   }
 
   AccountantBranchDashboardState copyWith({
@@ -80,9 +85,21 @@ class AccountantBranchDashboardNotifier
     }
   }
 
+  void setFromDate(DateTime d) {
+    state = state.copyWith(fromDate: d);
+    load();
+  }
+
+  void setToDate(DateTime d) {
+    state = state.copyWith(toDate: d);
+    load();
+  }
+
   void setToday() {
-    final d = AccountantBranchDashboardState._today();
-    state = state.copyWith(fromDate: d, toDate: d);
+    state = state.copyWith(
+      fromDate: AccountantBranchDashboardState._startOfToday(),
+      toDate:   AccountantBranchDashboardState._endOfToday(),
+    );
     load();
   }
 
