@@ -65,6 +65,11 @@ final _cashierItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyL,
   ),
   NavItem(
+    icon: Icons.savings_rounded, label: 'Cash Counter',
+    screen: const CashCounterScreen(),
+    shortcutKey: LogicalKeyboardKey.keyX,
+  ),
+  NavItem(
     icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
     shortcutKey: LogicalKeyboardKey.keyG,

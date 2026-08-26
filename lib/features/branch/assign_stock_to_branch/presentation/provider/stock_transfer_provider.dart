@@ -27,6 +27,11 @@ class StockTransferNotifier extends AsyncNotifier<List<StockTransfer>> {
   late StockTransferRemoteDataSource _dataSource;
   late String _storeId;
 
+  // Single-flight guard: same transfer par ek waqt mein sirf ek
+  // accept/reject in-flight ho sakta hai (double-tap / retry-while-loading
+  // se double stock-credit na ho).
+  final Set<String> _inFlightIds = {};
+
   @override
   Future<List<StockTransfer>> build() async {
     _dataSource = ref.read(stockTransferDataSourceProvider);
@@ -43,21 +48,44 @@ class StockTransferNotifier extends AsyncNotifier<List<StockTransfer>> {
     );
   }
 
+  // Accept flow — ab fully atomic + idempotent + self-healing:
+  //  1. Supabase status ko GUARDED tareeqe se pending→accepted flip karo
+  //     (`WHERE status='pending'`). Agar 0 rows update hui to iska matlab
+  //     transfer already kisi aur call/device ne accept/reject kar diya —
+  //     idempotent no-op, local stock DOBARA add nahi karte.
+  //  2. Jeetne wala call hi local stock upsert karta hai (ek transaction
+  //     mein — sab items ya to poore apply hote hain ya koi nahi).
+  //  3. Agar step 2 fail ho jaye, Supabase status wapas 'pending' par
+  //     revert karte hain (compensation) — taake transfer safely retry ho
+  //     sake aur stock permanently "gum" na ho (purana silent-failure bug).
   Future<bool> acceptTransfer(String transferId) async {
+    if (_inFlightIds.contains(transferId)) return false;
+    _inFlightIds.add(transferId);
     try {
       final currentList = state.value ?? [];
       final transfer    = currentList.firstWhere((t) => t.id == transferId);
 
-      // ✅ BUG 2 FIX: Supabase status pehle update karo — agar local DB fail ho
-      // to dobara accept pe Supabase already 'accepted' hoga, stock duplicate nahi banega.
-      // Agar Supabase fail ho to local bhi nahi chalega — safe state.
-      await _dataSource.acceptTransfer(transferId);
+      final wonClaim = await _dataSource.acceptTransfer(transferId);
 
-      // Phir local PostgreSQL mein stock add karo
-      await _dataSource.upsertLocalBranchStock(
-        storeId: _storeId,
-        items:   transfer.items,
-      );
+      if (wonClaim) {
+        try {
+          await _dataSource.upsertLocalBranchStock(
+            storeId: _storeId,
+            items:   transfer.items,
+          );
+        } catch (e, stack) {
+          debugPrint('❌ local stock upsert failed, reverting status: $e');
+          debugPrint('❌ Stack: $stack');
+          try {
+            await _dataSource.revertToPending(transferId);
+          } catch (revertError) {
+            debugPrint('❌ revertToPending also failed: $revertError');
+          }
+          rethrow;
+        }
+      }
+      // wonClaim == false → already accepted (elsewhere) → treat as
+      // success, just reflect status locally.
 
       // Local state update
       state = AsyncData(
@@ -76,6 +104,8 @@ class StockTransferNotifier extends AsyncNotifier<List<StockTransfer>> {
       debugPrint('❌ acceptTransfer error: $e');
       debugPrint('❌ Stack: $stack');
       return false;
+    } finally {
+      _inFlightIds.remove(transferId);
     }
   }
 

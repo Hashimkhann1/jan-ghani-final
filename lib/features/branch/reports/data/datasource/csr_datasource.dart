@@ -27,6 +27,9 @@ class CsrDatasource {
           si.grand_total,
           si.notes,
           si.customer_id,
+          si.previous_amount,
+          si.new_amount,
+          si.pay_amount,
           c.name          AS customer_name,
           co.counter_name AS counter_name,
           u.full_name     AS cashier_name,
@@ -45,6 +48,7 @@ class CsrDatasource {
           si.id, si.invoice_no, si.invoice_date,
           si.status, si.total_amount, si.total_discount,
           si.grand_total, si.notes, si.customer_id,
+          si.previous_amount, si.new_amount, si.pay_amount,
           c.name, co.counter_name, u.full_name
         ORDER BY si.invoice_date DESC
       '''),
@@ -115,6 +119,9 @@ class CsrDatasource {
         customerName: m['customer_name']?.toString(),
         counterName: m['counter_name']?.toString(),
         cashierName: m['cashier_name']?.toString(),
+        previousAmount: _dbl(m['previous_amount']),
+        newAmount: _dbl(m['new_amount']),
+        payAmount: _dbl(m['pay_amount']),
         items: itemsMap[id] ?? [],
       );
     }).toList();
@@ -142,6 +149,9 @@ class CsrDatasource {
           sr.return_reason,
           sr.invoice_id,
           sr.customer_id,
+          sr.previous_amount,
+          sr.new_amount,
+          sr.pay_amount,
           c.name           AS customer_name,
           co.counter_name  AS counter_name,
           u.full_name      AS cashier_name,
@@ -160,7 +170,8 @@ class CsrDatasource {
           sr.id, sr.return_no, sr.return_date,
           sr.status, sr.total_amount, sr.total_discount,
           sr.grand_total, sr.return_reason, sr.invoice_id,
-          sr.customer_id, c.name, co.counter_name, u.full_name
+          sr.customer_id, sr.previous_amount, sr.new_amount, sr.pay_amount,
+          c.name, co.counter_name, u.full_name
         ORDER BY sr.return_date DESC
       '''),
       parameters: {
@@ -231,6 +242,9 @@ class CsrDatasource {
         customerName: m['customer_name']?.toString(),
         counterName: m['counter_name']?.toString(),
         cashierName: m['cashier_name']?.toString(),
+        previousAmount: _dbl(m['previous_amount']),
+        newAmount: _dbl(m['new_amount']),
+        payAmount: _dbl(m['pay_amount']),
         items: itemsMap[id] ?? [],
       );
     }).toList();

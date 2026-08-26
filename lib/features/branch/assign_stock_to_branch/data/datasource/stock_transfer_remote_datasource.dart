@@ -24,14 +24,38 @@ class StockTransferRemoteDataSource {
         .toList();
   }
 
-  // Transfer accept karo (Supabase status only)
-  Future<void> acceptTransfer(String transferId) async {
-    await _client
+  // Transfer accept karo — ATOMICALLY guarded: sirf tab flip hota hai jab
+  // status abhi bhi 'pending' hai. Return: true = is call ne "claim" jeeta
+  // (pehli baar accept hua, isi call ko local stock add karni chahiye),
+  // false = transfer already non-pending tha (kisi aur device/retry ne
+  // pehle hi accept/reject kar diya) — idempotent no-op, local stock
+  // dobara add NAHI karni.
+  Future<bool> acceptTransfer(String transferId) async {
+    final result = await _client
         .from('stock_transfers')
         .update({
       'status':     'accepted',
       'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', transferId);
+    })
+        .eq('id', transferId)
+        .eq('status', 'pending')
+        .select('id');
+    return (result as List).isNotEmpty;
+  }
+
+  // Compensation: agar Supabase status 'accepted' ho gaya lekin uske baad
+  // local stock upsert fail ho jaye, to status wapas 'pending' par revert
+  // karo — taake transfer safely retry ho sake (aur stock permanently
+  // "gum" na ho).
+  Future<void> revertToPending(String transferId) async {
+    await _client
+        .from('stock_transfers')
+        .update({
+      'status':     'pending',
+      'updated_at': DateTime.now().toIso8601String(),
+    })
+        .eq('id', transferId)
+        .eq('status', 'accepted');
   }
 
   // Transfer reject karo
@@ -116,23 +140,39 @@ class StockTransferRemoteDataSource {
     }
   }
 
+  // Postgres text[] literal ke andar har element ko double-quote + escape
+  // karo (backslash aur double-quote escape). Isse comma/brace/empty-string
+  // wale barcode bhi safely handle hote hain — bina is se ek comma-wala
+  // barcode poore array ko todh sakta tha ya empty barcode silently gum
+  // ho jata tha.
+  String _pgTextArrayLiteral(List<String> values) {
+    final escaped = values.map((v) {
+      final safe = v.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
+      return '"$safe"';
+    });
+    return '{${escaped.join(',')}}';
+  }
+
   // ─── Local PostgreSQL: Branch stock inventory mein add/update karo ───────
+  // Poora batch EK transaction mein — agar kisi item par error aaye to
+  // saare items rollback ho jate hain. Isse partial-apply hone ke baad
+  // retry par pehle-se-committed items dobara add (double-credit) nahi
+  // hote.
   Future<void> upsertLocalBranchStock({
     required String storeId,
     required List<StockTransferItem> items,
   }) async {
     final conn = await DataBaseService.getConnection();
 
-    for (final item in items) {
-      try {
-        final existing = await conn.execute(
+    await conn.runTx((tx) async {
+      for (final item in items) {
+        final existing = await tx.execute(
           r'SELECT stock FROM public.branch_stock_inventory '
           r'WHERE store_id = $1 AND product_id = $2',
           parameters: [storeId, item.productId],
         );
 
-        // ✅ BUG 1 FIX: List<String> → PostgreSQL array literal '{val1,val2}'
-        final barcodeArray = '{${item.barcode.join(',')}}';
+        final barcodeArray = _pgTextArrayLiteral(item.barcode);
 
         if (existing.isNotEmpty) {
           final currentStock = double.parse(existing.first[0].toString());
@@ -141,7 +181,7 @@ class StockTransferRemoteDataSource {
           debugPrint(
               '📦 Updating: ${item.productName} | $currentStock + ${item.quantitySent} = $newStock');
 
-          await conn.execute(
+          await tx.execute(
             r'''UPDATE public.branch_stock_inventory SET
               stock           = $1,
               purchase_price  = $2,
@@ -163,7 +203,7 @@ class StockTransferRemoteDataSource {
               item.wholesalePrice,// $4
               item.minStockLevel, // $5
               item.maxStockLevel, // $6
-              barcodeArray,       // $7  ✅ FIXED: PostgreSQL array format
+              barcodeArray,       // $7
               item.sku,           // $8
               item.categoryId,    // $9
               item.productName,   // $10
@@ -177,7 +217,7 @@ class StockTransferRemoteDataSource {
         } else {
           debugPrint('➕ Inserting: ${item.productName}');
 
-          await conn.execute(
+          await tx.execute(
             r'''INSERT INTO public.branch_stock_inventory
               (store_id, product_id, barcode, sku, product_name,
                purchase_price, sale_price, wholesale_price,
@@ -186,7 +226,7 @@ class StockTransferRemoteDataSource {
             parameters: [
               storeId,            // $1
               item.productId,     // $2
-              barcodeArray,       // $3  ✅ FIXED: PostgreSQL array format
+              barcodeArray,       // $3
               item.sku,           // $4
               item.productName,   // $5
               item.purchasePrice, // $6
@@ -202,10 +242,7 @@ class StockTransferRemoteDataSource {
 
           debugPrint('✅ Inserted: ${item.productName}');
         }
-      } catch (e) {
-        debugPrint('❌ upsertLocal error for ${item.productName}: $e');
-        rethrow;
       }
-    }
+    });
   }
 }

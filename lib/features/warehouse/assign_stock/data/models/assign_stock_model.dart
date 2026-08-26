@@ -46,8 +46,13 @@ class AssignStockState {
   double get totalQty =>
       cartItems.fold(0.0, (sum, i) => sum + i.quantity);
 
+  // Store select + non-empty cart + koi bhi item availableStock se zyada
+  // qty na maang raha ho (pehle sirf pehle do check hote the — poori cart
+  // bharne ke baad hi DB-level error milta tha).
   bool get canSave =>
-      selectedStoreId != null && cartItems.isNotEmpty;
+      selectedStoreId != null &&
+      cartItems.isNotEmpty &&
+      cartItems.every((i) => i.quantity > 0 && i.quantity <= i.availableStock);
 
   AssignStockState copyWith({
     String? transferNumber,

@@ -140,6 +140,13 @@ class StockTransferSyncService {
 
       print('[SyncService] 📋 Local pending: ${localPendingIds.length} transfers');
 
+      // NEW: local transfers jo abhi tak Supabase par kabhi push hi nahi
+      // hue (assign ke waqt offline the ya koi non-network error aayi thi)
+      // unhe pehle push karo — pehle koi bhi background mechanism yeh nahi
+      // karta tha, is liye aisi transfers hamesha ke liye "orphan" (stock
+      // reserved par branch ko kabhi dikhi hi nahi) reh jati thin.
+      await _pushUnmirroredTransfers(warehouseId, localPendingIds);
+
       final supabaseResult = await _supabase
           .from('stock_transfers')
           .select('id, status')
@@ -175,97 +182,158 @@ class StockTransferSyncService {
     }
   }
 
+  /// `stock_transfers`/`stock_transfer_items` generic table-sync mein
+  /// shamil NAHI hain — is liye agar assign-stock ke waqt Supabase-mirror
+  /// fail ho jaye (offline ya koi aur error), woh transfer sirf local
+  /// Postgres mein reh jaati thi aur kabhi bhi Supabase tak nahi pahunchti
+  /// thi (branch ko kabhi dikhti hi nahi, reserved stock permanently
+  /// atka reh jata). Yeh function local pending transfers ko Supabase se
+  /// compare karke jo wahan bilkul mojood hi nahi unhe (transfer + items)
+  /// push kar deta hai.
+  Future<void> _pushUnmirroredTransfers(
+    String warehouseId,
+    List<String> localPendingIds,
+  ) async {
+    if (localPendingIds.isEmpty) return;
+    try {
+      final remoteExisting = await _supabase
+          .from('stock_transfers')
+          .select('id')
+          .inFilter('id', localPendingIds);
+
+      final remoteIds =
+          (remoteExisting as List).map((r) => r['id'] as String).toSet();
+      final missingIds =
+          localPendingIds.where((id) => !remoteIds.contains(id)).toList();
+
+      if (missingIds.isEmpty) return;
+      print('[SyncService] 📤 ${missingIds.length} transfers Supabase par kabhi nahi pahunchi — pushing...');
+
+      for (final id in missingIds) {
+        try {
+          final transferRows = await _db.execute(
+            Sql.named(
+                'SELECT * FROM public.stock_transfers WHERE id = @id'),
+            parameters: {'id': id},
+          );
+          if (transferRows.isEmpty) continue;
+
+          final itemRows = await _db.execute(
+            Sql.named(
+                'SELECT * FROM public.stock_transfer_items WHERE transfer_id = @id'),
+            parameters: {'id': id},
+          );
+
+          await _supabase
+              .from('stock_transfers')
+              .upsert(_forSupabase(transferRows.first.toColumnMap()));
+
+          if (itemRows.isNotEmpty) {
+            await _supabase.from('stock_transfer_items').upsert(
+                  itemRows.map((r) => _forSupabase(r.toColumnMap())).toList(),
+                );
+          }
+          print('[SyncService] ✅ Pushed missed transfer $id to Supabase.');
+        } catch (e) {
+          print('[SyncService] ❌ Failed pushing transfer $id: $e');
+        }
+      }
+    } catch (e, stack) {
+      print('[SyncService] ❌ Error pushing unmirrored transfers: $e');
+      print('[SyncService] Stack: $stack');
+    }
+  }
+
+  /// Local Postgres row (DateTime objects) ko Supabase-friendly JSON map
+  /// mein convert karta hai.
+  Map<String, dynamic> _forSupabase(Map<String, dynamic> row) {
+    return row.map((key, value) {
+      if (value is DateTime) return MapEntry(key, value.toIso8601String());
+      return MapEntry(key, value);
+    });
+  }
+
+  // Step1 (status flip) + Step2 (deduct qty / release reservation) + Step3
+  // (movement log) ab EK DB transaction mein hain. Pehle yeh teen alag
+  // statements the — agar app Step1 ke baad crash/disconnect ho jata to
+  // status 'accepted' reh jata lekin quantity kabhi deduct na hoti, aur
+  // upar wala idempotency guard ("already accepted, skip") is ADHOORI
+  // state ko hamesha ke liye skip kar deta — reserved_quantity permanently
+  // stuck reh jaati. Ab: ya to teeno steps commit hote hain, ya (crash/error
+  // par) transaction poora rollback ho jata hai aur status 'pending' hi
+  // rehta hai — is se agli koshish (missed-sync/realtime) safely retry kar
+  // sakti hai.
   Future<void> _syncAcceptedTransfer({
     required String transferId,
     required String newStatus,
   }) async {
     try {
-      // Double sync se bachao
-      final checkResult = await _db.execute(
-        Sql.named('''
-          SELECT status FROM public.stock_transfers
-          WHERE id = @transferId
-        '''),
-        parameters: {'transferId': transferId},
-      );
-
-      if (checkResult.isNotEmpty) {
-        final currentStatus =
-        checkResult.first.toColumnMap()['status'] as String?;
-        if (currentStatus == 'accepted') {
-          print('[SyncService] ⏭️ Transfer $transferId already accepted locally, skipping.');
+      await _db.runTx((tx) async {
+        // Step1: status ko ATOMICALLY pending→accepted karo. Sirf tabhi
+        // aage badho jab yeh update ne sach mein ek row badli (yaani pehle
+        // pending tha). Isse missed-sync + realtime dono ek saath chalein
+        // to bhi deduction ek hi baar hota hai (double-deduction / race se
+        // bachao).
+        final statusUpd = await tx.execute(
+          Sql.named('''
+            UPDATE public.stock_transfers
+            SET status = @status, updated_at = NOW()
+            WHERE id = @transferId AND status = 'pending'
+            RETURNING id
+          '''),
+          parameters: {'status': newStatus, 'transferId': transferId},
+        );
+        if (statusUpd.isEmpty) {
+          print('[SyncService] ⏭️ Transfer $transferId pending nahi raha (already processed), skipping.');
           return;
         }
-      }
 
-      // Step1: status ko ATOMICALLY pending→accepted karo. Sirf tabhi aage
-      // badho jab yeh update ne sach mein ek row badli (yaani pehle pending tha).
-      // Isse missed-sync + realtime dono ek saath chalein to bhi deduction
-      // ek hi baar hota hai (double-deduction / race se bachao).
-      print('[SyncService] Step1: updating local status (guarded)...');
-      final statusUpd = await _db.execute(
-        Sql.named('''
-          UPDATE public.stock_transfers
-          SET status = @status, updated_at = NOW()
-          WHERE id = @transferId AND status = 'pending'
-          RETURNING id
-        '''),
-        parameters: {'status': newStatus, 'transferId': transferId},
-      );
-      if (statusUpd.isEmpty) {
-        print('[SyncService] ⏭️ Transfer $transferId pending nahi raha (already processed), skipping.');
-        return;
-      }
-      print('[SyncService] ✅ Step1 done');
+        // Step2: physical quantity kam karo aur reservation release karo.
+        // quantity ab 0 par floor NAHI hoti — agar transfer available se
+        // zyada ho to stock asal minus mein jata hai (deficit visible +
+        // movements se reconcile). reserved_quantity phir bhi 0 par capped
+        // (negative reserve ka koi matlab nahi).
+        await tx.execute(
+          Sql.named('''
+            UPDATE public.warehouse_inventory
+            SET quantity          = quantity - sti.quantity_sent,
+                reserved_quantity = GREATEST(0, reserved_quantity - sti.quantity_sent),
+                last_movement_at  = NOW(),
+                updated_at        = NOW(),
+                is_synced         = false
+            FROM public.stock_transfer_items sti
+            JOIN public.stock_transfers st ON st.id = sti.transfer_id
+            WHERE sti.transfer_id = @transferId
+              AND warehouse_inventory.product_id = sti.product_id
+              AND warehouse_inventory.warehouse_id = st.warehouse_id
+          '''),
+          parameters: {'transferId': transferId},
+        );
 
-      // Step2: physical quantity kam karo aur reservation release karo.
-      // quantity ab 0 par floor NAHI hoti — agar transfer available se zyada
-      // ho to stock asal minus mein jata hai (deficit visible + movements se
-      // reconcile). reserved_quantity phir bhi 0 par capped (negative reserve
-      // ka koi matlab nahi).
-      print('[SyncService] Step2: deducting inventory + releasing reservation...');
-      await _db.execute(
-        Sql.named('''
-          UPDATE public.warehouse_inventory
-          SET quantity          = quantity - sti.quantity_sent,
-              reserved_quantity = GREATEST(0, reserved_quantity - sti.quantity_sent),
-              last_movement_at  = NOW(),
-              updated_at        = NOW(),
-              is_synced         = false
-          FROM public.stock_transfer_items sti
-          JOIN public.stock_transfers st ON st.id = sti.transfer_id
-          WHERE sti.transfer_id = @transferId
-            AND warehouse_inventory.product_id = sti.product_id
-            AND warehouse_inventory.warehouse_id = st.warehouse_id
-        '''),
-        parameters: {'transferId': transferId},
-      );
-      print('[SyncService] ✅ Step2 done');
+        await tx.execute(
+          Sql.named('''
+            INSERT INTO public.warehouse_stock_movements (
+              id, warehouse_id, product_id, location_id,
+              movement_type, quantity, unit_cost,
+              reference_type, reference_id, notes, created_by
+            )
+            SELECT
+              public.uuid_generate_v4(),
+              st.warehouse_id, sti.product_id, NULL,
+              'transfer_out', sti.quantity_sent, sti.purchase_price,
+              'transfer', st.id,
+              'Transfer ' || st.transfer_number || ' - ' || st.to_store_name,
+              st.assigned_by_id
+            FROM public.stock_transfer_items sti
+            JOIN public.stock_transfers st ON st.id = sti.transfer_id
+            WHERE sti.transfer_id = @transferId
+              AND sti.product_id IS NOT NULL
+          '''),
+          parameters: {'transferId': transferId},
+        );
 
-      print('[SyncService] Step3: inserting stock movements...');
-      await _db.execute(
-        Sql.named('''
-          INSERT INTO public.warehouse_stock_movements (
-            id, warehouse_id, product_id, location_id,
-            movement_type, quantity, unit_cost,
-            reference_type, reference_id, notes, created_by
-          )
-          SELECT
-            public.uuid_generate_v4(),
-            st.warehouse_id, sti.product_id, NULL,
-            'transfer_out', sti.quantity_sent, sti.purchase_price,
-            'transfer', st.id,
-            'Transfer ' || st.transfer_number || ' - ' || st.to_store_name,
-            st.assigned_by_id
-          FROM public.stock_transfer_items sti
-          JOIN public.stock_transfers st ON st.id = sti.transfer_id
-          WHERE sti.transfer_id = @transferId
-            AND sti.product_id IS NOT NULL
-        '''),
-        parameters: {'transferId': transferId},
-      );
-      print('[SyncService] ✅ Step3 done');
-      print('[SyncService] 🎉 Transfer $transferId FULLY SYNCED!');
+        print('[SyncService] 🎉 Transfer $transferId FULLY SYNCED!');
+      });
     } catch (e, stack) {
       print('[SyncService] ❌ SYNC FAILED: $e');
       print('[SyncService] Stack: $stack');

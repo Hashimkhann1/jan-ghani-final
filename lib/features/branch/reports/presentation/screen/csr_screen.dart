@@ -1245,14 +1245,15 @@ class _CsrEntryCard extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 // ── Customer Balance Section ──────────────
-                if (_isSale &&
-                    entry.customerId != null &&
+                if (entry.customerId != null &&
                     (entry.previousAmount != null ||
                         entry.newAmount != null)) ...[
                   _CsrBalanceSection(
                     previousBalance: entry.previousAmount,
-                    creditAmount: entry.grandTotal,
+                    creditAmount:
+                        (entry.newAmount ?? 0) - (entry.previousAmount ?? 0),
                     currentBalance: entry.newAmount,
+                    isSale: _isSale,
                   ),
                   const SizedBox(height: 10),
                 ],
@@ -1485,11 +1486,13 @@ class _CsrBalanceSection extends StatelessWidget {
   final double? previousBalance;
   final double creditAmount;
   final double? currentBalance;
+  final bool isSale;
 
   const _CsrBalanceSection({
     required this.previousBalance,
     required this.creditAmount,
     required this.currentBalance,
+    required this.isSale,
   });
 
   @override
@@ -1546,9 +1549,11 @@ class _CsrBalanceSection extends StatelessWidget {
                 ),
                 Expanded(
                   child: _BalanceCell(
-                    label: 'This invoice credit',
-                    value: '+ Rs ${creditAmount.toStringAsFixed(0)}',
-                    valueColor: AppColor.info,
+                    label: isSale ? 'This invoice credit' : 'This return refund',
+                    value: creditAmount == 0
+                        ? '—'
+                        : '${creditAmount > 0 ? '+' : '-'} Rs ${creditAmount.abs().toStringAsFixed(0)}',
+                    valueColor: isSale ? AppColor.info : AppColor.success,
                     showDivider: true,
                   ),
                 ),
