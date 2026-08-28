@@ -70,6 +70,10 @@ final _cashierItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyX,
   ),
   NavItem(
+    icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
+    screen: const BranchTransferListScreen(),
+  ),
+  NavItem(
     icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
     shortcutKey: LogicalKeyboardKey.keyG,

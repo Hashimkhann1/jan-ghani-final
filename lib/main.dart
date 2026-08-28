@@ -10,7 +10,6 @@ import 'package:jan_ghani_final/core/theme/light_theme.dart';
 import 'package:jan_ghani_final/features/branch/backup/presentation/screen/branch_backup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
-import '../core/service/session/accountant_session.dart';
 import '../features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'core/config/store_config.dart';
 import 'core/service/db/db_service.dart';
@@ -23,10 +22,6 @@ import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart'
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
 
 final supabase = Supabase.instance.client;
-
-final accountantSessionCheckProvider = FutureProvider<bool>((ref) async {
-  return AccountantSession.isLoggedIn();
-});
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,23 +54,47 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session  = ref.watch(sessionProvider).user?.id ?? "";
-    final auth = ref.watch(authProvider);
     return MaterialApp(
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
-      home:
-      // session.isEmpty ? AccountantLoginScreen() : AccountantDashboardScreen()
-      // InventoryCountingScreen(),
-      // session.isEmpty ? AccountantLoginScreen() :
-      // AccountantDashboardScreen()
-      _resolveHome(session, auth),
+      // Website → Accountant. Desktop (Windows/Mac) → Branch
+      // (Warehouse ka apna alag entry point hai: lib/main_warehouse.dart).
+      home: kIsWeb ? const _AccountantHome() : const _BranchHome(),
     );
   }
+}
 
+// ── Web: Accountant ─────────────────────────────────────────────
+class _AccountantHome extends ConsumerWidget {
+  const _AccountantHome();
 
-  Widget _resolveHome(String session, AuthState auth) {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionProvider);
+
+    if (session.isRestoring) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (session.user != null) {
+      return const AccountantDashboardScreen();
+    }
+
+    return const AccountantLoginScreen();
+  }
+}
+
+// ── Desktop: Branch ──────────────────────────────────────────────
+class _BranchHome extends ConsumerWidget {
+  const _BranchHome();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+
     // ── Loading / checking ──
     if (auth.isLoading || auth.hasBranch == null) {
       return const Scaffold(
@@ -87,13 +106,6 @@ class MyApp extends ConsumerWidget {
     if (!auth.hasBranch!) {
       return const BackupScreen();
     }
-
-
-
-    // ── Accountant logged in ──
-    // if (session.isNotEmpty) {
-    //   return AccountantDashboardScreen();
-    // }
 
     // ── Branch user logged in ──
     if (auth.isLoggedIn) {

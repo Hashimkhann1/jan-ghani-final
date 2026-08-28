@@ -179,9 +179,12 @@ class CsrNotifier extends StateNotifier<CsrState> {
         allEntries: [],
       );
     } else {
+      final today = CsrState._today();
       state = state.copyWith(
         selectedCustomerId: customerId,
         selectedCustomerName: customerName,
+        fromDate: today.subtract(const Duration(days: 30)),
+        toDate: today,
       );
       load();
     }
