@@ -702,6 +702,16 @@ class SyncConfig {
   // ── Yeh columns Supabase mein nahi hain — upsert se remove honge
   static const Map<String, List<String>> excludeColumns = {
     'accountant_transactions': ['is_synced'],
+    // ⚠️ IMPORTANT: alag branches mein same product ke liye
+    // 'branch_stock_inventory' ka local 'id' identical ban jaata
+    // hai (product_id se juda hua). Conflict target 'store_id,
+    // product_id' hai (sahi hai), lekin 'id' bhi bhej dein to woh
+    // 'branch_stock_inventory_pkey' (PRIMARY KEY id) violate kar
+    // deta hai — jo ON CONFLICT resolve nahi karta, aur poori
+    // INSERT fail ho jaati hai (dusri branch ka stock kabhi sync
+    // nahi hota). Fix: 'id' bhejo hi mat — Supabase apna naya id
+    // khud generate kar lega.
+    'branch_stock_inventory': ['id'],
   };
 
   // ── Har table ka timestamp column ────────────────────────
@@ -721,11 +731,47 @@ class SyncConfig {
     'branch_stock_inventory': 'store_id,product_id',
   };
 
+  // ── Yeh tables mein 'store_id' nahi, lekin koi aur column
+  // hai jo isi branch ki row(s) ko uniquely scope karta hai —
+  // us column se per-branch filter lagao (warna global timestamp
+  // ke wajah se dusri branch ka naya sync is branch ke purane
+  // rows ko hamesha ke liye skip kar sakta hai).
+  static const Map<String, String> _altFilterColumns = {
+    'branch'                       : 'id',
+    'branch_transaction_to_janghani': 'branch_id',
+  };
+
+  // ── Yeh tables mein na store_id hai na koi aur branch-scoping
+  // column (sirf invoice_id/return_id FK se linked hain) — is
+  // liye per-branch filter possible nahi. Global timestamp use
+  // karna in par cross-branch skew bug deta (Branch A ka sync
+  // Branch B ke purane rows ko hamesha ke liye skip kar deta).
+  // Fix: har cycle mein poora table resync karo (extra egress,
+  // lekin koi row miss nahi hogi).
+  //
+  // 'branch_stock_damage' bhi shamil: is table mein 'updated_at'
+  // column hi nahi hai, aur 'updateDamage()' row edit karte waqt
+  // 'created_at' ko touch nahi karta — isliye edit hui row kabhi
+  // incremental sync mein pick nahi hoti thi.
+  static const List<String> fullSyncTables = [
+    'sale_invoice_items',
+    'sale_return_items',
+    'branch_stock_damage',
+  ];
+
   static String timestampColumn(String table) =>
       _timestampColumns[table] ?? 'updated_at';
 
   static String conflictColumn(String table) =>
       _conflictColumns[table] ?? 'id';
+
+  // ── Is table ko per-branch filter karne wala column, ya
+  // null agar table globally (sabhi branches mil ke) sync hoti hai.
+  static String? filterColumn(String table) {
+    if (_altFilterColumns.containsKey(table)) return _altFilterColumns[table];
+    if (storeIdTables.contains(table)) return 'store_id';
+    return null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1033,13 +1079,15 @@ class SyncService {
   }
 
   // ══════════════════════════════════════════════
-  //  🔄 Single Table Sync — Sirf Incremental
+  //  🔄 Single Table Sync
   //
   //  Strategies:
-  //  1. storeIdTables  → store_id filter + timestamp
-  //  2. baaki          → sirf timestamp filter
-  //
-  //  ❌ fullSync hataya — Egress bachane ke liye
+  //  1. fullSyncTables → har cycle poora table (no branch-scoping
+  //                      column mumkin nahi, ya edit-timestamp
+  //                      track nahi hoti)
+  //  2. filterColumn() != null → us column (store_id/id/branch_id)
+  //                      se per-branch filter + timestamp
+  //  3. baaki          → sirf global timestamp filter
   // ══════════════════════════════════════════════
 
   static Future<int> _syncTable(
@@ -1052,17 +1100,30 @@ class SyncService {
     try {
       final tsCol       = SyncConfig.timestampColumn(table);
       final conflictCol = SyncConfig.conflictColumn(table);
-      final hasStoreId  = SyncConfig.storeIdTables.contains(table);
+      final filterCol   = SyncConfig.filterColumn(table);
+      final isFullSync  = SyncConfig.fullSyncTables.contains(table);
+
+      // ── Full sync tables: koi store_id/branch scoping column
+      // nahi — timestamp watermark check hi skip, seedha poora
+      // local table le lo (Step 1 & 2 dono bypass) ──────────
+      if (isFullSync) {
+        final result = await db.execute(
+          Sql('SELECT * FROM "$table" ORDER BY "$tsCol" ASC'),
+        );
+        final rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        _log('  🔁 $table — full resync: ${rows.length} rows');
+        return _upsertRows(db, supabase, table, conflictCol, rows, send);
+      }
 
       // ── Step 1: Sirf timestamp fetch karo (min egress) ──
       String? lastSyncedAt;
 
       try {
-        final query = hasStoreId
+        final query = filterCol != null
             ? supabase
             .from(table)
             .select(tsCol)          // sirf timestamp column
-            .eq('store_id', storeId)
+            .eq(filterCol, storeId)
             .order(tsCol, ascending: false)
             .limit(1)
             : supabase
@@ -1076,7 +1137,7 @@ class SyncService {
         if (res.isNotEmpty && res[0][tsCol] != null) {
           lastSyncedAt = res[0][tsCol].toString();
           _log('  📅 $table — last synced: $lastSyncedAt'
-              '${hasStoreId ? " (store: $storeId)" : ""}');
+              '${filterCol != null ? " ($filterCol: $storeId)" : ""}');
         } else {
           _log('  📅 $table — Supabase mein kuch nahi, full send');
         }
@@ -1089,11 +1150,11 @@ class SyncService {
 
       if (lastSyncedAt != null) {
         // Incremental — sirf timestamp ke baad wale rows
-        if (hasStoreId) {
+        if (filterCol != null) {
           final result = await db.execute(
             Sql.named(
               'SELECT * FROM "$table" '
-                  'WHERE store_id = @sid '
+                  'WHERE "$filterCol" = @sid '
                   '  AND "$tsCol" > @ts::timestamptz '
                   'ORDER BY "$tsCol" ASC',
             ),
@@ -1113,10 +1174,10 @@ class SyncService {
         }
       } else {
         // Supabase empty tha — poora local data ek baar bhejo
-        if (hasStoreId) {
+        if (filterCol != null) {
           final result = await db.execute(
             Sql.named(
-              'SELECT * FROM "$table" WHERE store_id = @sid ORDER BY "$tsCol" ASC',
+              'SELECT * FROM "$table" WHERE "$filterCol" = @sid ORDER BY "$tsCol" ASC',
             ),
             parameters: {'sid': storeId},
           );
@@ -1130,12 +1191,34 @@ class SyncService {
       }
 
       _log('  📦 $table: ${rows.length} rows milein');
+      return _upsertRows(db, supabase, table, conflictCol, rows, send);
+
+    } catch (e, st) {
+      _log('  ❌ $table sync error: $e\n$st');
+      send.send(_TableError(table, e.toString()));
+      return 0;
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  //  🔼 Rows Upsert — Exclude columns + batch push
+  // ══════════════════════════════════════════════
+
+  static Future<int> _upsertRows(
+      Connection                  db,
+      SupabaseClient              supabase,
+      String                      table,
+      String                      conflictCol,
+      List<Map<String, dynamic>> rows,
+      SendPort                    send,
+      ) async {
+    try {
       if (rows.isEmpty) {
         send.send(_TableSuccess(table, 0));
         return 0;
       }
 
-      // ── Step 3: Exclude columns ─────────────────────────
+      // ── Exclude columns ──────────────────────────────────
       final excludeCols = SyncConfig.excludeColumns[table] ?? [];
       final supaRows = excludeCols.isEmpty
           ? rows
@@ -1145,7 +1228,7 @@ class SyncService {
         return m;
       }).toList();
 
-      // ── Step 4: Upsert Supabase mein ────────────────────
+      // ── Upsert Supabase mein ─────────────────────────────
       const batchSize = 50;
       int totalSynced = 0;
       final List<String> syncedIds = [];
@@ -1177,7 +1260,7 @@ class SyncService {
         }
       }
 
-      // ── Step 5: accountant_transactions is_synced ────────
+      // ── accountant_transactions is_synced ────────────────
       if (table == 'accountant_transactions' && syncedIds.isNotEmpty) {
         final idList = syncedIds.map((id) => "'$id'").join(',');
         await db.execute(
@@ -1191,7 +1274,7 @@ class SyncService {
       return totalSynced;
 
     } catch (e, st) {
-      _log('  ❌ $table sync error: $e\n$st');
+      _log('  ❌ $table upsert error: $e\n$st');
       send.send(_TableError(table, e.toString()));
       return 0;
     }

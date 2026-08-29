@@ -139,23 +139,6 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
     ref.read(customerReportLedgerProvider(_args).notifier).setDateRange(from, to);
   }
 
-  void _setThisMonth() {
-    final now   = DateTime.now();
-    final start = DateTime(now.year, now.month, 1);
-    final end   = DateTime(now.year, now.month, now.day);
-    _fromCtrl.text = _dateFmt.format(start);
-    _toCtrl.text   = _dateFmt.format(end);
-    _applyDateRange(start, end);
-  }
-
-  void _setToday() {
-    final d = DateTime.now();
-    final t = DateTime(d.year, d.month, d.day);
-    _fromCtrl.text = _dateFmt.format(t);
-    _toCtrl.text   = _dateFmt.format(t);
-    _applyDateRange(t, t);
-  }
-
   Future<void> _exportPdf() async {
     final saleState   = ref.read(customerReportInvoiceProvider(_args));
     final returnState = ref.read(customerReportReturnProvider(_args));
@@ -218,10 +201,8 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= _kWebBreakpoint;
         return isWide
-            ? _buildWideLayout(context, saleState, returnState, ledgerState,
-            isLoading, feed)
-            : _buildNarrowLayout(context, saleState, returnState, ledgerState,
-            isLoading, feed);
+            ? _buildWideLayout(context, saleState, isLoading, feed)
+            : _buildNarrowLayout(context, saleState, isLoading, feed);
       },
     );
   }
@@ -230,8 +211,6 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
   Widget _buildNarrowLayout(
       BuildContext context,
       CustomerReportInvoiceState saleState,
-      CustomerReportReturnState returnState,
-      CustomerReportLedgerState ledgerState,
       bool isLoading,
       List<_FeedItem> feed,
       ) {
@@ -262,14 +241,6 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
               _applyDateRange(saleState.fromDate, p);
             }
           },
-          onToday:     _setToday,
-          onThisMonth: _setThisMonth,
-        ),
-        _StatsRow(
-          saleState:   saleState,
-          returnState: returnState,
-          ledgerState: ledgerState,
-          fmt:         _fmt,
         ),
         _SearchBar(
           controller: _searchCtrl,
@@ -301,8 +272,6 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
   Widget _buildWideLayout(
       BuildContext context,
       CustomerReportInvoiceState saleState,
-      CustomerReportReturnState returnState,
-      CustomerReportLedgerState ledgerState,
       bool isLoading,
       List<_FeedItem> feed,
       ) {
@@ -346,15 +315,6 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
                           _applyDateRange(saleState.fromDate, p);
                         }
                       },
-                      onToday:     _setToday,
-                      onThisMonth: _setThisMonth,
-                    ),
-                    const SizedBox(height: 20),
-                    _StatsColumn(
-                      saleState:   saleState,
-                      returnState: returnState,
-                      ledgerState: ledgerState,
-                      fmt:         _fmt,
                     ),
                   ],
                 ),
@@ -617,12 +577,9 @@ class _FilterBar extends StatelessWidget {
   final TextEditingController toCtrl;
   final VoidCallback onPickFrom;
   final VoidCallback onPickTo;
-  final VoidCallback onToday;
-  final VoidCallback onThisMonth;
   const _FilterBar({
     required this.fromCtrl, required this.toCtrl,
     required this.onPickFrom, required this.onPickTo,
-    required this.onToday, required this.onThisMonth,
   });
 
   @override
@@ -630,22 +587,14 @@ class _FilterBar extends StatelessWidget {
     return Container(
       color: _Clr.card,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Column(children: [
-        Row(children: [
-          Expanded(
-            child: _DateField(label: 'From', controller: fromCtrl, onTap: onPickFrom),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _DateField(label: 'To', controller: toCtrl, onTap: onPickTo),
-          ),
-        ]),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(child: _QuickBtn(label: 'This Month', onTap: onThisMonth, isPrimary: true)),
-          const SizedBox(width: 8),
-          Expanded(child: _QuickBtn(label: 'Today', onTap: onToday)),
-        ]),
+      child: Row(children: [
+        Expanded(
+          child: _DateField(label: 'From', controller: fromCtrl, onTap: onPickFrom),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _DateField(label: 'To', controller: toCtrl, onTap: onPickTo),
+        ),
       ]),
     );
   }
@@ -659,12 +608,9 @@ class _FilterBarVertical extends StatelessWidget {
   final TextEditingController toCtrl;
   final VoidCallback onPickFrom;
   final VoidCallback onPickTo;
-  final VoidCallback onToday;
-  final VoidCallback onThisMonth;
   const _FilterBarVertical({
     required this.fromCtrl, required this.toCtrl,
     required this.onPickFrom, required this.onPickTo,
-    required this.onToday, required this.onThisMonth,
   });
 
   @override
@@ -678,125 +624,6 @@ class _FilterBarVertical extends StatelessWidget {
       _DateField(label: 'From', controller: fromCtrl, onTap: onPickFrom),
       const SizedBox(height: 8),
       _DateField(label: 'To', controller: toCtrl, onTap: onPickTo),
-      const SizedBox(height: 10),
-      _QuickBtn(label: 'This Month', onTap: onThisMonth, isPrimary: true),
-      const SizedBox(height: 6),
-      _QuickBtn(label: 'Today', onTap: onToday),
-    ]);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// Stats Row — Mobile
-// ══════════════════════════════════════════════════════════════
-class _StatsRow extends StatelessWidget {
-  final CustomerReportInvoiceState saleState;
-  final CustomerReportReturnState  returnState;
-  final CustomerReportLedgerState  ledgerState;
-  final String Function(double)    fmt;
-  const _StatsRow({
-    required this.saleState, required this.returnState,
-    required this.ledgerState, required this.fmt,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: _Clr.card,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      child: Column(children: [
-        Container(height: 1, color: _Clr.borderSoft),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(
-            child: _StatTile(
-              label:      'Sales',
-              value:      '${saleState.invoiceCount}',
-              icon:       Icons.receipt_long_outlined,
-              iconColor:  _Clr.blueText,
-              iconBg:     _Clr.blueBg,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _StatTile(
-              label:      'Total Sale',
-              value:      fmt(saleState.totalSale),
-              icon:       Icons.trending_up_rounded,
-              iconColor:  _Clr.greenText,
-              iconBg:     _Clr.greenBg,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _StatTile(
-              label:      'Returns',
-              value:      fmt(returnState.summary.totalAmount),
-              icon:       Icons.keyboard_return_rounded,
-              iconColor:  _Clr.amberText,
-              iconBg:     _Clr.amberBg,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _StatTile(
-              label:      'Paid',
-              value:      fmt(ledgerState.totalPaid),
-              icon:       Icons.payments_outlined,
-              iconColor:  _Clr.greenText,
-              iconBg:     _Clr.greenBg,
-            ),
-          ),
-        ]),
-      ]),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// Stats Column — Web sidebar
-// ══════════════════════════════════════════════════════════════
-class _StatsColumn extends StatelessWidget {
-  final CustomerReportInvoiceState saleState;
-  final CustomerReportReturnState  returnState;
-  final CustomerReportLedgerState  ledgerState;
-  final String Function(double)    fmt;
-  const _StatsColumn({
-    required this.saleState, required this.returnState,
-    required this.ledgerState, required this.fmt,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Text('Summary',
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600,
-              color: _Clr.textMuted, letterSpacing: 0.4)),
-      const SizedBox(height: 10),
-      _StatTileWide(
-        label: 'Total Sales',
-        value: fmt(saleState.totalSale),
-        sub:   '${saleState.invoiceCount} invoices',
-        icon:  Icons.trending_up_rounded,
-        iconColor: _Clr.greenText, iconBg: _Clr.greenBg,
-      ),
-      const SizedBox(height: 8),
-      _StatTileWide(
-        label: 'Returns',
-        value: fmt(returnState.summary.totalAmount),
-        sub:   '${returnState.returns.length} returns',
-        icon:  Icons.keyboard_return_rounded,
-        iconColor: _Clr.amberText, iconBg: _Clr.amberBg,
-      ),
-      const SizedBox(height: 8),
-      _StatTileWide(
-        label: 'Total Paid',
-        value: fmt(ledgerState.totalPaid),
-        sub:   '${ledgerState.ledger.length} transactions',
-        icon:  Icons.payments_outlined,
-        iconColor: _Clr.blueText, iconBg: _Clr.blueBg,
-      ),
     ]);
   }
 }
@@ -1306,111 +1133,6 @@ class _LedgerCard extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 // Small shared widgets
 // ══════════════════════════════════════════════════════════════
-
-class _StatTile extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color  iconColor;
-  final Color  iconBg;
-  const _StatTile({
-    required this.label, required this.value,
-    required this.icon,  required this.iconColor, required this.iconBg,
-  });
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-    decoration: BoxDecoration(
-      color:        _Clr.bg,
-      borderRadius: BorderRadius.circular(10),
-      border:       Border.all(color: _Clr.border, width: 0.5),
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(
-        width: 28, height: 28,
-        decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, size: 14, color: iconColor),
-      ),
-      const SizedBox(height: 8),
-      Text(value,
-          style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w700, color: _Clr.textPrimary),
-          maxLines: 1, overflow: TextOverflow.ellipsis),
-      const SizedBox(height: 2),
-      Text(label,
-          style: const TextStyle(fontSize: 10, color: _Clr.textMuted)),
-    ]),
-  );
-}
-
-class _StatTileWide extends StatelessWidget {
-  final String label;
-  final String value;
-  final String sub;
-  final IconData icon;
-  final Color  iconColor;
-  final Color  iconBg;
-  const _StatTileWide({
-    required this.label, required this.value, required this.sub,
-    required this.icon,  required this.iconColor, required this.iconBg,
-  });
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color:        _Clr.bg,
-      borderRadius: BorderRadius.circular(10),
-      border:       Border.all(color: _Clr.border, width: 0.5),
-    ),
-    child: Row(children: [
-      Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, size: 16, color: iconColor),
-      ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label,
-              style: const TextStyle(fontSize: 11, color: _Clr.textMuted)),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: _Clr.textPrimary),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-          Text(sub,
-              style: const TextStyle(fontSize: 10, color: _Clr.textMuted)),
-        ]),
-      ),
-    ]),
-  );
-}
-
-class _QuickBtn extends StatelessWidget {
-  final String    label;
-  final VoidCallback onTap;
-  final bool      isPrimary;
-  const _QuickBtn({required this.label, required this.onTap, this.isPrimary = false});
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 36,
-    child: OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        backgroundColor: isPrimary ? _Clr.accent   : _Clr.card,
-        foregroundColor: isPrimary ? Colors.white  : _Clr.textSecond,
-        side: BorderSide(
-          color: isPrimary ? _Clr.accent : _Clr.border,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 12)),
-    ),
-  );
-}
 
 class _DateField extends StatelessWidget {
   final String label;

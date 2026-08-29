@@ -556,205 +556,15 @@ class _DesktopBody extends StatelessWidget {
 
   const _DesktopBody({required this.data, required this.fmtAmt});
 
+  List<_StatSpec> _specs() => _dashboardSpecs(data, fmtAmt);
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(28),
-      child: Column(
-        children: [
-          // ── Summary stat cards row ─────────────────────
-          Row(
-            children: [
-              Expanded(
-                child: _SummaryStatCard(
-                  icon:  Icons.trending_up_rounded,
-                  label: 'Net Sale',
-                  value: fmtAmt(data.netSale),
-                  color: AppColor.primary,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _SummaryStatCard(
-                  icon:  Icons.account_balance_wallet_outlined,
-                  label: 'Amount Received',
-                  value: fmtAmt(data.totalAmountReceived),
-                  color: const Color(0xFF8B5CF6),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _SummaryStatCard(
-                  icon:  Icons.bar_chart_rounded,
-                  label: 'Gross Profit',
-                  value: fmtAmt(data.grossProfit),
-                  color: data.grossProfit >= 0
-                      ? AppColor.success
-                      : AppColor.error,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _SummaryStatCard(
-                  icon:  Icons.people_outline_rounded,
-                  label: 'Receivable',
-                  value: fmtAmt(data.outstandingReceivable),
-                  color: AppColor.warning,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // ── Two column: Sales + Cash/Profit/Inventory ──
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left — Sales detail
-                Expanded(
-                  flex: 3,
-                  child: _SectionCard(
-                    icon:  Icons.shopping_cart_outlined,
-                    title: 'Sales',
-                    color: AppColor.primary,
-                    children: [
-                      _DashRow(
-                        icon:  Icons.receipt_outlined,
-                        label: 'Total Sale',
-                        value: fmtAmt(data.totalSale),
-                        color: AppColor.primary,
-                        bold:  true,
-                      ),
-                      _divider(),
-                      _DashRow(
-                        icon:  Icons.payments_outlined,
-                        label: 'Cash Sale',
-                        value: fmtAmt(data.cashSale),
-                        color: AppColor.success,
-                      ),
-                      _DashRow(
-                        icon:  Icons.credit_card_outlined,
-                        label: 'Card Sale',
-                        value: fmtAmt(data.cardSale),
-                        color: AppColor.info,
-                      ),
-                      _DashRow(
-                        icon:  Icons.receipt_long_outlined,
-                        label: 'Credit Sale',
-                        value: fmtAmt(data.creditSale),
-                        color: AppColor.warning,
-                      ),
-                      _DashRow(
-                        icon:  Icons.event_repeat_rounded,
-                        label: 'Installment Sale',
-                        value: fmtAmt(data.installmentSale),
-                        color: const Color(0xFF8B5CF6),
-                      ),
-                      _divider(),
-                      _DashRow(
-                        icon:   Icons.undo_rounded,
-                        label:  'Sale Returns',
-                        value:  fmtAmt(data.totalSaleReturn),
-                        color:  AppColor.error,
-                        prefix: '- ',
-                      ),
-                      _divider(),
-                      _DashRow(
-                        icon:  Icons.trending_up_rounded,
-                        label: 'Net Sale',
-                        value: fmtAmt(data.netSale),
-                        color: AppColor.primary,
-                        bold:  true,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 16),
-
-                // Right — 3 stacked cards
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    children: [
-                      _SectionCard(
-                        icon:  Icons.account_balance_wallet_outlined,
-                        title: 'Cash Received',
-                        color: const Color(0xFF8B5CF6),
-                        children: [
-                          _DashRow(
-                            icon:  Icons.account_balance_wallet_outlined,
-                            label: 'Total Received',
-                            value: fmtAmt(data.totalAmountReceived),
-                            color: const Color(0xFF8B5CF6),
-                            bold:  true,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _SectionCard(
-                        icon:  Icons.bar_chart_rounded,
-                        title: 'Profit',
-                        color: AppColor.success,
-                        children: [
-                          _DashRow(
-                            icon:  Icons.bar_chart_rounded,
-                            label: 'Gross Profit',
-                            value: fmtAmt(data.grossProfit),
-                            color: data.grossProfit >= 0
-                                ? AppColor.success
-                                : AppColor.error,
-                            bold:  true,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _SectionCard(
-                        icon:  Icons.inventory_2_outlined,
-                        title: 'Inventory',
-                        color: AppColor.info,
-                        children: [
-                          _DashRow(
-                            icon:  Icons.inventory_2_outlined,
-                            label: 'Inventory Value',
-                            value: fmtAmt(data.inventoryValue),
-                            color: AppColor.info,
-                            bold:  true,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _SectionCard(
-                        icon:  Icons.people_outline_rounded,
-                        title: 'Outstanding',
-                        color: AppColor.warning,
-                        children: [
-                          _DashRow(
-                            icon:  Icons.people_outline_rounded,
-                            label: 'Receivable',
-                            value: fmtAmt(data.outstandingReceivable),
-                            color: AppColor.warning,
-                            bold:  true,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: _StatCardsGrid(specs: _specs(), crossAxisCount: 4, childAspectRatio: 2.5),
     );
   }
-
-  Widget _divider() => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 8),
-    child: Divider(height: 1, color: Color(0xFFE5E7EB)),
-  );
 }
 
 // ── Mobile Body ───────────────────────────────────────────────────────────────
@@ -764,315 +574,117 @@ class _MobileBody extends StatelessWidget {
 
   const _MobileBody({required this.data, required this.fmtAmt});
 
+  List<_StatSpec> _specs() => _dashboardSpecs(data, fmtAmt);
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        _SectionCard(
-          icon:  Icons.shopping_cart_outlined,
-          title: 'Sales',
-          color: AppColor.primary,
-          children: [
-            _DashRow(
-              icon:  Icons.receipt_outlined,
-              label: 'Total Sale',
-              value: fmtAmt(data.totalSale),
-              color: AppColor.primary,
-              bold:  true,
-            ),
-            _divider(),
-            _DashRow(
-              icon:  Icons.payments_outlined,
-              label: 'Cash Sale',
-              value: fmtAmt(data.cashSale),
-              color: AppColor.success,
-            ),
-            _DashRow(
-              icon:  Icons.credit_card_outlined,
-              label: 'Card Sale',
-              value: fmtAmt(data.cardSale),
-              color: AppColor.info,
-            ),
-            _DashRow(
-              icon:  Icons.receipt_long_outlined,
-              label: 'Credit Sale',
-              value: fmtAmt(data.creditSale),
-              color: AppColor.warning,
-            ),
-            _DashRow(
-              icon:  Icons.event_repeat_rounded,
-              label: 'Installment Sale',
-              value: fmtAmt(data.installmentSale),
-              color: const Color(0xFF8B5CF6),
-            ),
-            _divider(),
-            _DashRow(
-              icon:   Icons.undo_rounded,
-              label:  'Sale Returns',
-              value:  fmtAmt(data.totalSaleReturn),
-              color:  AppColor.error,
-              prefix: '- ',
-            ),
-            _divider(),
-            _DashRow(
-              icon:  Icons.trending_up_rounded,
-              label: 'Net Sale',
-              value: fmtAmt(data.netSale),
-              color: AppColor.primary,
-              bold:  true,
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _SectionCard(
-          icon:  Icons.account_balance_wallet_outlined,
-          title: 'Cash Received',
-          color: const Color(0xFF8B5CF6),
-          children: [
-            _DashRow(
-              icon:  Icons.account_balance_wallet_outlined,
-              label: 'Total Amount Received',
-              value: fmtAmt(data.totalAmountReceived),
-              color: const Color(0xFF8B5CF6),
-              bold:  true,
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _SectionCard(
-          icon:  Icons.bar_chart_rounded,
-          title: 'Profit',
-          color: AppColor.success,
-          children: [
-            _DashRow(
-              icon:  Icons.bar_chart_rounded,
-              label: 'Gross Profit',
-              value: fmtAmt(data.grossProfit),
-              color: data.grossProfit >= 0
-                  ? AppColor.success
-                  : AppColor.error,
-              bold:  true,
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _SectionCard(
-          icon:  Icons.inventory_2_outlined,
-          title: 'Inventory',
-          color: AppColor.info,
-          children: [
-            _DashRow(
-              icon:  Icons.inventory_2_outlined,
-              label: 'Inventory Value',
-              value: fmtAmt(data.inventoryValue),
-              color: AppColor.info,
-              bold:  true,
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _SectionCard(
-          icon:  Icons.people_outline_rounded,
-          title: 'Outstanding',
-          color: AppColor.warning,
-          children: [
-            _DashRow(
-              icon:  Icons.people_outline_rounded,
-              label: 'Receivable (Customers)',
-              value: fmtAmt(data.outstandingReceivable),
-              color: AppColor.warning,
-              bold:  true,
-            ),
-          ],
-        ),
-      ],
+      child: _StatCardsGrid(specs: _specs(), crossAxisCount: 2, childAspectRatio: 1.7),
     );
   }
+}
 
-  Widget _divider() => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 8),
-    child: Divider(height: 1, color: Color(0xFFE5E7EB)),
+// ── Stat spec list (shared desktop/mobile) ─────────────────────────────────────
+class _StatSpec {
+  final String label;
+  final String value;
+  const _StatSpec(this.label, this.value);
+}
+
+List<_StatSpec> _dashboardSpecs(
+  AccountantBranchDashboardModel data,
+  String Function(double) fmtAmt,
+) =>
+    [
+      _StatSpec('Total Sale', fmtAmt(data.totalSale)),
+      _StatSpec('Cash Sale', fmtAmt(data.cashSale)),
+      _StatSpec('Card Sale', fmtAmt(data.cardSale)),
+      _StatSpec('Credit Sale', fmtAmt(data.creditSale)),
+      _StatSpec('Installment Sale', fmtAmt(data.installmentSale)),
+      _StatSpec('Sale Returns', fmtAmt(data.totalSaleReturn)),
+      _StatSpec('Gross Profit', fmtAmt(data.grossProfit)),
+      _StatSpec('Cash In', fmtAmt(data.cashIn)),
+      _StatSpec('Cash Out', fmtAmt(data.cashOut)),
+      _StatSpec('Stock Sale Value', fmtAmt(data.stockSaleValue)),
+      _StatSpec('Stock Purchase Value', fmtAmt(data.inventoryValue)),
+      _StatSpec('Total Damage', fmtAmt(data.totalDamage)),
+      _StatSpec('Outstanding Receivable', fmtAmt(data.outstandingReceivable)),
+    ];
+
+// ── Stat Cards Grid ──────────────────────────────────────────────────────────
+class _StatCardsGrid extends StatelessWidget {
+  final List<_StatSpec> specs;
+  final int             crossAxisCount;
+  final double          childAspectRatio;
+
+  const _StatCardsGrid({
+    required this.specs,
+    required this.crossAxisCount,
+    required this.childAspectRatio,
+  });
+
+  @override
+  Widget build(BuildContext context) => GridView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    itemCount: specs.length,
+    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: crossAxisCount,
+      mainAxisSpacing: 14,
+      crossAxisSpacing: 14,
+      childAspectRatio: childAspectRatio,
+    ),
+    itemBuilder: (_, i) =>
+        _FlatStatCard(label: specs[i].label, value: specs[i].value),
   );
 }
 
-// ── Summary Stat Card (Desktop only) ─────────────────────────────────────────
-class _SummaryStatCard extends StatelessWidget {
-  final IconData icon;
-  final String   label;
-  final String   value;
-  final Color    color;
+// ── Flat Stat Card ───────────────────────────────────────────────────────────
+class _FlatStatCard extends StatelessWidget {
+  final String label;
+  final String value;
 
-  const _SummaryStatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+  const _FlatStatCard({required this.label, required this.value});
+
+  static const _cardColor = Color(0xFF4B5563);
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color:        Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: const Color(0xFFEEEEEE)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width:  42,
-            height: 42,
-            decoration: BoxDecoration(
-              color:        color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 20, color: color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColor.textHint)),
-                const SizedBox(height: 4),
-                Text(value,
-                    style: TextStyle(
-                      fontSize:   16,
-                      fontWeight: FontWeight.w700,
-                      color:      color,
-                    )),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Section Card ──────────────────────────────────────────────────────────────
-class _SectionCard extends StatelessWidget {
-  final IconData     icon;
-  final String       title;
-  final Color        color;
-  final List<Widget> children;
-
-  const _SectionCard({
-    required this.icon,
-    required this.title,
-    required this.color,
-    required this.children,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color:        Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color:      Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset:     const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.06),
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(14)),
-            ),
-            child: Row(children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                    fontSize:   14,
-                    fontWeight: FontWeight.w700,
-                    color:      color),
-              ),
-            ]),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            child: Column(children: children),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Dash Row ──────────────────────────────────────────────────────────────────
-class _DashRow extends StatelessWidget {
-  final IconData icon;
-  final String   label;
-  final String   value;
-  final Color    color;
-  final bool     bold;
-  final String   prefix;
-
-  const _DashRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-    this.bold   = false,
-    this.prefix = '',
-  });
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+    decoration: BoxDecoration(
+      color:        _cardColor,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Row(children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color:        color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(icon, size: 13, color: color),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-                fontSize:   13,
-                fontWeight: bold
-                    ? FontWeight.w700
-                    : FontWeight.w500,
-                color: const Color(0xFF4B5563)),
-          ),
-        ]),
         Text(
-          '$prefix$value',
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize:   18,
+            fontWeight: FontWeight.w800,
+            color:      Colors.white,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-              fontSize:   13,
-              fontWeight: bold
-                  ? FontWeight.w800
-                  : FontWeight.w700,
-              color: color),
+            fontSize:   13,
+            fontWeight: FontWeight.w500,
+            color:      Colors.white.withOpacity(0.85),
+          ),
         ),
       ],
     ),
   );
 }
-
 // ── Empty State ───────────────────────────────────────────────────────────────
 // ── Shared date/time filter fields ──────────────────────────────────────────
 class _DateField extends StatelessWidget {

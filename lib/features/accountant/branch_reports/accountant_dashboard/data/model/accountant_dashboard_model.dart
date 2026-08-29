@@ -21,7 +21,15 @@ class AccountantBranchDashboardModel {
   final double grossProfit;           // (salePrice - purchasePrice) × qty - discount
 
   // ── Inventory ──────────────────────────────────────────
-  final double inventoryValue;        // stock × purchase_price
+  final double inventoryValue;        // stock × purchase_price (Stock Purchase Value)
+  final double stockSaleValue;        // stock × sale_price     (Stock Sale Value)
+
+  // ── Cash ─────────────────────────────────────────────────
+  final double cashIn;                // branch_cash_transaction → transaction_type='cash_in'
+  final double cashOut;               // branch_cash_transaction → transaction_type!='cash_in'
+
+  // ── Damage ───────────────────────────────────────────────
+  final double totalDamage;           // branch_stock_damage → stock_damage × purchase_price
 
   // ── Outstanding ────────────────────────────────────────
   final double outstandingReceivable; // customer → balance (sum)
@@ -37,6 +45,10 @@ class AccountantBranchDashboardModel {
     required this.netSale,
     required this.grossProfit,
     required this.inventoryValue,
+    required this.stockSaleValue,
+    required this.cashIn,
+    required this.cashOut,
+    required this.totalDamage,
     required this.outstandingReceivable,
   });
 
@@ -52,6 +64,10 @@ class AccountantBranchDashboardModel {
         netSale:               0,
         grossProfit:           0,
         inventoryValue:        0,
+        stockSaleValue:        0,
+        cashIn:                0,
+        cashOut:               0,
+        totalDamage:           0,
         outstandingReceivable: 0,
       );
 }

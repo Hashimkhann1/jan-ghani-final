@@ -92,7 +92,8 @@ class ServiceDatasource {
     final conn = await DataBaseService.getConnection();
     await conn.execute(
       Sql.named(
-        'UPDATE public.services SET deleted_at = NOW() WHERE id = @id::uuid',
+        'UPDATE public.services SET deleted_at = NOW(), updated_at = NOW() '
+        'WHERE id = @id::uuid',
       ),
       parameters: {'id': id},
     );

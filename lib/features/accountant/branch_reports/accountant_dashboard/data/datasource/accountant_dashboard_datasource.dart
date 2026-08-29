@@ -28,7 +28,9 @@ class AccountantBranchDashboardDatasource {
     final installment = await _fetchInstallmentSale(fromDate, toDate);
     final returnAmt   = await _fetchSaleReturns(fromDate, toDate);
     final profit      = await _fetchGrossProfit(fromDate, toDate);
-    final inventory   = await _fetchInventoryValue();
+    final stock       = await _fetchStockValue();
+    final cash        = await _fetchCashInOut(fromDate, toDate);
+    final damage      = await _fetchDamage(fromDate, toDate);
     final outstanding = await _fetchOutstandingReceivable();
 
     return AccountantBranchDashboardModel(
@@ -43,7 +45,11 @@ class AccountantBranchDashboardDatasource {
       totalSaleReturn:       returnAmt,
       netSale:               sales.totalSale - returnAmt,
       grossProfit:           profit,
-      inventoryValue:        inventory,
+      inventoryValue:        stock.purchaseValue,
+      stockSaleValue:        stock.saleValue,
+      cashIn:                cash.cashIn,
+      cashOut:               cash.cashOut,
+      totalDamage:           damage,
       outstandingReceivable: outstanding,
     );
   }
@@ -161,119 +167,148 @@ class AccountantBranchDashboardDatasource {
   }
 
   // ── 3. Gross Profit ──────────────────────────────────────
+  // Items seedha unke parent invoice/return se JOIN karke date-filter
+  // karte hain (PostgREST embedded-resource filter). Pehle invoice ids
+  // fetch karke phir inFilter(1000 ids) karte the — us se URL 37,000+
+  // characters ka ban jata tha aur Supabase gateway 400 Bad Request
+  // deta tha jab date range mein invoices zyada hote (e.g. 9000+).
   Future<double> _fetchGrossProfit(
       DateTime fromDate,
       DateTime toDate,
       ) async {
-    final invoiceIds = await _fetchInvoiceIds(fromDate, toDate);
-    final returnIds  = await _fetchReturnIds(fromDate, toDate);
-
-    final saleProfit = await _calcItemsProfit(
-      table:    'sale_invoice_items',
-      fkColumn: 'invoice_id',
-      ids:      invoiceIds,
+    final saleProfit = await _sumItemsProfit(
+      itemsTable:  'sale_invoice_items',
+      parentTable: 'sale_invoices',
+      dateColumn:  'invoice_date',
+      fromDate:    fromDate,
+      toDate:      toDate,
     );
 
-    final returnProfit = await _calcItemsProfit(
-      table:    'sale_return_items',
-      fkColumn: 'return_id',
-      ids:      returnIds,
+    final returnProfit = await _sumItemsProfit(
+      itemsTable:  'sale_return_items',
+      parentTable: 'sale_returns',
+      dateColumn:  'return_date',
+      fromDate:    fromDate,
+      toDate:      toDate,
     );
 
     return saleProfit - returnProfit;
   }
 
-  Future<List<String>> _fetchInvoiceIds(
-      DateTime fromDate,
-      DateTime toDate,
-      ) async {
-    final ids      = <String>[];
-    int   start    = 0;
-    const pageSize = 1000;
-    bool  hasMore  = true;
-
-    while (hasMore) {
-      final rows = await _client
-          .from('sale_invoices')
-          .select('id')
-          .eq('store_id', branchId)
-          .eq('status', 'completed')
-          .isFilter('deleted_at', null)
-          .gte('invoice_date', _fromStr(fromDate))
-          .lte('invoice_date', _toStr(toDate))
-          .range(start, start + pageSize - 1);
-
-      final page = (rows as List).map((r) => r['id'].toString()).toList();
-      ids.addAll(page);
-      if (page.length < pageSize) hasMore = false;
-      else start += pageSize;
-    }
-    return ids;
-  }
-
-  Future<List<String>> _fetchReturnIds(
-      DateTime fromDate,
-      DateTime toDate,
-      ) async {
-    final ids      = <String>[];
-    int   start    = 0;
-    const pageSize = 1000;
-    bool  hasMore  = true;
-
-    while (hasMore) {
-      final rows = await _client
-          .from('sale_returns')
-          .select('id')
-          .eq('store_id', branchId)
-          .eq('status', 'completed')
-          .isFilter('deleted_at', null)
-          .gte('return_date', _fromStr(fromDate))
-          .lte('return_date', _toStr(toDate))
-          .range(start, start + pageSize - 1);
-
-      final page = (rows as List).map((r) => r['id'].toString()).toList();
-      ids.addAll(page);
-      if (page.length < pageSize) hasMore = false;
-      else start += pageSize;
-    }
-    return ids;
-  }
-
-  Future<double> _calcItemsProfit({
-    required String       table,
-    required String       fkColumn,
-    required List<String> ids,
+  Future<double> _sumItemsProfit({
+    required String   itemsTable,
+    required String   parentTable,
+    required String   dateColumn,
+    required DateTime fromDate,
+    required DateTime toDate,
   }) async {
-    if (ids.isEmpty) return 0.0;
+    double profit   = 0;
+    int    start    = 0;
+    const  pageSize = 1000;
+    bool   hasMore  = true;
 
-    double profit = 0;
-    int    start  = 0;
-    const  batchSz = 1000;
-
-    while (start < ids.length) {
-      final batch = ids.skip(start).take(batchSz).toList();
-
+    while (hasMore) {
       final rows = await _client
-          .from(table)
-          .select('sale_price, purchase_price, quantity, discount')
-          .inFilter(fkColumn, batch);
+          .from(itemsTable)
+          .select('sale_price, purchase_price, quantity, discount, '
+              '$parentTable!inner(id)')
+          .eq('$parentTable.store_id', branchId)
+          .eq('$parentTable.status', 'completed')
+          .isFilter('$parentTable.deleted_at', null)
+          .gte('$parentTable.$dateColumn', _fromStr(fromDate))
+          .lte('$parentTable.$dateColumn', _toStr(toDate))
+          .range(start, start + pageSize - 1);
 
-      for (final r in (rows as List)) {
+      final page = rows as List;
+      for (final r in page) {
         final sp  = _dbl(r['sale_price'])     ?? 0;
-        final pp  = _dbl(r['purchase_price'])  ?? 0;
-        final qty = _dbl(r['quantity'])         ?? 0;
-        final dis = _dbl(r['discount'])         ?? 0;
+        final pp  = _dbl(r['purchase_price']) ?? 0;
+        final qty = _dbl(r['quantity'])       ?? 0;
+        final dis = _dbl(r['discount'])       ?? 0;
         profit += (sp - pp) * qty - dis;
       }
 
-      if (batch.length < batchSz) break;
-      start += batchSz;
+      if (page.length < pageSize) hasMore = false;
+      else start += pageSize;
     }
     return profit;
   }
 
-  // ── 4. Inventory Value ───────────────────────────────────
-  Future<double> _fetchInventoryValue() async {
+  // ── 4. Stock Value (purchase + sale) ─────────────────────
+  Future<_StockValue> _fetchStockValue() async {
+    try {
+      double purchaseValue = 0, saleValue = 0;
+      int    start   = 0;
+      const  pageSize = 1000;
+      bool   hasMore = true;
+
+      while (hasMore) {
+        final rows = await _client
+            .from('branch_stock_inventory')
+            .select('stock, purchase_price, sale_price')
+            .eq('store_id', branchId)
+            .range(start, start + pageSize - 1);
+
+        final page = rows as List;
+        for (final r in page) {
+          final stock = _dbl(r['stock']) ?? 0;
+          purchaseValue += stock * (_dbl(r['purchase_price']) ?? 0);
+          saleValue     += stock * (_dbl(r['sale_price'])     ?? 0);
+        }
+
+        if (page.length < pageSize) hasMore = false;
+        else start += pageSize;
+      }
+      return _StockValue(purchaseValue: purchaseValue, saleValue: saleValue);
+    } catch (e) {
+      print('❌ Inventory error: $e');
+      return const _StockValue(purchaseValue: 0, saleValue: 0);
+    }
+  }
+
+  // ── 4b. Cash In / Cash Out ────────────────────────────────
+  Future<_CashInOut> _fetchCashInOut(
+      DateTime fromDate,
+      DateTime toDate,
+      ) async {
+    try {
+      double cashIn = 0, cashOut = 0;
+      int    start   = 0;
+      const  pageSize = 1000;
+      bool   hasMore = true;
+
+      while (hasMore) {
+        final rows = await _client
+            .from('branch_cash_transaction')
+            .select('transaction_type, cash_out_amount')
+            .eq('store_id', branchId)
+            .isFilter('deleted_at', null)
+            .gte('created_at', _fromStr(fromDate))
+            .lte('created_at', _toStr(toDate))
+            .range(start, start + pageSize - 1);
+
+        final page = rows as List;
+        for (final r in page) {
+          final amount = _dbl(r['cash_out_amount']) ?? 0;
+          if (r['transaction_type'] == 'cash_in') {
+            cashIn += amount;
+          } else {
+            cashOut += amount;
+          }
+        }
+
+        if (page.length < pageSize) hasMore = false;
+        else start += pageSize;
+      }
+      return _CashInOut(cashIn: cashIn, cashOut: cashOut);
+    } catch (e) {
+      print('❌ Cash In/Out error: $e');
+      return const _CashInOut(cashIn: 0, cashOut: 0);
+    }
+  }
+
+  // ── 4c. Stock Damage ──────────────────────────────────────
+  Future<double> _fetchDamage(DateTime fromDate, DateTime toDate) async {
     try {
       double total   = 0;
       int    start   = 0;
@@ -282,14 +317,16 @@ class AccountantBranchDashboardDatasource {
 
       while (hasMore) {
         final rows = await _client
-            .from('branch_stock_inventory')
-            .select('stock, purchase_price')
+            .from('branch_stock_damage')
+            .select('stock_damage, purchase_price')
             .eq('store_id', branchId)
+            .gte('created_at', _fromStr(fromDate))
+            .lte('created_at', _toStr(toDate))
             .range(start, start + pageSize - 1);
 
         final page = rows as List;
         for (final r in page) {
-          total += (_dbl(r['stock']) ?? 0) * (_dbl(r['purchase_price']) ?? 0);
+          total += (_dbl(r['stock_damage']) ?? 0) * (_dbl(r['purchase_price']) ?? 0);
         }
 
         if (page.length < pageSize) hasMore = false;
@@ -297,7 +334,7 @@ class AccountantBranchDashboardDatasource {
       }
       return total;
     } catch (e) {
-      print('❌ Inventory error: $e');
+      print('❌ Damage error: $e');
       return 0;
     }
   }
@@ -344,4 +381,18 @@ class _SalesBreakdown {
     required this.creditSale,
     required this.totalSale,
   });
+}
+
+class _StockValue {
+  final double purchaseValue;
+  final double saleValue;
+
+  const _StockValue({required this.purchaseValue, required this.saleValue});
+}
+
+class _CashInOut {
+  final double cashIn;
+  final double cashOut;
+
+  const _CashInOut({required this.cashIn, required this.cashOut});
 }
