@@ -111,9 +111,8 @@ class _CounterCashTransactionScreenState
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.arrow_downward_rounded,
-                    size: 18), // cash in icon
-                label: const Text('Cash In',
+                icon: const Icon(Icons.calculate_rounded, size: 18),
+                label: const Text('Count Cash',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),

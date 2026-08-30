@@ -87,73 +87,32 @@ class AccountantSaleReturnDatasource {
         returns: returns, hasNextPage: hasNextPage);
   }
 
-  // ── Aggregate totals across every matching return ──────────
-  // Kept separate from getReportPage so the summary cards still reflect
-  // the whole filtered date range, not just the 20 rows on screen.
+  // ── Aggregate totals across every matching return — one RPC
+  //    round trip (SUM/COUNT computed in Postgres), not a client-side
+  //    loop over every matching row. ───────────────────────────────
   Future<SaleReturnSummary> getReportSummary({
     required DateTime fromDate,
     required DateTime toDate,
     String?           customerId,
     String?           refundType,
   }) async {
-    int    totalReturns  = 0;
-    double totalAmount   = 0;
-    double totalQuantity = 0;
-    double totalDiscount = 0;
+    final toEnd = DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59);
 
-    int   rangeStart = 0;
-    const int pageSize = 1000;
-    bool  hasMore = true;
+    final rows = await _client.rpc('get_sale_return_summary', params: {
+      'p_store_id':    branchId,
+      'p_from':        fromDate.toIso8601String(),
+      'p_to':          toEnd.toIso8601String(),
+      'p_customer_id': (customerId != null && customerId.isNotEmpty) ? customerId : null,
+      'p_refund_type': refundType,
+    });
 
-    while (hasMore) {
-      var query = _client
-          .from('sale_returns')
-          .select('''
-          grand_total, total_discount, refund_type, deleted_at,
-          sale_return_items (quantity)
-        ''')
-          .eq('store_id', branchId)
-          .eq('status', 'completed')
-          .gte('return_date', fromDate.toIso8601String())
-          .lte(
-        'return_date',
-        DateTime(toDate.year, toDate.month, toDate.day, 23, 59, 59)
-            .toIso8601String(),
-      );
-
-      if (customerId != null && customerId.isNotEmpty) {
-        query = query.eq('customer_id', customerId);
-      }
-
-      final result = await query
-          .order('return_date', ascending: false)
-          .range(rangeStart, rangeStart + pageSize - 1);
-
-      final rows = (result as List)
-          .where((r) => r['deleted_at'] == null)
-          .where((r) =>
-              refundType == null || r['refund_type']?.toString() == refundType);
-
-      for (final r in rows) {
-        totalReturns++;
-        totalAmount   += _dbl(r['grand_total'])   ?? 0;
-        totalDiscount += _dbl(r['total_discount']) ?? 0;
-        totalQuantity += (r['sale_return_items'] as List? ?? [])
-            .fold<double>(0, (s, i) => s + (_dbl(i['quantity']) ?? 0));
-      }
-
-      if ((result).length < pageSize) {
-        hasMore = false;
-      } else {
-        rangeStart += pageSize;
-      }
-    }
+    final row = (rows as List).first as Map<String, dynamic>;
 
     return SaleReturnSummary(
-      totalReturns:  totalReturns,
-      totalAmount:   totalAmount,
-      totalQuantity: totalQuantity,
-      totalDiscount: totalDiscount,
+      totalReturns:  (row['total_returns'] as num?)?.toInt() ?? 0,
+      totalAmount:   _dbl(row['total_amount'])   ?? 0,
+      totalQuantity: _dbl(row['total_quantity']) ?? 0,
+      totalDiscount: _dbl(row['total_discount']) ?? 0,
     );
   }
 

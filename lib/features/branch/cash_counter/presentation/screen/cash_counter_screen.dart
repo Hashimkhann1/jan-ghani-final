@@ -89,6 +89,23 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
           IntrinsicWidth(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
+              child: OutlinedButton.icon(
+                onPressed: () => _openTransactionDialog(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColor.success,
+                  side: const BorderSide(color: AppColor.success),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon:  const Icon(Icons.calculate_rounded, size: 18),
+                label: const Text('Count Cash',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          IntrinsicWidth(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: ElevatedButton.icon(
                 onPressed: () => showDialog(
                   context: context,

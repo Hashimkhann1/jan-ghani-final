@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_profit_loss_model.dart';
 import '../provider/accountant_profit_loss_provider.dart';
 
@@ -208,12 +209,14 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
                   : state.summary == null
                   ? const _EmptyState()
                   : _PnlBody(
-                summary: state.summary!,
-                dayFmt:  _dayFmt,
-                timeFmt: _timeFmt,
-                fmtAmt:  _fmt,
-                tabCtrl: _tabCtrl,
-                isWide:  isWide,
+                state:    state,
+                notifier: notifier,
+                summary:  state.summary!,
+                dayFmt:   _dayFmt,
+                timeFmt:  _timeFmt,
+                fmtAmt:   _fmt,
+                tabCtrl:  _tabCtrl,
+                isWide:   isWide,
               ),
             ),
           ]);
@@ -228,6 +231,8 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
 // ═══════════════════════════════════════════════════════════
 
 class _PnlBody extends StatelessWidget {
+  final PnlReportState          state;
+  final PnlReportNotifier       notifier;
   final PnlSummary              summary;
   final DateFormat              dayFmt;
   final DateFormat              timeFmt;
@@ -236,6 +241,8 @@ class _PnlBody extends StatelessWidget {
   final bool                    isWide;
 
   const _PnlBody({
+    required this.state,
+    required this.notifier,
     required this.summary,
     required this.dayFmt,
     required this.timeFmt,
@@ -333,7 +340,8 @@ class _PnlBody extends StatelessWidget {
                         icon:  Icons.receipt_long_rounded),
                     Expanded(
                       child: _InvoicesTab(
-                        invoices: summary.invoices,
+                        state:    state,
+                        notifier: notifier,
                         timeFmt:  timeFmt,
                         fmtAmt:   fmtAmt,
                       ),
@@ -413,7 +421,8 @@ class _PnlBody extends StatelessWidget {
               fmtAmt: fmtAmt,
             ),
             _InvoicesTab(
-              invoices: summary.invoices,
+              state:    state,
+              notifier: notifier,
               timeFmt:  timeFmt,
               fmtAmt:   fmtAmt,
             ),
@@ -670,43 +679,28 @@ class _DayCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Invoices Tab (with Profit / Loss filter)
+//  Invoices Tab (with Profit / Loss filter) — server-paginated,
+//  server-counted. All/Profit/Loss counts and the row list come
+//  straight from PnlReportState; switching filters or pages issues a
+//  new query instead of re-filtering an in-memory list.
 // ═══════════════════════════════════════════════════════════
 
-enum _InvoiceFilter { all, profit, loss }
-
-class _InvoicesTab extends StatefulWidget {
-  final List<PnlInvoice>        invoices;
+class _InvoicesTab extends StatelessWidget {
+  final PnlReportState          state;
+  final PnlReportNotifier       notifier;
   final DateFormat              timeFmt;
   final String Function(double) fmtAmt;
 
   const _InvoicesTab({
-    required this.invoices,
+    required this.state,
+    required this.notifier,
     required this.timeFmt,
     required this.fmtAmt,
   });
 
   @override
-  State<_InvoicesTab> createState() => _InvoicesTabState();
-}
-
-class _InvoicesTabState extends State<_InvoicesTab> {
-  _InvoiceFilter _filter = _InvoiceFilter.all;
-
-  List<PnlInvoice> get _filteredInvoices {
-    switch (_filter) {
-      case _InvoiceFilter.profit:
-        return widget.invoices.where((i) => i.totalProfit >= 0).toList();
-      case _InvoiceFilter.loss:
-        return widget.invoices.where((i) => i.totalProfit < 0).toList();
-      case _InvoiceFilter.all:
-        return widget.invoices;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final list = _filteredInvoices;
+    final rows = state.rows;
 
     return Column(children: [
 
@@ -717,30 +711,30 @@ class _InvoicesTabState extends State<_InvoicesTab> {
           Expanded(
             child: _FilterButton(
               label:    'All',
-              count:    widget.invoices.length,
-              selected: _filter == _InvoiceFilter.all,
+              count:    state.totalCount,
+              selected: state.filter == PnlInvoiceFilter.all,
               color:    AppColor.primary,
-              onTap:    () => setState(() => _filter = _InvoiceFilter.all),
+              onTap:    () => notifier.setFilter(PnlInvoiceFilter.all),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: _FilterButton(
               label:    'Profit',
-              count:    widget.invoices.where((i) => i.totalProfit >= 0).length,
-              selected: _filter == _InvoiceFilter.profit,
+              count:    state.profitCount,
+              selected: state.filter == PnlInvoiceFilter.profit,
               color:    AppColor.success,
-              onTap:    () => setState(() => _filter = _InvoiceFilter.profit),
+              onTap:    () => notifier.setFilter(PnlInvoiceFilter.profit),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: _FilterButton(
               label:    'Loss',
-              count:    widget.invoices.where((i) => i.totalProfit < 0).length,
-              selected: _filter == _InvoiceFilter.loss,
+              count:    state.lossCount,
+              selected: state.filter == PnlInvoiceFilter.loss,
               color:    AppColor.error,
-              onTap:    () => setState(() => _filter = _InvoiceFilter.loss),
+              onTap:    () => notifier.setFilter(PnlInvoiceFilter.loss),
             ),
           ),
         ]),
@@ -748,18 +742,30 @@ class _InvoicesTabState extends State<_InvoicesTab> {
 
       // ── List ─────────────────────────────────────────
       Expanded(
-        child: list.isEmpty
+        child: state.isLoadingPage
+            ? const Center(child: CircularProgressIndicator())
+            : rows.isEmpty
             ? const _EmptyState()
             : ListView.separated(
           padding:          const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemCount:        list.length,
+          itemCount:        rows.length,
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (_, i) => _InvoicePnlCard(
-            inv:     list[i],
-            timeFmt: widget.timeFmt,
-            fmtAmt:  widget.fmtAmt,
+            row:      rows[i],
+            timeFmt:  timeFmt,
+            fmtAmt:   fmtAmt,
+            notifier: notifier,
           ),
         ),
+      ),
+      BranchReportPaginationControls(
+        page:        state.page,
+        hasNextPage: state.hasNextPage,
+        isLoading:   state.isLoadingPage,
+        totalCount:  state.totalCount,
+        totalPages:  state.totalPages,
+        onNext:      notifier.nextPage,
+        onPrevious:  notifier.previousPage,
       ),
     ]);
   }
@@ -817,18 +823,21 @@ class _FilterButton extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Invoice Card (with per-item breakdown)
+//  Invoice Card — items are fetched lazily (only when expanded),
+//  not already present in the paginated row.
 // ═══════════════════════════════════════════════════════════
 
 class _InvoicePnlCard extends StatefulWidget {
-  final PnlInvoice              inv;
+  final PnlTransactionRow       row;
   final DateFormat              timeFmt;
   final String Function(double) fmtAmt;
+  final PnlReportNotifier       notifier;
 
   const _InvoicePnlCard({
-    required this.inv,
+    required this.row,
     required this.timeFmt,
     required this.fmtAmt,
+    required this.notifier,
   });
 
   @override
@@ -836,13 +845,37 @@ class _InvoicePnlCard extends StatefulWidget {
 }
 
 class _InvoicePnlCardState extends State<_InvoicePnlCard> {
-  bool _expanded = false;
+  bool             _expanded = false;
+  bool             _loading  = false;
+  String?          _error;
+  List<PnlItem>?   _items;
+
+  Future<void> _toggle() async {
+    setState(() => _expanded = !_expanded);
+    if (_expanded && _items == null && !_loading) {
+      setState(() => _loading = true);
+      try {
+        final items = await widget.notifier.loadItems(widget.row);
+        if (!mounted) return;
+        setState(() {
+          _items   = items;
+          _loading = false;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _error   = 'Failed to load items: $e';
+          _loading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final inv         = widget.inv;
-    final isReturn    = inv.isReturn;
-    final profit      = inv.totalProfit;
+    final row         = widget.row;
+    final isReturn    = row.isReturn;
+    final profit      = row.totalProfit;
     final isProfit    = profit >= 0;
     final accentColor = isReturn ? AppColor.error : AppColor.primary;
     final profitColor = isProfit ? AppColor.success : AppColor.error;
@@ -862,7 +895,7 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
 
         // ── Header ───────────────────────────────────────
         InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
+          onTap: _toggle,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -896,7 +929,7 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Flexible(
-                                child: Text(inv.invoiceNo,
+                                child: Text(row.docNo,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -948,7 +981,7 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                       children: [
                         Expanded(
                           child: Text(
-                            inv.customerName ?? 'Walk In',
+                            row.customerName ?? 'Walk In',
                             style: const TextStyle(
                                 fontSize: 11,
                                 color:    AppColor.textSecondary),
@@ -957,7 +990,7 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                           ),
                         ),
                         Text(
-                          widget.timeFmt.format(inv.date),
+                          widget.timeFmt.format(row.date),
                           style: const TextStyle(
                               fontSize: 10, color: AppColor.textHint),
                         ),
@@ -977,12 +1010,23 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
           ),
         ),
 
-        // ── Expanded: per-item breakdown ──────────────────
+        // ── Expanded: per-item breakdown (fetched lazily) ─
         if (_expanded) ...[
           Container(height: 1, color: const Color(0xFFE5E7EB)),
           Padding(
             padding: const EdgeInsets.all(14),
-            child: Column(children: [
+            child: _loading
+                ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                  child: SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))),
+            )
+                : _error != null
+                ? Text(_error!,
+                style: const TextStyle(fontSize: 12, color: AppColor.error))
+                : Column(children: [
 
               // Items header
               const Row(children: [
@@ -992,7 +1036,7 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
               ]),
               const SizedBox(height: 6),
 
-              ...inv.items.map((item) {
+              ...(_items ?? const <PnlItem>[]).map((item) {
                 final itemProfit = item.profit;
                 final iP         = itemProfit >= 0;
                 return Padding(

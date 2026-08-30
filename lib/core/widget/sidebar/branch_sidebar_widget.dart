@@ -13,6 +13,7 @@ import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen
 import 'package:jan_ghani_final/features/branch/services/presentation/screen/service_screen.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 import '../../../features/branch/branch_transcation/presentation/screen/branch_transaction_screen.dart';
+import '../../../features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
 import '../../../features/branch/cash_counter/presentation/screen/cash_counter_screen.dart';
 import '../../../features/branch/cash_counter/presentation/screen/counter_cash_transaction_screen.dart';
 import '../../../features/branch/customer_ledger/presentation/screen/all_customer_ledger_screen.dart';
@@ -277,6 +278,18 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
   void initState() {
     super.initState();
     HardwareKeyboard.instance.addHandler(_onKey);
+
+    // App open hote hi — agar is user ke saath ek counter assign hai — us
+    // counter ka aaj ka row khud-ba-khud ban jaye (opening = kal ka net
+    // amount), taake manually check karke type na karna pare. Idempotent
+    // hai (fn_create_next_day_counter already-registered ko silently
+    // skip karta hai), isliye baar-baar login/restart pe safe hai.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(authProvider).counterId != null) {
+        ref.read(cashCounterProvider.notifier).autoRegisterTodayIfNeeded();
+      }
+    });
   }
 
   @override

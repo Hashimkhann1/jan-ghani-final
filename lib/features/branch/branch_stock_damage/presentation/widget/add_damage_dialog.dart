@@ -102,24 +102,24 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                 const SizedBox(height: 20),
 
                 // ── Product Dropdown ─────────────────────────────
-                const _Label('Product Select Karein *'),
+                const _Label('Select Product *'),
                 const SizedBox(height: 6),
                 FormField<BranchStockModel>(
-                  validator: (_) => _selectedProduct == null ? 'Product select karein' : null,
+                  validator: (_) => _selectedProduct == null ? 'Please select a product' : null,
                   builder: (fieldState) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppSearchableDropdown<BranchStockModel>(
                         items:     dropdownItems,
                         value:     _selectedProduct,
-                        hint:      'Product search karein...',
+                        hint:      'Search product...',
                         fullWidth: true,
                         onChanged: (p) {
                           setState(() { _selectedProduct = p; _qtyCtrl.clear(); });
                           fieldState.didChange(p);
                         },
                         validator: (_) => _selectedProduct == null
-                            ? 'Product select karein' : null,
+                            ? 'Please select a product' : null,
                       ),
                       if (fieldState.hasError)
                         Padding(
@@ -195,13 +195,13 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                   decoration: _inputDecor(
                     _selectedProduct != null
                         ? 'Max: ${_selectedProduct!.quantity.toStringAsFixed(2)}'
-                        : 'Pehle product select karein',
+                        : 'Select a product first',
                   ),
                   onChanged: (_) => setState(() {}),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Quantity enter karein';
+                    if (v == null || v.trim().isEmpty) return 'Enter quantity';
                     final qty = double.tryParse(v.trim()); // ✅ double.tryParse
-                    if (qty == null || qty <= 0) return 'Valid quantity enter karein';
+                    if (qty == null || qty <= 0) return 'Enter a valid quantity';
                     if (_selectedProduct != null && qty > _selectedProduct!.quantity) {
                       return 'Max: ${_selectedProduct!.quantity.toStringAsFixed(2)}';
                     }
@@ -236,7 +236,7 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                 ],
 
                 const SizedBox(height: 16),
-                _WarningBanner('Submit karne par stock automatically reduce ho jayega'),
+                _WarningBanner('Submitting this will automatically reduce your stock'),
                 const SizedBox(height: 20),
 
                 _DialogButtons(
@@ -374,12 +374,12 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')), // ✅ decimal
                   ],
-                  decoration: _inputDecor('Quantity enter karein'),
+                  decoration: _inputDecor('Enter quantity'),
                   onChanged:  (_) => setState(() {}),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Quantity enter karein';
+                    if (v == null || v.trim().isEmpty) return 'Enter quantity';
                     final qty = double.tryParse(v.trim()); // ✅ double
-                    if (qty == null || qty <= 0) return 'Valid quantity enter karein';
+                    if (qty == null || qty <= 0) return 'Enter a valid quantity';
                     return null;
                   },
                 ),
@@ -437,7 +437,7 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
                 ),
 
                 const SizedBox(height: 12),
-                _WarningBanner('Stock automatically adjust ho jayega'),
+                _WarningBanner('Stock will be adjusted automatically'),
                 const SizedBox(height: 20),
 
                 _DialogButtons(
@@ -488,7 +488,7 @@ class DeleteDamageDialog extends ConsumerWidget {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(
-                '"${record.productName}" ka record delete karna chahte hain?',
+                'Delete the record for "${record.productName}"?',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, color: AppColor.textSecondary),
               ),
@@ -505,7 +505,7 @@ class DeleteDamageDialog extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Text(
                     // ✅ double display — trailing zeros hata do
-                    '${record.stockDamage % 1 == 0 ? record.stockDamage.toStringAsFixed(0) : record.stockDamage.toStringAsFixed(2)} units stock restore ho jayega',
+                    '${record.stockDamage % 1 == 0 ? record.stockDamage.toStringAsFixed(0) : record.stockDamage.toStringAsFixed(2)} units will be restored to stock',
                     style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.success),
                   ),

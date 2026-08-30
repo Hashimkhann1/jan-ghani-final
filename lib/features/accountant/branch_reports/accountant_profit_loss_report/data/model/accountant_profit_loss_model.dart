@@ -21,24 +21,47 @@ class PnlItem {
   double get cost    => purchasePrice * quantity;
 }
 
-class PnlInvoice {
-  final String        invoiceNo;
-  final DateTime      date;
-  final String?       customerName;
-  final List<PnlItem> items;
-  final bool          isReturn;
+/// One row of the paginated Invoices-tab list. Profit/revenue/cost are
+/// pre-aggregated by `pnl_transactions_view` in Postgres — items are NOT
+/// included here; they're fetched lazily (see [PnlReportDatasource.
+/// getTransactionItems]) only when a row is expanded.
+class PnlTransactionRow {
+  final String   id;
+  final String   type; // 'sale' | 'return'
+  final String   docNo;
+  final DateTime date;
+  final String?  customerName;
+  final double   totalRevenue;
+  final double   totalCost;
+  final double   totalProfit;
+  final int      itemCount;
 
-  const PnlInvoice({
-    required this.invoiceNo,
+  const PnlTransactionRow({
+    required this.id,
+    required this.type,
+    required this.docNo,
     required this.date,
     this.customerName,
-    required this.items,
-    required this.isReturn,
+    required this.totalRevenue,
+    required this.totalCost,
+    required this.totalProfit,
+    required this.itemCount,
   });
 
-  double get totalProfit  => items.fold(0, (s, i) => s + i.profit);
-  double get totalRevenue => items.fold(0, (s, i) => s + i.revenue);
-  double get totalCost    => items.fold(0, (s, i) => s + i.cost);
+  bool get isReturn => type == 'return';
+}
+
+/// One page of the Invoices tab, plus its exact total count (for the
+/// current date range + All/Profit/Loss filter) from `count: CountOption.
+/// exact` — not a client-side `.length`.
+class PnlTransactionsPage {
+  final List<PnlTransactionRow> rows;
+  final int totalCount;
+
+  const PnlTransactionsPage({
+    required this.rows,
+    required this.totalCount,
+  });
 }
 
 class PnlDaySummary {
@@ -55,6 +78,9 @@ class PnlDaySummary {
   double get netProfit => saleProfit - returnProfit;
 }
 
+/// Aggregate totals + daily breakdown — computed entirely in Postgres by
+/// the `get_pnl_summary` RPC (SUM/COUNT/GROUP BY), never by summing a
+/// fetched list of invoices in Dart.
 class PnlSummary {
   final double              grossSaleProfit;
   final double              grossReturnProfit;
@@ -62,7 +88,6 @@ class PnlSummary {
   final double              totalCost;
   final int                 totalInvoices;
   final int                 totalReturns;
-  final List<PnlInvoice>    invoices;
   final List<PnlDaySummary> daily;
 
   const PnlSummary({
@@ -72,7 +97,6 @@ class PnlSummary {
     required this.totalCost,
     required this.totalInvoices,
     required this.totalReturns,
-    required this.invoices,
     required this.daily,
   });
 

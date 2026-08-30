@@ -56,6 +56,55 @@ class CashCounterRemoteDataSource {
     return double.tryParse(val.toString()) ?? 0.0;
   }
 
+  // Does a row already exist for this counter today?
+  Future<bool> hasTodayRow(String storeId, String counterId) async {
+    final conn = await DataBaseService.getConnection();
+
+    final result = await conn.execute(
+      Sql.named('''
+        SELECT EXISTS(
+          SELECT 1
+          FROM public.branch_cash_counter
+          WHERE store_id     = @storeId
+            AND counter_id   = @counterId::uuid
+            AND counter_date = CURRENT_DATE
+            AND deleted_at   IS NULL
+        ) AS row_exists
+      '''),
+      parameters: {'storeId': storeId, 'counterId': counterId},
+    );
+
+    return result.first.toColumnMap()['row_exists'] as bool? ?? false;
+  }
+
+  // Most recent closing total_amount before today — this is the "kal ka
+  // net amount" the counter operator currently has to look up and type in
+  // by hand; used to auto-fill today's opening amount.
+  Future<double> getPreviousClosingAmount(
+      String storeId, String counterId) async {
+    final conn = await DataBaseService.getConnection();
+
+    final result = await conn.execute(
+      Sql.named('''
+        SELECT COALESCE(total_amount, 0) AS total
+        FROM public.branch_cash_counter
+        WHERE store_id     = @storeId
+          AND counter_id   = @counterId::uuid
+          AND counter_date < CURRENT_DATE
+          AND deleted_at   IS NULL
+        ORDER BY counter_date DESC
+        LIMIT 1
+      '''),
+      parameters: {'storeId': storeId, 'counterId': counterId},
+    );
+
+    if (result.isEmpty) return 0.0;
+    final val = result.first.toColumnMap()['total'];
+    if (val == null) return 0.0;
+    if (val is num)  return val.toDouble();
+    return double.tryParse(val.toString()) ?? 0.0;
+  }
+
   // ROW → MAP
   Map<String, dynamic> _toMap(ResultRow row) {
     final m = row.toColumnMap();

@@ -82,74 +82,30 @@ class AccountantSaleReportDatasource {
     return PagedSaleReport(invoices: invoices, hasNextPage: hasNextPage);
   }
 
-  // ── Get aggregate totals across every matching invoice ─────
-  // Kept separate from getReportPage so the summary cards still reflect
-  // the whole filtered date range, not just the 20 rows on screen.
+  // ── Aggregate totals across every matching invoice — one RPC
+  //    round trip (SUM/COUNT computed in Postgres), not a client-side
+  //    loop over every matching row. ───────────────────────────────
   Future<SaleReportSummary> getReportSummary({
     required DateTime fromDate,
     required DateTime toDate,
     String?           customerId,
     String?           paymentType,
   }) async {
-    int    totalInvoices = 0;
-    double totalSale     = 0;
-    double totalQuantity = 0;
-    double totalDiscount = 0;
+    final rows = await _client.rpc('get_sale_report_summary', params: {
+      'p_store_id':     branchId,
+      'p_from':         fromDate.toIso8601String(),
+      'p_to':           toDate.toIso8601String(),
+      'p_customer_id':  (customerId != null && customerId.isNotEmpty) ? customerId : null,
+      'p_payment_type': paymentType,
+    });
 
-    int   rangeStart = 0;
-    const int pageSize = 1000;
-    bool  hasMore = true;
-
-    while (hasMore) {
-      var query = _client
-          .from('sale_invoices')
-          .select('''
-          grand_total, total_discount, deleted_at,
-          sale_invoice_payments (payment_method),
-          sale_invoice_items (quantity)
-        ''')
-          .eq('store_id', branchId)
-          .eq('status', 'completed')
-          .gte('invoice_date', fromDate.toIso8601String())
-          .lte('invoice_date', toDate.toIso8601String());
-
-      if (customerId != null && customerId.isNotEmpty) {
-        query = query.eq('customer_id', customerId);
-      }
-
-      final result = await query
-          .order('invoice_date', ascending: false)
-          .range(rangeStart, rangeStart + pageSize - 1);
-
-      final rows = (result as List)
-          .where((r) => r['deleted_at'] == null)
-          .where((r) {
-        if (paymentType == null) return true;
-        final methods = (r['sale_invoice_payments'] as List? ?? [])
-            .map((p) => p['payment_method']?.toString() ?? '');
-        return methods.contains(paymentType);
-      });
-
-      for (final r in rows) {
-        totalInvoices++;
-        totalSale     += _dbl(r['grand_total'])   ?? 0;
-        totalDiscount += _dbl(r['total_discount']) ?? 0;
-        totalQuantity += (r['sale_invoice_items'] as List? ?? [])
-            .fold<double>(0, (s, i) => s + (_dbl(i['quantity']) ?? 0));
-      }
-
-      if ((result).length < pageSize) {
-        hasMore = false;
-      } else {
-        rangeStart += pageSize;
-      }
-    }
+    final row = (rows as List).first as Map<String, dynamic>;
 
     return SaleReportSummary(
-      totalInvoices: totalInvoices,
-      totalSale:     totalSale,
-      totalQuantity: totalQuantity,
-      totalDiscount: totalDiscount,
+      totalInvoices: (row['total_invoices'] as num?)?.toInt() ?? 0,
+      totalSale:     _dbl(row['total_sale'])     ?? 0,
+      totalQuantity: _dbl(row['total_quantity']) ?? 0,
+      totalDiscount: _dbl(row['total_discount']) ?? 0,
     );
   }
 

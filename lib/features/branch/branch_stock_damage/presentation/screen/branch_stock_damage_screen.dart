@@ -702,15 +702,15 @@ class _EmptyState extends StatelessWidget {
           size: 64, color: AppColor.grey300),
       const SizedBox(height: 16),
       Text(
-          isSearching ? 'Koi record nahi mila' : 'Koi damage record nahi',
+          isSearching ? 'No records found' : 'No damage records yet',
           style: const TextStyle(
               fontSize: 16, fontWeight: FontWeight.w600,
               color: AppColor.textSecondary)),
       const SizedBox(height: 6),
       Text(
           isSearching
-              ? 'Search ya date filter change karein'
-              : 'Pehla damage record add karein',
+              ? 'Try changing the search or date filter'
+              : 'Add your first damage record',
           style: const TextStyle(fontSize: 13, color: AppColor.textHint)),
       if (!isSearching) ...[
         const SizedBox(height: 16),

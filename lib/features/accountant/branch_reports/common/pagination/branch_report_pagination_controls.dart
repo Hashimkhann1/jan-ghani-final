@@ -8,6 +8,12 @@ class BranchReportPaginationControls extends StatelessWidget {
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
 
+  /// Optional exact total (from `count: CountOption.exact`). When provided,
+  /// the center label becomes "Page N of M · X records" instead of just
+  /// "Page N" — screens that don't pass these keep the old label.
+  final int? totalCount;
+  final int? totalPages;
+
   const BranchReportPaginationControls({
     super.key,
     required this.page,
@@ -15,6 +21,8 @@ class BranchReportPaginationControls extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     this.isLoading = false,
+    this.totalCount,
+    this.totalPages,
   });
 
   @override
@@ -57,7 +65,10 @@ class BranchReportPaginationControls extends StatelessWidget {
             )
           else
             Text(
-              'Page ${page + 1}',
+              totalPages != null
+                  ? 'Page ${page + 1} of $totalPages'
+                      '${totalCount != null ? ' · $totalCount records' : ''}'
+                  : 'Page ${page + 1}',
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

@@ -170,7 +170,7 @@ class BranchStockDamageNotifier extends StateNotifier<BranchStockDamageState> {
 
       state = state.copyWith(
         isMutating:     false,
-        successMessage: '$productName damage record add ho gaya',
+        successMessage: '$productName damage record added',
       );
       return true;
     } catch (e) {
@@ -226,7 +226,7 @@ class BranchStockDamageNotifier extends StateNotifier<BranchStockDamageState> {
         totalQtyDamaged: state.totalQtyDamaged - record.stockDamage,
         totalLossValue:  (state.totalLossValue - record.totalLoss).clamp(0, double.infinity),
         isMutating:      false,
-        successMessage:  '${record.stockDamage} units stock restore ho gaya',
+        successMessage:  '${record.stockDamage} units restored to stock',
       );
       return true;
     } catch (e) {

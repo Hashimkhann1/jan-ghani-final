@@ -7,6 +7,9 @@ import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/sale_return_report_model.dart';
 import '../provider/sale_return_report_provider.dart';
 
+/// ── Responsive breakpoint ──
+const double _kWideBreakpoint = 900;
+
 class AccountantSaleReturnReportScreen extends ConsumerStatefulWidget {
   const AccountantSaleReturnReportScreen(
       {super.key, required this.branchId});
@@ -25,6 +28,8 @@ class _AccountantSaleReturnReportScreenState
   final _fromCtrl = TextEditingController();
   final _toCtrl   = TextEditingController();
 
+  String? _selectedId;
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +46,24 @@ class _AccountantSaleReturnReportScreenState
   }
 
   String _fmtAmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
+  String _fmtQty(double q) =>
+      q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
+
+  SaleReturnInvoice? _findById(List<SaleReturnInvoice> list, String? id) {
+    if (id == null) return null;
+    for (final ret in list) {
+      if (ret.id == id) return ret;
+    }
+    return null;
+  }
+
+  Color _refundColor(String? refundType) {
+    switch (refundType) {
+      case 'card':   return AppColor.info;
+      case 'credit': return AppColor.warning;
+      default:       return AppColor.success;
+    }
+  }
 
   Future<void> _pickDate(BuildContext context, bool isFrom) async {
     final state = ref.read(accountantSaleReturnProvider(widget.branchId));
@@ -81,7 +104,7 @@ class _AccountantSaleReturnReportScreenState
     _toCtrl.text     = _dateFmt.format(todayClean);
   }
 
-  // ── Filter Bottom Sheet ──────────────────────────────────────────────
+  // ── Filter Bottom Sheet (narrow screens) ────────────────────────────────
   void _showFilterSheet(BuildContext context) {
     showModalBottomSheet(
       context:              context,
@@ -282,12 +305,85 @@ class _AccountantSaleReturnReportScreenState
     );
   }
 
+  // ── View return (bottom sheet) ──────────────────────────────────────────
+  void _showReturnSheet(SaleReturnInvoice ret) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize:     0.5,
+        maxChildSize:     0.95,
+        expand: false,
+        builder: (ctx, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFFF5F6FA),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 8, 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Return Details',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A1D23)),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: _ReturnDetailPanel(
+                    ret:     ret,
+                    dateFmt: _dateFmt,
+                    timeFmt: _timeFmt,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(accountantSaleReturnProvider(widget.branchId));
     final notifier =
     ref.read(accountantSaleReturnProvider(widget.branchId).notifier);
     final summary  = state.summary;
+
+    // Clear the detail-panel selection if it's no longer in the current
+    // list (filters, pagination, refresh) — never auto-pick a row; the
+    // panel stays empty until the user explicitly clicks "view".
+    if (_selectedId != null &&
+        !state.returns.any((r) => r.id == _selectedId)) {
+      _selectedId = null;
+    }
+    final selectedReturn = _findById(state.returns, _selectedId);
 
     final bool hasActiveFilter =
         state.selectedCustomerId != null || state.selectedRefundType != null;
@@ -325,33 +421,37 @@ class _AccountantSaleReturnReportScreenState
           ),
         ),
         actions: [
+          Builder(builder: (context) {
+            final isWide = MediaQuery.of(context).size.width >= _kWideBreakpoint;
+            if (isWide) return const SizedBox.shrink();
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  onPressed: () => _showFilterSheet(context),
+                  icon: const Icon(Icons.filter_alt_outlined, color: AppColor.textSecondary),
+                  tooltip: 'Filters',
+                ),
+                if (hasActiveFilter)
+                  Positioned(
+                    right: 8,
+                    top:   8,
+                    child: Container(
+                      width:  8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColor.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
           IconButton(
             onPressed: notifier.load,
             icon:    const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
             tooltip: 'Refresh',
-          ),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                onPressed: () => _showFilterSheet(context),
-                icon: const Icon(Icons.filter_alt_outlined, color: AppColor.textSecondary),
-                tooltip: 'Filters',
-              ),
-              if (hasActiveFilter)
-                Positioned(
-                  right: 8,
-                  top:   8,
-                  child: Container(
-                    width:  8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColor.error,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
           ),
           TextButton(
             onPressed: () => _setToday(notifier),
@@ -365,78 +465,392 @@ class _AccountantSaleReturnReportScreenState
           Container(height: 1, color: const Color(0xFFE5E7EB)),
         ),
       ),
-      body: Column(
-        children: [
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= _kWideBreakpoint;
 
-          // ── Summary Cards ─────────────────────────────────────────────
-          Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Row(
-              children: [
-                _SummaryCard(
-                  label: 'Returns',
-                  value: '${summary.totalReturns}',
-                  icon:  Icons.assignment_return_outlined,
-                  color: AppColor.primary,
+          final customerItems = [
+            DropdownItem<String?>(
+              value: null,
+              label: 'All Customers',
+              icon:  Icons.people_outline_rounded,
+            ),
+            ...state.customers.map((c) => DropdownItem<String?>(
+              value: c.id,
+              label: c.label,
+              icon:  Icons.person_outline_rounded,
+            )),
+          ];
+
+          final refundItems = [
+            DropdownItem<String?>(
+                value: null,
+                label: 'All Refund Types',
+                icon:  Icons.swap_horiz_rounded),
+            DropdownItem<String?>(
+                value: 'cash',
+                label: 'Cash',
+                icon:  Icons.payments_outlined),
+            DropdownItem<String?>(
+                value: 'card',
+                label: 'Card',
+                icon:  Icons.credit_card_outlined),
+            DropdownItem<String?>(
+                value: 'credit',
+                label: 'Credit',
+                icon:  Icons.receipt_long_outlined),
+          ];
+
+          return Column(
+            children: [
+              if (isWide)
+                Container(
+                  color:   Colors.white,
+                  padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _DateField(
+                          label:      'Start Date',
+                          controller: _fromCtrl,
+                          onTap:      () => _pickDate(context, true),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _DateField(
+                          label:      'End Date',
+                          controller: _toCtrl,
+                          onTap:      () => _pickDate(context, false),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: AppSearchableDropdown<String?>(
+                          items:      customerItems,
+                          value:      state.selectedCustomerId,
+                          hint:       'All Customers',
+                          fullWidth:  true,
+                          prefixIcon: Icons.person_outline_rounded,
+                          onChanged:  (v) => notifier.setCustomer(v),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: AppSearchableDropdown<String?>(
+                          items:      refundItems,
+                          value:      state.selectedRefundType,
+                          hint:       'All Refund Types',
+                          fullWidth:  true,
+                          prefixIcon: Icons.swap_horiz_rounded,
+                          onChanged:  (v) => notifier.setRefundType(v),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 8),
-                _SummaryCard(
-                  label: 'Total Return',
-                  value: _fmtAmt(summary.totalAmount),
-                  icon:  Icons.payments_outlined,
+
+              // ── Summary Cards ─────────────────────────────────────────
+              Container(
+                width:   double.infinity,
+                color:   Colors.white,
+                padding: EdgeInsets.fromLTRB(
+                    isWide ? 28 : 12, isWide ? 0 : 12, isWide ? 28 : 12, isWide ? 16 : 12),
+                child: Row(
+                  children: [
+                    _SummaryCard(
+                      label: 'Returns',
+                      value: '${summary.totalReturns}',
+                      icon:  Icons.assignment_return_outlined,
+                      color: AppColor.error,
+                    ),
+                    const SizedBox(width: 10),
+                    _SummaryCard(
+                      label: 'Total Return',
+                      value: _fmtAmt(summary.totalAmount),
+                      icon:  Icons.payments_outlined,
+                      color: AppColor.warning,
+                    ),
+                    const SizedBox(width: 10),
+                    _SummaryCard(
+                      label: 'Qty',
+                      value: _fmtQty(summary.totalQuantity),
+                      icon:  Icons.inventory_2_outlined,
+                      color: const Color(0xFF6366F1),
+                    ),
+                    const SizedBox(width: 10),
+                    _SummaryCard(
+                      label: 'Discount',
+                      value: _fmtAmt(summary.totalDiscount),
+                      icon:  Icons.discount_outlined,
+                      color: AppColor.success,
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+              // ── List / Table ───────────────────────────────────────────
+              Expanded(
+                child: state.isLoading
+                    ? const Center(child: CircularProgressIndicator(color: AppColor.error))
+                    : state.returns.isEmpty
+                    ? const _EmptyState()
+                    : isWide
+                    ? _WideReturnContent(
+                  returns:        state.returns,
+                  notifier:       notifier,
+                  dateFmt:        _dateFmt,
+                  timeFmt:        _timeFmt,
+                  refundColor:    _refundColor,
+                  selectedId:     _selectedId,
+                  selectedReturn: selectedReturn,
+                  onSelect:       (id) => setState(() => _selectedId = id),
+                )
+                    : RefreshIndicator(
                   color: AppColor.error,
+                  onRefresh: notifier.load,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(
+                        16, 12, 16, 24),
+                    itemCount:        state.returns.length,
+                    separatorBuilder: (_, __) =>
+                    const SizedBox(height: 10),
+                    itemBuilder: (_, i) => _ReturnRow(
+                      ret:     state.returns[i],
+                      dateFmt: _dateFmt,
+                      timeFmt: _timeFmt,
+                      refundColor: _refundColor(state.returns[i].refundType),
+                      onView:  () => _showReturnSheet(state.returns[i]),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                _SummaryCard(
-                  label: 'Qty',
-                  value: summary.totalQuantity.toStringAsFixed(0),
-                  icon:  Icons.inventory_2_outlined,
-                  color: AppColor.warning,
+              ),
+              if (!state.isLoading && state.returns.isNotEmpty)
+                BranchReportPaginationControls(
+                  page:        state.pagination.page,
+                  hasNextPage: state.pagination.hasNextPage,
+                  isLoading:   state.pagination.isLoadingPage,
+                  onNext:      notifier.nextPage,
+                  onPrevious:  notifier.previousPage,
                 ),
-                const SizedBox(width: 8),
-                _SummaryCard(
-                  label: 'Discount',
-                  value: _fmtAmt(summary.totalDiscount),
-                  icon:  Icons.discount_outlined,
-                  color: AppColor.success,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Wide layout content — return table + right-side detail panel
+// ══════════════════════════════════════════════════════════════════════════════
+class _WideReturnContent extends StatelessWidget {
+  final List<SaleReturnInvoice> returns;
+  final dynamic                 notifier;
+  final DateFormat              dateFmt;
+  final DateFormat              timeFmt;
+  final Color Function(String?) refundColor;
+  final String?                 selectedId;
+  final SaleReturnInvoice?      selectedReturn;
+  final ValueChanged<String?>   onSelect;
+
+  const _WideReturnContent({
+    required this.returns,
+    required this.notifier,
+    required this.dateFmt,
+    required this.timeFmt,
+    required this.refundColor,
+    required this.selectedId,
+    required this.selectedReturn,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            color: AppColor.error,
+            onRefresh: notifier.load,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: _ReturnTable(
+                returns:     returns,
+                dateFmt:     dateFmt,
+                timeFmt:     timeFmt,
+                refundColor: refundColor,
+                selectedId:  selectedId,
+                onSelect:    onSelect,
+              ),
+            ),
+          ),
+        ),
+        if (selectedReturn != null) ...[
+          Container(width: 1, color: const Color(0xFFEEEEEE)),
+          SizedBox(
+            width: 400,
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: _ReturnDetailPanel(
+                    ret:     selectedReturn,
+                    dateFmt: dateFmt,
+                    timeFmt: timeFmt,
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    onPressed: () => onSelect(null),
+                    tooltip: 'Close',
+                    icon: const Icon(Icons.close_rounded,
+                        size: 18, color: AppColor.textSecondary),
+                  ),
                 ),
               ],
             ),
           ),
+        ],
+      ],
+    );
+  }
+}
 
-          Container(height: 6, color: const Color(0xFFF5F6FA)),
+// ══════════════════════════════════════════════════════════════════════════════
+// Return table (card-style, not a raw DataTable) — used on wide screens
+// ══════════════════════════════════════════════════════════════════════════════
+class _ReturnTable extends StatelessWidget {
+  final List<SaleReturnInvoice> returns;
+  final DateFormat              dateFmt;
+  final DateFormat              timeFmt;
+  final Color Function(String?) refundColor;
+  final String?                 selectedId;
+  final ValueChanged<String?>   onSelect;
 
-          // ── Return List ───────────────────────────────────────────────
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.returns.isEmpty
-                ? const _EmptyState()
-                : RefreshIndicator(
-              onRefresh: notifier.load,
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(
-                    16, 12, 16, 24),
-                itemCount:        state.returns.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 10),
-                itemBuilder: (_, i) => _ReturnCard(
-                  ret:     state.returns[i],
-                  dateFmt: _dateFmt,
-                  timeFmt: _timeFmt,
-                ),
-              ),
+  const _ReturnTable({
+    required this.returns,
+    required this.dateFmt,
+    required this.timeFmt,
+    required this.refundColor,
+    required this.selectedId,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            color:   const Color(0xFFF5F6FA),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: const Row(
+              children: [
+                Expanded(flex: 2, child: _IH(text: 'Return No')),
+                Expanded(flex: 3, child: _IH(text: 'Customer')),
+                Expanded(flex: 3, child: _IH(text: 'Date / Time')),
+                Expanded(flex: 2, child: _IH(text: 'Refund')),
+                Expanded(flex: 1, child: _IH(text: 'Items', center: true)),
+                Expanded(flex: 2, child: _IH(text: 'Grand Total', right: true)),
+                SizedBox(width: 44),
+              ],
             ),
           ),
-          if (!state.isLoading && state.returns.isNotEmpty)
-            BranchReportPaginationControls(
-              page:        state.pagination.page,
-              hasNextPage: state.pagination.hasNextPage,
-              isLoading:   state.pagination.isLoadingPage,
-              onNext:      notifier.nextPage,
-              onPrevious:  notifier.previousPage,
-            ),
+          ...returns.map((ret) {
+            final isSelected = ret.id == selectedId;
+            final rColor     = refundColor(ret.refundType);
+            return InkWell(
+              onTap: () => onSelect(ret.id),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColor.error.withOpacity(0.06)
+                      : Colors.white,
+                  border: const Border(
+                      top: BorderSide(color: Color(0xFFF1F2F5))),
+                ),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(ret.returnNo,
+                          style: const TextStyle(
+                              fontSize:   13,
+                              fontWeight: FontWeight.w700,
+                              color:      AppColor.error)),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(ret.customerLabel,
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColor.textPrimary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        '${dateFmt.format(ret.returnDate)}, ${timeFmt.format(ret.returnDate)}',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColor.textSecondary),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _PayBadge(label: ret.paymentLabel, color: rColor),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text('${ret.items.length}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColor.textSecondary)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'Rs ${ret.grandTotal.toStringAsFixed(0)}',
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w800,
+                            color: Color(0xFF1A1D23)),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 44,
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.visibility_outlined,
+                          size:  18,
+                          color: isSelected
+                              ? AppColor.error
+                              : AppColor.textSecondary,
+                        ),
+                        tooltip: 'View return',
+                        onPressed: () => onSelect(ret.id),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -508,30 +922,150 @@ class _SummaryCard extends StatelessWidget {
   );
 }
 
-
 // ══════════════════════════════════════════════════════════════════════════════
-// Return Card
+// Mobile Return Row — compact, tap/"view" opens the detail bottom sheet
 // ══════════════════════════════════════════════════════════════════════════════
-class _ReturnCard extends StatefulWidget {
+class _ReturnRow extends StatelessWidget {
   final SaleReturnInvoice ret;
   final DateFormat        dateFmt;
   final DateFormat        timeFmt;
+  final Color              refundColor;
+  final VoidCallback      onView;
 
-  const _ReturnCard({
+  const _ReturnRow({
+    required this.ret,
+    required this.dateFmt,
+    required this.timeFmt,
+    required this.refundColor,
+    required this.onView,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color:        Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border:       Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color:      Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset:     const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap:        onView,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width:  44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColor.error.withOpacity(0.15),
+                      AppColor.error.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end:   Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(Icons.assignment_return_outlined,
+                    size: 20, color: AppColor.error),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ret.returnNo,
+                      style: const TextStyle(
+                        fontSize:   13,
+                        fontWeight: FontWeight.w700,
+                        color:      AppColor.error,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      ret.customerLabel,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color:    AppColor.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time_rounded,
+                            size: 10, color: AppColor.textHint),
+                        const SizedBox(width: 3),
+                        Text(
+                          '${dateFmt.format(ret.returnDate)}  ${timeFmt.format(ret.returnDate)}',
+                          style: const TextStyle(
+                              fontSize: 10,
+                              color:    AppColor.textHint),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Rs ${ret.grandTotal.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize:   15,
+                      fontWeight: FontWeight.w800,
+                      color:      Color(0xFF1A1D23),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  _PayBadge(label: ret.paymentLabel, color: refundColor),
+                ],
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: onView,
+                tooltip:   'View return',
+                icon: const Icon(Icons.visibility_outlined,
+                    size: 20, color: AppColor.error),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Return Detail Panel — shared by the desktop side panel and mobile sheet
+// ══════════════════════════════════════════════════════════════════════════════
+class _ReturnDetailPanel extends StatelessWidget {
+  final SaleReturnInvoice? ret;
+  final DateFormat         dateFmt;
+  final DateFormat         timeFmt;
+
+  const _ReturnDetailPanel({
     required this.ret,
     required this.dateFmt,
     required this.timeFmt,
   });
 
-  @override
-  State<_ReturnCard> createState() => _ReturnCardState();
-}
-
-class _ReturnCardState extends State<_ReturnCard> {
-  bool _expanded = false;
-
-  Color get _refundColor {
-    switch (widget.ret.refundType) {
+  Color _refundColor(String? refundType) {
+    switch (refundType) {
       case 'card':   return AppColor.info;
       case 'credit': return AppColor.warning;
       default:       return AppColor.success;
@@ -540,334 +1074,191 @@ class _ReturnCardState extends State<_ReturnCard> {
 
   @override
   Widget build(BuildContext context) {
-    final ret = widget.ret;
+    final r = ret;
+    if (r == null) {
+      return const _PanelEmptyState(
+        message: 'Select a return',
+        subtitle: 'Click the view icon on a row to see its details here',
+      );
+    }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color:        Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _expanded
-              ? AppColor.error.withOpacity(0.25)
-              : const Color(0xFFEEEEEE),
-        ),
-        boxShadow: _expanded
-            ? [
-          BoxShadow(
-            color:      AppColor.error.withOpacity(0.06),
-            blurRadius: 12,
-            offset:     const Offset(0, 4),
-          )
-        ]
-            : [
-          BoxShadow(
-            color:      Colors.black.withOpacity(0.03),
-            blurRadius: 6,
-            offset:     const Offset(0, 2),
-          )
-        ],
-      ),
-      child: Column(
-        children: [
-
-          // ── Header Row ────────────────────────────────────────────────
-          InkWell(
-            onTap:        () => setState(() => _expanded = !_expanded),
-            borderRadius: BorderRadius.circular(14),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-
-                  // Left icon
-                  Container(
-                    width:  44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColor.error.withOpacity(0.15),
-                          AppColor.error.withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end:   Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: const Icon(
-                        Icons.assignment_return_outlined,
-                        size:  20,
-                        color: AppColor.error),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Middle: Return No + Customer + Date
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ret.returnNo,
-                          style: const TextStyle(
-                            fontSize:   13,
-                            fontWeight: FontWeight.w700,
-                            color:      AppColor.error,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          ret.customerLabel,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color:    AppColor.textSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.access_time_rounded,
-                                size: 10, color: AppColor.textHint),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${widget.dateFmt.format(ret.returnDate)}  ${widget.timeFmt.format(ret.returnDate)}',
-                              style: const TextStyle(
-                                  fontSize: 10,
-                                  color:    AppColor.textHint),
-                            ),
-                          ],
-                        ),
-                        if (ret.returnReason != null &&
-                            ret.returnReason!.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Row(children: [
-                            const Icon(Icons.info_outline,
-                                size:  10,
-                                color: AppColor.textHint),
-                            const SizedBox(width: 3),
-                            Expanded(
-                              child: Text(
-                                ret.returnReason!,
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    color:    AppColor.textHint),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ]),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  // Right: Amount + badge + items count
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Rs ${ret.grandTotal.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize:   15,
-                          fontWeight: FontWeight.w800,
-                          color:      Color(0xFF1A1D23),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      _PayBadge(
-                        label: ret.paymentLabel,
-                        color: _refundColor,
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text(
-                            '${ret.items.length} items',
-                            style: const TextStyle(
-                                fontSize: 10,
-                                color:    AppColor.textHint),
-                          ),
-                          const SizedBox(width: 4),
-                          AnimatedRotation(
-                            turns:    _expanded ? 0.5 : 0,
-                            duration: const Duration(
-                                milliseconds: 200),
-                            child: const Icon(
-                                Icons.keyboard_arrow_down,
-                                size:  16,
-                                color: AppColor.grey400),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                r.returnNo,
+                style: const TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.w800, color: AppColor.error),
               ),
             ),
-          ),
-
-          // ── Expanded Items ────────────────────────────────────────────
-          if (_expanded) ...[
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 14),
-              height: 1,
-              color:  const Color(0xFFE5E7EB),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              child: Column(
-                children: [
-
-                  // Table header
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 7),
-                    decoration: BoxDecoration(
-                      color:        const Color(0xFFF5F6FA),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(children: [
-                      Expanded(
-                          flex: 4,
-                          child: _IH(text: 'Product')),
-                      Expanded(
-                          flex: 2,
-                          child: _IH(text: 'Qty', center: true)),
-                      Expanded(
-                          flex: 2,
-                          child: _IH(text: 'Price', center: true)),
-                      Expanded(
-                          flex: 2,
-                          child: _IH(text: 'Total', right: true)),
-                    ]),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Items
-                  ...ret.items.map((item) => Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 7),
-                    child: Row(children: [
-                      Expanded(
-                        flex: 4,
-                        child: Text(
-                          item.productName,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textPrimary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          item.quantity.toStringAsFixed(0),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textSecondary),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'Rs ${item.salePrice.toStringAsFixed(0)}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color:    AppColor.textSecondary),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'Rs ${item.totalAmount.toStringAsFixed(0)}',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                            fontSize:   12,
-                            fontWeight: FontWeight.w600,
-                            color:      AppColor.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ]),
-                  )),
-
-                  // Totals section
-                  Container(
-                    margin:  const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color:        const Color(0xFFF9FAFB),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: const Color(0xFFEEEEEE)),
-                    ),
-                    child: Column(
-                      children: [
-                        if (ret.totalDiscount > 0) ...[
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Discount',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColor.textSecondary)),
-                              Text(
-                                '- Rs ${ret.totalDiscount.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontSize:   12,
-                                  color:      AppColor.success,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          const Divider(
-                              height: 1,
-                              color:  Color(0xFFE5E7EB)),
-                          const SizedBox(height: 6),
-                        ],
-                        Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Grand Total',
-                              style: TextStyle(
-                                fontSize:   13,
-                                fontWeight: FontWeight.w700,
-                                color:      Color(0xFF1A1D23),
-                              ),
-                            ),
-                            Text(
-                              'Rs ${ret.grandTotal.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontSize:   14,
-                                fontWeight: FontWeight.w800,
-                                color:      AppColor.error,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _PayBadge(label: r.paymentLabel, color: _refundColor(r.refundType)),
           ],
+        ),
+        const SizedBox(height: 4),
+        Text(r.customerLabel,
+            style: const TextStyle(fontSize: 13, color: AppColor.textSecondary)),
+        const SizedBox(height: 4),
+        Row(children: [
+          const Icon(Icons.access_time_rounded, size: 12, color: AppColor.textHint),
+          const SizedBox(width: 4),
+          Text(
+            '${dateFmt.format(r.returnDate)}, ${timeFmt.format(r.returnDate)}',
+            style: const TextStyle(fontSize: 11, color: AppColor.textHint),
+          ),
+        ]),
+        if (r.returnReason != null && r.returnReason!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Row(children: [
+            const Icon(Icons.info_outline, size: 12, color: AppColor.textHint),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                r.returnReason!,
+                style: const TextStyle(fontSize: 11, color: AppColor.textHint),
+              ),
+            ),
+          ]),
         ],
-      ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color:        const Color(0xFFF5F6FA),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(children: const [
+            Expanded(flex: 4, child: _IH(text: 'Product')),
+            Expanded(flex: 2, child: _IH(text: 'Qty', center: true)),
+            Expanded(flex: 2, child: _IH(text: 'Price', center: true)),
+            Expanded(flex: 2, child: _IH(text: 'Total', right: true)),
+          ]),
+        ),
+        const SizedBox(height: 6),
+        ...r.items.map((item) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          child: Row(children: [
+            Expanded(
+              flex: 4,
+              child: Text(
+                item.productName,
+                style: const TextStyle(fontSize: 12, color: AppColor.textPrimary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                item.quantity.toStringAsFixed(0),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'Rs ${item.salePrice.toStringAsFixed(0)}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'Rs ${item.totalAmount.toStringAsFixed(0)}',
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
+              ),
+            ),
+          ]),
+        )),
+        Container(
+          margin:  const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color:        const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
+          ),
+          child: Column(
+            children: [
+              if (r.totalDiscount > 0) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Discount',
+                        style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                    Text(
+                      '- Rs ${r.totalDiscount.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColor.success, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                const SizedBox(height: 6),
+              ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Grand Total',
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1A1D23)),
+                  ),
+                  Text(
+                    'Rs ${r.grandTotal.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w800, color: AppColor.error),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
+}
+
+class _PanelEmptyState extends StatelessWidget {
+  final String message;
+  final String subtitle;
+  const _PanelEmptyState({required this.message, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 60),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 56, height: 56,
+          decoration: BoxDecoration(
+            color:        const Color(0xFFF5F6FA),
+            borderRadius: BorderRadius.circular(16),
+            border:       Border.all(color: const Color(0xFFEEEEEE)),
+          ),
+          child: const Icon(Icons.assignment_return_outlined,
+              size: 26, color: AppColor.textHint),
+        ),
+        const SizedBox(height: 14),
+        Text(message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.textSecondary)),
+        const SizedBox(height: 4),
+        Text(subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, color: AppColor.textHint)),
+      ],
+    ),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -903,7 +1294,7 @@ class _DateField extends StatelessWidget {
         onTap:        onTap,
         cursorHeight: 14,
         style: const TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w600),
+            fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.calendar_today_outlined,
               size: 16, color: AppColor.primary),

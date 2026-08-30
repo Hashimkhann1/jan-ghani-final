@@ -47,11 +47,14 @@ class CategorySaleReportDatasource {
         .toList();
   }
 
-  // ── RPC call ──────────────────────────────────────────────
+  // ── RPC call — always returns every category for the date range.
+  //    The category dropdown filters this same result client-side
+  //    (see CategorySaleReportState.visibleReports) instead of
+  //    re-calling the RPC, since the underlying per-category
+  //    aggregation doesn't change when only the filter changes. ──
   Future<List<CategorySaleReport>> getReport({
     required DateTime fromDate,
     required DateTime toDate,
-    String?           categoryId,
   }) async {
     final response = await _client.rpc(
       'get_category_wise_sales',
@@ -64,15 +67,8 @@ class CategorySaleReportDatasource {
       },
     );
 
-    List<CategorySaleReport> list = (response as List)
+    return (response as List)
         .map((e) => CategorySaleReport.fromJson(e as Map<String, dynamic>))
         .toList();
-
-    // Category filter client-side (agar selected ho)
-    if (categoryId != null && categoryId.isNotEmpty) {
-      list = list.where((c) => c.categoryId == categoryId).toList();
-    }
-
-    return list;
   }
 }

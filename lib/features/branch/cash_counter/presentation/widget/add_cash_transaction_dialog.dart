@@ -5,6 +5,14 @@ import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provid
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../provider/cash_transaction_provider.dart';
 
+// Cash Count dialog — operator drawer ka physical cash count karke yahan
+// "Counted Amount" likhta hai (jitna paisa drawer mein mila, poora amount —
+// jaise 5000). System khud current net amount (jaise 4580) se difference
+// (420) nikaal ke dikhata hai, aur "Add" par sirf wohi DIFFERENCE cash_in
+// ke taur par submit hota hai — isse net amount, Cash In total, aur
+// "Difference" screen (CounterCashTransactionScreen / accountant ka
+// branch_cash_difference report — dono isi branch_cash_transaction table
+// se aate hain) sab khud-ba-khud reconcile ho jate hain.
 class AddCashTransactionDialog extends ConsumerStatefulWidget {
   const AddCashTransactionDialog({super.key});
 
@@ -19,20 +27,7 @@ class _AddCashTransactionDialogState
   final _amountCtrl = TextEditingController();
   final _descCtrl   = TextEditingController();
 
-  double get _enteredAmount => double.tryParse(_amountCtrl.text) ?? 0.0;
-
-  // ✅ cashCounterProvider se aaj ka correct total
-  double _getTodayTotal() {
-    final records = ref.read(cashCounterProvider).allRecords;
-    final today   = DateTime.now();
-    return records
-        .where((r) =>
-    r.counterDate.year  == today.year  &&
-        r.counterDate.month == today.month &&
-        r.counterDate.day   == today.day)
-        .firstOrNull
-        ?.totalAmount ?? 0.0;
-  }
+  double get _countedAmount => double.tryParse(_amountCtrl.text) ?? 0.0;
 
   @override
   void dispose() {
@@ -41,17 +36,23 @@ class _AddCashTransactionDialogState
     super.dispose();
   }
 
-  Future<void> _submit(String type) async {
+  Future<void> _submit(double difference, double systemTotal) async {
     if (!_formKey.currentState!.validate()) return;
+    if (difference <= 0) return; // guarded by the disabled button too
 
-    final userId       = ref.read(authProvider).userId; // ← current user id
-    final previousTotal = _getTodayTotal();
+    final userId = ref.read(authProvider).userId;
+    final note   = _descCtrl.text.trim();
+
+    final autoDescription =
+        'Cash Count — counted Rs ${_countedAmount.toStringAsFixed(0)}'
+        ' vs system Rs ${systemTotal.toStringAsFixed(0)}'
+        '${note.isNotEmpty ? ' — $note' : ''}';
 
     await ref.read(cashTransactionProvider.notifier).addTransaction(
-      amount:          _enteredAmount,
-      previousTotal:   previousTotal,
-      userId:          userId,
-      description:     _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      amount:        difference,
+      previousTotal: systemTotal,
+      userId:        userId,
+      description:   autoDescription,
     );
 
     final hasError = ref.read(cashTransactionProvider).errorMessage != null;
@@ -63,10 +64,10 @@ class _AddCashTransactionDialogState
     final state    = ref.watch(cashTransactionProvider);
     final isSaving = state.isSaving;
 
-    // ✅ Watch cashCounterProvider — aaj ka correct total
+    // ✅ Watch cashCounterProvider — aaj ka correct system net amount
     final records = ref.watch(cashCounterProvider).allRecords;
     final today   = DateTime.now();
-    final todayTotal = records
+    final systemTotal = records
         .where((r) =>
     r.counterDate.year  == today.year  &&
         r.counterDate.month == today.month &&
@@ -74,8 +75,9 @@ class _AddCashTransactionDialogState
         .firstOrNull
         ?.totalAmount ?? 0.0;
 
-    final cashInRemaining = todayTotal + _enteredAmount;
-    // final cashOutRemaining = todayTotal - _enteredAmount; // ← COMMENTED: cash out
+    final hasAmount   = _amountCtrl.text.trim().isNotEmpty;
+    final difference  = _countedAmount - systemTotal;
+    final canSubmit   = hasAmount && difference > 0 && !isSaving;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -100,7 +102,7 @@ class _AddCashTransactionDialogState
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
-                        Icons.arrow_downward_rounded,
+                        Icons.calculate_rounded,
                         color: AppColor.success,
                         size:  20,
                       ),
@@ -109,11 +111,11 @@ class _AddCashTransactionDialogState
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Cash In',
+                        Text('Cash Count',
                             style: TextStyle(
                                 fontSize:   16,
                                 fontWeight: FontWeight.w700)),
-                        Text('Counter mein cash record karein',
+                        Text('Drawer mein jitna cash mila, wo likhein',
                             style: TextStyle(
                                 fontSize: 12,
                                 color:    AppColor.textSecondary)),
@@ -135,42 +137,33 @@ class _AddCashTransactionDialogState
                 const Divider(color: AppColor.grey200),
                 const SizedBox(height: 16),
 
-                // ── Current Total ─────────────────────────
-                const _Label('Current Total Amount'),
+                // ── System Net Amount ─────────────────────
+                const _Label('System Net Amount'),
                 const SizedBox(height: 6),
                 Container(
                   width:   double.infinity,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: todayTotal >= 0
-                        ? AppColor.success.withValues(alpha: 0.06)
-                        : AppColor.error.withValues(alpha: 0.06),
+                    color: AppColor.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: todayTotal >= 0
-                          ? AppColor.success.withValues(alpha: 0.3)
-                          : AppColor.error.withValues(alpha: 0.3),
-                    ),
+                        color: AppColor.primary.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.account_balance_wallet_outlined,
                         size:  18,
-                        color: todayTotal >= 0
-                            ? AppColor.success
-                            : AppColor.error,
+                        color: AppColor.primary,
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'Rs ${todayTotal.toStringAsFixed(0)}',
-                        style: TextStyle(
+                        'Rs ${systemTotal.toStringAsFixed(0)}',
+                        style: const TextStyle(
                           fontSize:   18,
                           fontWeight: FontWeight.w800,
-                          color: todayTotal >= 0
-                              ? AppColor.success
-                              : AppColor.error,
+                          color:      AppColor.primary,
                         ),
                       ),
                     ],
@@ -179,8 +172,8 @@ class _AddCashTransactionDialogState
 
                 const SizedBox(height: 16),
 
-                // ── Amount Field ──────────────────────────
-                const _Label('Amount *'),
+                // ── Counted Amount Field ───────────────────
+                const _Label('Counted Amount (Rs) *'),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller:   _amountCtrl,
@@ -194,9 +187,9 @@ class _AddCashTransactionDialogState
                       color:      AppColor.textPrimary),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty)
-                      return 'Amount required hai';
+                      return 'Counted amount required hai';
                     final p = double.tryParse(v);
-                    if (p == null || p <= 0) return 'Valid amount dalein';
+                    if (p == null || p < 0) return 'Valid amount dalein';
                     return null;
                   },
                   decoration: InputDecoration(
@@ -205,7 +198,7 @@ class _AddCashTransactionDialogState
                         fontSize:   15,
                         fontWeight: FontWeight.w600,
                         color:      AppColor.primary),
-                    hintText:  '0',
+                    hintText:  'e.g. 5000',
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 14),
                     filled:    true,
@@ -233,38 +226,14 @@ class _AddCashTransactionDialogState
 
                 const SizedBox(height: 12),
 
-                // ── Preview Card — sirf Cash In ───────────
-                if (_amountCtrl.text.isNotEmpty && _enteredAmount > 0) ...[
-                  // Sirf Cash In preview — Cash Out commented
-                  _PreviewCard(
-                    label: 'After Cash In',
-                    value: 'Rs ${cashInRemaining.toStringAsFixed(0)}',
-                    color: AppColor.success,
-                    icon:  Icons.arrow_downward_rounded,
-                  ),
-                  // ── Cash Out Preview COMMENTED ──────────
-                  // Row(
-                  //   children: [
-                  //     Expanded(child: _PreviewCard(
-                  //       label: 'After Cash In',
-                  //       value: 'Rs ${cashInRemaining.toStringAsFixed(0)}',
-                  //       color: AppColor.success,
-                  //       icon:  Icons.arrow_downward_rounded,
-                  //     )),
-                  //     const SizedBox(width: 12),
-                  //     Expanded(child: _PreviewCard(
-                  //       label: 'After Cash Out',
-                  //       value: 'Rs ${cashOutRemaining.toStringAsFixed(0)}',
-                  //       color: AppColor.error,
-                  //       icon:  Icons.arrow_upward_rounded,
-                  //     )),
-                  //   ],
-                  // ),
+                // ── Difference Preview ────────────────────
+                if (hasAmount) ...[
+                  _DifferenceCard(difference: difference),
                   const SizedBox(height: 12),
                 ],
 
                 // ── Description ───────────────────────────
-                const _Label('Description (Optional)'),
+                const _Label('Note (Optional)'),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller:   _descCtrl,
@@ -273,7 +242,7 @@ class _AddCashTransactionDialogState
                   style: const TextStyle(
                       fontSize: 14, color: AppColor.textPrimary),
                   decoration: InputDecoration(
-                    hintText:  'e.g. Opening balance, shift start...',
+                    hintText:  'e.g. Closing count, shift end...',
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 13),
                     filled:    true,
@@ -297,16 +266,18 @@ class _AddCashTransactionDialogState
 
                 const SizedBox(height: 24),
 
-                // ── Sirf Cash In Button ───────────────────
+                // ── Submit Button ──────────────────────────
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: isSaving ? null : () => _submit('cash_in'),
+                    onPressed: canSubmit
+                        ? () => _submit(difference, systemTotal)
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.success,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                      AppColor.success.withValues(alpha: 0.5),
+                      disabledBackgroundColor: AppColor.grey200,
+                      disabledForegroundColor: AppColor.textHint,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -319,30 +290,19 @@ class _AddCashTransactionDialogState
                         child:  CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.arrow_downward_rounded, size: 18),
-                    label: const Text('Cash In',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700)),
+                    label: Text(
+                      !hasAmount
+                          ? 'Enter counted amount'
+                          : difference > 0
+                          ? 'Add Rs ${difference.toStringAsFixed(0)} to Cash In'
+                          : difference == 0
+                          ? 'Already balanced'
+                          : 'No shortfall entry — count only',
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
-
-                // ── Cash Out Button COMMENTED ─────────────
-                // const SizedBox(width: 12),
-                // Expanded(
-                //   child: ElevatedButton.icon(
-                //     onPressed: isSaving ? null : () => _submit('cash_out'),
-                //     style: ElevatedButton.styleFrom(
-                //       backgroundColor: AppColor.error,
-                //       foregroundColor: Colors.white,
-                //       padding: const EdgeInsets.symmetric(vertical: 14),
-                //       shape: RoundedRectangleBorder(
-                //           borderRadius: BorderRadius.circular(10)),
-                //       elevation: 0,
-                //     ),
-                //     icon: const Icon(Icons.arrow_upward_rounded, size: 18),
-                //     label: const Text('Cash Out',
-                //         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                //   ),
-                // ),
               ],
             ),
           ),
@@ -352,47 +312,64 @@ class _AddCashTransactionDialogState
   }
 }
 
-// ── Preview Card ──────────────────────────────────────────────
-class _PreviewCard extends StatelessWidget {
-  final String   label;
-  final String   value;
-  final Color    color;
-  final IconData icon;
-  const _PreviewCard({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.icon,
-  });
+// ── Difference Preview Card ─────────────────────────────────────
+class _DifferenceCard extends StatelessWidget {
+  final double difference;
+  const _DifferenceCard({required this.difference});
 
   @override
   Widget build(BuildContext context) {
+    final Color color;
+    final IconData icon;
+    final String label;
+    final String value;
+
+    if (difference > 0) {
+      color = AppColor.success;
+      icon  = Icons.trending_up_rounded;
+      label = 'Difference — will be added to Cash In';
+      value = '+ Rs ${difference.toStringAsFixed(0)}';
+    } else if (difference < 0) {
+      color = AppColor.error;
+      icon  = Icons.trending_down_rounded;
+      label = 'Shortage — kam mila hai, cash out abhi enable nahi';
+      value = '- Rs ${difference.abs().toStringAsFixed(0)}';
+    } else {
+      color = AppColor.textSecondary;
+      icon  = Icons.check_circle_outline_rounded;
+      label = 'Balanced — koi difference nahi';
+      value = 'Rs 0';
+    }
+
     return Container(
       width:   double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color:        color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(8),
-        border:       Border.all(color: color.withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(10),
+        border:       Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      fontSize:   10,
-                      color:      color,
-                      fontWeight: FontWeight.w500)),
-              Text(value,
-                  style: TextStyle(
-                      fontSize:   13,
-                      fontWeight: FontWeight.w700,
-                      color:      color)),
-            ],
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize:   11,
+                        color:      color,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: TextStyle(
+                        fontSize:   17,
+                        fontWeight: FontWeight.w800,
+                        color:      color)),
+              ],
+            ),
           ),
         ],
       ),

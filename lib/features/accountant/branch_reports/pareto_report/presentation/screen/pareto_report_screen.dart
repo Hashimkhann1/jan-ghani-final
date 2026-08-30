@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../../../../core/color/app_color.dart';
 import '../../data/model/pareto_report_model.dart';
 import '../provider/pareto_report_provider.dart';
 
@@ -28,36 +29,28 @@ class ParetoReportScreen extends ConsumerWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF1F3F8),
+        backgroundColor: const Color(0xFFF5F6FA),
         appBar: AppBar(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF1A1D23),
-          elevation: 0,
+          backgroundColor:  Colors.white,
+          elevation:        0,
+          surfaceTintColor: Colors.transparent,
           title: const Text(
-            'Pareto Report  (80 / 20)',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            'Pareto Report (80/20)',
+            style: TextStyle(
+              fontSize:   17,
+              fontWeight: FontWeight.w700,
+              color:      Color(0xFF1A1D23),
+            ),
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
               tooltip: 'Refresh',
               onPressed: notifier.load,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
           ],
-          bottom: TabBar(
-            labelColor: const Color(0xFF2563EB),
-            unselectedLabelColor: Colors.grey.shade500,
-            indicatorColor: const Color(0xFF2563EB),
-            indicatorWeight: 3,
-            labelStyle:
-            const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            tabs: const [
-              Tab(text: 'Products'),
-              Tab(text: 'Top Customers'),
-              Tab(text: 'Pending Balance'),
-            ],
-          ),
+          bottom: const _ParetoTabBar(),
         ),
         body: Column(
           children: [
@@ -67,11 +60,12 @@ class ParetoReportScreen extends ConsumerWidget {
               endDate:   state.endDate,
               onChanged: notifier.setDateRange,
             ),
+            const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
             // ── Content ──────────────────────────────────
             Expanded(
               child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: AppColor.primary))
                   : state.errorMessage != null
                   ? _ErrorView(
                 message: state.errorMessage!,
@@ -111,6 +105,126 @@ class ParetoReportScreen extends ConsumerWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
+// TAB BAR — pill segmented control, each tab keeps its own accent
+// color (matches the Products / Customers / Balance color coding
+// used throughout the rest of the report) instead of a single flat
+// underline indicator.
+// ═══════════════════════════════════════════════════════════
+class _TabSpec {
+  final IconData icon;
+  final String   label;
+  final Color    color;
+  const _TabSpec(this.icon, this.label, this.color);
+}
+
+const _paretoTabs = [
+  _TabSpec(Icons.inventory_2_outlined, 'Products', AppColor.primary),
+  _TabSpec(Icons.people_outline_rounded, 'Customers', AppColor.success),
+  _TabSpec(Icons.account_balance_wallet_outlined, 'Balance', AppColor.error),
+];
+
+class _ParetoTabBar extends StatefulWidget implements PreferredSizeWidget {
+  const _ParetoTabBar();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(62);
+
+  @override
+  State<_ParetoTabBar> createState() => _ParetoTabBarState();
+}
+
+class _ParetoTabBarState extends State<_ParetoTabBar> {
+  TabController? _controller;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final c = DefaultTabController.of(context);
+    if (c != _controller) {
+      _controller?.removeListener(_onTick);
+      _controller = c..addListener(_onTick);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.removeListener(_onTick);
+    super.dispose();
+  }
+
+  void _onTick() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller!;
+    return Container(
+      color:   Colors.white,
+      height:  62,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color:        AppColor.grey100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: List.generate(_paretoTabs.length, (i) {
+            final spec     = _paretoTabs[i];
+            final selected = controller.index == i;
+            return Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap:    () => controller.animateTo(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve:    Curves.easeOut,
+                  margin:   const EdgeInsets.symmetric(horizontal: 2),
+                  padding:  const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color:        selected ? spec.color : Colors.transparent,
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow: selected
+                        ? [
+                      BoxShadow(
+                        color:      spec.color.withOpacity(0.35),
+                        blurRadius: 8,
+                        offset:     const Offset(0, 3),
+                      ),
+                    ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(spec.icon,
+                          size:  15,
+                          color: selected ? Colors.white : AppColor.textSecondary),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          spec.label,
+                          maxLines:  1,
+                          overflow:  TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize:   12,
+                            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                            color:      selected ? Colors.white : AppColor.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // DATE FILTER BAR
 // ═══════════════════════════════════════════════════════════
 class _DateFilterBar extends StatelessWidget {
@@ -134,7 +248,7 @@ class _DateFilterBar extends StatelessWidget {
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: Color(0xFF2563EB),
+            primary: AppColor.primary,
           ),
         ),
         child: child!,
@@ -180,7 +294,7 @@ class _DateFilterBar extends StatelessWidget {
 
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: isWide
           ? Row(
         children: [
@@ -250,11 +364,11 @@ class _DateFilterBar extends StatelessWidget {
         padding: const EdgeInsets.only(right: 6),
         child: ActionChip(
           label: Text(c.$2,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-          backgroundColor: const Color(0xFFEFF6FF),
-          side: const BorderSide(color: Color(0xFF2563EB), width: 0.8),
-          labelStyle: const TextStyle(color: Color(0xFF2563EB)),
+          backgroundColor: AppColor.primary.withOpacity(0.06),
+          side: BorderSide(color: AppColor.primary.withOpacity(0.3)),
+          labelStyle: const TextStyle(color: AppColor.primary),
           onPressed: () => _applyQuick(c.$1),
         ),
       );
@@ -283,30 +397,32 @@ class _DatePickerField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          border:       Border.all(color: Colors.grey.shade300),
+          border:       Border.all(color: AppColor.grey200),
           borderRadius: BorderRadius.circular(8),
-          color:        const Color(0xFFF8FAFF),
+          color:        AppColor.grey100,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: const Color(0xFF2563EB)),
+            Icon(icon, size: 16, color: AppColor.primary),
             const SizedBox(width: 6),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontSize: 9,
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w500)),
+                        color: AppColor.textHint,
+                        fontWeight: FontWeight.w600)),
                 Text(_dateFmt.format(date),
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.bold)),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A1D23))),
               ],
             ),
             const SizedBox(width: 6),
-            Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey.shade500),
+            const Icon(Icons.arrow_drop_down, size: 18, color: AppColor.textHint),
           ],
         ),
       ),
@@ -334,18 +450,24 @@ class _ProductTab extends StatelessWidget {
       children: [
         _SimpleStatsBar(
           items: [
-            _StatBarItem('Total Sale',  _fmt(summary.totalRevenue),  const Color(0xFF2563EB)),
-            _StatBarItem('Revenue',     _fmt(summary.paretoRevenue), const Color(0xFF16A34A)),
-            _StatBarItem('Profit',      _fmt(summary.paretoProfit),  const Color(0xFFD97706)),
+            _StatBarItem('Total Sale', _fmt(summary.totalRevenue),  AppColor.primary),
+            _StatBarItem('Revenue',    _fmt(summary.paretoRevenue), AppColor.success),
+            _StatBarItem('Profit',     _fmt(summary.paretoProfit),  AppColor.warning),
           ],
         ),
         _ParetoLabel(
           label:
           'Top ${summary.paretoProductCount} products → ${_pct(summary.paretoRevenue, summary.totalRevenue)}% revenue  •  ${_pct(summary.paretoProfit, summary.totalProfit)}% profit',
-          color: const Color(0xFF2563EB),
+          color: AppColor.primary,
         ),
         Expanded(
-          child: isWide
+          child: products.isEmpty
+              ? const _EmptyState(
+            icon:     Icons.inventory_2_outlined,
+            message:  'No products found',
+            subtitle: 'Try a different date range',
+          )
+              : isWide
               ? _ProductWebTable(products: products, summary: summary)
               : _ProductMobileList(products: products, summary: summary),
         ),
@@ -362,63 +484,67 @@ class _ProductWebTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          Container(
-            color: const Color(0xFF1E3A5F),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(children: [
-              _Th('#',        flex: 1),
-              _Th('Product',  flex: 5),
-              _Th('SKU',      flex: 3),
-              _Th('Revenue',  flex: 3, align: TextAlign.right),
-              _Th('Rev %',    flex: 2, align: TextAlign.right),
-              _Th('Profit',   flex: 3, align: TextAlign.right),
-              _Th('Profit %', flex: 2, align: TextAlign.right),
-              _Th('Qty',      flex: 2, align: TextAlign.right),
-            ]),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: products.length,
-              itemBuilder: (context, i) {
-                final p      = products[i];
-                final revPct = summary.totalRevenue > 0
-                    ? p.totalRevenue / summary.totalRevenue * 100 : 0.0;
-                final profPct = summary.totalProfit > 0
-                    ? p.totalProfit / summary.totalProfit * 100 : 0.0;
-
-                return Container(
-                  decoration: BoxDecoration(
-                    color: i.isEven ? const Color(0xFFEFF6FF) : Colors.white,
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade100),
-                      left: const BorderSide(color: Color(0xFF2563EB), width: 3),
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                  child: Row(children: [
-                    _Td('${i + 1}', flex: 1, bold: true, color: const Color(0xFF2563EB)),
-                    _Td(p.productName, flex: 5, bold: true),
-                    _Td(p.sku, flex: 3, color: Colors.grey.shade600, fontSize: 12),
-                    _Td(_fmt(p.totalRevenue), flex: 3, align: TextAlign.right,
-                        bold: true, color: const Color(0xFF16A34A)),
-                    _Td('${revPct.toStringAsFixed(1)}%', flex: 2,
-                        align: TextAlign.right, color: Colors.grey.shade600, fontSize: 12),
-                    _Td(_fmt(p.totalProfit), flex: 3, align: TextAlign.right,
-                        bold: true,
-                        color: p.totalProfit >= 0 ? const Color(0xFF16A34A) : Colors.red.shade600),
-                    _Td('${profPct.toStringAsFixed(1)}%', flex: 2,
-                        align: TextAlign.right, color: Colors.grey.shade600, fontSize: 12),
-                    _Td(p.totalQty.toInt().toString(), flex: 2, align: TextAlign.right),
-                  ]),
-                );
-              },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Container(
+              color: const Color(0xFFF5F6FA),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: const Row(children: [
+                _Th('#',        flex: 1),
+                _Th('Product',  flex: 5),
+                _Th('SKU',      flex: 3),
+                _Th('Revenue',  flex: 3, align: TextAlign.right),
+                _Th('Rev %',    flex: 2, align: TextAlign.right),
+                _Th('Profit',   flex: 3, align: TextAlign.right),
+                _Th('Profit %', flex: 2, align: TextAlign.right),
+                _Th('Qty',      flex: 2, align: TextAlign.right),
+              ]),
             ),
-          ),
-        ],
+            ...products.asMap().entries.map((entry) {
+              final i      = entry.key;
+              final p      = entry.value;
+              final revPct = summary.totalRevenue > 0
+                  ? p.totalRevenue / summary.totalRevenue * 100 : 0.0;
+              final profPct = summary.totalProfit > 0
+                  ? p.totalProfit / summary.totalProfit * 100 : 0.0;
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: i.isEven ? const Color(0xFFF9FAFB) : Colors.white,
+                  border: const Border(
+                    top: BorderSide(color: Color(0xFFF1F2F5)),
+                    left: BorderSide(color: AppColor.primary, width: 3),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                child: Row(children: [
+                  _Td('${i + 1}', flex: 1, bold: true, color: AppColor.primary),
+                  _Td(p.productName, flex: 5, bold: true),
+                  _Td(p.sku, flex: 3, color: AppColor.textSecondary, fontSize: 12),
+                  _Td(_fmt(p.totalRevenue), flex: 3, align: TextAlign.right,
+                      bold: true, color: AppColor.success),
+                  _Td('${revPct.toStringAsFixed(1)}%', flex: 2,
+                      align: TextAlign.right, color: AppColor.textSecondary, fontSize: 12),
+                  _Td(_fmt(p.totalProfit), flex: 3, align: TextAlign.right,
+                      bold: true,
+                      color: p.totalProfit >= 0 ? AppColor.success : AppColor.error),
+                  _Td('${profPct.toStringAsFixed(1)}%', flex: 2,
+                      align: TextAlign.right, color: AppColor.textSecondary, fontSize: 12),
+                  _Td(p.totalQty.toInt().toString(), flex: 2, align: TextAlign.right),
+                ]),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -442,16 +568,16 @@ class _ProductMobileList extends StatelessWidget {
 
         return _MobileCard(
           rank:  i + 1,
-          color: const Color(0xFF2563EB),
-          bgColor: const Color(0xFFEFF6FF),
+          color: AppColor.primary,
+          bgColor: AppColor.primary.withOpacity(0.05),
           title: p.productName,
           subtitle: p.sku,
           progress: (p.totalRevenue / (summary.totalRevenue > 0 ? summary.totalRevenue : 1)).clamp(0.0, 1.0),
           stats: [
-            _StatItem('Revenue', _fmt(p.totalRevenue), const Color(0xFF16A34A)),
+            _StatItem('Revenue', _fmt(p.totalRevenue), AppColor.success),
             _StatItem('Profit',  _fmt(p.totalProfit),
-                p.totalProfit >= 0 ? const Color(0xFF16A34A) : Colors.red.shade600),
-            _StatItem('Qty',     p.totalQty.toInt().toString(), Colors.grey.shade700),
+                p.totalProfit >= 0 ? AppColor.success : AppColor.error),
+            _StatItem('Qty',     p.totalQty.toInt().toString(), AppColor.textSecondary),
           ],
           badge: '${revPct.toStringAsFixed(1)}% of revenue',
         );
@@ -480,17 +606,23 @@ class _CustomerSalesTab extends StatelessWidget {
       children: [
         _SimpleStatsBar(
           items: [
-            _StatBarItem('Total Sales', _fmt(summary.totalSalesAmount),  const Color(0xFF16A34A)),
-            _StatBarItem('Top 20% Sales', _fmt(summary.paretoSalesAmount), const Color(0xFF0891B2)),
+            _StatBarItem('Total Sales',   _fmt(summary.totalSalesAmount),  AppColor.success),
+            _StatBarItem('Top 20% Sales', _fmt(summary.paretoSalesAmount), AppColor.info),
           ],
         ),
         _ParetoLabel(
           label:
           'Top ${summary.paretoSalesCustomerCount} customers → ${_pct(summary.paretoSalesAmount, summary.totalSalesAmount)}% of total sales',
-          color: const Color(0xFF16A34A),
+          color: AppColor.success,
         ),
         Expanded(
-          child: isWide
+          child: customers.isEmpty
+              ? const _EmptyState(
+            icon:     Icons.people_outline_rounded,
+            message:  'No customers found',
+            subtitle: 'Try a different date range',
+          )
+              : isWide
               ? _CustSalesWebTable(customers: customers, summary: summary)
               : _CustSalesMobileList(customers: customers, summary: summary),
         ),
@@ -507,53 +639,57 @@ class _CustSalesWebTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          Container(
-            color: const Color(0xFF14532D),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(children: [
-              _Th('#',          flex: 1),
-              _Th('Customer',   flex: 5),
-              _Th('Phone',      flex: 3),
-              _Th('Total Sales',flex: 4, align: TextAlign.right),
-              _Th('Share %',    flex: 2, align: TextAlign.right),
-            ]),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: customers.length,
-              itemBuilder: (context, i) {
-                final c   = customers[i];
-                final pct = summary.totalSalesAmount > 0
-                    ? c.totalSales / summary.totalSalesAmount * 100 : 0.0;
-
-                return Container(
-                  decoration: BoxDecoration(
-                    color: i.isEven ? const Color(0xFFF0FDF4) : Colors.white,
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade100),
-                      left: const BorderSide(color: Color(0xFF16A34A), width: 3),
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                  child: Row(children: [
-                    _Td('${i + 1}', flex: 1, bold: true, color: const Color(0xFF16A34A)),
-                    _Td(c.customerName, flex: 5, bold: true),
-                    _Td(c.phone.isEmpty ? '—' : c.phone, flex: 3,
-                        color: Colors.grey.shade600, fontSize: 12),
-                    _Td(_fmt(c.totalSales), flex: 4, align: TextAlign.right,
-                        bold: true, color: const Color(0xFF16A34A)),
-                    _Td('${pct.toStringAsFixed(1)}%', flex: 2,
-                        align: TextAlign.right, color: Colors.grey.shade600, fontSize: 12),
-                  ]),
-                );
-              },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Container(
+              color: const Color(0xFFF5F6FA),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: const Row(children: [
+                _Th('#',           flex: 1),
+                _Th('Customer',    flex: 5),
+                _Th('Phone',       flex: 3),
+                _Th('Total Sales', flex: 4, align: TextAlign.right),
+                _Th('Share %',     flex: 2, align: TextAlign.right),
+              ]),
             ),
-          ),
-        ],
+            ...customers.asMap().entries.map((entry) {
+              final i   = entry.key;
+              final c   = entry.value;
+              final pct = summary.totalSalesAmount > 0
+                  ? c.totalSales / summary.totalSalesAmount * 100 : 0.0;
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: i.isEven ? const Color(0xFFF9FAFB) : Colors.white,
+                  border: const Border(
+                    top: BorderSide(color: Color(0xFFF1F2F5)),
+                    left: BorderSide(color: AppColor.success, width: 3),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                child: Row(children: [
+                  _Td('${i + 1}', flex: 1, bold: true, color: AppColor.success),
+                  _Td(c.customerName, flex: 5, bold: true),
+                  _Td(c.phone.isEmpty ? '—' : c.phone, flex: 3,
+                      color: AppColor.textSecondary, fontSize: 12),
+                  _Td(_fmt(c.totalSales), flex: 4, align: TextAlign.right,
+                      bold: true, color: AppColor.success),
+                  _Td('${pct.toStringAsFixed(1)}%', flex: 2,
+                      align: TextAlign.right, color: AppColor.textSecondary, fontSize: 12),
+                ]),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -577,14 +713,14 @@ class _CustSalesMobileList extends StatelessWidget {
 
         return _MobileCard(
           rank:    i + 1,
-          color:   const Color(0xFF16A34A),
-          bgColor: const Color(0xFFF0FDF4),
+          color:   AppColor.success,
+          bgColor: AppColor.success.withOpacity(0.05),
           title:   c.customerName,
           subtitle: c.phone.isEmpty ? null : c.phone,
           progress: (c.totalSales / (summary.totalSalesAmount > 0 ? summary.totalSalesAmount : 1)).clamp(0.0, 1.0),
           stats: [
-            _StatItem('Sales', _fmt(c.totalSales), const Color(0xFF16A34A)),
-            _StatItem('Share', '${pct.toStringAsFixed(1)}%', const Color(0xFF0891B2)),
+            _StatItem('Sales', _fmt(c.totalSales), AppColor.success),
+            _StatItem('Share', '${pct.toStringAsFixed(1)}%', AppColor.info),
           ],
           badge: '${pct.toStringAsFixed(1)}% of total',
         );
@@ -613,17 +749,23 @@ class _CustomerBalanceTab extends StatelessWidget {
       children: [
         _SimpleStatsBar(
           items: [
-            _StatBarItem('Total Pending',   _fmt(summary.totalBalanceAmount),  const Color(0xFFDC2626)),
-            _StatBarItem('Top 20% Balance', _fmt(summary.paretoBalanceAmount), const Color(0xFFEA580C)),
+            _StatBarItem('Total Pending',   _fmt(summary.totalBalanceAmount),  AppColor.error),
+            _StatBarItem('Top 20% Balance', _fmt(summary.paretoBalanceAmount), AppColor.warning),
           ],
         ),
         _ParetoLabel(
           label:
           'Top ${summary.paretoBalanceCustomerCount} customers → ${_pct(summary.paretoBalanceAmount, summary.totalBalanceAmount)}% pending balance',
-          color: const Color(0xFFDC2626),
+          color: AppColor.error,
         ),
         Expanded(
-          child: isWide
+          child: customers.isEmpty
+              ? const _EmptyState(
+            icon:     Icons.account_balance_wallet_outlined,
+            message:  'No pending balances',
+            subtitle: 'Try a different date range',
+          )
+              : isWide
               ? _CustBalWebTable(customers: customers, summary: summary)
               : _CustBalMobileList(customers: customers, summary: summary),
         ),
@@ -640,98 +782,102 @@ class _CustBalWebTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          Container(
-            color: const Color(0xFF7F1D1D),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(children: [
-              _Th('#',             flex: 1),
-              _Th('Customer',      flex: 5),
-              _Th('Phone',         flex: 3),
-              _Th('Type',          flex: 2, align: TextAlign.center),
-              _Th('Balance',       flex: 3, align: TextAlign.right),
-              _Th('Credit Limit',  flex: 3, align: TextAlign.right),
-              _Th('Share %',       flex: 2, align: TextAlign.right),
-              _Th('',              flex: 2),
-            ]),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: customers.length,
-              itemBuilder: (context, i) {
-                final c   = customers[i];
-                final pct = summary.totalBalanceAmount > 0
-                    ? c.balance / summary.totalBalanceAmount * 100 : 0.0;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Container(
+              color: const Color(0xFFF5F6FA),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: const Row(children: [
+                _Th('#',            flex: 1),
+                _Th('Customer',     flex: 5),
+                _Th('Phone',        flex: 3),
+                _Th('Type',         flex: 2, align: TextAlign.center),
+                _Th('Balance',      flex: 3, align: TextAlign.right),
+                _Th('Credit Limit', flex: 3, align: TextAlign.right),
+                _Th('Share %',      flex: 2, align: TextAlign.right),
+                _Th('',             flex: 2),
+              ]),
+            ),
+            ...customers.asMap().entries.map((entry) {
+              final i   = entry.key;
+              final c   = entry.value;
+              final pct = summary.totalBalanceAmount > 0
+                  ? c.balance / summary.totalBalanceAmount * 100 : 0.0;
 
-                return Container(
-                  decoration: BoxDecoration(
-                    color: i.isEven ? const Color(0xFFFFF1F2) : Colors.white,
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade100),
-                      left: const BorderSide(color: Color(0xFFDC2626), width: 3),
-                    ),
+              return Container(
+                decoration: BoxDecoration(
+                  color: i.isEven ? const Color(0xFFF9FAFB) : Colors.white,
+                  border: const Border(
+                    top: BorderSide(color: Color(0xFFF1F2F5)),
+                    left: BorderSide(color: AppColor.error, width: 3),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                  child: Row(children: [
-                    _Td('${i + 1}', flex: 1, bold: true, color: const Color(0xFFDC2626)),
-                    _Td(c.customerName, flex: 5, bold: true),
-                    _Td(c.phone.isEmpty ? '—' : c.phone, flex: 3,
-                        color: Colors.grey.shade600, fontSize: 12),
-                    Expanded(
-                      flex: 2,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: c.customerType == 'credit'
-                                ? Colors.blue.shade50
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(c.customerType.toUpperCase(),
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: c.customerType == 'credit'
-                                      ? Colors.blue.shade700
-                                      : Colors.grey.shade600)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                child: Row(children: [
+                  _Td('${i + 1}', flex: 1, bold: true, color: AppColor.error),
+                  _Td(c.customerName, flex: 5, bold: true),
+                  _Td(c.phone.isEmpty ? '—' : c.phone, flex: 3,
+                      color: AppColor.textSecondary, fontSize: 12),
+                  Expanded(
+                    flex: 2,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: c.customerType == 'credit'
+                              ? AppColor.info.withOpacity(0.1)
+                              : AppColor.grey100,
+                          borderRadius: BorderRadius.circular(4),
                         ),
+                        child: Text(c.customerType.toUpperCase(),
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: c.customerType == 'credit'
+                                    ? AppColor.info
+                                    : AppColor.textSecondary)),
                       ),
                     ),
-                    _Td(_fmt(c.balance), flex: 3, align: TextAlign.right,
-                        bold: true, color: const Color(0xFFDC2626)),
-                    _Td(c.creditLimit > 0 ? _fmt(c.creditLimit) : '—', flex: 3,
-                        align: TextAlign.right, color: Colors.grey.shade600),
-                    _Td('${pct.toStringAsFixed(1)}%', flex: 2,
-                        align: TextAlign.right, color: Colors.grey.shade600, fontSize: 12),
-                    Expanded(
-                      flex: 2,
-                      child: c.isCreditLimitExceeded
-                          ? Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF7F1D1D),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('LIMIT ×',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold)),
+                  ),
+                  _Td(_fmt(c.balance), flex: 3, align: TextAlign.right,
+                      bold: true, color: AppColor.error),
+                  _Td(c.creditLimit > 0 ? _fmt(c.creditLimit) : '—', flex: 3,
+                      align: TextAlign.right, color: AppColor.textSecondary),
+                  _Td('${pct.toStringAsFixed(1)}%', flex: 2,
+                      align: TextAlign.right, color: AppColor.textSecondary, fontSize: 12),
+                  Expanded(
+                    flex: 2,
+                    child: c.isCreditLimitExceeded
+                        ? Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColor.error,
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                      )
-                          : const SizedBox(),
-                    ),
-                  ]),
-                );
-              },
-            ),
-          ),
-        ],
+                        child: const Text('LIMIT ×',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    )
+                        : const SizedBox(),
+                  ),
+                ]),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -755,16 +901,16 @@ class _CustBalMobileList extends StatelessWidget {
 
         return _MobileCard(
           rank:    i + 1,
-          color:   const Color(0xFFDC2626),
-          bgColor: const Color(0xFFFFF1F2),
+          color:   AppColor.error,
+          bgColor: AppColor.error.withOpacity(0.05),
           title:   c.customerName,
           subtitle: c.phone.isEmpty ? null : c.phone,
           progress: (c.balance / (summary.totalBalanceAmount > 0 ? summary.totalBalanceAmount : 1)).clamp(0.0, 1.0),
           stats: [
-            _StatItem('Balance', _fmt(c.balance), const Color(0xFFDC2626)),
+            _StatItem('Balance', _fmt(c.balance), AppColor.error),
             if (c.creditLimit > 0)
-              _StatItem('Limit', _fmt(c.creditLimit), Colors.grey.shade600),
-            _StatItem('Share', '${pct.toStringAsFixed(1)}%', const Color(0xFFEA580C)),
+              _StatItem('Limit', _fmt(c.creditLimit), AppColor.textSecondary),
+            _StatItem('Share', '${pct.toStringAsFixed(1)}%', AppColor.warning),
           ],
           badge: c.isCreditLimitExceeded ? 'LIMIT ×' : '${pct.toStringAsFixed(1)}%',
           badgeDanger: c.isCreditLimitExceeded,
@@ -787,8 +933,8 @@ class _ParetoLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-      color: color.withOpacity(0.08),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: color.withOpacity(0.07),
       child: Row(
         children: [
           Icon(Icons.star_rounded, size: 14, color: color),
@@ -821,27 +967,28 @@ class _SimpleStatsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF1F3F8),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      color: const Color(0xFFF5F6FA),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Row(
         children: items.map((item) {
           return Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color:        item.color.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: item.color.withOpacity(0.15)),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x08000000), blurRadius: 4, offset: Offset(0, 2)),
-                ],
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 8, height: 8,
-                    decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color:        item.color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Icon(Icons.circle, size: 8, color: item.color),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -849,13 +996,18 @@ class _SimpleStatsBar extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(item.label,
-                            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                            style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
                         const SizedBox(height: 2),
-                        Text(item.value,
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: item.color)),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(item.value,
+                              maxLines: 1,
+                              style: TextStyle(
+                                  fontSize:   14,
+                                  fontWeight: FontWeight.w800,
+                                  color:      item.color)),
+                        ),
                       ],
                     ),
                   ),
@@ -903,43 +1055,53 @@ class _MobileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color:        bgColor,
-        borderRadius: BorderRadius.circular(10),
-        border:       Border.all(color: color.withOpacity(0.3)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x08000000), blurRadius: 4, offset: Offset(0, 2))
+        color:        Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border:       Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+              color:      Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset:     const Offset(0, 2)),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: color,
+                Container(
+                  width:  32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  alignment: Alignment.center,
                   child: Text('$rank',
                       style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold)),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title,
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13)),
+                              fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF1A1D23)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                       if (subtitle != null)
                         Text(subtitle!,
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey.shade500)),
+                            style: const TextStyle(
+                                fontSize: 11, color: AppColor.textHint)),
                     ],
                   ),
                 ),
@@ -947,8 +1109,8 @@ class _MobileCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: badgeDanger ? const Color(0xFF7F1D1D) : color,
-                      borderRadius: BorderRadius.circular(4),
+                      color: badgeDanger ? AppColor.error : color,
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(badge!,
                         style: const TextStyle(
@@ -958,42 +1120,44 @@ class _MobileCard extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Row(
               children: stats.map((s) {
                 return Expanded(
                   child: Container(
                     margin: const EdgeInsets.only(right: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     decoration: BoxDecoration(
                       color:        s.color.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(7),
                       border:       Border.all(color: s.color.withOpacity(0.15)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(s.label,
-                            style: TextStyle(
-                                fontSize: 9, color: Colors.grey.shade500)),
+                            style: const TextStyle(
+                                fontSize: 9, color: AppColor.textHint)),
                         const SizedBox(height: 2),
                         Text(s.value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: s.color)),
+                                fontSize:   11,
+                                fontWeight: FontWeight.w700,
+                                color:      s.color)),
                       ],
                     ),
                   ),
                 );
               }).toList(),
             ),
-            const SizedBox(height: 7),
+            const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(3),
               child: LinearProgressIndicator(
                 value:           progress,
-                backgroundColor: Colors.grey.shade200,
+                backgroundColor: AppColor.grey200,
                 valueColor:      AlwaysStoppedAnimation<Color>(color),
                 minHeight:       5,
               ),
@@ -1018,9 +1182,9 @@ class _Th extends StatelessWidget {
     child: Text(text,
         textAlign: align,
         style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+            color:         AppColor.textHint,
+            fontSize:      10,
+            fontWeight:    FontWeight.w700,
             letterSpacing: 0.3)),
   );
 }
@@ -1048,8 +1212,43 @@ class _Td extends StatelessWidget {
         textAlign: align,
         style: TextStyle(
             fontSize:   fontSize,
-            fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+            fontWeight: bold ? FontWeight.w700 : FontWeight.normal,
             color:      color ?? const Color(0xFF1A1D23))),
+  );
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String   message;
+  final String   subtitle;
+  const _EmptyState({
+    required this.icon,
+    required this.message,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 64, color: Colors.grey.shade300),
+        const SizedBox(height: 16),
+        Text(
+          message,
+          style: TextStyle(
+            fontSize:   16,
+            fontWeight: FontWeight.w600,
+            color:      Colors.grey.shade500,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+        ),
+      ],
+    ),
   );
 }
 
@@ -1063,14 +1262,20 @@ class _ErrorView extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+        Icon(Icons.error_outline, size: 48, color: AppColor.error),
         const SizedBox(height: 12),
         Text(message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600)),
+            style: const TextStyle(color: AppColor.textSecondary)),
         const SizedBox(height: 16),
         ElevatedButton.icon(
           onPressed: onRetry,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColor.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
           icon:  const Icon(Icons.refresh),
           label: const Text('Retry'),
         ),

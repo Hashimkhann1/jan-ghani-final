@@ -4,7 +4,6 @@ import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_cu
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/screen/accountant_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_discount_wise_sale_report/presentation/screen/accountant_discount_wise_sale_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/pareto_report/presentation/screen/pareto_report_screen.dart';
-import 'package:jan_ghani_final/features/accountant/branch_reports/target/presentation/screen/pnl_splash_screen.dart';
 import '../../../../../../core/color/app_color.dart';
 import 'accountant_branch_transaction/presentation/screen/accountant_branch_transaction_report_screen.dart';
 import 'accountant_category_wise_sale_report/presentaion/screen/category_sale_report_screen.dart';
@@ -106,12 +105,6 @@ class BranchReportListScreen extends StatelessWidget {
     _ReportItem(
       icon:     Icons.inventory_2_rounded,
       label:    'Pareto Principle Report',
-      subtitle: '',
-      color:    Color(0xFF8B5CF6),
-    ),
-    _ReportItem(
-      icon:     Icons.inventory_2_rounded,
-      label:    '3 Month Target',
       subtitle: '',
       color:    Color(0xFF8B5CF6),
     ),
@@ -236,22 +229,15 @@ class BranchReportListScreen extends StatelessWidget {
         ));
       case 14:
         Navigator.push(context, MaterialPageRoute(
-          builder: (_) => PnlSplashScreen(onComplete: () {
-            Navigator.pop(context);
-          },),
+          builder: (_) => BranchCashDifferenceScreen(branchId: branchId),
         ));
         break;
       case 15:
         Navigator.push(context, MaterialPageRoute(
-          builder: (_) => BranchCashDifferenceScreen(branchId: branchId),
-        ));
-        break;
-      case 16:
-        Navigator.push(context, MaterialPageRoute(
           builder: (_) => CustomerLogsScreen(branchId: branchId),
         ));
         break;
-      case 17:
+      case 16:
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => BranchStockInventoryLogsScreen(branchId: branchId),
         ));

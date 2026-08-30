@@ -121,6 +121,36 @@ class CashCounterNotifier extends StateNotifier<CashCounterState> {
     }
   }
 
+  // Called once when the app opens (from BranchSideBar's initState) for a
+  // logged-in counter operator. Auto-creates today's counter row using
+  // yesterday's closing total_amount as the opening amount — the exact
+  // number the operator used to look up and type in manually. Silent by
+  // design: this is a background convenience, so a failure here must not
+  // block app startup or show an error — "Cash Registration" stays
+  // available as a manual fallback either way.
+  Future<void> autoRegisterTodayIfNeeded() async {
+    final counterId = _counterId;
+    if (counterId == null) return;
+
+    try {
+      final alreadyRegistered = await _ds.hasTodayRow(_storeId, counterId);
+      if (alreadyRegistered) return;
+
+      final previousClosing =
+      await _ds.getPreviousClosingAmount(_storeId, counterId);
+
+      await _ds.registerOpeningAmount(
+        storeId:   _storeId,
+        counterId: counterId,
+        amount:    previousClosing,
+      );
+
+      await loadRecords();
+    } catch (e) {
+      print('⚠️ autoRegisterTodayIfNeeded skipped: $e');
+    }
+  }
+
   void onSearchChanged(String q) =>
       state = state.copyWith(searchQuery: q);
   void clearError() => state = state.copyWith(errorMessage: null);

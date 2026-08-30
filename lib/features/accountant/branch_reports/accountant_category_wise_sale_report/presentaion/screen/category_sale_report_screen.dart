@@ -281,7 +281,7 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
               Expanded(
                 child: state.isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : state.reports.isEmpty
+                    : state.visibleReports.isEmpty
                     ? const _EmptyState()
                     : Center(
                   child: ConstrainedBox(
@@ -290,11 +290,11 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
                       onRefresh: notifier.load,
                       child: ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                        itemCount:        state.reports.length,
+                        itemCount:        state.visibleReports.length,
                         separatorBuilder: (_, __) =>
                         const SizedBox(height: 10),
                         itemBuilder: (_, i) => _CategoryCard(
-                          report:   state.reports[i],
+                          report:   state.visibleReports[i],
                           fmtAmt:   _fmtAmt,
                           fmtQty:   _fmtQty,
                           rank:     i + 1,

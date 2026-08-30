@@ -30,11 +30,21 @@ class CategorySaleReportState {
     return DateTime(n.year, n.month, n.day);
   }
 
+  // ── `reports` always holds every category for the date range;
+  //    the category-dropdown filter is applied here, client-side,
+  //    against that already-fetched list instead of re-querying the
+  //    RPC (its per-category aggregation doesn't depend on which
+  //    category the dropdown has selected). ────────────────────────
+  List<CategorySaleReport> get visibleReports =>
+      (selectedCategoryId == null || selectedCategoryId!.isEmpty)
+          ? reports
+          : reports.where((r) => r.categoryId == selectedCategoryId).toList();
+
   CategorySaleReportSummary get summary => CategorySaleReportSummary(
-    totalCategories: reports.length,
-    totalSales:      reports.fold(0, (s, r) => s + r.totalSales),
-    totalProfit:     reports.fold(0, (s, r) => s + r.totalProfit),
-    totalQuantity:   reports.fold(0, (s, r) => s + r.totalQuantity),
+    totalCategories: visibleReports.length,
+    totalSales:      visibleReports.fold(0, (s, r) => s + r.totalSales),
+    totalProfit:     visibleReports.fold(0, (s, r) => s + r.totalProfit),
+    totalQuantity:   visibleReports.fold(0, (s, r) => s + r.totalQuantity),
   );
 
   CategorySaleReportState copyWith({
@@ -87,9 +97,8 @@ class CategorySaleReportNotifier
     state = state.copyWith(isLoading: true);
     try {
       final data = await _ds.getReport(
-        fromDate:   state.fromDate,
-        toDate:     state.toDate,
-        categoryId: state.selectedCategoryId,
+        fromDate: state.fromDate,
+        toDate:   state.toDate,
       );
       state = state.copyWith(reports: data, isLoading: false);
     } catch (e) {
@@ -110,12 +119,14 @@ class CategorySaleReportNotifier
     load();
   }
 
+  // Category filter is applied client-side against the already-fetched
+  // `reports` (see CategorySaleReportState.visibleReports) — no need to
+  // re-hit the RPC just because the dropdown selection changed.
   void setCategory(String? id) {
     state = state.copyWith(
       selectedCategoryId: id,
       clearCategory:      id == null,
     );
-    load();
   }
 
   void setToday() {
