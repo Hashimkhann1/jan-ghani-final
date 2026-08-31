@@ -42,8 +42,10 @@ class NavItem {
 }
 
 // ── Cashier Items ──────────────────────────────────────────────
-// Cashier only gets: Sale Invoice, Customer, Customer Account, Customer Ledger.
-// Alt+S=Sale Invoice, Alt+C=Customer, Alt+A=Customer Account, Alt+L=Ledger
+// Cashier gets: Sale Invoice, Customer, Customer Account, Customer Ledger,
+// Cash Counter, Assign Stock to My Branch, Branch Stock (read-only), CS&R.
+// Alt+S=Sale Invoice, Alt+C=Customer, Alt+A=Customer Account, Alt+L=Ledger,
+// Alt+X=Cash Counter, Alt+I=Branch Stock, Alt+G=CS&R Report
 final _cashierItems = <NavItem>[
   NavItem(
     icon: Icons.point_of_sale_rounded, label: 'Sale Invoice',
@@ -69,6 +71,11 @@ final _cashierItems = <NavItem>[
     icon: Icons.savings_rounded, label: 'Cash Counter',
     screen: const CashCounterScreen(),
     shortcutKey: LogicalKeyboardKey.keyX,
+  ),
+  NavItem(
+    icon: Icons.inventory_2_rounded, label: 'Branch Stock',
+    screen: const BranchStockInventoryScreen(),
+    shortcutKey: LogicalKeyboardKey.keyI,
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
