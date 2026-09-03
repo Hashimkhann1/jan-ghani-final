@@ -72,8 +72,18 @@ class SessionService {
   }
 
   // ── CLEAR (Logout) ────────────────────────────────────────
+  // Sirf session keys remove karo — baqi app prefs (config, printer,
+  // accountant session waghera) untouched rehni chahiye.
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await Future.wait([
+      prefs.remove(_keyUserId),
+      prefs.remove(_keyStoreId),
+      prefs.remove(_keyRole),
+      prefs.remove(_keyCounterId),
+      prefs.remove(_keyUsername),
+      prefs.remove(_keyFullName),
+      prefs.remove(_keyIsLoggedIn),
+    ]);
   }
 }

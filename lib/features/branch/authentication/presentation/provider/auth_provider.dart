@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/service/session/session_service.dart';
@@ -9,17 +10,18 @@ class AuthState {
   final bool       isLoading;
   final String?    errorMessage;
   final bool       isLoggedIn;
-  final bool?      hasBranch;      // ✅ NEW — null = still checking
+  final bool?      hasBranch;      // null = still checking
+  final bool       checkFailed;   // true = DB unreachable during init
 
   const AuthState({
     this.user,
     this.isLoading    = false,
     this.errorMessage,
     this.isLoggedIn   = false,
-    this.hasBranch,               // ✅ NEW
+    this.hasBranch,
+    this.checkFailed  = false,
   });
 
-  // ... getters same rahenge ...
   String  get userId    => user?.id        ?? '';
   String  get storeId   => user?.storeId   ?? '';
   String  get role      => user?.role      ?? '';
@@ -37,13 +39,15 @@ class AuthState {
     bool?      isLoading,
     String?    errorMessage,
     bool?      isLoggedIn,
-    bool?      hasBranch,         // ✅ NEW
+    bool?      hasBranch,
+    bool?      checkFailed,
   }) => AuthState(
     user:         user         ?? this.user,
     isLoading:    isLoading    ?? this.isLoading,
-    errorMessage: errorMessage,
+    errorMessage: errorMessage,          // transient: cleared unless passed
     isLoggedIn:   isLoggedIn   ?? this.isLoggedIn,
     hasBranch:    hasBranch    ?? this.hasBranch,
+    checkFailed:  checkFailed  ?? this.checkFailed,
   );
 }
 
@@ -56,20 +60,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _restoreSession() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, checkFailed: false);
     try {
-      // ✅ Pehle branch check karo
       final branchExists = await _ds.hasBranchData();
 
       if (!branchExists) {
-        state = state.copyWith(
-          isLoading: false,
-          hasBranch: false,
-        );
+        state = state.copyWith(isLoading: false, hasBranch: false);
         return;
       }
 
-      // Branch hai — session check karo
       final loggedIn = await SessionService.isLoggedIn();
       if (!loggedIn) {
         state = state.copyWith(isLoading: false, hasBranch: true);
@@ -77,7 +76,61 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       final session = await SessionService.getSession();
-      final user = UserModel(
+      final userId  = session['user_id'] ?? '';
+
+      // Re-validate the stored session against the DB so a deactivated or
+      // deleted account (or a changed role/counter) does not stay logged in.
+      UserModel? user;
+      try {
+        user = userId.isEmpty ? null : await _ds.getActiveById(userId);
+      } catch (e) {
+        // Transient read failure — fall back to the cached session instead of
+        // logging the user out or nuking their stored credentials.
+        if (kDebugMode) debugPrint('session revalidate failed: $e');
+        state = state.copyWith(
+          user:       _userFromSession(session),
+          isLoggedIn: true,
+          isLoading:  false,
+          hasBranch:  true,
+        );
+        return;
+      }
+
+      if (user == null) {
+        await SessionService.clearSession();
+        state = state.copyWith(isLoading: false, hasBranch: true, isLoggedIn: false);
+        return;
+      }
+
+      // Refresh the cached session with the current DB values.
+      await SessionService.saveSession(
+        userId:    user.id,
+        storeId:   user.storeId,
+        role:      user.role,
+        username:  user.username,
+        fullName:  user.fullName,
+        counterId: user.counterId,
+      );
+
+      state = state.copyWith(
+        user:       user,
+        isLoggedIn: true,
+        isLoading:  false,
+        hasBranch:  true,
+      );
+    } on AuthConnectionException catch (e) {
+      if (kDebugMode) debugPrint('auth init failed: $e');
+      state = state.copyWith(isLoading: false, checkFailed: true);
+    } catch (e) {
+      if (kDebugMode) debugPrint('auth init failed: $e');
+      state = state.copyWith(isLoading: false, checkFailed: true);
+    }
+  }
+
+  /// Retry the branch/session check after a connection failure.
+  Future<void> retryInit() => _restoreSession();
+
+  UserModel _userFromSession(Map<String, String?> session) => UserModel(
         id:           session['user_id']   ?? '',
         storeId:      session['store_id']  ?? '',
         username:     session['username']  ?? '',
@@ -90,19 +143,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         updatedAt:    DateTime.now(),
       );
 
-      state = state.copyWith(
-        user:       user,
-        isLoggedIn: true,
-        isLoading:  false,
-        hasBranch:  true,           // ✅
-      );
-    } catch (e) {
-      state = state.copyWith(isLoading: false, hasBranch: false);
-    }
-  }
-
   // ── LOGIN ─────────────────────────────────────────────────
   Future<void> login(String username, String password) async {
+    if (state.isLoading) return; // guard against double submit
     state = state.copyWith(isLoading: true);
     try {
       final user = await _ds.login(username, password);
@@ -115,7 +158,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
 
-      // ✅ SharedPreferences mein save karo
       await SessionService.saveSession(
         userId:    user.id,
         storeId:   user.storeId,
@@ -131,9 +173,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading:  false,
       );
     } catch (e) {
+      if (kDebugMode) debugPrint('login error: $e');
       state = state.copyWith(
         isLoading:    false,
-        errorMessage: 'Login error: $e',
+        errorMessage: 'Login nahi ho saka. Connection check karein.',
       );
     }
   }

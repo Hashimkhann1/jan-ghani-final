@@ -3,12 +3,24 @@ import 'package:postgres/postgres.dart';
 
 class DataBaseService {
   static Connection? _connection;
+  static Future<Connection>? _opening;
 
   static Future<Connection> getConnection() async {
-    if (_connection != null) return _connection!;
+    final existing = _connection;
+    if (existing != null && existing.isOpen) return existing;
 
+    // Stale/broken handle — drop it before reconnecting.
+    if (existing != null && !existing.isOpen) {
+      _connection = null;
+    }
+
+    // Coalesce concurrent callers onto a single open attempt.
+    return _opening ??= _open();
+  }
+
+  static Future<Connection> _open() async {
     try {
-      _connection = await Connection.open(
+      final conn = await Connection.open(
         Endpoint(
           host: StoreConfig.dbHost,
           port: StoreConfig.dbPort,
@@ -19,18 +31,23 @@ class DataBaseService {
         settings: const ConnectionSettings(
           sslMode: SslMode.disable,
           timeZone: 'Asia/Karachi',
+          connectTimeout: Duration(seconds: 10),
         ),
-      );
+      ).timeout(const Duration(seconds: 15));
+      _connection = conn;
       print('PostgreSQL connected!');
-      return _connection!;
+      return conn;
     } catch (e) {
       print('Connection Error: $e');
       rethrow;
+    } finally {
+      _opening = null;
     }
   }
 
   static Future<void> close() async {
     await _connection?.close();
     _connection = null;
+    _opening = null;
   }
 }

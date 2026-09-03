@@ -1,6 +1,7 @@
 import 'package:postgres/postgres.dart';
 
 import '../../../../../core/service/db/db_service.dart';
+import '../../../../../core/service/security/password_hasher.dart';
 import '../model/user_model.dart';
 
 class UserRemoteDataSource {
@@ -45,6 +46,7 @@ class UserRemoteDataSource {
 
   Future<UserModel> add(UserModel user) async {
     final conn = await DataBaseService.getConnection();
+    final username = user.username.trim().toLowerCase();
     final result = await conn.execute(
       Sql.named('''
         INSERT INTO public.branch_users
@@ -57,8 +59,8 @@ class UserRemoteDataSource {
       '''),
       parameters: {
         'storeId':      user.storeId,
-        'username':     user.username,
-        'passwordHash': user.passwordHash,
+        'username':     username,
+        'passwordHash': PasswordHasher.hash(username, user.passwordHash),
         'fullName':     user.fullName,
         'phone':        user.phone,
         'role':         user.role,
@@ -71,6 +73,14 @@ class UserRemoteDataSource {
 
   Future<UserModel> update(UserModel user) async {
     final conn = await DataBaseService.getConnection();
+
+    // A non-empty passwordHash that is already a digest means "no change"
+    // (the edit dialog passes the existing hash back). Only write when the
+    // admin actually typed a new plaintext password.
+    final rawPass = user.passwordHash;
+    final changingPassword =
+        rawPass.isNotEmpty && !PasswordHasher.looksHashed(rawPass);
+
     await conn.execute(
       Sql.named('''
         UPDATE public.branch_users SET
@@ -80,7 +90,7 @@ class UserRemoteDataSource {
           is_active   = @isActive,
           counter_id  = @counterId,
           updated_at  = NOW()
-          ${user.passwordHash.isNotEmpty ? ', password_hash = @passwordHash' : ''}
+          ${changingPassword ? ', password_hash = @passwordHash' : ''}
         WHERE id = @id
       '''),
       parameters: {
@@ -90,8 +100,9 @@ class UserRemoteDataSource {
         'role':      user.role,
         'isActive':  user.isActive,
         'counterId': user.counterId,
-        if (user.passwordHash.isNotEmpty)
-          'passwordHash': user.passwordHash,
+        if (changingPassword)
+          'passwordHash':
+              PasswordHasher.hash(user.username, rawPass),
       },
     );
     return (await getById(user.id))!;
@@ -115,14 +126,14 @@ class UserRemoteDataSource {
     final result = await conn.execute(
       Sql.named('''
         SELECT 1 FROM public.branch_users
-        WHERE username   = @username
-          AND store_id   = @storeId
-          AND deleted_at IS NULL
+        WHERE LOWER(username) = @username
+          AND store_id        = @storeId
+          AND deleted_at      IS NULL
           ${excludeId != null ? 'AND id != @excludeId' : ''}
         LIMIT 1
       '''),
       parameters: {
-        'username': username,
+        'username': username.trim().toLowerCase(),
         'storeId':  storeId,
         if (excludeId != null) 'excludeId': excludeId,
       },

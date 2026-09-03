@@ -96,9 +96,31 @@ class _BranchHome extends ConsumerWidget {
     final auth = ref.watch(authProvider);
 
     // ── Loading / checking ──
-    if (auth.isLoading || auth.hasBranch == null) {
+    if (auth.isLoading || (auth.hasBranch == null && !auth.checkFailed)) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // ── DB reachable nahi — retry, warna setup screen pe mat bhejo ──
+    if (auth.checkFailed) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_rounded, size: 48),
+              const SizedBox(height: 12),
+              const Text('Database se connect nahi ho saka'),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () =>
+                    ref.read(authProvider.notifier).retryInit(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -120,3 +142,4 @@ class _BranchHome extends ConsumerWidget {
 
 // git tag v1.0.0
 // git push origin v1.0.0
+// jan_ghani_final.exe > logs.txt 2>&1
