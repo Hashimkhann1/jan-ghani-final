@@ -648,12 +648,16 @@ class SyncConfig {
   static const String dbUser     = 'storeuser';
   static const String dbPassword = 'shahab';
 
-  // ── Supabase ──────────────────────────────────────────────
+//  ── Supabase production ──────────────────────────────────────────────
   static const String supabaseUrl = "https://kjjtqfruxhjcxwvxwffz.supabase.co";
   static const String supabaseKey = "sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS";
 
+  // // ── Supabase dev ──────────────────────────────────────────────
+  // static const String supabaseUrl = "https://fngvbieiwilypecznwcl.supabase.co";
+  // static const String supabaseKey = "sb_publishable_z-6QD20dfck8hoG9_NzSZw_063NHmS4";
+
   // ── Sync interval — 10 minutes ────────────────────────────
-  static const int syncIntervalSeconds = 600;
+  static const int syncIntervalSeconds = 500;
 
   // ── Tables — dependency order mein (parent pehle) ────────
   static const List<String> tables = [
@@ -712,6 +716,12 @@ class SyncConfig {
     // nahi hota). Fix: 'id' bhejo hi mat — Supabase apna naya id
     // khud generate kar lega.
     'branch_stock_inventory': ['id'],
+    // Local `branch_stock_inventory_logs` mein `changed_by` aur `notes`
+    // columns hain (DB-side, app inhe set nahi karta) jo Supabase ke
+    // table mein nahi — bina exclude kiye har log row PGRST204 se skip
+    // ho jaati thi. Accountant report sirf `user_id` padhti hai, in
+    // dono ko nahi — is liye safely drop.
+    'branch_stock_inventory_logs': ['changed_by', 'notes'],
   };
 
   // ── Har table ka timestamp column ────────────────────────
@@ -1039,6 +1049,11 @@ class SyncService {
       }
       _log('  🏪 Store ID: $storeId');
 
+      // ── Pending cash-outs ko janghani_net_amount mein apply karo ──
+      // (slow/no internet ke waqt cashOut sirf local hota hai; yahan
+      //  reliably retry hota hai jab tak amount janghani na pahunche)
+      await _applyPendingJanghani(db, supabase, storeId, send);
+
       // ── Har table sync karo ───────────────────
       for (final table in SyncConfig.tables) {
         final count = await _syncTable(db, supabase, table, storeId, send);
@@ -1075,6 +1090,120 @@ class SyncService {
     } catch (e) {
       _log('  ❌ store_id fetch error: $e');
       return null;
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  //  💸 Pending branch cash-outs → janghani_net_amount.cash_in_hand
+  //
+  //  App ka cashOut ab sirf local hota hai (counter minus +
+  //  is_synced=false row). Yahan har sync cycle mein — aur internet
+  //  aate hi (internet monitor _runSync trigger karta hai) — pending
+  //  rows janghani_net_amount mein add hoti hain.
+  //
+  //  Idempotency: row ko PEHLE claim kiya jaata hai (is_synced ko
+  //  true sirf tab jab woh false ho). Jo caller woh atomic update
+  //  jeet-ta hai wahi Supabase ko touch karta hai. Remote update fail
+  //  ho to claim wapas false — agle cycle mein retry.
+  // ══════════════════════════════════════════════
+  static Future<void> _applyPendingJanghani(
+      Connection     db,
+      SupabaseClient supabase,
+      String         storeId,
+      SendPort       send,
+      ) async {
+    try {
+      final pending = await db.execute(
+        Sql.named('''
+          SELECT id, pay_amount FROM branch_transaction_to_janghani
+          WHERE branch_id  = @sid
+            AND is_synced   = false
+            AND type        = 'cash_out'
+          ORDER BY created_at ASC
+        '''),
+        parameters: {'sid': storeId},
+      );
+      if (pending.isEmpty) return;
+
+      final netList = await supabase
+          .from('janghani_net_amount')
+          .select('id, cash_in_hand')
+          .limit(1);
+      if ((netList as List).isEmpty) {
+        send.send(_TableError('janghani_net_amount', 'row not found'));
+        return;
+      }
+      final janghaniId = netList.first['id'].toString();
+
+      int applied = 0;
+      for (final row in pending) {
+        final m     = row.toColumnMap();
+        final rowId = m['id'].toString();
+        final pay   = m['pay_amount'] is num
+            ? (m['pay_amount'] as num).toDouble()
+            : double.tryParse(m['pay_amount'].toString()) ?? 0.0;
+
+        // Claim the row atomically.
+        final claim = await db.execute(
+          Sql.named('''
+            UPDATE branch_transaction_to_janghani
+            SET is_synced = true, updated_at = NOW()
+            WHERE id = @id AND is_synced = false
+          '''),
+          parameters: {'id': rowId},
+        );
+        if (claim.affectedRows != 1) continue;
+
+        if (pay <= 0) { applied++; continue; } // nothing to add, already marked
+
+        try {
+          final curList = await supabase
+              .from('janghani_net_amount')
+              .select('cash_in_hand')
+              .eq('id', janghaniId)
+              .limit(1);
+          final currentCash = (curList as List).isNotEmpty
+              ? (double.tryParse(
+                      curList.first['cash_in_hand']?.toString() ?? '0') ??
+                  0.0)
+              : 0.0;
+
+          await supabase
+              .from('janghani_net_amount')
+              .update({'cash_in_hand': currentCash + pay})
+              .eq('id', janghaniId);
+
+          await db.execute(
+            Sql.named('''
+              UPDATE branch_transaction_to_janghani
+              SET assign_to_id = @jid, updated_at = NOW()
+              WHERE id = @id
+            '''),
+            parameters: {'jid': janghaniId, 'id': rowId},
+          );
+          applied++;
+        } catch (e) {
+          // Release the claim so a later cycle retries this row.
+          await db.execute(
+            Sql.named('''
+              UPDATE branch_transaction_to_janghani
+              SET is_synced = false, updated_at = NOW()
+              WHERE id = @id
+            '''),
+            parameters: {'id': rowId},
+          );
+          _log('  ⚠️  janghani apply fail ($rowId): $e');
+          break; // network likely down — stop, retry next cycle
+        }
+      }
+
+      if (applied > 0) {
+        _log('  💸 janghani_net_amount: $applied pending cash-out(s) applied');
+        send.send(_TableSuccess('janghani_net_amount', applied));
+      }
+    } catch (e, st) {
+      _log('  ❌ janghani apply error: $e\n$st');
+      send.send(_TableError('janghani_net_amount', e.toString()));
     }
   }
 

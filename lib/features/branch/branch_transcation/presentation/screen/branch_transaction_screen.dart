@@ -22,6 +22,12 @@ class _BranchTransactionScreenState
   @override
   void initState() {
     super.initState();
+    // Provider is global — a date filter set on an earlier visit is still
+    // active, so reflect it in the text fields instead of showing them blank.
+    final s = ref.read(branchTransactionProvider);
+    if (s.startDate != null) _startDateCtrl.text = _dateOnly.format(s.startDate!);
+    if (s.endDate != null)   _endDateCtrl.text   = _dateOnly.format(s.endDate!);
+
     Future.microtask(
           () => ref.read(branchTransactionProvider.notifier).loadData(),
     );

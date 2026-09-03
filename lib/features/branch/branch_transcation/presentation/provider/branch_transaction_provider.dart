@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/service/sync/sync_service.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/datasource/branch_transaction_datasource.dart';
 import '../../data/model/branch_transaction_history_model.dart';
@@ -66,12 +70,16 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
       : _ds = BranchTransactionDataSource(),
         super(const BranchTransactionState());
 
+  int _loadReq = 0;
+
   // ── Load data (uses current startDate/endDate filter agar set ho) ──
   Future<void> loadData() async {
+    final storeId = _ref.read(authProvider).storeId;
+    if (storeId.isEmpty) return;
+
+    final req = ++_loadReq;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final auth        = _ref.read(authProvider);
-      final storeId     = auth.storeId;
       final totalAmount = await _ds.getBranchTotalAmount(storeId);
       final historyList = await _ds.getHistory(
         storeId,
@@ -79,17 +87,22 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
         endDate:   state.endDate,
       );
 
+      if (req != _loadReq) return; // superseded by a newer load
+
       state = state.copyWith(
         totalAmount: totalAmount,
         history:     historyList,
         isLoading:   false,
       );
     } catch (e, stack) {
-      print('❌ loadData error: $e');
-      print('❌ stack: $stack');
+      if (kDebugMode) {
+        debugPrint('loadData error: $e');
+        debugPrint('stack: $stack');
+      }
+      if (req != _loadReq) return;
       state = state.copyWith(
         isLoading:    false,
-        errorMessage: 'Data load error: $e',
+        errorMessage: 'Data load nahi ho saka',
       );
     }
   }
@@ -108,6 +121,12 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
 
   // ── Cash Out ───────────────────────────────────────────
   Future<void> cashOut(double payAmount) async {
+    if (state.isSubmitting) return;
+
+    // Reset any stale success flag from a previous cash out so a failed
+    // attempt can never trip the success path.
+    state = state.copyWith(isSuccess: false, errorMessage: null);
+
     if (payAmount <= 0) {
       state = state.copyWith(errorMessage: 'Amount 0 se zyada hona chahiye');
       return;
@@ -117,11 +136,15 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
       return;
     }
 
-    state = state.copyWith(
-        isSubmitting: true, errorMessage: null, isSuccess: false);
+    final auth = _ref.read(authProvider);
+    if (auth.storeId.isEmpty || auth.userId.isEmpty) {
+      state = state.copyWith(errorMessage: 'Session invalid — dobara login karein');
+      return;
+    }
+
+    state = state.copyWith(isSubmitting: true);
 
     try {
-      final auth      = _ref.read(authProvider);
       final beforeAmt = state.totalAmount;
       final afterAmt  = beforeAmt - payAmount;
 
@@ -136,10 +159,16 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
 
       await loadData();
       state = state.copyWith(isSubmitting: false, isSuccess: true);
+
+      // Net available ho to turant background sync — pending amount ko
+      // janghani_net_amount tak pahunchane ke liye. Fire-and-forget.
+      unawaited(SyncService().syncNow());
     } catch (e) {
+      if (kDebugMode) debugPrint('cashOut error: $e');
+      final msg = e.toString().replaceFirst('Exception: ', '');
       state = state.copyWith(
         isSubmitting: false,
-        errorMessage: 'Cash out error: $e',
+        errorMessage: 'Cash out nahi ho saka — $msg',
       );
     }
   }
