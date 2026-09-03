@@ -46,3 +46,6 @@ app.*.map.json
 /android/app/release
 .env
 .dart_define/
+
+# Runtime log dumps (jan_ghani_final.exe > logs.txt 2>&1)
+logs.txt
