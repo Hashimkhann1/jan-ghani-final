@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../authentication/presentation/provider/auth_provider.dart';
@@ -47,17 +48,28 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     return _counterId;
   }
 
+  int _reqId = 0;
+
   Future<void> load() async {
+    final storeId = _storeId;
+    if (storeId.isEmpty) return; // user/session not ready yet
+
+    final req = ++_reqId;
     state = state.copyWith(isLoading: true);
     try {
       final data = await _ds.load(
-        storeId:   _storeId,
+        storeId:   storeId,
         counterId: _filterCounterId,
       );
+      if (req != _reqId) return; // a newer load() superseded this one
       state = state.copyWith(data: data, isLoading: false);
     } catch (e) {
-      print('❌ Dashboard load error: $e');
-      state = state.copyWith(isLoading: false, errorMessage: 'Load error: $e');
+      if (kDebugMode) debugPrint('Dashboard load error: $e');
+      if (req != _reqId) return;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Dashboard load nahi ho saka',
+      );
     }
   }
 
@@ -110,14 +122,25 @@ class LowStockNotifier extends StateNotifier<LowStockState> {
 
   String get _storeId => _ref.read(authProvider).storeId;
 
+  int _reqId = 0;
+
   Future<void> load() async {
+    final storeId = _storeId;
+    if (storeId.isEmpty) return;
+
+    final req = ++_reqId;
     state = state.copyWith(isLoading: true);
     try {
-      final items = await _ds.getAll(storeId: _storeId);
+      final items = await _ds.getAll(storeId: storeId);
+      if (req != _reqId) return;
       state = state.copyWith(items: items, isLoading: false);
     } catch (e) {
-      print('❌ LowStock load error: $e');
-      state = state.copyWith(isLoading: false, errorMessage: 'Load error: $e');
+      if (kDebugMode) debugPrint('LowStock load error: $e');
+      if (req != _reqId) return;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Low stock load nahi ho saka',
+      );
     }
   }
 

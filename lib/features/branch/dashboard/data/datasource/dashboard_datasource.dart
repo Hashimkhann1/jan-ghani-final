@@ -59,18 +59,23 @@ class DashboardDatasource {
       parameters: params,
     );
 
-    final Map<String, double> dayMap = {};
+    // Bucket by actual date so the chart stays chronological (last 7 days
+    // ending today), not a fixed Mon→Sun order.
+    final Map<String, double> dateMap = {};
     for (final row in weekResult) {
       final m    = row.toColumnMap();
       final date = m['counter_date'] is DateTime
           ? m['counter_date'] as DateTime
           : DateTime.tryParse(m['counter_date'].toString()) ?? DateTime.now();
-      final key  = _dayLabel(date.weekday);
-      dayMap[key] = _dbl(m['day_sale']) ?? 0;
+      dateMap[_dateKey(date)] = _dbl(m['day_sale']) ?? 0;
     }
 
-    final days        = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final weeklySales = days.map((d) => WeeklySale(d, dayMap[d] ?? 0)).toList();
+    final today = DateTime.now();
+    final weeklySales = List<WeeklySale>.generate(7, (i) {
+      final d = DateTime(today.year, today.month, today.day)
+          .subtract(Duration(days: 6 - i));
+      return WeeklySale(_dayLabel(d.weekday), dateMap[_dateKey(d)] ?? 0);
+    });
 
     // ── 3. Top 10 Products ────────────────────────────────
     final productResult = await conn.execute(
@@ -150,6 +155,11 @@ class DashboardDatasource {
     return days[(weekday - 1).clamp(0, 6)];
   }
 
+  static String _dateKey(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
   static double? _dbl(dynamic v) {
     if (v == null) return null;
     if (v is num)  return v.toDouble();
@@ -179,6 +189,7 @@ class LowStockDatasource {
           updated_at
         FROM public.branch_stock_inventory
         WHERE store_id = @storeId
+          AND deleted_at IS NULL
           AND (
             stock <= 0
             OR stock < min_stock

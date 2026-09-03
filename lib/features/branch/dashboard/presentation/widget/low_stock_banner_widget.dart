@@ -11,6 +11,7 @@ class LowStockBanner extends StatelessWidget {
   final VoidCallback       onViewAll;
 
   const LowStockBanner({
+    super.key,
     required this.outOfStock,
     required this.lowStock,
     required this.items,
@@ -91,7 +92,7 @@ class LowStockBanner extends StatelessWidget {
           const Divider(height: 1, color: Color(0xFFF3F4F6)),
 
           // Preview rows (max 3)
-          ...items.map((item) => BannerRow(item: item)),
+          ...items.take(3).map((item) => BannerRow(item: item)),
 
           const SizedBox(height: 4),
         ],

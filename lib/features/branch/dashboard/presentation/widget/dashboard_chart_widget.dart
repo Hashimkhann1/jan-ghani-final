@@ -52,7 +52,9 @@ class _BarChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final maxVal = data.map((e) => e.amount).reduce((a, b) => a > b ? a : b);
+    if (data.isEmpty) return;
+    final rawMax = data.map((e) => e.amount).reduce((a, b) => a > b ? a : b);
+    final maxVal = rawMax > 0 ? rawMax : 1.0; // avoid divide-by-zero → NaN
     final barW = (size.width - 40) / data.length;
     const barPad = 8.0;
     const bottomPad = 28.0;
@@ -163,7 +165,16 @@ class _BarChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _BarChartPainter oldDelegate) {
+    if (oldDelegate.data.length != data.length) return true;
+    for (var i = 0; i < data.length; i++) {
+      if (oldDelegate.data[i].day != data[i].day ||
+          oldDelegate.data[i].amount != data[i].amount) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 // ─── Top Products Line Chart ───────────────────────────────────────────────
@@ -218,7 +229,9 @@ class _LineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final maxQty = data.map((e) => e.qty.toDouble()).reduce((a, b) => a > b ? a : b);
+    if (data.length < 2) return; // line chart needs at least 2 points
+    final rawMax = data.map((e) => e.qty.toDouble()).reduce((a, b) => a > b ? a : b);
+    final maxQty = rawMax > 0 ? rawMax : 1.0; // avoid divide-by-zero → NaN
     const bottomPad = 40.0;
     const leftPad = 36.0;
     const topPad = 10.0;
@@ -331,5 +344,14 @@ class _LineChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
+    if (oldDelegate.data.length != data.length) return true;
+    for (var i = 0; i < data.length; i++) {
+      if (oldDelegate.data[i].name != data[i].name ||
+          oldDelegate.data[i].qty != data[i].qty) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

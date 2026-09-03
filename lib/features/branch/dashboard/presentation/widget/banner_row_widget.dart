@@ -7,7 +7,7 @@ import '../../data/model/dashboard_model.dart';
 
 class BannerRow extends StatelessWidget {
   final LowStockItem item;
-  const BannerRow({required this.item});
+  const BannerRow({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
