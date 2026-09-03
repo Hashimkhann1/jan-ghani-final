@@ -49,6 +49,7 @@ class AccountantBranchInventoryDatasource {
             unit, created_at, updated_at, category_id
           ''')
           .eq('store_id', branchId)
+          .isFilter('deleted_at', null)
           .order('product_name', ascending: true)
           .range(rangeStart, rangeStart + pageSize - 1);
 

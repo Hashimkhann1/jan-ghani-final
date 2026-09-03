@@ -247,6 +247,7 @@ class AccountantBranchDashboardDatasource {
             .from('branch_stock_inventory')
             .select('stock, purchase_price, sale_price')
             .eq('store_id', branchId)
+            .isFilter('deleted_at', null)
             .range(start, start + pageSize - 1);
 
         final page = rows as List;

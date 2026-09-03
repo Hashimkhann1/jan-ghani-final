@@ -269,7 +269,8 @@ class SupabaseService {
   Future<Map<String, dynamic>> getStockSummary() async {
     var q = _client
         .from('branch_stock_inventory')
-        .select('product_name, stock, min_stock, sale_price, purchase_price, unit');
+        .select('product_name, stock, min_stock, sale_price, purchase_price, unit')
+        .isFilter('deleted_at', null);
 
     if (storeId != null) q = q.eq('store_id', storeId!);
 

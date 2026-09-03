@@ -333,6 +333,7 @@ class BranchStockDataSource {
           updated_at
         FROM public.branch_stock_inventory
         WHERE store_id = @storeId
+          AND deleted_at IS NULL
         ORDER BY product_name ASC
       '''),
       parameters: {'storeId': storeId},
@@ -350,7 +351,7 @@ class BranchStockDataSource {
   }) async {
     final conn = await DataBaseService.getConnection();
 
-    final conditions = <String>['store_id = @storeId'];
+    final conditions = <String>['store_id = @storeId', 'deleted_at IS NULL'];
     final params     = <String, dynamic>{'storeId': storeId};
 
     if (search.trim().isNotEmpty) {
@@ -594,14 +595,59 @@ class BranchStockDataSource {
     );
   }
 
-  // ── Product Delete ──────────────────────────────────────────────
+  // ── Product Delete (soft) ───────────────────────────────────────
+  // Hard DELETE nahi — push-only sync delete propagate nahi karta, is
+  // liye row Supabase/dusri branch se wapas aa jaati thi. Ab
+  // deleted_at set karte hain + updated_at bump (sync khud utha lega).
   Future<void> deleteProduct(String id) async {
     final conn = await DataBaseService.getConnection();
-    await conn.execute(
-      Sql.named(
-          'DELETE FROM public.branch_stock_inventory WHERE id = @id'),
+
+    // Log ke liye current values fetch karo.
+    final oldResult = await conn.execute(
+      Sql.named('''
+        SELECT store_id, product_id, product_name, stock
+        FROM public.branch_stock_inventory
+        WHERE id = @id AND deleted_at IS NULL
+      '''),
       parameters: {'id': id},
     );
+    if (oldResult.isEmpty) return; // pehle se deleted / mojood nahi
+    final old = oldResult.first.toColumnMap();
+
+    await conn.execute(
+      Sql.named('''
+        UPDATE public.branch_stock_inventory SET
+          deleted_at = NOW(),
+          updated_at = NOW()
+        WHERE id = @id
+      '''),
+      parameters: {'id': id},
+    );
+
+    // Log best-effort — agar change_type ek enum hai jismein 'delete'
+    // abhi add nahi hua to delete khud fail na ho.
+    try {
+      await conn.execute(
+        Sql.named('''
+          INSERT INTO public.branch_stock_inventory_logs (
+            store_id, product_id, product_name, change_type,
+            old_stock, new_stock
+          ) VALUES (
+            @storeId, @productId, @productName, 'delete',
+            @oldStock, 0
+          )
+        '''),
+        parameters: {
+          'storeId':     old['store_id']?.toString() ?? '',
+          'productId':   old['product_id']?.toString() ?? '',
+          'productName': old['product_name']?.toString() ?? '',
+          'oldStock':    old['stock'],
+        },
+      );
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ branch_stock_inventory_logs delete-log skip: $e');
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────────────

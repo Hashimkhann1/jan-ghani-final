@@ -106,6 +106,7 @@ class StockTransferRemoteDataSource {
             'max_stock':      item.maxStockLevel,
             'barcode':        item.barcode,      // Supabase SDK handles List<String>
             'sku':            item.sku,
+            'deleted_at':     null,              // naya stock aaya → product wapas active
             'updated_at':     DateTime.now().toIso8601String(),
           })
               .eq('store_id', storeId)
@@ -194,6 +195,7 @@ class StockTransferRemoteDataSource {
               category_id     = $9,
               product_name    = $10,
               unit            = $11,
+              deleted_at      = NULL,
               updated_at      = NOW()
             WHERE store_id = $12 AND product_id = $13''',
             parameters: [
