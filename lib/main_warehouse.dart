@@ -1,12 +1,3 @@
-// Warehouse app ka entry point — build/run karne ke liye:
-//   flutter run -t lib/main_warehouse.dart
-//
-// Yeh pehle lib/main.dart ke top par commented-out padi thi (isi wajah se
-// warehouse app is codebase se actually build/run hi nahi ho pa rahi thi,
-// aur stockTransferSyncServiceProvider — jo branch ke accept/reject par
-// warehouse ka stock deduct/reservation-release karta hai — kabhi start
-// hi nahi hoti thi). Ab ek alag entry file mein taake lib/main.dart
-// (branch/accountant app) bilkul untouched rahe.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
@@ -20,12 +11,32 @@ import 'core/service/stock_assign_services/stock_transfer_sync_provider.dart';
 import 'core/widget/sidebar/sidebar_widget.dart';
 
 /// true sirf jab TESTING Supabase use ho raha ho.
+/// Neeche testing block ise `true` karta hai; production block kuch nahi karta
+/// (default false) → production par koi banner nahi dikhta.
 bool kIsTestingDatabase = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 1. Supabase pehle
+
+// ////////////////////////////////////
+// // BELOW IS TESTING SUPABASE IDS ////
+// ////////////////////////////////////
+//
+//   await Supabase.initialize(
+//     url: 'https://fngvbieiwilypecznwcl.supabase.co',
+//     anonKey: 'sb_publishable_z-6QD20dfck8hoG9_NzSZw_063NHmS4',
+//     realtimeClientOptions: const RealtimeClientOptions(
+//       logLevel: RealtimeLogLevel.info,
+//     ),
+//   );
+//   kIsTestingDatabase = true; // ← TESTING DB active (banner dikhega)
+//
+// ////////////////////////////////////////////////
+// /////// BELOW IS THE PRODUCTION DB IDS /////////
+// ////////////////////////////////////////////////
+
   await Supabase.initialize(
     url: 'https://kjjtqfruxhjcxwvxwffz.supabase.co',
     anonKey: 'sb_publishable_MCed-D-zAvYgkZmwYadWCw__eZw_zdS',
@@ -34,6 +45,10 @@ void main() async {
     ),
   );
   kIsTestingDatabase = false; // ← PRODUCTION DB active (koi banner nahi)
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
 
   // 2. Config load
   await AppConfig.load();
@@ -111,9 +126,7 @@ class _AuthWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Sync service start karo (sirf ek baar) — missed-transfer catch-up +
-    // realtime accept/reject listener, taake warehouse stock automatically
-    // deduct/reservation-release ho.
+    // ADD 2 — Sync service start karo (sirf ek baar)
     ref.watch(stockTransferSyncServiceProvider);
 
     final auth = ref.watch(authProvider);

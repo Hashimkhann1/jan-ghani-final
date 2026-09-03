@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/link_stores/data/models/linked_store_model/linked_store_model.dart';
 import 'package:jan_ghani_final/features/warehouse/link_stores/inventory/presentation/screens/linked_store_inventory_screen.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_customer/presentation/screen/accountant_customer_report_screen.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Section model
@@ -39,10 +40,19 @@ const List<_Section> _kSections = [
     description: 'Stock, low / out of stock',
     builder: _buildInventory,
   ),
+  _Section(
+    icon: Icons.people_alt_outlined,
+    label: 'Customers',
+    description: 'Credit, petrol, exceeded customers',
+    builder: _buildCustomers,
+  ),
 ];
 
 Widget _buildInventory(LinkedStoreModel store) =>
     LinkedStoreInventoryScreen(storeId: store.storeId);
+
+Widget _buildCustomers(LinkedStoreModel store) =>
+    AccountantCustomerReportScreen(branchId: store.storeId);
 
 // ─────────────────────────────────────────────────────────────
 // SHELL

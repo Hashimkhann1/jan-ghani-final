@@ -100,13 +100,16 @@ lib/
     │   │       ├── assign_stock_provider.dart   ← cart state
     │   │       └── assign_stock_report_provider.dart  ← transferReportProvider
     │   ├── link_stores/              ← Link stores to warehouse
+    │   │   ├── inventory/            ← Store-side inventory view (data + presentation)
+    │   │   └── store_detail/presentation/screens/store_detail_shell.dart
     │   ├── purchase_invoice/         ← Purchase Orders
     │   ├── supplier/                 ← Supplier management + ledger
     │   ├── warehouse_cash_requests/
     │   ├── warehouse_dashboard/      ← Dashboard screen + charts
     │   │   └── presentation/widgets/
     │   │       ├── warehouse_dashboard_widgets.dart  ← DashStatCard, SectionCard (REUSABLE)
-    │   │       └── dashboard_chart_widgets.dart      ← PurchaseTrendChart, SupplierOutstandingChart
+    │   │       ├── dashboard_chart_widgets.dart      ← PurchaseTrendChart, SupplierOutstandingChart
+    │   │       └── purchase_filter_bar/purchase_filter_bar.dart
     │   ├── warehouse_expense/        ← Expenses
     │   ├── warehouse_finance/        ← Finance / Cash in hand
     │   ├── warehouse_stock_inventory/ ← Products + stock management
@@ -123,6 +126,8 @@ lib/
     │   └── warehouse_reports/        ← *** NAYA FEATURE (humne banaya) ***
     │       ├── presentation/screens/
     │       │   └── warehouse_reports_shell.dart        ← Reports shell (drawer + routing)
+    │       ├── overview/presentation/screens/
+    │       │   └── reports_overview_screen.dart        ← Dashboard tab (sab reports ka overview + onOpenReport tap)
     │       ├── inventory/
     │       │   ├── data/datasources/inventory_report_remote_datasource.dart  ← WEB (Supabase views)
     │       │   └── presentation/
@@ -213,7 +218,8 @@ Jab Reports select ho, main 90px sidebar HIDE ho jata hai, sirf shell full-scree
 - Apna **collapsible left drawer** hai (44px collapsed, 192px expanded)
 - Default: **drawer closed**
 - **Back button** → Dashboard (`onBack` callback)
-- **Reports list** (5 items):
+- **Reports list** (7 items — index 0 par Dashboard tab add hui):
+  0. **Dashboard**  — ACTIVE ✅ (`ReportsOverviewScreen`) — sab reports ka overview; card tap par `_selectReport(i)` se target report kholti hai. ⚠️ `_reports` list ka ORDER `reports_overview_screen.dart` ke `ReportTab` indices se match karta hai — order badla to wahan bhi update karo. Dashboard entry ka `screen` null hai → shell `build()` mein special-case (`_selected == 0` par `ReportsOverviewScreen(onOpenReport: _selectReport)` render hoti hai).
   1. Inventory  — ACTIVE ✅ (`InventoryReportScreen`)
   2. Purchases  — ACTIVE ✅ (`PurchaseReportScreen`)
   3. Transfers  — Coming Soon (abhi tak nahi bana)

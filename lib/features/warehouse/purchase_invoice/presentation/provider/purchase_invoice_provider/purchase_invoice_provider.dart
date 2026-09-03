@@ -1,19 +1,18 @@
 // =============================================================
 // purchase_invoice_provider.dart
-// SubTotal ↔ QTY model — product ke unit par depend karta hai:
+// SubTotal ↔ QTY / PRICE model — product ke unit par depend karta hai:
 //
-//  CONTINUOUS units (kg, g, liter, ml, meter) — auto:
+//  CONTINUOUS units (kg, g, liter, ml, meter) — PRICE anchor:
 //   • updateSubTotal      → qty = subTotal / price (price fix)
 //   • updatePurchasePrice → (subtotal anchor) qty = subTotal / newPrice
-//   • updateQuantity      → qty anchor, subtotal = price × qty
+//   • updateQuantity      → qty anchor, subtotal = price × qty (formula)
 //   • Price 0 par qty derive nahi hoti (UI "Purchase Price daalein")
 //
-//  COUNTABLE units (pcs, box, pack, dozen, bottle, carton) — sab independent:
-//   • updateSubTotal      → customSubTotal store (price/qty untouched)
-//   • updateQuantity      → sirf qty set
-//   • updatePurchasePrice → sirf price set
-//   → qty, price, subtotal teeno manual/independent. Jab tak user subtotal
-//     manually na de, subtotal = price × qty (formula) auto dikhta hai.
+//  COUNTABLE units (pcs, box, pack, dozen, bottle, carton) — QTY anchor:
+//   • updateSubTotal      → price = subTotal / qty (qty > 0 zaroori)
+//   • updateQuantity      → qty anchor, subtotal = price × qty (formula)
+//   • updatePurchasePrice → sirf price set, subtotal formula reactivate
+//   → Flow: user qty deta hai, phir subtotal deta hai → price auto-calculate.
 // =============================================================
 
 import 'dart:math';
@@ -256,15 +255,11 @@ class PurchaseInvoiceNotifier
   void updateQuantity(String cartId, double qty) {
     if (qty <= 0) return;
     _update(cartId, (i) {
-      if (i.product.isContinuousUnit) {
-        // Continuous (kg/liter/...): qty user input → qty anchor,
-        // subtotal = price × qty (formula).
-        return i.copyWith(quantity: qty, clearCustomSubTotal: true);
-      }
-      // Countable (pcs/box/...): qty independent — sirf qty set. Agar user ne
-      // subtotal manually diya hai (customSubTotal) to woh waise hi rahe;
-      // warna subtotal = price × qty formula se auto dikhega.
-      return i.copyWith(quantity: qty);
+      // Continuous (kg/...): qty anchor → subtotal = price × qty (formula).
+      // Countable (pcs/...): qty anchor bhi. Agar customSubTotal set tha
+      // (price us par derive tha), qty badalne par usko clear kar do —
+      // subtotal formula wapas active, aur agla subtotal edit price re-derive karega.
+      return i.copyWith(quantity: qty, clearCustomSubTotal: true);
     });
   }
 
@@ -284,9 +279,10 @@ class PurchaseInvoiceNotifier
         }
         return i.copyWith(purchasePrice: price, clearCustomSubTotal: true);
       }
-      // Countable: price independent — sirf price set. customSubTotal preserve
-      // (agar user ne subtotal diya hai); warna subtotal = price × qty auto.
-      return i.copyWith(purchasePrice: price);
+      // Countable: user ne price manually type kiya — customSubTotal clear
+      // taake subtotal formula (price × qty) se aa jaye. Warna stale
+      // customSubTotal display mein rehta.
+      return i.copyWith(purchasePrice: price, clearCustomSubTotal: true);
     });
   }
 
@@ -324,9 +320,15 @@ class PurchaseInvoiceNotifier
           customSubTotal: newSubTotal,
         );
       }
-      // Countable (pcs/box/...): subTotal fully independent — sirf store karo,
-      // price/qty ko haath na lagao (teeno manual).
-      return i.copyWith(customSubTotal: newSubTotal);
+      // Countable (pcs/box/...): price = subTotal / qty (qty anchor).
+      // Qty > 0 zaroori — warna div-by-zero (add-to-cart par qty default 1
+      // hoti hai, so practically hamesha > 0). customSubTotal store karo
+      // taake user ne jo type kiya wohi display mein rahe (formula rounding se bache).
+      if (i.quantity <= 0) return i;
+      return i.copyWith(
+        purchasePrice:  newSubTotal / i.quantity,
+        customSubTotal: newSubTotal,
+      );
     });
   }
 
