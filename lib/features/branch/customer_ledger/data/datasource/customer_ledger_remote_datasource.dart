@@ -6,7 +6,14 @@ import '../model/customer_ledger_model.dart';
 
 class CustomerLedgerRemoteDataSource {
 
-  Future<List<CustomerLedgerModel>> getAll(String storeId) async {
+  /// `from`/`to` diye jayein to sirf usi date range ka data DB se load
+  /// hota hai (poori history nahi) — screen default current month
+  /// bhejta hai taake load fast rahe.
+  Future<List<CustomerLedgerModel>> getAll(
+    String storeId, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
     final conn = await DataBaseService.getConnection();
 
     final result = await conn.execute(
@@ -20,13 +27,21 @@ class CustomerLedgerRemoteDataSource {
         LEFT JOIN public.branch_users bu ON bu.id = cl.user_id
         WHERE cl.store_id  = @storeId
           AND cl.deleted_at IS NULL
+          ${from != null ? 'AND cl.created_at::date >= @fromDate' : ''}
+          ${to   != null ? 'AND cl.created_at::date <= @toDate'   : ''}
         ORDER BY cl.created_at DESC
       '''),
-      parameters: {'storeId': storeId},
+      parameters: {
+        'storeId': storeId,
+        if (from != null) 'fromDate': _dateOnly(from),
+        if (to   != null) 'toDate':   _dateOnly(to),
+      },
     );
 
     return result.map((r) => CustomerLedgerModel.fromMap(_toMap(r))).toList();
   }
+
+  static String _dateOnly(DateTime d) => d.toIso8601String().substring(0, 10);
 
   // ── GET BY CUSTOMER ───────────────────────────────────────
   Future<List<CustomerLedgerModel>> getByCustomer(String customerId) async {

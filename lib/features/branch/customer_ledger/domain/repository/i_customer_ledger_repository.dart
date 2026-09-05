@@ -1,7 +1,11 @@
 import '../../data/model/customer_ledger_model.dart';
 
 abstract class ICustomerLedgerRepository {
-  Future<List<CustomerLedgerModel>> getAll(String storeId);
+  Future<List<CustomerLedgerModel>> getAll(
+    String storeId, {
+    DateTime? from,
+    DateTime? to,
+  });
   Future<List<CustomerLedgerModel>> getByCustomer(String customerId);
   Future<CustomerLedgerModel>       add(CustomerLedgerModel ledger);
   Future<void>                      delete(String id);
