@@ -5,6 +5,8 @@ import 'package:jan_ghani_final/features/branch/authentication/presentation/prov
 import 'package:jan_ghani_final/features/branch/branch_stock_damage/presentation/screen/branch_stock_damage_screen.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';
+import 'package:jan_ghani_final/features/branch/permissions/presentation/provider/permissions_provider.dart';
+import 'package:jan_ghani_final/features/branch/permissions/presentation/screen/permissions_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all_customer_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer_account/presentation/screen/customer_account_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/csr_screen.dart';
@@ -33,11 +35,17 @@ class NavItem {
   final Widget    screen;
   final LogicalKeyboardKey? shortcutKey;
 
+  /// `PermissionCatalog` module key iss item ko govern karta hai —
+  /// `<permKey>.view` granted na ho to yeh item sidebar me nahi dikhta
+  /// (Owner hamesha exempt). `null` = kabhi hide nahi hota.
+  final String? permKey;
+
   const NavItem({
     required this.icon,
     required this.label,
     required this.screen,
     this.shortcutKey,
+    this.permKey,
   });
 }
 
@@ -51,40 +59,48 @@ final _cashierItems = <NavItem>[
     icon: Icons.point_of_sale_rounded, label: 'Sale Invoice',
     screen: const SaleInvoiceScreen(),
     shortcutKey: LogicalKeyboardKey.keyS,
+    permKey: 'sale_invoice',
   ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
     shortcutKey: LogicalKeyboardKey.keyC,
+    permKey: 'customer',
   ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer account',
     screen: const CustomerAccountScreen(),
     shortcutKey: LogicalKeyboardKey.keyA,
+    permKey: 'customer_account',
   ),
   NavItem(
     icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
     screen: const CounterCustomerLedgerScreen(),
     shortcutKey: LogicalKeyboardKey.keyL,
+    permKey: 'customer_ledger',
   ),
   NavItem(
     icon: Icons.savings_rounded, label: 'Cash Counter',
     screen: const CashCounterScreen(),
     shortcutKey: LogicalKeyboardKey.keyX,
+    permKey: 'cash_counter',
   ),
   NavItem(
     icon: Icons.inventory_2_rounded, label: 'Branch Stock',
     screen: const BranchStockInventoryScreen(),
     shortcutKey: LogicalKeyboardKey.keyI,
+    permKey: 'branch_stock',
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
     screen: const BranchTransferListScreen(),
+    permKey: 'stock_transfer',
   ),
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
     shortcutKey: LogicalKeyboardKey.keyG,
+    permKey: 'report_csr',
   ),
 ];
 
@@ -97,11 +113,13 @@ final _stockOfficerItems = <NavItem>[
     icon: Icons.dashboard_rounded, label: 'Dashboard',
     screen: const DashboardScreen(),
     shortcutKey: LogicalKeyboardKey.keyD,
+    permKey: 'dashboard',
   ),
   NavItem(
     icon: Icons.point_of_sale_rounded, label: 'Sale Invoice',
     screen: const SaleInvoiceScreen(),
     shortcutKey: LogicalKeyboardKey.keyS,
+    permKey: 'sale_invoice',
   ),
   // NavItem(
   //   icon: Icons.point_of_sale_rounded, label: 'Service',
@@ -112,58 +130,70 @@ final _stockOfficerItems = <NavItem>[
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
     shortcutKey: LogicalKeyboardKey.keyC,
+    permKey: 'customer',
   ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer account',
     screen: const CustomerAccountScreen(),
     shortcutKey: LogicalKeyboardKey.keyA,
+    permKey: 'customer_account',
   ),
   NavItem(
     icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
     screen: const CounterCustomerLedgerScreen(),
     shortcutKey: LogicalKeyboardKey.keyL,
+    permKey: 'customer_ledger',
   ),
   NavItem(
     icon: Icons.savings_rounded, label: 'Cash Counter',
     screen: const CashCounterScreen(),
     shortcutKey: LogicalKeyboardKey.keyX,
+    permKey: 'cash_counter',
   ),
   NavItem(
     icon: Icons.receipt_long_rounded, label: 'Difference',
     screen: const CounterCashTransactionScreen(),
     shortcutKey: LogicalKeyboardKey.keyT,
+    permKey: 'cash_difference',
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Branch Assign Balance to Accountant',
     screen: BranchTransactionScreen(),
+    permKey: 'branch_transaction',
   ),
   NavItem(
     icon: Icons.inventory_2_rounded, label: 'Stock',
     screen: const BranchStockInventoryScreen(),
     shortcutKey: LogicalKeyboardKey.keyI,
+    permKey: 'branch_stock',
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
     screen: const BranchTransferListScreen(),
+    permKey: 'stock_transfer',
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Stock Damage',
     screen: const BranchStockDamageScreen(),
+    permKey: 'stock_damage',
   ),
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'Sale Report',
     screen: const SaleInvoiceListScreen(),
     shortcutKey: LogicalKeyboardKey.keyR,
+    permKey: 'report_sale_invoice',
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Sale Return Report',
     screen: const SaleReturnReportScreen(),
     shortcutKey: LogicalKeyboardKey.keyN,
+    permKey: 'report_sale_return',
   ),
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
     shortcutKey: LogicalKeyboardKey.keyG,
+    permKey: 'report_csr',
   ),
 ];
 
@@ -177,16 +207,25 @@ final _managerItems = <NavItem>[
     icon: Icons.dashboard_rounded, label: 'Dashboard',
     screen: const DashboardScreen(),
     shortcutKey: LogicalKeyboardKey.keyD,
+    permKey: 'dashboard',
   ),
   NavItem(
     icon: Icons.manage_accounts_rounded, label: 'Users',
     screen: const AllUserScreen(),
     shortcutKey: LogicalKeyboardKey.keyU,
+    permKey: 'users',
+  ),
+  NavItem(
+    icon: Icons.verified_user_rounded, label: 'Permissions',
+    screen: const PermissionsScreen(),
+    shortcutKey: LogicalKeyboardKey.keyP,
+    permKey: 'permissions',
   ),
   NavItem(
     icon: Icons.manage_accounts_rounded, label: 'Sale Invoice',
     screen: const SaleInvoiceScreen(),
     shortcutKey: LogicalKeyboardKey.keyS,
+    permKey: 'sale_invoice',
   ),
   // NavItem(
   //   icon: Icons.point_of_sale_rounded, label: 'Service',
@@ -197,39 +236,47 @@ final _managerItems = <NavItem>[
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
     shortcutKey: LogicalKeyboardKey.keyC,
+    permKey: 'customer',
   ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer account',
     screen: const CustomerAccountScreen(),
     shortcutKey: LogicalKeyboardKey.keyA,
+    permKey: 'customer_account',
   ),
   NavItem(
     icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
     screen: const CounterCustomerLedgerScreen(),
     shortcutKey: LogicalKeyboardKey.keyL,
+    permKey: 'customer_ledger',
   ),
   NavItem(
     icon: Icons.receipt_long_rounded, label: 'Difference',
     screen: const CounterCashTransactionScreen(),
     shortcutKey: LogicalKeyboardKey.keyT,
+    permKey: 'cash_difference',
   ),
   NavItem(
     icon: Icons.savings_rounded, label: 'Cash Counter',
     screen: const CashCounterScreen(),
     shortcutKey: LogicalKeyboardKey.keyX,
+    permKey: 'cash_counter',
   ),
   NavItem(
     icon: Icons.inventory_2_rounded, label: 'Branch Stock',
     screen: const BranchStockInventoryScreen(),
     shortcutKey: LogicalKeyboardKey.keyI,
+    permKey: 'branch_stock',
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
     screen: const BranchTransferListScreen(),
+    permKey: 'stock_transfer',
   ),
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Branch Transactions',
     screen: BranchTransactionScreen(),
+    permKey: 'branch_transaction',
   ),
   // NavItem(
   //   icon: Icons.point_of_sale_rounded, label: 'Counter',
@@ -238,21 +285,25 @@ final _managerItems = <NavItem>[
   NavItem(
     icon: Icons.local_shipping_rounded, label: 'Stock Damage',
     screen: const BranchStockDamageScreen(),
+    permKey: 'stock_damage',
   ),
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'Sale Invoice Report',
     screen: const SaleInvoiceListScreen(),
     shortcutKey: LogicalKeyboardKey.keyR,
+    permKey: 'report_sale_invoice',
   ),
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'Sale Return Report',
     screen: const SaleReturnReportScreen(),
     shortcutKey: LogicalKeyboardKey.keyN,
+    permKey: 'report_sale_return',
   ),
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'CS&R Report',
     screen: const CsrScreen(),
     shortcutKey: LogicalKeyboardKey.keyG,
+    permKey: 'report_csr',
   ),
 ];
 
@@ -270,15 +321,26 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
   bool  _showTooltip  = false;
   OverlayEntry? _tooltipOverlay;
 
-  List<NavItem> _getItems(String role) {
+  List<NavItem> _baseItems(String role) {
     switch (role) {
       case 'cashier':
         return _cashierItems;
       case 'stock_officer':
         return _stockOfficerItems;
       default:
-        return _managerItems;
+        return _managerItems; // store_manager & store_owner
     }
+  }
+
+  /// Role ki base list ko logged-in user ke actual granted permissions
+  /// se filter karta hai. Owner hamesha exempt (full access).
+  List<NavItem> _visibleItems(AuthState auth, PermissionsState perms) {
+    final base = _baseItems(auth.role);
+    if (auth.isOwner) return base;
+    return base.where((item) {
+      if (item.permKey == null) return true;
+      return perms.isGranted(auth.userId, auth.role, '${item.permKey}.view');
+    }).toList();
   }
 
   @override
@@ -286,14 +348,20 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
     super.initState();
     HardwareKeyboard.instance.addHandler(_onKey);
 
-    // App open hote hi — agar is user ke saath ek counter assign hai — us
-    // counter ka aaj ka row khud-ba-khud ban jaye (opening = kal ka net
-    // amount), taake manually check karke type na karna pare. Idempotent
-    // hai (fn_create_next_day_counter already-registered ko silently
-    // skip karta hai), isliye baar-baar login/restart pe safe hai.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (ref.read(authProvider).counterId != null) {
+      final auth = ref.read(authProvider);
+
+      // Sidebar ke permission-based filtering ke liye zaroori — is user
+      // ne agar apni koi customization save ki hai to woh yahan load ho.
+      ref.read(permissionsProvider.notifier).loadForStore(auth.storeId);
+
+      // App open hote hi — agar is user ke saath ek counter assign hai — us
+      // counter ka aaj ka row khud-ba-khud ban jaye (opening = kal ka net
+      // amount), taake manually check karke type na karna pare. Idempotent
+      // hai (fn_create_next_day_counter already-registered ko silently
+      // skip karta hai), isliye baar-baar login/restart pe safe hai.
+      if (auth.counterId != null) {
         ref.read(cashCounterProvider.notifier).autoRegisterTodayIfNeeded();
       }
     });
@@ -316,7 +384,8 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
     if (event is! KeyDownEvent) return false;
 
     final auth  = ref.read(authProvider);
-    final items = _getItems(auth.role);
+    final perms = ref.read(permissionsProvider);
+    final items = _visibleItems(auth, perms);
 
     for (int i = 0; i < items.length; i++) {
       if (items[i].shortcutKey == event.logicalKey) {
@@ -422,7 +491,8 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
   @override
   Widget build(BuildContext context) {
     final auth      = ref.watch(authProvider);
-    final items     = _getItems(auth.role);
+    final perms     = ref.watch(permissionsProvider);
+    final items     = _visibleItems(auth, perms);
     final safeIndex = _index < items.length ? _index : 0;
 
     return Scaffold(
