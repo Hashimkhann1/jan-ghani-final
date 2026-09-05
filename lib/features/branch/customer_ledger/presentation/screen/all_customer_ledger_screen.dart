@@ -321,11 +321,11 @@ class _CounterCustomerLedgerScreenState
                   onTap: () => _pickToDate(context, state.toDate),
                   onClear: () => notifier.setToDate(null),
                 ),
-                if (state.fromDate != null || state.toDate != null)
+                if (!state.isDefaultDateRange)
                   TextButton.icon(
                     onPressed: notifier.clearDateFilter,
                     icon: const Icon(Icons.filter_alt_off_outlined, size: 16),
-                    label: const Text('Clear Filter'),
+                    label: const Text('This Month'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColor.error,
                       textStyle: const TextStyle(fontSize: 13),

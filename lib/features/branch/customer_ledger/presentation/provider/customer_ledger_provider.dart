@@ -27,17 +27,9 @@ class CustomerLedgerState {
   });
 
   List<CustomerLedgerModel> get filteredLedgers {
+    // Date range ab DB query khud handle karti hai (loadLedgers), is liye
+    // yahan sirf search text filter hota hai.
     var list = allLedgers;
-
-    if (fromDate != null) {
-      final start = DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
-      list = list.where((l) => !l.createdAt.isBefore(start)).toList();
-    }
-
-    if (toDate != null) {
-      final end = DateTime(toDate!.year, toDate!.month, toDate!.day, 23, 59, 59);
-      list = list.where((l) => !l.createdAt.isAfter(end)).toList();
-    }
 
     if (searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
@@ -48,6 +40,18 @@ class CustomerLedgerState {
   }
 
   double get totalPaid => filteredLedgers.fold(0, (sum, l) => sum + l.payAmount);
+
+  /// Kya date range abhi default "current month" par hai (Clear Filter
+  /// button sirf tab dikhayein jab user ne isse hata kar kuch aur chuna ho).
+  bool get isDefaultDateRange {
+    if (toDate != null) return false;
+    final now = DateTime.now();
+    final defaultFrom = DateTime(now.year, now.month, 1);
+    return fromDate != null &&
+        fromDate!.year  == defaultFrom.year &&
+        fromDate!.month == defaultFrom.month &&
+        fromDate!.day   == defaultFrom.day;
+  }
 
   CustomerLedgerState copyWith({
     List<CustomerLedgerModel>? allLedgers,
@@ -79,17 +83,26 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
         _add = AddLedgerUseCase(CustomerLedgerRepositoryImpl()),
         _delete = DeleteLedgerUseCase(CustomerLedgerRepositoryImpl()),
         _update = UpdateLedgerUseCase(CustomerLedgerRepositoryImpl()),
-        super(const CustomerLedgerState()) {
+        super(_initialState()) {
     loadLedgers();
   }
 
-
+  // Default: current month — poori history ek saath load karne se list
+  // bohut bhari ho jati thi, is liye ab sirf isi mahine ka data aata hai.
+  static CustomerLedgerState _initialState() {
+    final now = DateTime.now();
+    return CustomerLedgerState(fromDate: DateTime(now.year, now.month, 1));
+  }
 
   Future<void> loadLedgers() async {
     state = state.copyWith(isLoading: true);
     try {
       final _storeId = _ref.read(authProvider).storeId;
-      final ledgers = await _getAll(_storeId);
+      final ledgers = await _getAll(
+        _storeId,
+        from: state.fromDate,
+        to:   state.toDate,
+      );
       state = state.copyWith(allLedgers: ledgers, isLoading: false);
     } catch (e) {
       state = state.copyWith(
@@ -187,16 +200,23 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
     state = date == null
         ? state.copyWith(clearFromDate: true)
         : state.copyWith(fromDate: date);
+    loadLedgers();
   }
 
   void setToDate(DateTime? date) {
     state = date == null
         ? state.copyWith(clearToDate: true)
         : state.copyWith(toDate: date);
+    loadLedgers();
   }
 
+  // Wapas current month par — poori history dobara load nahi hoti.
   void clearDateFilter() {
-    state = state.copyWith(clearFromDate: true, clearToDate: true);
+    state = _initialState().copyWith(
+      allLedgers:  state.allLedgers,
+      searchQuery: state.searchQuery,
+    );
+    loadLedgers();
   }
 }
 
