@@ -346,12 +346,12 @@ class _SummaryCardsRow extends StatelessWidget {
         barPercent: summary.hasBalanceCount / (summary.totalActive == 0 ? 1 : summary.totalActive),
       ),
       DashStatCard(
-        label:      'Clear Balance',
-        value:      summary.clearCount.toString(),
-        badge:      'Suppliers',
-        icon:       Icons.check_circle_outline,
+        label:      'Total Paid',
+        value:      'Rs ${summary.totalPaid.pkrFormat}',
+        badge:      'Payments',
+        icon:       Icons.payments_outlined,
         color:      AppColor.success,
-        barPercent: summary.clearCount / (summary.totalActive == 0 ? 1 : summary.totalActive),
+        barPercent: 1.0,
       ),
       DashStatCard(
         label:      'Total Purchased',

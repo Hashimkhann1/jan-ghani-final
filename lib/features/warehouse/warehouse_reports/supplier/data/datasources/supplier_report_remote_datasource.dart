@@ -43,6 +43,7 @@ class SupplierReportRemoteDatasource implements SupplierReportSource {
   Future<SupplierSummaryData> getSummary({DateTime? from, DateTime? to}) async {
     final suppliers = await _fetchSuppliers();        // saare non-deleted suppliers
     final pos       = await _fetchReceivedPos(from, to); // date-filtered received POs
+    final payments  = await _fetchPayments(from, to);    // date-filtered 'payment' ledger rows
 
     int totalActive = 0, clearCount = 0, hasBalanceCount = 0;
     double totalOutstanding = 0;
@@ -69,12 +70,18 @@ class SupplierReportRemoteDatasource implements SupplierReportSource {
     final totalPurchased =
         pos.fold<double>(0, (a, p) => a + _dbl(p['total_amount']));
 
+    // Total paid = 'payment' ledger rows ka |amount| ka sum. Payments negative
+    // amount se store hoti hain (payToSupplier), isliye .abs() lete hain.
+    final totalPaid =
+        payments.fold<double>(0, (a, p) => a + _dbl(p['amount']).abs());
+
     return SupplierSummaryData(
       totalActive:      totalActive,
       totalOutstanding: totalOutstanding,
       clearCount:       clearCount,
       hasBalanceCount:  hasBalanceCount,
       totalPurchased:   totalPurchased,
+      totalPaid:        totalPaid,
     );
   }
 
@@ -286,6 +293,31 @@ class SupplierReportRemoteDatasource implements SupplierReportSource {
 
       final res = await q
           .order('order_date', ascending: true)
+          .range(offset, offset + _pageSize - 1);
+      final rows = (res as List).cast<Map<String, dynamic>>();
+      out.addAll(rows);
+      if (rows.length < _pageSize) break;
+      offset += _pageSize;
+    }
+    return out;
+  }
+
+  // 'payment' ledger rows (date-filtered by created_at). Same date-boundary
+  // pattern as POs: gte(from-midnight) + lt(to+1 din).
+  Future<List<Map<String, dynamic>>> _fetchPayments(DateTime? from, DateTime? to) async {
+    final out = <Map<String, dynamic>>[];
+    var offset = 0;
+    while (true) {
+      var q = _client
+          .from('supplier_ledger')
+          .select('amount, created_at')
+          .eq('warehouse_id', _wid)
+          .eq('entry_type', 'payment');
+      if (from != null) q = q.gte('created_at', _dayStart(from));
+      if (to   != null) q = q.lt('created_at', _dayAfter(to));
+
+      final res = await q
+          .order('created_at', ascending: true)
           .range(offset, offset + _pageSize - 1);
       final rows = (res as List).cast<Map<String, dynamic>>();
       out.addAll(rows);

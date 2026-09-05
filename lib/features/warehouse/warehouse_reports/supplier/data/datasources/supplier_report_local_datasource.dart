@@ -89,8 +89,22 @@ class SupplierReportLocalDatasource implements SupplierReportSource {
       parameters: _withDateParams({'wid': _wid}, from, to),
     );
 
-    final s = suppResult.first.toColumnMap();
-    final p = poResult.first.toColumnMap();
+    // Payments: supplier_ledger mein 'payment' rows negative amount se store
+    // hoti hain (payToSupplier → amount = -paid) → |amount| ka sum.
+    final payDateCond = _dateWhere('created_at', from, to);
+    final payResult = await conn.execute(
+      Sql.named('''
+        SELECT COALESCE(SUM(ABS(amount)), 0) AS total_paid
+        FROM supplier_ledger
+        WHERE warehouse_id = @wid AND entry_type = 'payment'
+        $payDateCond
+      '''),
+      parameters: _withDateParams({'wid': _wid}, from, to),
+    );
+
+    final s   = suppResult.first.toColumnMap();
+    final p   = poResult.first.toColumnMap();
+    final pay = payResult.first.toColumnMap();
 
     return SupplierSummaryData(
       totalActive:      _parseInt(s['total_active']),
@@ -98,6 +112,7 @@ class SupplierReportLocalDatasource implements SupplierReportSource {
       clearCount:       _parseInt(s['clear_count']),
       hasBalanceCount:  _parseInt(s['has_balance_count']),
       totalPurchased:   _parseDouble(p['total_purchased']),
+      totalPaid:        _parseDouble(pay['total_paid']),
     );
   }
 

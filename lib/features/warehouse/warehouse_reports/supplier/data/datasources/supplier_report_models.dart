@@ -17,6 +17,9 @@ class SupplierSummaryData {
   final int clearCount;
   final int hasBalanceCount;
   final double totalPurchased;
+  // Date range mein suppliers ko kul jitna paid kiya (supplier_ledger
+  // 'payment' rows ka |amount| ka sum). Overall/This Month/Custom follow karta.
+  final double totalPaid;
 
   const SupplierSummaryData({
     required this.totalActive,
@@ -24,6 +27,7 @@ class SupplierSummaryData {
     required this.clearCount,
     required this.hasBalanceCount,
     required this.totalPurchased,
+    required this.totalPaid,
   });
 }
 
