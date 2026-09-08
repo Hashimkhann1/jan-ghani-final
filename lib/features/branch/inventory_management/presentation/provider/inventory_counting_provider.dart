@@ -66,8 +66,8 @@ class InventoryCountingNotifier extends StateNotifier<InventoryCountingState> {
     );
 
     try {
-      // Aaj ka daily batch (fixed 100) — batch minus aaj-counted. Reopen par
-      // naye products add nahi hote (strictly 100 per day).
+      // Aaj ka daily batch (fixed 120) — batch minus aaj-counted. Reopen par
+      // naye products add nahi hote (strictly 120 per day).
       final products = await _datasource.fetchDailyBatchProducts(storeId);
       // Aaj tak (aaj ke din) kitne count huay — counter/serial ke liye
       final countedToday = await _datasource.fetchCountedTodayCount(storeId);

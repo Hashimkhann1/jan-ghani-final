@@ -48,10 +48,10 @@ class InventoryCountingScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          // Reload: sirf tab show karo jab 100 complete hon
+          // Reload: sirf tab show karo jab 120 complete hon
           if (state.allCounted)
             IconButton(
-              tooltip: 'Load Next 100',
+              tooltip: 'Load Next 120',
               icon: const Icon(Icons.refresh),
               onPressed: state.isLoading ? null : () => notifier.loadPage(),
             ),
@@ -101,12 +101,12 @@ class InventoryCountingScreen extends ConsumerWidget {
             const Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
             const SizedBox(height: 16),
             const Text(
-              '100 products counted!',
+              '120 products counted!',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
-              'AppBar mein Reload button se next 100 load karo',
+              'AppBar mein Reload button se next 120 load karo',
               style: TextStyle(color: Colors.grey),
             ),
           ],

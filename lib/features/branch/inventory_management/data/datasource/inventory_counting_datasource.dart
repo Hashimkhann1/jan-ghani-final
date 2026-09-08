@@ -6,7 +6,7 @@ import '../model/inventory_countting_model.dart';
 class InventoryCountingRemoteDatasource {
   final SupabaseClient _client = Supabase.instance.client;
 
-  static const int _pageSize = 100;
+  static const int _pageSize = 120;
   // counted_date > CURRENT_DATE - _cooldownDays  → aaj + last 6 din exclude,
   // 7ve din product dobara list mein aa jata hai.
   static const int _cooldownDays = 7;
@@ -17,9 +17,9 @@ class InventoryCountingRemoteDatasource {
   }
 
   /// Aaj ke DAILY BATCH ke products (jo abhi count nahi huay). Server-side RPC:
-  /// pehli baar din ka batch (100 uncounted) EK BAAR banata hai, phir hamesha
+  /// pehli baar din ka batch (120 uncounted) EK BAAR banata hai, phir hamesha
   /// usi batch mein se aaj-uncounted return karta hai — reopen par koi naya
-  /// product fill nahi hota (strictly 100 per day).
+  /// product fill nahi hota (strictly 120 per day).
   Future<List<InventoryProductModel>> fetchDailyBatchProducts(
       String storeId) async {
     final response = await _client.rpc(
