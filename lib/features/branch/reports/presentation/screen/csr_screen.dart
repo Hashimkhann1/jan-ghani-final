@@ -11,6 +11,7 @@ import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../branch_info/presentation/provider/branch_provider.dart';
 import '../../data/model/csr_model.dart';
 import '../provider/csr_provider.dart';
+import '../widget/report_table.dart';
 
 class CsrScreen extends ConsumerStatefulWidget {
   const CsrScreen({super.key});
@@ -26,6 +27,20 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
   final _dateFmt = DateFormat('dd MMM yyyy');
   final _timeFmt = DateFormat('hh:mm a');
   final _inputFmt = DateFormat('dd/MM/yyyy');
+
+  // ── Slide-over entry panel ────────────────────────────────
+  CsrEntry? _selectedEntry;
+  bool _panelOpen = false;
+
+  void _openEntry(CsrEntry entry) =>
+      setState(() { _selectedEntry = entry; _panelOpen = true; });
+
+  void _closePanel() {
+    setState(() => _panelOpen = false);
+    Future.delayed(const Duration(milliseconds: 280), () {
+      if (mounted && !_panelOpen) setState(() => _selectedEntry = null);
+    });
+  }
 
   @override
   void initState() {
@@ -239,7 +254,10 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
           const SizedBox(width: 12),
         ],
       ),
-      body: Padding(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,7 +403,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
 
             const SizedBox(height: 16),
 
-            // ── List ─────────────────────────────────────────
+            // ── Table ────────────────────────────────────────
             Expanded(
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -394,33 +412,104 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                   : state.filteredEntries.isEmpty
                   ? _EmptyState(
                   isSearching: state.searchQuery.isNotEmpty)
-                  : ListView.separated(
-                itemCount: state.filteredEntries.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 12),
-                itemBuilder: (_, i) {
-                  final entry = state.filteredEntries[i];
-                  if (entry.type == CsrType.ledgerPayment) {
-                    return _LedgerPaymentCard(
-                      entry: entry,
-                      dateFmt: _dateFmt,
-                      timeFmt: _timeFmt,
-                      onPrint: () => _printEntry(entry),
-                    );
-                  }
-                  return _CsrEntryCard(
-                    entry: entry,
-                    dateFmt: _dateFmt,
-                    timeFmt: _timeFmt,
-                    onPrint: () => _printEntry(entry),
-                  );
-                },
-              ),
+                  : ReportTable(
+                      columns: const [
+                        ReportColumn('Type', flex: 2),
+                        ReportColumn('Entry #', flex: 3),
+                        ReportColumn('Date', flex: 3),
+                        ReportColumn('Payment', flex: 2),
+                        ReportColumn('Discount', flex: 2,
+                            align: Alignment.centerRight),
+                        ReportColumn('Amount', flex: 2,
+                            align: Alignment.centerRight),
+                        ReportColumn('Status', flex: 2,
+                            align: Alignment.centerRight),
+                      ],
+                      rowCount: state.filteredEntries.length,
+                      onView: (i) =>
+                          _openEntry(state.filteredEntries[i]),
+                      cellsBuilder: (i) {
+                        final e = state.filteredEntries[i];
+                        return [
+                          Text(_csrTypeLabel(e.type),
+                              style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: _csrTypeColor(e.type))),
+                          Text(e.entryNo,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600)),
+                          Text(
+                            '${_dateFmt.format(e.entryDate)}\n'
+                            '${_timeFmt.format(e.entryDate)}',
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          Text(e.paymentLabel),
+                          Text(e.discountLabel,
+                              style: const TextStyle(
+                                  color: AppColor.textSecondary)),
+                          Text(
+                            e.type == CsrType.ledgerPayment
+                                ? 'Rs ${(e.payAmount ?? 0).toStringAsFixed(0)}'
+                                : e.grandTotalLabel,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: _csrTypeColor(e.type)),
+                          ),
+                          Text(e.status,
+                              style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColor.textSecondary)),
+                        ];
+                      },
+                    ),
             ),
           ],
         ),
       ),
+          ReportSlideOver(
+            open:    _panelOpen,
+            onClose: _closePanel,
+            title:   _selectedEntry?.entryNo ?? 'Entry',
+            child: _selectedEntry == null
+                ? const SizedBox.shrink()
+                : _selectedEntry!.type == CsrType.ledgerPayment
+                    ? _LedgerPaymentCard(
+                        entry:   _selectedEntry!,
+                        dateFmt: _dateFmt,
+                        timeFmt: _timeFmt,
+                        onPrint: () => _printEntry(_selectedEntry!),
+                      )
+                    : _CsrEntryCard(
+                        entry:   _selectedEntry!,
+                        dateFmt: _dateFmt,
+                        timeFmt: _timeFmt,
+                        onPrint: () => _printEntry(_selectedEntry!),
+                      ),
+          ),
+        ],
+      ),
     );
+  }
+}
+
+// ── CS&R entry type helpers ─────────────────────────────────
+String _csrTypeLabel(CsrType t) {
+  switch (t) {
+    case CsrType.sale:          return 'Sale';
+    case CsrType.saleReturn:    return 'Return';
+    case CsrType.ledgerPayment: return 'Payment';
+  }
+}
+
+Color _csrTypeColor(CsrType t) {
+  switch (t) {
+    case CsrType.sale:          return AppColor.primary;
+    case CsrType.saleReturn:    return AppColor.error;
+    case CsrType.ledgerPayment: return AppColor.info;
   }
 }
 

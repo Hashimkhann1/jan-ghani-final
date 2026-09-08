@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 
 import '../provider/auth_provider.dart';
 
@@ -73,31 +74,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: [
 
               // ── Logo ──────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color:        AppColor.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Icon(
-                  Icons.warehouse_rounded,   // warehouse icon
-                  size:  56,
-                  color: AppColor.primary,
-                ),
-              ),
+              const AppLogo(size: 150, bare: true),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              const Text(
-                'Jan Ghani',
-                style: TextStyle(
-                  fontSize:      28,
-                  fontWeight:    FontWeight.w800,
-                  color:         AppColor.textPrimary,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
               const Text(
                 'Warehouse Management System',  // warehouse
                 style: TextStyle(

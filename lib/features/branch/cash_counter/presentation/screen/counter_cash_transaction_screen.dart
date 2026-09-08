@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 
@@ -9,6 +10,7 @@ import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/model/cash_transaction_model.dart';
 import '../provider/cash_transaction_provider.dart';
 import '../widget/add_cash_transaction_dialog.dart';
+import 'package:jan_ghani_final/core/widget/pagination_bar.dart';
 
 class CounterCashTransactionScreen extends ConsumerStatefulWidget {
   const CounterCashTransactionScreen({super.key});
@@ -20,6 +22,8 @@ class CounterCashTransactionScreen extends ConsumerStatefulWidget {
 
 class _CounterCashTransactionScreenState
     extends ConsumerState<CounterCashTransactionScreen> {
+  int _page = 0;
+
   @override
   void initState() {
     super.initState();
@@ -91,7 +95,7 @@ class _CounterCashTransactionScreenState
         actions: [
           IconButton(
             onPressed: () => ref.read(cashTransactionProvider.notifier).load(),
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
             style: IconButton.styleFrom(
                 foregroundColor: AppColor.textSecondary),
@@ -111,7 +115,7 @@ class _CounterCashTransactionScreenState
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.calculate_rounded, size: 18),
+                icon: const AppIcon('ic_count_cash', size: 18, color: Colors.white),
                 label: const Text('Count Cash',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
@@ -159,7 +163,7 @@ class _CounterCashTransactionScreenState
                 SummaryCard(
                   title: 'Today Total',
                   value: 'Rs ${state.todayTotal}',
-                  icon: Icons.account_balance_wallet_outlined,
+                  iconAsset: 'ic_net_amount',
                   color: state.todayTotal >= 0
                       ? AppColor.success
                       : AppColor.error,
@@ -169,7 +173,7 @@ class _CounterCashTransactionScreenState
                   title: 'Cash In',
                   value:
                   'Rs ${transactions.where((t) => t.isCashIn).fold(0.0, (s, t) => s + t.cashOutAmount)}',
-                  icon: Icons.arrow_downward_rounded,
+                  iconAsset: 'ic_cash_in',
                   color: AppColor.success,
                 ),
                 // ── Cash Out Card — COMMENTED ──────────────
@@ -189,7 +193,10 @@ class _CounterCashTransactionScreenState
             Expanded(
               child: transactions.isEmpty
                   ? const _EmptyState()
-                  : LayoutBuilder(
+                  : Column(
+                children: [
+                  Expanded(
+                    child: LayoutBuilder(
                 builder: (context, constraints) {
                   final availableWidth = constraints.maxWidth;
                   const double minTableWidth = 750;
@@ -228,7 +235,7 @@ class _CounterCashTransactionScreenState
                                     'Description')), // user ki note
                             DataColumn(label: Text('Date & Time')),
                           ],
-                          rows: transactions
+                          rows: pageSlice(transactions, _page)
                               .map((t) => DataRow(
                             cells: [
                               DataCell(
@@ -286,6 +293,14 @@ class _CounterCashTransactionScreenState
                     ),
                   );
                 },
+              ),
+                  ),
+                  PaginationBar(
+                    total: transactions.length,
+                    page:  _page,
+                    onPageChanged: (p) => setState(() => _page = p),
+                  ),
+                ],
               ),
             ),
           ],

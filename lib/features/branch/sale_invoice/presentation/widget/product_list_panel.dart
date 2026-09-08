@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/color/app_color.dart';
+import '../../../../../core/widget/app_icon.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../branch_stock_inventory/presentation/provider/branch_stock_inventory_provider.dart';
 import '../../data/model/sale_invoice_model.dart';
@@ -424,8 +425,9 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                         hintText:  'Search ya barcode scan karo...',
                         hintStyle: const TextStyle(
                             fontSize: 11, color: AppColor.textHint),
-                        prefixIcon: Icon(Icons.qr_code_scanner_rounded,
+                        prefixIcon: const AppIcon('ic_barcode',
                             size: 16, color: AppColor.grey400),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                         suffixIcon: _searchCtrl.text.isNotEmpty
                             ? GestureDetector(
                           onTap: () {

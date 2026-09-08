@@ -19,9 +19,10 @@ class StockTransferDetailScreen extends ConsumerWidget {
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) =>
           Scaffold(body: Center(child: Text("Error: $e"))),
-      data: (transfers) {
+      data: (data) {
         // ✅ BUG 3 FIX: firstWhereOrNull — crash nahi hoga
-        final transfer = transfers.firstWhereOrNull((t) => t.id == transferId);
+        final transfer =
+            data.rows.firstWhereOrNull((t) => t.id == transferId);
 
         if (transfer == null) {
           return Scaffold(
@@ -81,33 +82,54 @@ class StockTransferDetailScreen extends ConsumerWidget {
               ),
             ],
           ),
-          body: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _HeaderCard(transfer: transfer),
-                      const SizedBox(height: 12),
-                      _FromToCard(transfer: transfer),
-                      const SizedBox(height: 12),
-                      _InvoiceTable(transfer: transfer),
-                      if (transfer.notes != null &&
-                          transfer.notes!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        _NotesCard(notes: transfer.notes!),
-                      ],
-                      const SizedBox(height: 120),
-                    ],
-                  ),
-                ),
-              ),
-              _BottomBar(transfer: transfer),
-            ],
-          ),
+          body: StockTransferDetailBody(transfer: transfer),
         );
       },
+    );
+  }
+}
+
+/// Transfer detail ka body (invoice cards + Accept/Reject bar) — full
+/// screen aur right-side slide-over panel dono me reuse hota hai.
+class StockTransferDetailBody extends StatelessWidget {
+  final StockTransfer transfer;
+
+  /// Accept / Reject success ke baad call hota hai (slide-over panel band
+  /// karne ke liye).
+  final VoidCallback? onActionDone;
+
+  const StockTransferDetailBody({
+    super.key,
+    required this.transfer,
+    this.onActionDone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _HeaderCard(transfer: transfer),
+                const SizedBox(height: 12),
+                _FromToCard(transfer: transfer),
+                const SizedBox(height: 12),
+                _InvoiceTable(transfer: transfer),
+                if (transfer.notes != null &&
+                    transfer.notes!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _NotesCard(notes: transfer.notes!),
+                ],
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+        _BottomBar(transfer: transfer, onActionDone: onActionDone),
+      ],
     );
   }
 }
@@ -635,7 +657,8 @@ class _NotesCard extends StatelessWidget {
 // ── Bottom Bar: Accept / Reject / Already Accepted ──
 class _BottomBar extends ConsumerWidget {
   final StockTransfer transfer;
-  const _BottomBar({required this.transfer});
+  final VoidCallback? onActionDone;
+  const _BottomBar({required this.transfer, this.onActionDone});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -786,6 +809,7 @@ class _BottomBar extends ConsumerWidget {
           margin: const EdgeInsets.all(16),
         ));
       }
+      if (success) onActionDone?.call();
     }
   }
 
@@ -824,6 +848,7 @@ class _BottomBar extends ConsumerWidget {
           margin: const EdgeInsets.all(16),
         ));
       }
+      if (success) onActionDone?.call();
     }
   }
 }

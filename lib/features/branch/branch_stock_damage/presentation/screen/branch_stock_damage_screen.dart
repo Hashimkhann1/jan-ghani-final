@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 
 import '../../../customer/presentation/widget/customer_action_button_widget.dart';
@@ -77,7 +78,7 @@ class _BranchStockDamageScreenState
         actions: [
           IconButton(
             onPressed: notifier.refresh,
-            icon:      const Icon(Icons.refresh_rounded),
+            icon:      const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip:   'Refresh',
             style: IconButton.styleFrom(
                 foregroundColor: AppColor.textSecondary),
@@ -112,14 +113,14 @@ class _BranchStockDamageScreenState
               SummaryCard(
                 title: 'Total Records',
                 value: state.totalRecords.toString(),
-                icon:  Icons.receipt_long_outlined,
+                iconAsset: 'ic_credit_sale',
                 color: AppColor.primary,
               ),
               const SizedBox(width: 12),
               SummaryCard(
                 title: 'Total Qty Damaged',
                 value: state.totalQtyDamaged.toStringAsFixed(0),
-                icon:  Icons.broken_image_outlined,
+                iconAsset: 'ic_total_quantity',
                 color: AppColor.warning,
               ),
               const SizedBox(width: 12),
@@ -129,7 +130,7 @@ class _BranchStockDamageScreenState
                     ? 'Loss (Filtered)'
                     : 'Total Loss Value',
                 value: 'Rs ${state.totalLossValue.toStringAsFixed(0)}',
-                icon:  Icons.trending_down_rounded,
+                iconAsset: 'ic_cash_out',
                 color: AppColor.error,
               ),
               const SizedBox(width: 12),
@@ -141,7 +142,7 @@ class _BranchStockDamageScreenState
                     r.createdAt.year  == DateTime.now().year)
                     .length
                     .toString(),
-                icon:  Icons.calendar_month_outlined,
+                iconAsset: 'ic_calendar',
                 color: AppColor.info,
               ),
             ]),
@@ -163,8 +164,9 @@ class _BranchStockDamageScreenState
                       hintText: 'Search by product name...',
                       hintStyle: const TextStyle(
                           color: AppColor.textHint, fontSize: 13),
-                      prefixIcon: const Icon(Icons.search,
+                      prefixIcon: const AppIcon('ic_search',
                           size: 18, color: AppColor.grey400),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                       suffixIcon: _searchCtrl.text.isNotEmpty
                           ? IconButton(
                         icon: const Icon(Icons.close_rounded,
@@ -305,7 +307,8 @@ class _DateFilterField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: label,
           hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
-          prefixIcon: const Icon(Icons.calendar_today_outlined,
+          prefixIconConstraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.grey400),
           suffixIcon: date != null
               ? IconButton(
@@ -515,17 +518,19 @@ class _DamageRow extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CustomerActionButton(
-                icon:    Icons.edit_outlined,
-                color:   AppColor.primary,
-                tooltip: 'Edit Quantity',
-                onTap:   onEdit,
+                icon:      Icons.edit_outlined,
+                iconAsset: 'ic_edit',
+                color:     AppColor.primary,
+                tooltip:   'Edit Quantity',
+                onTap:     onEdit,
               ),
               const SizedBox(width: 6),
               CustomerActionButton(
-                icon:    Icons.delete_outline_rounded,
-                color:   AppColor.error,
-                tooltip: 'Delete & Restore Stock',
-                onTap:   onDelete,
+                icon:      Icons.delete_outline_rounded,
+                iconAsset: 'ic_delete',
+                color:     AppColor.error,
+                tooltip:   'Delete & Restore Stock',
+                onTap:     onDelete,
               ),
             ],
           ),
@@ -716,7 +721,7 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 16),
         ElevatedButton.icon(
           onPressed: onAdd,
-          icon:  const Icon(Icons.add_rounded, size: 18),
+          icon:  const AppIcon('ic_plus_new', size: 18, color: Colors.white),
           label: const Text('Add Damage'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.error,

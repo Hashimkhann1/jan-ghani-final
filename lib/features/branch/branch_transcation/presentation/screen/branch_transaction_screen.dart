@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
+import 'package:jan_ghani_final/core/widget/pagination_bar.dart';
+
 import '../provider/branch_transaction_provider.dart';
 import '../widget/cash_out_dilog.dart';
 
@@ -18,6 +21,8 @@ class _BranchTransactionScreenState
   final TextEditingController _startDateCtrl = TextEditingController();
   final TextEditingController _endDateCtrl   = TextEditingController();
   final DateFormat _dateOnly = DateFormat('dd MMM yyyy');
+
+  int _page = 0;
 
   @override
   void initState() {
@@ -120,7 +125,7 @@ class _BranchTransactionScreenState
             style: TextStyle(fontWeight: FontWeight.w700)),
         actions: [
           IconButton(
-            icon:    const Icon(Icons.refresh_rounded),
+            icon:    const AppIcon('ic_refresh', size: 20, color: Color(0xFF6B7280)),
             tooltip: 'Refresh',
             onPressed: () =>
                 ref.read(branchTransactionProvider.notifier).loadData(),
@@ -138,7 +143,7 @@ class _BranchTransactionScreenState
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
-                icon:  const Icon(Icons.arrow_upward_rounded, size: 18),
+                icon:  const AppIcon('ic_cash_out', size: 18, color: Colors.white),
                 label: const Text('Cash Out',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
@@ -185,8 +190,7 @@ class _BranchTransactionScreenState
                         labelText: 'Start Date',
                         hintText:  'dd MMM yyyy',
                         isDense:   true,
-                        prefixIcon: const Icon(
-                            Icons.calendar_today_outlined, size: 18),
+                        prefixIcon: const AppIcon('ic_calendar', size: 18),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(
@@ -203,8 +207,7 @@ class _BranchTransactionScreenState
                         labelText: 'End Date',
                         hintText:  'dd MMM yyyy',
                         isDense:   true,
-                        prefixIcon: const Icon(
-                            Icons.calendar_today_outlined, size: 18),
+                        prefixIcon: const AppIcon('ic_calendar', size: 18),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(
@@ -306,7 +309,10 @@ class _BranchTransactionScreenState
                   ],
                 ),
               )
-                  : RefreshIndicator(
+                  : Column(
+                children: [
+                  Expanded(
+                    child: RefreshIndicator(
                 onRefresh: () => ref
                     .read(branchTransactionProvider.notifier)
                     .loadData(),
@@ -341,7 +347,7 @@ class _BranchTransactionScreenState
                               DataColumn(label: Text('Date & Time')),
                               DataColumn(label: Text('Status')),
                             ],
-                            rows: state.history.map((t) {
+                            rows: pageSlice(state.history, _page).map((t) {
                               final isSyncingThis =
                                   state.syncingRowId == t.id;
 
@@ -360,7 +366,7 @@ class _BranchTransactionScreenState
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.arrow_upward_rounded,
+                                      AppIcon('ic_transfer',
                                           size:  13,
                                           color: Colors.red.shade400),
                                       const SizedBox(width: 5),
@@ -517,6 +523,14 @@ class _BranchTransactionScreenState
                   },
                 ),
               ),
+                  ),
+                  PaginationBar(
+                    total: state.history.length,
+                    page:  _page,
+                    onPageChanged: (p) => setState(() => _page = p),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -552,7 +566,7 @@ class _SummaryCard extends StatelessWidget {
                 label:  'Cash In Hand',
                 amount: totalAmount,
                 color:  Colors.green,
-                icon:   Icons.payments_outlined,
+                iconAsset: 'ic_cash_in',
               ),
             ),
             Container(width: 1, height: 50, color: Colors.grey.shade200),
@@ -561,7 +575,7 @@ class _SummaryCard extends StatelessWidget {
                 label:  'Total Pay Amount',
                 amount: totalPayAmount,
                 color:  Colors.red,
-                icon:   Icons.arrow_upward_rounded,
+                iconAsset: 'ic_cash_out',
               ),
             ),
           ],
@@ -575,20 +589,20 @@ class _AmountItem extends StatelessWidget {
   final String   label;
   final double   amount;
   final Color    color;
-  final IconData icon;
+  final String   iconAsset;
 
   const _AmountItem({
     required this.label,
     required this.amount,
     required this.color,
-    required this.icon,
+    required this.iconAsset,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 20),
+        AppIcon(iconAsset, color: color, size: 20),
         const SizedBox(height: 6),
         Text(label,
             style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),

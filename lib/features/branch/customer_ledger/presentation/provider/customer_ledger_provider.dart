@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
@@ -9,13 +11,21 @@ import '../../domain/usecase/delete_ledger_usecase.dart';
 import '../../domain/usecase/get_ledgers_usecase.dart';
 import '../../domain/usecase/update_ledger_usecase.dart';
 
+const kLedgerPageSize = 25;
+
 class CustomerLedgerState {
+  /// Sirf current page ke rows (server-side pagination).
   final List<CustomerLedgerModel> allLedgers;
   final String searchQuery;
   final bool isLoading;
   final String? errorMessage;
   final DateTime? fromDate;
   final DateTime? toDate;
+
+  // ── Pagination (server-side) ──────────────────────────────
+  final int    page;        // 0-based
+  final int    totalCount;  // poore filtered dataset ka count
+  final double totalPaidAll; // poore filtered dataset ka SUM(pay_amount)
 
   const CustomerLedgerState({
     this.allLedgers = const [],
@@ -24,22 +34,20 @@ class CustomerLedgerState {
     this.errorMessage,
     this.fromDate,
     this.toDate,
+    this.page = 0,
+    this.totalCount = 0,
+    this.totalPaidAll = 0,
   });
 
-  List<CustomerLedgerModel> get filteredLedgers {
-    // Date range ab DB query khud handle karti hai (loadLedgers), is liye
-    // yahan sirf search text filter hota hai.
-    var list = allLedgers;
+  /// Search + counter filter ab DB query karti hai, is liye yeh direct
+  /// current page hi hai.
+  List<CustomerLedgerModel> get filteredLedgers => allLedgers;
 
-    if (searchQuery.isNotEmpty) {
-      final q = searchQuery.toLowerCase();
-      list = list.where((l) => l.customerName.toLowerCase().contains(q) || (l.notes?.toLowerCase().contains(q) ?? false)).toList();
-    }
+  /// Poore filtered dataset ka total paid (sirf current page ka nahi).
+  double get totalPaid => totalPaidAll;
 
-    return list;
-  }
-
-  double get totalPaid => filteredLedgers.fold(0, (sum, l) => sum + l.payAmount);
+  int get pageCount =>
+      totalCount == 0 ? 1 : ((totalCount + kLedgerPageSize - 1) ~/ kLedgerPageSize);
 
   /// Kya date range abhi default "current month" par hai (Clear Filter
   /// button sirf tab dikhayein jab user ne isse hata kar kuch aur chuna ho).
@@ -62,6 +70,9 @@ class CustomerLedgerState {
     DateTime? toDate,
     bool clearFromDate = false,
     bool clearToDate = false,
+    int? page,
+    int? totalCount,
+    double? totalPaidAll,
   }) => CustomerLedgerState(
     allLedgers: allLedgers ?? this.allLedgers,
     searchQuery: searchQuery ?? this.searchQuery,
@@ -69,6 +80,9 @@ class CustomerLedgerState {
     errorMessage: errorMessage,
     fromDate: clearFromDate ? null : (fromDate ?? this.fromDate),
     toDate: clearToDate ? null : (toDate ?? this.toDate),
+    page: page ?? this.page,
+    totalCount: totalCount ?? this.totalCount,
+    totalPaidAll: totalPaidAll ?? this.totalPaidAll,
   );
 }
 
@@ -78,6 +92,9 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
   final DeleteLedgerUseCase _delete;
   final Ref _ref;
   final UpdateLedgerUseCase  _update;
+
+  Timer? _searchDebounce;
+
   CustomerLedgerNotifier(this._ref):
         _getAll = GetLedgersUseCase(CustomerLedgerRepositoryImpl()),
         _add = AddLedgerUseCase(CustomerLedgerRepositoryImpl()),
@@ -87,6 +104,12 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
     loadLedgers();
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
   // Default: current month — poori history ek saath load karne se list
   // bohut bhari ho jati thi, is liye ab sirf isi mahine ka data aata hai.
   static CustomerLedgerState _initialState() {
@@ -94,23 +117,66 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
     return CustomerLedgerState(fromDate: DateTime(now.year, now.month, 1));
   }
 
-  Future<void> loadLedgers() async {
-    state = state.copyWith(isLoading: true);
-    try {
-      final _storeId = _ref.read(authProvider).storeId;
-      final ledgers = await _getAll(
-        _storeId,
-        from: state.fromDate,
-        to:   state.toDate,
+  /// Server se current page load karo. [resetPage] true ho to page 0 par
+  /// wapas jao (filter / search / date change ke baad).
+  Future<void> loadLedgers({bool resetPage = false}) async {
+    final auth      = _ref.read(authProvider);
+    final counterId = auth.counterId;
+
+    // Koi counter assign nahi — kuch load karne ko nahi.
+    if (counterId == null) {
+      state = state.copyWith(
+        allLedgers:   const [],
+        totalCount:   0,
+        totalPaidAll: 0,
+        page:         0,
+        isLoading:    false,
       );
-      state = state.copyWith(allLedgers: ledgers, isLoading: false);
+      return;
+    }
+
+    final page = resetPage ? 0 : state.page;
+    state = state.copyWith(isLoading: true, page: page);
+
+    try {
+      final result = await _getAll.page(
+        auth.storeId,
+        counterId: counterId,
+        from:      state.fromDate,
+        to:        state.toDate,
+        search:    state.searchQuery,
+        limit:     kLedgerPageSize,
+        offset:    page * kLedgerPageSize,
+      );
+
+      // Agar current page range se bahar ho (e.g. delete ke baad), pichle
+      // valid page par khud chale jao.
+      final maxPage = result.total == 0
+          ? 0
+          : (result.total - 1) ~/ kLedgerPageSize;
+      if (page > maxPage) {
+        state = state.copyWith(page: maxPage);
+        return loadLedgers();
+      }
+
+      state = state.copyWith(
+        allLedgers:   result.rows,
+        totalCount:   result.total,
+        totalPaidAll: result.totalPaid,
+        isLoading:    false,
+      );
     } catch (e) {
       state = state.copyWith(
           isLoading: false, errorMessage: 'Load error: $e');
     }
   }
 
-  // customer_ledger_provider.dart (sirf addLedger method change)
+  void setPage(int page) {
+    if (page == state.page) return;
+    state = state.copyWith(page: page);
+    loadLedgers();
+  }
+
   Future<void> addLedger({
     required String customerId,
     required String customerName,
@@ -124,11 +190,11 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
       final auth = _ref.read(authProvider);
       final counterId = auth.counterId;
       final userId = auth.user?.id;        // ← cashier/manager id
-      final _storeId = auth.storeId;
+      final storeId = auth.storeId;
 
-      final saved = await _add(CustomerLedgerModel(
+      await _add(CustomerLedgerModel(
         id:             '',
-        storeId:        _storeId,
+        storeId:        storeId,
         customerId:     customerId,
         customerName:   customerName,
         counterId:      counterId,
@@ -141,13 +207,11 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
         updatedAt:      DateTime.now(),
       ));
 
-      state = state.copyWith(
-        allLedgers: [saved, ...state.allLedgers],
-        isLoading:  false,
-      );
-
       _ref.read(customerProvider.notifier).loadCustomers();
       _ref.read(cashCounterProvider.notifier).loadRecords();
+
+      // Naya record sabse upar aata hai — page 0 par jao aur reload.
+      await loadLedgers(resetPage: true);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: 'Add error: $e');
     }
@@ -157,9 +221,8 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
     state = state.copyWith(isLoading: true);
     try {
       await _delete(id);
-      final list = state.allLedgers.where((l) => l.id != id).toList();
-      state = state.copyWith(allLedgers: list, isLoading: false);
       _ref.read(customerProvider.notifier).loadCustomers();
+      await loadLedgers();
     } catch (e) {
       state = state.copyWith(
           isLoading: false, errorMessage: 'Delete error: $e');
@@ -174,40 +237,43 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
   }) async {
     state = state.copyWith(isLoading: true);
     try {
-      final updated = await _update(        // ← _repo ki jagah _update
+      await _update(
         id:        id,
         payAmount: payAmount,
         newAmount: newAmount,
         notes:     notes,
       );
 
-      final list = state.allLedgers
-          .map((l) => l.id == updated.id ? updated : l)
-          .toList();
-
-      state = state.copyWith(allLedgers: list, isLoading: false);
       _ref.read(customerProvider.notifier).loadCustomers();
+      await loadLedgers();
     } catch (e) {
       state = state.copyWith(
           isLoading: false, errorMessage: 'Update error: $e');
     }
   }
 
-  void onSearchChanged(String q) => state = state.copyWith(searchQuery: q);
-  void clearError()              => state = state.copyWith(errorMessage: null);
+  void onSearchChanged(String q) {
+    state = state.copyWith(searchQuery: q);
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      loadLedgers(resetPage: true);
+    });
+  }
+
+  void clearError() => state = state.copyWith(errorMessage: null);
 
   void setFromDate(DateTime? date) {
     state = date == null
         ? state.copyWith(clearFromDate: true)
         : state.copyWith(fromDate: date);
-    loadLedgers();
+    loadLedgers(resetPage: true);
   }
 
   void setToDate(DateTime? date) {
     state = date == null
         ? state.copyWith(clearToDate: true)
         : state.copyWith(toDate: date);
-    loadLedgers();
+    loadLedgers(resetPage: true);
   }
 
   // Wapas current month par — poori history dobara load nahi hoti.
@@ -216,7 +282,7 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
       allLedgers:  state.allLedgers,
       searchQuery: state.searchQuery,
     );
-    loadLedgers();
+    loadLedgers(resetPage: true);
   }
 }
 

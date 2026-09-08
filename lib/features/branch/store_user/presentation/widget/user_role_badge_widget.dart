@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 
 class UserRoleBadge extends StatelessWidget {
   final String role;
@@ -23,6 +24,14 @@ class UserRoleBadge extends StatelessWidget {
     }
   }
 
+  String get _iconAsset {
+    switch (role) {
+      case 'store_owner':   return 'ic_role_owner';
+      case 'store_manager': return 'ic_role_manager';
+      default:              return 'ic_role_cashier';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -31,11 +40,18 @@ class UserRoleBadge extends StatelessWidget {
         color:        _color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(_label,
-          style: TextStyle(
-              fontSize:   11,
-              fontWeight: FontWeight.w600,
-              color:      _color)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppIcon(_iconAsset, size: 11, color: _color),
+          const SizedBox(width: 4),
+          Text(_label,
+              style: TextStyle(
+                  fontSize:   11,
+                  fontWeight: FontWeight.w600,
+                  color:      _color)),
+        ],
+      ),
     );
   }
 }

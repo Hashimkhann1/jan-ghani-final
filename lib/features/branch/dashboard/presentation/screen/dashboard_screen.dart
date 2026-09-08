@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 
 import '../provider/dashboard_provider.dart';
 import '../widget/dashboard_chart_widget.dart';
@@ -59,7 +60,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded,
+            icon: const AppIcon('ic_refresh',
                 color: Color(0xFF6B7280), size: 20),
             onPressed: () => ref.read(dashboardProvider.notifier).load(),
             tooltip: 'Refresh',

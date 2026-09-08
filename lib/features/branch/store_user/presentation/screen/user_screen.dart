@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 
@@ -114,7 +115,7 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
           IconButton(
             onPressed: () =>
                 ref.read(userProvider.notifier).loadUsers(),
-            icon:    const Icon(Icons.refresh_rounded),
+            icon:    const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
             style: IconButton.styleFrom(
                 foregroundColor: AppColor.textSecondary),
@@ -135,7 +136,7 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  icon:  const Icon(Icons.person_add_outlined, size: 18),
+                  icon:  const AppIcon('ic_plus_new', size: 18, color: Colors.white),
                   label: const Text('New User',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
@@ -159,21 +160,21 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                 SummaryCard(
                   title: 'Total Users',
                   value: '${state.totalCount}',
-                  icon:  Icons.people_outline_rounded,
+                  iconAsset: 'ic_top_customers',
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Active',
                   value: '${state.activeCount}',
-                  icon:  Icons.check_circle_outline_rounded,
+                  iconAsset: 'ic_active_check',
                   color: AppColor.success,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Owners',
                   value: '${state.ownerCount}',
-                  icon:  Icons.admin_panel_settings_outlined,
+                  iconAsset: 'ic_admin',
                   color: AppColor.error,
                 ),
               ],
@@ -198,7 +199,8 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                         hintText:  'Search by name, username...',
                         hintStyle: const TextStyle(
                             color: AppColor.textHint, fontSize: 13),
-                        prefixIcon: const Icon(Icons.search,
+                        prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+                        prefixIcon: const AppIcon('ic_search',
                             size: 18, color: AppColor.grey400),
                         filled:    true,
                         fillColor: AppColor.grey100,
@@ -365,18 +367,20 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       CustomerActionButton(
-                                        icon:    Icons.edit_outlined,
-                                        color:   AppColor.primary,
-                                        tooltip: 'Edit',
-                                        onTap:   () => _openDialog(
+                                        icon:      Icons.edit_outlined,
+                                        iconAsset: 'ic_edit',
+                                        color:     AppColor.primary,
+                                        tooltip:   'Edit',
+                                        onTap:     () => _openDialog(
                                             context, user: u),
                                       ),
                                       const SizedBox(width: 6),
                                       CustomerActionButton(
-                                        icon:    Icons.delete_outline_rounded,
-                                        color:   AppColor.error,
-                                        tooltip: 'Delete',
-                                        onTap:   () =>
+                                        icon:      Icons.delete_outline_rounded,
+                                        iconAsset: 'ic_delete',
+                                        color:     AppColor.error,
+                                        tooltip:   'Delete',
+                                        onTap:     () =>
                                             _confirmDelete(context, u),
                                       ),
                                     ],

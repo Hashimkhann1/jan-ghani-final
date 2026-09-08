@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 
 class SummaryCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
+  final String    title;
+  final String    value;
+  final IconData  icon;
+  final Color     color;
+
+  /// Diya jaye to Material [icon] ki jagah `assets/branch_icons/<iconAsset>.svg`
+  /// render hota hai (card ke `color` se tinted).
+  final String?   iconAsset;
 
   const SummaryCard({
+    super.key,
     required this.title,
     required this.value,
-    required this.icon,
     required this.color,
+    this.icon = Icons.circle,
+    this.iconAsset,
   });
 
   @override
@@ -38,7 +45,9 @@ class SummaryCard extends StatelessWidget {
                 color: color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: iconAsset != null
+                  ? AppIcon(iconAsset!, color: color, size: 20)
+                  : Icon(icon, color: color, size: 20),
             ),
            Column(
              children: [

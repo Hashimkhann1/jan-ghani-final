@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
+import 'package:jan_ghani_final/core/widget/pagination_bar.dart';
 import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 
@@ -19,6 +21,8 @@ class CashCounterScreen extends ConsumerStatefulWidget {
 }
 
 class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
+
+  int _page = 0;
 
   @override
   void initState() {
@@ -81,7 +85,7 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
         actions: [
           IconButton(
             onPressed: () => ref.read(cashCounterProvider.notifier).loadRecords(),
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
             style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
           ),
@@ -96,7 +100,7 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                   side: const BorderSide(color: AppColor.success),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                icon:  const Icon(Icons.calculate_rounded, size: 18),
+                icon:  const AppIcon('ic_count_cash', size: 18, color: AppColor.success),
                 label: const Text('Count Cash',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
@@ -118,7 +122,7 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                   elevation:       0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                icon:  const Icon(Icons.swap_horiz_rounded, size: 18),
+                icon:  const AppIcon('ic_cash_registration', size: 18, color: Colors.white),
                 label: const Text('Cash Registration',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
@@ -141,28 +145,28 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                 SummaryCard(
                   title: 'Total Sale',
                   value: 'Rs ${state.grandTotalSale.toStringAsFixed(0)}',
-                  icon:  Icons.point_of_sale_outlined,
+                  iconAsset: 'ic_cash_registration',
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Cash In',
                   value: 'Rs ${state.grandCashIn.toStringAsFixed(0)}',
-                  icon:  Icons.arrow_downward_rounded,
+                  iconAsset: 'ic_cash_in',
                   color: AppColor.success,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Cash Out',
                   value: 'Rs ${state.grandCashOut.toStringAsFixed(0)}',
-                  icon:  Icons.arrow_upward_rounded,
+                  iconAsset: 'ic_cash_out',
                   color: AppColor.error,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Net Amount',
                   value: 'Rs ${state.grandTotalAmount.toStringAsFixed(0)}',
-                  icon:  Icons.account_balance_outlined,
+                  iconAsset: 'ic_bank_net',
                   color: AppColor.info,
                 ),
               ],
@@ -180,7 +184,8 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search by date...',
                   hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: AppColor.grey400),
+                  prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.grey400),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                   filled: true,
                   fillColor: AppColor.grey100,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -201,7 +206,10 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                 isSearching: state.searchQuery.isNotEmpty,
                 noCounterAssigned: !isOwnerOrManager && auth.counterId == null,
               ) :
-              LayoutBuilder(
+              Column(
+                children: [
+                  Expanded(
+                    child: LayoutBuilder(
                 builder: (context, constraints) {
                   final availableWidth = constraints.maxWidth;
                   const double minTableWidth = 1100;
@@ -236,7 +244,7 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                             DataColumn(label: Text('Cash Out')),
                             DataColumn(label: Text('Net Amount')),
                           ],
-                          rows: records.map((r) {
+                          rows: pageSlice(records, _page).map((r) {
                             final counterName = r.counterId != null
                                 ? counters
                                 .where((c) => c.id == r.counterId)
@@ -255,8 +263,8 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                                         color: AppColor.primary.withValues(alpha: 0.08),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
-                                        Icons.calendar_today_outlined,
+                                      child: const AppIcon(
+                                        'ic_calendar',
                                         size: 14,
                                         color: AppColor.primary,
                                       ),
@@ -305,6 +313,14 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                     ),
                   );
                 },
+              ),
+                  ),
+                  PaginationBar(
+                    total: records.length,
+                    page:  _page,
+                    onPageChanged: (p) => setState(() => _page = p),
+                  ),
+                ],
               ),
             ),
           ],

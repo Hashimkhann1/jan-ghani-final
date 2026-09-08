@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
+import 'package:jan_ghani_final/core/widget/pagination_bar.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer_ledger/data/model/customer_ledger_model.dart';
 import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/provider/customer_ledger_provider.dart';
@@ -132,11 +134,8 @@ class _CounterCustomerLedgerScreenState
         decoration: InputDecoration(
           hintText: label,
           hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
-          prefixIcon: const Icon(
-            Icons.calendar_today_outlined,
-            size: 16,
-            color: AppColor.grey400,
-          ),
+          prefixIcon: const AppIcon('ic_calendar', size: 16, color: AppColor.grey400),
+          prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           suffixIcon: value != null
               ? InkWell(
             onTap: onClear,
@@ -163,12 +162,13 @@ class _CounterCustomerLedgerScreenState
     final fmt = DateFormat('dd MMM yyyy  hh:mm a');
     final notifier = ref.read(customerLedgerProvider.notifier);
 
-    final ledgers = state.filteredLedgers.where((l) =>
-    l.deletedAt == null && l.counterId == auth.counterId).toList();
+    // Counter + date + search filter ab DB query karti hai — yeh sirf
+    // current page hai.
+    final ledgers = state.filteredLedgers;
 
     final counterName = auth.counterId != null ? counters.where((c) => c.id == auth.counterId).map((c) => c.counterName).firstOrNull ?? 'Counter' : 'Counter';
 
-    final totalPaid = ledgers.fold(0.0, (sum, l) => sum + l.payAmount);
+    final totalPaid = state.totalPaid;
 
     ref.listen<CustomerLedgerState>(customerLedgerProvider, (prev, next) {
       if (next.errorMessage != null &&
@@ -198,7 +198,7 @@ class _CounterCustomerLedgerScreenState
           IconButton(
             onPressed: () =>
                 ref.read(customerLedgerProvider.notifier).loadLedgers(),
-            icon:    const Icon(Icons.refresh_rounded),
+            icon:    const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
             style: IconButton.styleFrom(
                 foregroundColor: AppColor.textSecondary),
@@ -222,7 +222,7 @@ class _CounterCustomerLedgerScreenState
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
-                icon:  const Icon(Icons.add, size: 18),
+                icon:  const AppIcon('ic_plus_new', size: 18, color: Colors.white),
                 label: const Text('New Payment',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
@@ -270,15 +270,15 @@ class _CounterCustomerLedgerScreenState
               children: [
                 SummaryCard(
                   title: 'Total Records',
-                  value: '${ledgers.length}',
-                  icon:  Icons.receipt_long_outlined,
+                  value: '${state.totalCount}',
+                  iconAsset: 'ic_credit_sale',
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Total Paid',
                   value: 'Rs ${totalPaid.toStringAsFixed(0)}',
-                  icon:  Icons.payments_outlined,
+                  iconAsset: 'ic_cash_in',
                   color: AppColor.success,
                 ),
               ],
@@ -298,7 +298,8 @@ class _CounterCustomerLedgerScreenState
                     decoration: InputDecoration(
                       hintText: 'Search by customer...',
                       hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
-                      prefixIcon: const Icon(Icons.search, size: 18, color: AppColor.grey400),
+                      prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.grey400),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                       filled: true,
                       fillColor: AppColor.grey100,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -343,7 +344,10 @@ class _CounterCustomerLedgerScreenState
                 isSearching: state.searchQuery.isNotEmpty,
                 noCounterAssigned: auth.counterId == null,
               ) :
-              LayoutBuilder(
+              Column(
+                children: [
+                  Expanded(
+                    child: LayoutBuilder(
                 builder: (context, constraints) {
                   final availableWidth = constraints.maxWidth;
                   const double minTableWidth = 1050;
@@ -444,6 +448,14 @@ class _CounterCustomerLedgerScreenState
                     ),
                   );
                 },
+              ),
+                  ),
+                  PaginationBar(
+                    total: state.totalCount,
+                    page:  state.page,
+                    onPageChanged: notifier.setPage,
+                  ),
+                ],
               ),
             ),
           ],

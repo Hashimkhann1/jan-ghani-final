@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/color/app_color.dart';
+import '../../../../../core/widget/app_icon.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
@@ -263,7 +264,7 @@ class _CustomerAccountScreenState
               final storeId = ref.read(authProvider).storeId ?? '';
               ref.read(customerAccountProvider.notifier).loadAccounts(storeId);
             },
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
             style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
           ),
@@ -280,7 +281,7 @@ class _CustomerAccountScreenState
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.person_add_outlined, size: 18),
+                icon: const AppIcon('ic_plus_new', size: 18, color: Colors.white),
                 label: const Text('Add Account',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
@@ -309,8 +310,9 @@ class _CustomerAccountScreenState
                   hintText: 'Search by name or username...',
                   hintStyle: const TextStyle(
                       color: AppColor.textHint, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search,
+                  prefixIcon: const AppIcon('ic_search',
                       size: 18, color: AppColor.grey400),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                     icon: const Icon(Icons.close,

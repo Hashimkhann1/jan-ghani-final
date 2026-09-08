@@ -9,6 +9,7 @@ import 'package:jan_ghani_final/features/branch/customer/presentation/provider/c
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../data/model/sale_return_report_model.dart';
 import '../provider/sale_return_report_provider.dart';
+import '../widget/report_table.dart';
 
 class SaleReturnReportScreen extends ConsumerStatefulWidget {
   const SaleReturnReportScreen({super.key});
@@ -24,6 +25,20 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnReportScreen> {
   final _dateFmt       = DateFormat('dd MMM yyyy');
   final _timeFmt       = DateFormat('hh:mm a');
   final _inputFmt      = DateFormat('dd/MM/yyyy');
+
+  // ── Slide-over return panel ───────────────────────────────
+  SaleReturnModel? _selectedRet;
+  bool _panelOpen = false;
+
+  void _openReturn(SaleReturnModel ret) =>
+      setState(() { _selectedRet = ret; _panelOpen = true; });
+
+  void _closePanel() {
+    setState(() => _panelOpen = false);
+    Future.delayed(const Duration(milliseconds: 280), () {
+      if (mounted && !_panelOpen) setState(() => _selectedRet = null);
+    });
+  }
 
   @override
   void initState() {
@@ -188,7 +203,10 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnReportScreen> {
           const SizedBox(width: 12),
         ],
       ),
-      body: state.isLoading
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
         padding: const EdgeInsets.all(16),
@@ -367,26 +385,85 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnReportScreen> {
 
             const SizedBox(height: 16),
 
-            // ── Return List ──────────────────────────
+            // ── Return Table ─────────────────────────
             Expanded(
               child: returns.isEmpty
                   ? _EmptyReturnState(
                   isSearching: state.searchQuery.isNotEmpty ||
                       state.isCustomerSelected)
-                  : ListView.separated(
-                itemCount:        returns.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 12),
-                itemBuilder: (_, i) => _ReturnCard(
-                  ret:       returns[i],
-                  dateFmt:   _dateFmt,
-                  timeFmt:   _timeFmt,
-                  isManager: auth.isManager,
-                ),
-              ),
+                  : ReportTable(
+                      columns: const [
+                        ReportColumn('Return #', flex: 3),
+                        ReportColumn('Date', flex: 3),
+                        ReportColumn('Customer', flex: 3),
+                        ReportColumn('Refund', flex: 2),
+                        ReportColumn('Items', flex: 1,
+                            align: Alignment.center),
+                        ReportColumn('Discount', flex: 2,
+                            align: Alignment.centerRight),
+                        ReportColumn('Refund Total', flex: 2,
+                            align: Alignment.centerRight),
+                        ReportColumn('Status', flex: 2,
+                            align: Alignment.centerRight),
+                      ],
+                      rowCount: returns.length,
+                      onView: (i) => _openReturn(returns[i]),
+                      cellsBuilder: (i) {
+                        final ret = returns[i];
+                        return [
+                          Text(ret.returnNo,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColor.error)),
+                          Text(
+                            '${_dateFmt.format(ret.returnDate)}\n'
+                            '${_timeFmt.format(ret.returnDate)}',
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          Text(ret.customerName ?? 'Walk In',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: ret.customerName != null
+                                      ? AppColor.textPrimary
+                                      : AppColor.textSecondary)),
+                          Text(ret.refundLabel),
+                          Text('${ret.items.length}'),
+                          Text('Rs ${ret.totalDiscount.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                  color: AppColor.success)),
+                          Text(ret.grandTotalLabel,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColor.warning)),
+                          Text(ret.statusLabel,
+                              style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColor.textSecondary)),
+                        ];
+                      },
+                    ),
             ),
           ],
         ),
+      ),
+          ReportSlideOver(
+            open:    _panelOpen,
+            onClose: _closePanel,
+            title:   _selectedRet?.returnNo ?? 'Return',
+            child: _selectedRet == null
+                ? const SizedBox.shrink()
+                : _ReturnCard(
+                    ret:       _selectedRet!,
+                    dateFmt:   _dateFmt,
+                    timeFmt:   _timeFmt,
+                    isManager: auth.isManager,
+                  ),
+          ),
+        ],
       ),
     );
   }

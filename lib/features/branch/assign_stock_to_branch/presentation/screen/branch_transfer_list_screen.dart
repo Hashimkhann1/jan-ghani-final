@@ -1,11 +1,21 @@
 // Branch Transfer List Screen — updated with inventory-style summary header
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../../core/color/app_color.dart';
+import '../../../../../core/widget/app_icon.dart';
+import '../../../../../core/widget/pagination_bar.dart';
+import '../../../reports/presentation/widget/report_table.dart';
+import '../../data/datasource/stock_transfer_remote_datasource.dart';
 import '../../data/model/stock_transfer_model.dart';
 import '../provider/stock_transfer_provider.dart';
 import 'stock_transfer_detail_screen.dart';
+
+final _transferDateFmt = DateFormat('dd MMM yyyy');
+
+const _kTabStatus = ['pending', 'accepted', 'rejected'];
 
 class BranchTransferListScreen extends ConsumerStatefulWidget {
   const BranchTransferListScreen({super.key});
@@ -20,10 +30,38 @@ class _BranchTransferListScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  // ── Slide-over transfer panel ─────────────────────────────
+  String?        _selectedId;
+  StockTransfer? _selectedTransfer;   // cache — page badalne par bhi rahe
+  bool           _panelOpen = false;
+
+  void _openTransfer(StockTransfer t) => setState(() {
+        _selectedId       = t.id;
+        _selectedTransfer = t;
+        _panelOpen        = true;
+      });
+
+  void _closePanel() {
+    setState(() => _panelOpen = false);
+    Future.delayed(const Duration(milliseconds: 280), () {
+      if (mounted && !_panelOpen) {
+        setState(() { _selectedId = null; _selectedTransfer = null; });
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) return;
+      final status = _kTabStatus[_tabController.index];
+      if (ref.read(stockTransferProvider).value?.status != status) {
+        ref.read(stockTransferProvider.notifier).setStatus(status);
+        _closePanel();
+      }
+    });
   }
 
   @override
@@ -56,35 +94,33 @@ class _BranchTransferListScreenState
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
             onPressed: () => ref.read(stockTransferProvider.notifier).refresh(),
           ),
           const SizedBox(width: 4),
         ],
         bottom: asyncTransfers.when(
-          data: (transfers) {
-            final pending  = transfers.where((t) => t.isPending).toList();
-            final accepted = transfers.where((t) => t.isAccepted).toList();
-            final rejected = transfers.where((t) => t.isRejected).toList();
+          skipLoadingOnReload: true,
+          data: (data) {
             return _TransferTabBar(
               controller: _tabController,
               tabs: [
                 _TransferTabSpec(
-                    icon: Icons.schedule_rounded,
+                    iconAsset: 'ic_pending',
                     label: 'Pending',
                     color: AppColor.warning,
-                    count: pending.length),
+                    count: data.aggFor('pending').count),
                 _TransferTabSpec(
-                    icon: Icons.check_circle_outline_rounded,
+                    iconAsset: 'ic_accepted',
                     label: 'Accepted',
                     color: AppColor.success,
-                    count: accepted.length),
+                    count: data.aggFor('accepted').count),
                 _TransferTabSpec(
-                    icon: Icons.cancel_outlined,
+                    iconAsset: 'ic_rejected',
                     label: 'Rejected',
                     color: AppColor.error,
-                    count: rejected.length),
+                    count: data.aggFor('rejected').count),
               ],
             );
           },
@@ -93,42 +129,63 @@ class _BranchTransferListScreenState
         ),
       ),
       body: asyncTransfers.when(
+        skipLoadingOnReload: true,
         loading: () => const Center(
             child: CircularProgressIndicator(color: AppColor.primary)),
         error: (e, _) => _ErrorState(
           message: '$e',
           onRetry: () => ref.read(stockTransferProvider.notifier).refresh(),
         ),
-        data: (transfers) {
-          final pending  = transfers.where((t) => t.isPending).toList();
-          final accepted = transfers.where((t) => t.isAccepted).toList();
-          final rejected = transfers.where((t) => t.isRejected).toList();
+        data: (data) {
+          final status = data.status;
+          final accent = status == 'pending'
+              ? AppColor.warning
+              : status == 'accepted'
+                  ? AppColor.success
+                  : AppColor.error;
 
-          return TabBarView(
-            controller: _tabController,
+          final fresh = _selectedId == null
+              ? null
+              : data.rows.firstWhereOrNull((t) => t.id == _selectedId);
+          final selected = fresh ?? _selectedTransfer;
+
+          return Stack(
+            fit: StackFit.expand,
             children: [
               _TransferList(
-                transfers:   pending,
-                accentColor: AppColor.warning,
-                emptyIcon:   Icons.schedule_rounded,
-                emptyTitle:  'No pending transfers',
-                emptySubtitle:
-                'New stock assignments from the warehouse will show up here',
+                data:        data,
+                accentColor: accent,
+                emptyIcon:   status == 'pending'
+                    ? Icons.schedule_rounded
+                    : status == 'accepted'
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.cancel_outlined,
+                emptyTitle: status == 'pending'
+                    ? 'No pending transfers'
+                    : status == 'accepted'
+                        ? 'No accepted transfers yet'
+                        : 'No rejected transfers',
+                emptySubtitle: status == 'pending'
+                    ? 'New stock assignments from the warehouse will show up here'
+                    : status == 'accepted'
+                        ? 'Transfers you accept get added to your branch stock'
+                        : 'Transfers you decline will be listed here',
+                onView:  _openTransfer,
+                onPage:  (p) =>
+                    ref.read(stockTransferProvider.notifier).setPage(p),
               ),
-              _TransferList(
-                transfers:   accepted,
-                accentColor: AppColor.success,
-                emptyIcon:   Icons.check_circle_outline_rounded,
-                emptyTitle:  'No accepted transfers yet',
-                emptySubtitle:
-                'Transfers you accept get added to your branch stock',
-              ),
-              _TransferList(
-                transfers:   rejected,
-                accentColor: AppColor.error,
-                emptyIcon:   Icons.cancel_outlined,
-                emptyTitle:  'No rejected transfers',
-                emptySubtitle: 'Transfers you decline will be listed here',
+              ReportSlideOver(
+                open:       _panelOpen && selected != null,
+                onClose:    _closePanel,
+                title:      selected?.transferNumber ?? 'Transfer',
+                width:      520,
+                scrollable: false,
+                child: selected == null
+                    ? const SizedBox.shrink()
+                    : StockTransferDetailBody(
+                        transfer: selected,
+                        onActionDone: _closePanel,
+                      ),
               ),
             ],
           );
@@ -145,12 +202,12 @@ class _BranchTransferListScreenState
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 class _TransferTabSpec {
-  final IconData icon;
+  final String   iconAsset;
   final String   label;
   final Color    color;
   final int      count;
   const _TransferTabSpec({
-    required this.icon,
+    required this.iconAsset,
     required this.label,
     required this.color,
     required this.count,
@@ -226,7 +283,7 @@ class _TransferTabBarState extends State<_TransferTabBar> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(spec.icon,
+                      AppIcon(spec.iconAsset,
                           size:  15,
                           color: selected ? Colors.white : AppColor.textSecondary),
                       const SizedBox(width: 5),
@@ -280,57 +337,46 @@ class _TransferTabBarState extends State<_TransferTabBar> {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 class _SummaryBar extends StatelessWidget {
-  final List<StockTransfer> transfers;
+  final TransferStatusAgg agg;
   final Color accentColor;
 
   const _SummaryBar({
-    required this.transfers,
+    required this.agg,
     required this.accentColor,
   });
 
-  int get _totalTransfers => transfers.length;
-
-  int get _totalUnits =>
-      transfers.fold(0, (sum, t) => sum + t.totalItems);
-
-  double get _totalPurchase =>
-      transfers.fold(0.0, (sum, t) => sum + t.totalCost);
-
-  double get _totalSale =>
-      transfers.fold(0.0, (sum, t) => sum + t.totalSalePrice);
-
   @override
   Widget build(BuildContext context) {
-    if (transfers.isEmpty) return const SizedBox.shrink();
+    if (agg.count == 0) return const SizedBox.shrink();
 
     final items = [
       _SummaryItem(
-        icon: Icons.swap_horiz_rounded,
+        iconAsset: 'ic_transfer',
         iconBg: accentColor.withOpacity(0.1),
         iconColor: accentColor,
-        value: "$_totalTransfers",
+        value: "${agg.count}",
         label: "Total Transfers",
         valueColor: accentColor,
       ),
       _SummaryItem(
-        icon: Icons.inventory_2_rounded,
+        iconAsset: 'ic_total_quantity',
         iconBg: AppColor.primary.withOpacity(0.1),
         iconColor: AppColor.primary,
-        value: "$_totalUnits",
+        value: "${agg.totalUnits}",
         label: "Total Quantity",
       ),
       _SummaryItem(
-        icon: Icons.shopping_cart_outlined,
+        iconAsset: 'ic_purchase_price',
         iconBg: AppColor.warning.withOpacity(0.1),
         iconColor: AppColor.warning,
-        value: "Rs ${_fmt(_totalPurchase)}",
+        value: "Rs ${_fmt(agg.totalCost)}",
         label: "Total Purchase Price",
       ),
       _SummaryItem(
-        icon: Icons.trending_up_rounded,
+        iconAsset: 'ic_sale_price_trend',
         iconBg: AppColor.success.withOpacity(0.1),
         iconColor: AppColor.success,
-        value: "Rs ${_fmt(_totalSale)}",
+        value: "Rs ${_fmt(agg.totalSale)}",
         label: "Total Sale Price",
       ),
     ];
@@ -370,14 +416,14 @@ class _SummaryBar extends StatelessWidget {
 }
 
 class _SummaryItem {
-  final IconData icon;
+  final String iconAsset;
   final Color iconBg;
   final Color iconColor;
   final String value;
   final String label;
   final Color? valueColor;
   const _SummaryItem({
-    required this.icon,
+    required this.iconAsset,
     required this.iconBg,
     required this.iconColor,
     required this.value,
@@ -409,7 +455,7 @@ class _StatCard extends StatelessWidget {
               color: item.iconBg,
               borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(item.icon, color: item.iconColor, size: 21),
+            child: AppIcon(item.iconAsset, color: item.iconColor, size: 21),
           ),
           const SizedBox(width: 12),
           // Value + label — FittedBox shrinks the number instead of
@@ -458,22 +504,29 @@ class _StatCard extends StatelessWidget {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 class _TransferList extends ConsumerWidget {
-  final List<StockTransfer> transfers;
+  final TransferPageData data;
   final Color accentColor;
   final IconData emptyIcon;
   final String emptyTitle;
   final String emptySubtitle;
+  final void Function(StockTransfer) onView;
+  final void Function(int) onPage;
 
   const _TransferList({
-    required this.transfers,
+    required this.data,
     required this.accentColor,
     required this.emptyIcon,
     required this.emptyTitle,
     required this.emptySubtitle,
+    required this.onView,
+    required this.onPage,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final transfers = data.rows;
+    final agg       = data.aggFor(data.status);
+
     if (transfers.isEmpty) {
       return RefreshIndicator(
         color: accentColor,
@@ -499,16 +552,81 @@ class _TransferList extends ConsumerWidget {
       child: Column(
         children: [
           // ← Inventory-style summary bar at top
-          _SummaryBar(transfers: transfers, accentColor: accentColor),
+          _SummaryBar(agg: agg, accentColor: accentColor),
 
-          // Transfer cards list
+          // Transfer table
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: transfers.length,
-              itemBuilder: (context, i) =>
-                  _TransferCard(transfer: transfers[i]),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              child: ReportTable(
+                rowsPerPage: 100000, // server-paged — table khud paginate na kare
+                columns: const [
+                  ReportColumn('Transfer #', flex: 3),
+                  ReportColumn('Date', flex: 2),
+                  ReportColumn('From', flex: 3),
+                  ReportColumn('Products', flex: 2,
+                      align: Alignment.center),
+                  ReportColumn('Units', flex: 2,
+                      align: Alignment.center),
+                  ReportColumn('Purchase', flex: 2,
+                      align: Alignment.centerRight),
+                  ReportColumn('Sale', flex: 2,
+                      align: Alignment.centerRight),
+                  ReportColumn('Status', flex: 2,
+                      align: Alignment.centerRight),
+                ],
+                rowCount: transfers.length,
+                onView: (i) => onView(transfers[i]),
+                cellsBuilder: (i) {
+                  final t = transfers[i];
+                  return [
+                    Text(t.transferNumber,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColor.primary)),
+                    Text(_transferDateFmt.format(t.assignedAt),
+                        style: const TextStyle(fontSize: 11.5)),
+                    Text(t.assignedByName ?? 'Warehouse',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    Text('${t.items.length}'),
+                    Text('${t.totalItems}'),
+                    Text('Rs ${t.totalCost.toStringAsFixed(0)}'),
+                    Text('Rs ${t.totalSalePrice.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColor.success)),
+                    Text(
+                      t.isPending
+                          ? 'Pending'
+                          : t.isAccepted
+                              ? 'Accepted'
+                              : 'Rejected',
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: t.isPending
+                              ? AppColor.warning
+                              : t.isAccepted
+                                  ? AppColor.success
+                                  : AppColor.error),
+                    ),
+                  ];
+                },
+              ),
+            ),
+          ),
+
+          // ── Server-side pagination bar ──────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: PaginationBar(
+              total:   agg.count,
+              page:    data.page,
+              perPage: kTransferPageSize,
+              onPageChanged: onPage,
             ),
           ),
         ],
@@ -617,178 +735,6 @@ class _ErrorState extends StatelessWidget {
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Transfer Card
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-class _TransferCard extends StatelessWidget {
-  final StockTransfer transfer;
-  const _TransferCard({required this.transfer});
-
-  @override
-  Widget build(BuildContext context) {
-    Color statusColor;
-    String statusLabel;
-    IconData statusIcon;
-
-    if (transfer.isPending) {
-      statusColor = AppColor.warning;
-      statusLabel = "Pending";
-      statusIcon = Icons.schedule_rounded;
-    } else if (transfer.isAccepted) {
-      statusColor = AppColor.success;
-      statusLabel = "Accepted";
-      statusIcon = Icons.check_circle_rounded;
-    } else {
-      statusColor = AppColor.error;
-      statusLabel = "Rejected";
-      statusIcon = Icons.cancel_rounded;
-    }
-
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) =>
-              StockTransferDetailScreen(transferId: transfer.id),
-        ),
-      ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEEEEEE)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    transfer.transferNumber,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColor.primary),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(statusIcon, size: 12, color: statusColor),
-                      const SizedBox(width: 4),
-                      Text(statusLabel,
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: statusColor)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.warehouse_rounded,
-                    size: 13, color: AppColor.textHint),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    transfer.assignedByName ?? 'Warehouse',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColor.textSecondary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.inventory_2_rounded,
-                    size: 13, color: AppColor.textHint),
-                const SizedBox(width: 6),
-                Text(
-                  "${transfer.items.length} products • ${transfer.totalItems} units",
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColor.textSecondary),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color:        const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Purchase",
-                            style: TextStyle(
-                                fontSize: 10, color: AppColor.textHint)),
-                        const SizedBox(height: 2),
-                        Text(
-                          "Rs ${transfer.totalCost.toStringAsFixed(0)}",
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1A1D23)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(width: 1, height: 28, color: const Color(0xFFE5E7EB)),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text("Sale Price",
-                            style: TextStyle(
-                                fontSize: 10, color: AppColor.textHint)),
-                        const SizedBox(height: 2),
-                        Text(
-                          "Rs ${transfer.totalSalePrice.toStringAsFixed(0)}",
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColor.success),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
           ],

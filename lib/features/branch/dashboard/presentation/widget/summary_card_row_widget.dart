@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 
 import '../../data/model/dashboard_model.dart';
 
@@ -13,27 +14,30 @@ class SummaryCardsRow extends StatelessWidget {
         Row(
           children: [
             SummaryCard(
-              title:   'Cash Sale',
-              value:   _fmt(data.cashSale),
-              icon:    Icons.payments_outlined,
-              color:   const Color(0xFF3B9A5E),
-              bgColor: const Color(0xFFEAF3DE),
+              title:     'Cash Sale',
+              value:     _fmt(data.cashSale),
+              icon:      Icons.payments_outlined,
+              iconAsset: 'ic_cash_sale',
+              color:     const Color(0xFF3B9A5E),
+              bgColor:   const Color(0xFFEAF3DE),
             ),
             const SizedBox(width: 12),
             SummaryCard(
-              title:   'Card Sale',
-              value:   _fmt(data.cardSale),
-              icon:    Icons.credit_card_outlined,
-              color:   const Color(0xFF185FA5),
-              bgColor: const Color(0xFFE6F1FB),
+              title:     'Card Sale',
+              value:     _fmt(data.cardSale),
+              icon:      Icons.credit_card_outlined,
+              iconAsset: 'ic_card_sale',
+              color:     const Color(0xFF185FA5),
+              bgColor:   const Color(0xFFE6F1FB),
             ),
             const SizedBox(width: 12),
             SummaryCard(
-              title:   'Credit Sale',
-              value:   _fmt(data.creditSale),
-              icon:    Icons.receipt_long_outlined,
-              color:   const Color(0xFF854F0B),
-              bgColor: const Color(0xFFFAEEDA),
+              title:     'Credit Sale',
+              value:     _fmt(data.creditSale),
+              icon:      Icons.receipt_long_outlined,
+              iconAsset: 'ic_credit_sale',
+              color:     const Color(0xFF854F0B),
+              bgColor:   const Color(0xFFFAEEDA),
             ),
           ],
         ),
@@ -41,27 +45,30 @@ class SummaryCardsRow extends StatelessWidget {
         Row(
           children: [
             SummaryCard(
-              title:   'Installment',
-              value:   _fmt(data.installment),
-              icon:    Icons.calendar_month_outlined,
-              color:   const Color(0xFF993556),
-              bgColor: const Color(0xFFFBEAF0),
+              title:     'Installment',
+              value:     _fmt(data.installment),
+              icon:      Icons.calendar_month_outlined,
+              iconAsset: 'ic_installment',
+              color:     const Color(0xFF993556),
+              bgColor:   const Color(0xFFFBEAF0),
             ),
             const SizedBox(width: 12),
             SummaryCard(
-              title:   'Total Sale',
-              value:   _fmt(data.totalSale),
-              icon:    Icons.bar_chart_rounded,
-              color:   const Color(0xFF534AB7),
-              bgColor: const Color(0xFFEEEDFE),
+              title:     'Total Sale',
+              value:     _fmt(data.totalSale),
+              icon:      Icons.bar_chart_rounded,
+              iconAsset: 'ic_total_sale',
+              color:     const Color(0xFF534AB7),
+              bgColor:   const Color(0xFFEEEDFE),
             ),
             const SizedBox(width: 12),
             SummaryCard(
-              title:   'Net Amount',
-              value:   _fmt(data.totalAmount),
-              icon:    Icons.account_balance_wallet_outlined,
-              color:   const Color(0xFF0F6E56),
-              bgColor: const Color(0xFFE1F5EE),
+              title:     'Net Amount',
+              value:     _fmt(data.totalAmount),
+              icon:      Icons.account_balance_wallet_outlined,
+              iconAsset: 'ic_net_amount',
+              color:     const Color(0xFF0F6E56),
+              bgColor:   const Color(0xFFE1F5EE),
             ),
           ],
         ),
@@ -87,6 +94,7 @@ class SummaryCard extends StatelessWidget {
   final IconData icon;
   final Color    color;
   final Color    bgColor;
+  final String?  iconAsset;
 
   const SummaryCard({
     super.key,
@@ -95,6 +103,7 @@ class SummaryCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.bgColor,
+    this.iconAsset,
   });
 
   @override
@@ -122,7 +131,9 @@ class SummaryCard extends StatelessWidget {
                 color:        bgColor,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: iconAsset != null
+                  ? AppIcon(iconAsset!, color: color, size: 20)
+                  : Icon(icon, color: color, size: 20),
             ),
             const SizedBox(height: 12),
             Text(value,

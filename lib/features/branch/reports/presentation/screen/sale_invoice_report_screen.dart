@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/reports/data/model/sale_invoice_report_model.dart';
 import '../../../../../core/service/print/print_service.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../widget/report_table.dart';
 import '../../../branch_info/presentation/provider/branch_provider.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../sale_invoice/data/model/sale_invoice_model.dart';
@@ -32,6 +34,20 @@ class _SaleInvoiceListScreenState
   final _timeFmt        = DateFormat('hh:mm a');
   final _inputFmt       = DateFormat('dd/MM/yyyy');
   final _inputTimeFmt   = DateFormat('hh:mm a');
+
+  // ── Slide-over invoice panel ──────────────────────────────
+  SaleInvoiceListModel? _selectedInv;
+  bool _panelOpen = false;
+
+  void _openInvoice(SaleInvoiceListModel inv) =>
+      setState(() { _selectedInv = inv; _panelOpen = true; });
+
+  void _closePanel() {
+    setState(() => _panelOpen = false);
+    Future.delayed(const Duration(milliseconds: 280), () {
+      if (mounted && !_panelOpen) setState(() => _selectedInv = null);
+    });
+  }
 
   @override
   void initState() {
@@ -176,8 +192,9 @@ class _SaleInvoiceListScreenState
                 labelText:  label,
                 labelStyle: const TextStyle(
                     fontSize: 11, color: AppColor.textSecondary),
-                prefixIcon: const Icon(Icons.calendar_today_rounded,
+                prefixIcon: const AppIcon('ic_calendar',
                     size: 15, color: AppColor.primary),
+                prefixIconConstraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                 filled:    true,
                 fillColor: AppColor.grey100,
                 contentPadding: const EdgeInsets.symmetric(
@@ -217,8 +234,9 @@ class _SaleInvoiceListScreenState
                 labelText:  label,
                 labelStyle: const TextStyle(
                     fontSize: 11, color: AppColor.textSecondary),
-                prefixIcon: const Icon(Icons.access_time_rounded,
+                prefixIcon: const AppIcon('ic_calendar',
                     size: 15, color: AppColor.primary),
+                prefixIconConstraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                 filled:    true,
                 fillColor: AppColor.grey100,
                 contentPadding: const EdgeInsets.symmetric(
@@ -313,7 +331,7 @@ class _SaleInvoiceListScreenState
           IconButton(
             onPressed: () =>
                 ref.read(saleInvoiceListProvider.notifier).load(),
-            icon:    const Icon(Icons.refresh_rounded),
+            icon:    const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
             style: IconButton.styleFrom(
                 foregroundColor: AppColor.textSecondary),
@@ -321,7 +339,10 @@ class _SaleInvoiceListScreenState
           const SizedBox(width: 12),
         ],
       ),
-      body: state.isLoading
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
         padding: const EdgeInsets.all(16),
@@ -338,21 +359,21 @@ class _SaleInvoiceListScreenState
                   SummaryCard(
                     title: 'Total Invoices',
                     value: '${state.totalCount}',
-                    icon:  Icons.receipt_long_outlined,
+                    iconAsset: 'ic_credit_sale',
                     color: AppColor.primary,
                   ),
                   const SizedBox(width: 12),
                   SummaryCard(
                     title: 'Grand Total',
                     value: 'Rs ${state.totalGrand.toStringAsFixed(0)}',
-                    icon:  Icons.payments_outlined,
+                    iconAsset: 'ic_cash_in',
                     color: AppColor.success,
                   ),
                   const SizedBox(width: 12),
                   SummaryCard(
                     title: 'Total Discount',
                     value: 'Rs ${state.totalDiscount.toStringAsFixed(0)}',
-                    icon:  Icons.discount_outlined,
+                    iconAsset: 'ic_purchase_price',
                     color: AppColor.warning,
                   ),
                 ],
@@ -381,8 +402,9 @@ class _SaleInvoiceListScreenState
                         hintText: 'Search invoice, customer...',
                         hintStyle: const TextStyle(
                             color: AppColor.textHint, fontSize: 12),
-                        prefixIcon: const Icon(Icons.search,
+                        prefixIcon: const AppIcon('ic_search',
                             size: 18, color: AppColor.grey400),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                         suffixIcon: _searchCtrl.text.isNotEmpty
                             ? IconButton(
                           icon: const Icon(Icons.clear,
@@ -517,27 +539,85 @@ class _SaleInvoiceListScreenState
 
             const SizedBox(height: 16),
 
-            // ── Invoice List ─────────────────────────────
+            // ── Invoice Table ───────────────────────────
             Expanded(
               child: invoices.isEmpty
                   ? _EmptyState(
                   isSearching: state.searchQuery.isNotEmpty ||
                       state.isCustomerSelected)
-                  : ListView.separated(
-                itemCount:        invoices.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 12),
-                itemBuilder: (context, index) => _InvoiceCard(
-                  inv:       invoices[index],
-                  dateFmt:   _dateFmt,
-                  timeFmt:   _timeFmt,
-                  isManager: auth.isManager,
-                  storeName: 'Jan Ghani',
-                ),
-              ),
+                  : ReportTable(
+                      columns: const [
+                        ReportColumn('Invoice #', flex: 3),
+                        ReportColumn('Date', flex: 3),
+                        ReportColumn('Customer', flex: 3),
+                        ReportColumn('Payment', flex: 2),
+                        ReportColumn('Items', flex: 1,
+                            align: Alignment.center),
+                        ReportColumn('Discount', flex: 2,
+                            align: Alignment.centerRight),
+                        ReportColumn('Total', flex: 2,
+                            align: Alignment.centerRight),
+                        ReportColumn('Status', flex: 2,
+                            align: Alignment.centerRight),
+                      ],
+                      rowCount: invoices.length,
+                      onView: (i) => _openInvoice(invoices[i]),
+                      cellsBuilder: (i) {
+                        final inv = invoices[i];
+                        return [
+                          Text(inv.invoiceNo,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColor.primary)),
+                          Text(
+                            '${_dateFmt.format(inv.invoiceDate)}\n'
+                            '${_timeFmt.format(inv.invoiceDate)}',
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          Text(inv.customerName ?? 'Walk In',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: inv.customerName != null
+                                      ? AppColor.textPrimary
+                                      : AppColor.textSecondary)),
+                          Text(inv.paymentLabel),
+                          Text('${inv.items.length}'),
+                          Text('Rs ${inv.totalDiscount.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                  color: AppColor.warning)),
+                          Text(inv.grandTotalLabel,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700)),
+                          Text(inv.statusLabel,
+                              style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColor.textSecondary)),
+                        ];
+                      },
+                    ),
             ),
           ],
         ),
+      ),
+          ReportSlideOver(
+            open:    _panelOpen,
+            onClose: _closePanel,
+            title:   _selectedInv?.invoiceNo ?? 'Invoice',
+            child: _selectedInv == null
+                ? const SizedBox.shrink()
+                : _InvoiceCard(
+                    inv:       _selectedInv!,
+                    dateFmt:   _dateFmt,
+                    timeFmt:   _timeFmt,
+                    isManager: auth.isManager,
+                    storeName: 'Jan Ghani',
+                  ),
+          ),
+        ],
       ),
     );
   }

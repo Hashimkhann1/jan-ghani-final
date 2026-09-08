@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 
 class CustomerStatusBadge extends StatelessWidget {
   final bool isActive;
@@ -18,10 +19,8 @@ class CustomerStatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-              width: 6, height: 6,
-              decoration:
-              BoxDecoration(shape: BoxShape.circle, color: color)),
+          AppIcon(isActive ? 'ic_active_check' : 'ic_inactive',
+              size: 11, color: color),
           const SizedBox(width: 5),
           Text(label,
               style: TextStyle(

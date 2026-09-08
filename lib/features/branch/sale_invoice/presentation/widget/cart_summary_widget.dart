@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/payment_dialog.dart';
 
 import '../../../../../core/color/app_color.dart';
@@ -48,24 +49,26 @@ class CartSummaryWidget extends ConsumerWidget {
 
           // ── Clear ──────────────────────────────────────────
           _CompactButton(
-            icon:    Icons.clear_all_rounded,
-            label:   'Clear',
-            enabled: hasItems,
-            color:   AppColor.error,
-            filled:  false,
-            onTap:   () => _showClearConfirmDialog(context, ref),   // ← dialog
+            icon:      Icons.clear_all_rounded,
+            iconAsset: 'ic_clear',
+            label:     'Clear',
+            enabled:   hasItems,
+            color:     AppColor.error,
+            filled:    false,
+            onTap:     () => _showClearConfirmDialog(context, ref),   // ← dialog
           ),
 
           const SizedBox(width: 6),
 
           // ── Hold ───────────────────────────────────────────
           _CompactButton(
-            icon:    Icons.pause_circle_outline_rounded,
-            label:   'Hold',
-            enabled: hasItems,
-            color:   const Color(0xFFF5A623),
-            filled:  false,
-            onTap:   () => _showHoldDialog(context, ref),
+            icon:      Icons.pause_circle_outline_rounded,
+            iconAsset: 'ic_hold',
+            label:     'Hold',
+            enabled:   hasItems,
+            color:     const Color(0xFFF5A623),
+            filled:    false,
+            onTap:     () => _showHoldDialog(context, ref),
           ),
 
           const SizedBox(width: 6),
@@ -76,7 +79,7 @@ class CartSummaryWidget extends ConsumerWidget {
               height: 44,
               child: ElevatedButton.icon(
                 onPressed: hasItems ? () => showPaymentDialog(context, ref) : null,
-                icon:  const Icon(Icons.payments_outlined, size: 17),
+                icon:  const AppIcon('ic_pay_now', size: 17, color: Colors.white),
                 label: const Text('Pay Now',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
@@ -96,12 +99,13 @@ class CartSummaryWidget extends ConsumerWidget {
           // ── Print ──────────────────────────────────────────
           // Payment dialog kholo — wahan "Print Thermal Receipt" checkbox select karo
           _CompactButton(
-            icon:    Icons.print_outlined,
-            label:   'Print',
-            enabled: hasItems,
-            color:   const Color(0xFF6366F1),
-            filled:  false,
-            onTap:   () => showPaymentDialog(context, ref),        // ← payment dialog
+            icon:      Icons.print_outlined,
+            iconAsset: 'ic_print',
+            label:     'Print',
+            enabled:   hasItems,
+            color:     const Color(0xFF6366F1),
+            filled:    false,
+            onTap:     () => showPaymentDialog(context, ref),        // ← payment dialog
           ),
 
         ]),
@@ -268,6 +272,7 @@ class CartSummaryWidget extends ConsumerWidget {
 // ── Compact Button ─────────────────────────────────────────────────
 class _CompactButton extends StatelessWidget {
   final IconData     icon;
+  final String?      iconAsset;
   final String       label;
   final bool         enabled;
   final Color        color;
@@ -281,6 +286,7 @@ class _CompactButton extends StatelessWidget {
     required this.color,
     required this.filled,
     required this.onTap,
+    this.iconAsset,
   });
 
   @override
@@ -303,7 +309,9 @@ class _CompactButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 17, color: enabled ? color : AppColor.grey400),
+            iconAsset != null
+                ? AppIcon(iconAsset!, size: 17, color: enabled ? color : AppColor.grey400)
+                : Icon(icon, size: 17, color: enabled ? color : AppColor.grey400),
             const SizedBox(height: 2),
             Text(label, style: TextStyle(
                 fontSize: 10, fontWeight: FontWeight.w600,

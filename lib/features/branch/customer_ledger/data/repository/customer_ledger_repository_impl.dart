@@ -8,6 +8,26 @@ class CustomerLedgerRepositoryImpl implements ICustomerLedgerRepository {
 
   @override Future<List<CustomerLedgerModel>> getAll(String storeId, {DateTime? from, DateTime? to}) =>
       _ds.getAll(storeId, from: from, to: to);
+
+  @override
+  Future<LedgerPage> getPaged(
+    String storeId, {
+    required String counterId,
+    DateTime? from,
+    DateTime? to,
+    String    search = '',
+    required int limit,
+    required int offset,
+  }) =>
+      _ds.getPaged(
+        storeId,
+        counterId: counterId,
+        from:   from,
+        to:     to,
+        search: search,
+        limit:  limit,
+        offset: offset,
+      );
   @override Future<List<CustomerLedgerModel>> getByCustomer(String id)     => _ds.getByCustomer(id);
   @override Future<CustomerLedgerModel>       add(CustomerLedgerModel l)   => _ds.add(l);
   @override Future<void>                      delete(String id)            => _ds.delete(id);

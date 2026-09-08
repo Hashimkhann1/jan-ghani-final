@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/color/app_color.dart';
+import '../../../../../core/widget/app_icon.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
 import '../../data/model/sale_invoice_model.dart';
@@ -574,7 +575,7 @@ class _ShortcutHintButton extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
     message: 'Keyboard Shortcuts',
     child: IconButton(
-      icon: const Icon(Icons.keyboard_outlined, size: 20, color: AppColor.textSecondary),
+      icon: const AppIcon('ic_keyboard', size: 20, color: AppColor.textSecondary),
       onPressed: () => showDialog(
         context: context,
         builder: (_) => const _ShortcutsDialog(),

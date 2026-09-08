@@ -5,6 +5,28 @@ import '../../../../../core/service/db/db_service.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_inventory_model.dart';
 import '../model/stock_transfer_model.dart';
 
+/// Ek status ke transfers ka count + aggregate totals.
+class TransferStatusAgg {
+  final int    count;
+  final int    totalUnits;
+  final double totalCost;
+  final double totalSale;
+
+  const TransferStatusAgg({
+    this.count = 0,
+    this.totalUnits = 0,
+    this.totalCost = 0,
+    this.totalSale = 0,
+  });
+}
+
+class _MutAgg {
+  int count = 0;
+  int units = 0;
+  double cost = 0;
+  double sale = 0;
+}
+
 class StockTransferRemoteDataSource {
   final SupabaseClient _client;
 
@@ -22,6 +44,67 @@ class StockTransferRemoteDataSource {
     return (response as List)
         .map((json) => StockTransfer.fromJson(json))
         .toList();
+  }
+
+  // ── SERVER-SIDE PAGINATION ─────────────────────────────────────────────
+  /// Sirf ek status (pending/accepted/rejected) ke, sirf ek page ke rows —
+  /// `stock_transfer_items(*)` join ke saath (heavy query, isi liye paged).
+  Future<List<StockTransfer>> fetchTransfersPage(
+    String storeId, {
+    required String status,
+    required int offset,
+    required int limit,
+  }) async {
+    final response = await _client
+        .from('stock_transfers')
+        .select('*, stock_transfer_items(*)')
+        .eq('to_store_id', storeId)
+        .eq('status', status)
+        .isFilter('deleted_at', null)
+        .order('assigned_at', ascending: false)
+        .range(offset, offset + limit - 1);
+
+    return (response as List)
+        .map((json) => StockTransfer.fromJson(json))
+        .toList();
+  }
+
+  /// Har status ke count + total units/cost/sale — sirf 4 chhote numeric
+  /// columns (koi items join nahi), is liye poore store ke liye bhi halka.
+  Future<Map<String, TransferStatusAgg>> fetchStatusAggregates(
+      String storeId) async {
+    final response = await _client
+        .from('stock_transfers')
+        .select('status, total_items, total_cost, total_sale_price')
+        .eq('to_store_id', storeId)
+        .isFilter('deleted_at', null);
+
+    final out = <String, _MutAgg>{
+      'pending':  _MutAgg(),
+      'accepted': _MutAgg(),
+      'rejected': _MutAgg(),
+    };
+
+    for (final row in (response as List)) {
+      final m = row as Map<String, dynamic>;
+      final s = (m['status'] ?? '').toString();
+      final agg = out[s];
+      if (agg == null) continue;
+      agg.count += 1;
+      agg.units += (num.tryParse('${m['total_items']}') ?? 0).toInt();
+      agg.cost  += num.tryParse('${m['total_cost']}')?.toDouble() ?? 0;
+      agg.sale  += num.tryParse('${m['total_sale_price']}')?.toDouble() ?? 0;
+    }
+
+    return out.map((k, v) => MapEntry(
+          k,
+          TransferStatusAgg(
+            count: v.count,
+            totalUnits: v.units,
+            totalCost: v.cost,
+            totalSale: v.sale,
+          ),
+        ));
   }
 
   // Transfer accept karo — ATOMICALLY guarded: sirf tab flip hota hai jab

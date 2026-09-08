@@ -4,6 +4,22 @@ import 'package:postgres/postgres.dart';
 import '../../../../../core/service/db/db_service.dart';
 import '../model/customer_ledger_model.dart';
 
+/// Server-side page ka result — sirf current page ke rows, plus poore
+/// (filtered) dataset ka total count aur total paid.
+class LedgerPage {
+  final List<CustomerLedgerModel> rows;
+  final int    total;
+  final double totalPaid;
+
+  const LedgerPage({
+    required this.rows,
+    required this.total,
+    required this.totalPaid,
+  });
+
+  static const empty = LedgerPage(rows: [], total: 0, totalPaid: 0);
+}
+
 class CustomerLedgerRemoteDataSource {
 
   /// `from`/`to` diye jayein to sirf usi date range ka data DB se load
@@ -42,6 +58,85 @@ class CustomerLedgerRemoteDataSource {
   }
 
   static String _dateOnly(DateTime d) => d.toIso8601String().substring(0, 10);
+
+  /// ── SERVER-SIDE PAGINATION ──────────────────────────────────────────
+  /// Sirf ek counter ka data, date-range + search filter DB par apply hote
+  /// hain, aur sirf `limit` rows (`offset` se) DB se aati hain. `total` /
+  /// `totalPaid` poore filtered dataset ke hain (stat cards + pagination
+  /// bar ke liye).
+  Future<LedgerPage> getPaged(
+    String storeId, {
+    required String counterId,
+    DateTime? from,
+    DateTime? to,
+    String    search = '',
+    required int limit,
+    required int offset,
+  }) async {
+    final conn = await DataBaseService.getConnection();
+
+    final q = search.trim();
+    final hasSearch = q.isNotEmpty;
+
+    final whereSql = '''
+      WHERE cl.store_id   = @storeId
+        AND cl.deleted_at IS NULL
+        AND cl.counter_id = @counterId
+        ${from != null ? 'AND cl.created_at::date >= @fromDate' : ''}
+        ${to   != null ? 'AND cl.created_at::date <= @toDate'   : ''}
+        ${hasSearch ? 'AND (cl.customer_name ILIKE @search OR cl.notes ILIKE @search)' : ''}
+    ''';
+
+    final params = <String, dynamic>{
+      'storeId':   storeId,
+      'counterId': counterId,
+      if (from != null) 'fromDate': _dateOnly(from),
+      if (to   != null) 'toDate':   _dateOnly(to),
+      if (hasSearch)    'search':   '%$q%',
+    };
+
+    // 1) Count + sum (poore filtered dataset ke)
+    final agg = await conn.execute(
+      Sql.named('''
+        SELECT COUNT(*) AS cnt,
+               COALESCE(SUM(cl.pay_amount), 0) AS total_paid
+        FROM public.customer_ledger cl
+        $whereSql
+      '''),
+      parameters: params,
+    );
+    final aggRow    = agg.first.toColumnMap();
+    final total     = int.tryParse('${aggRow['cnt']}') ?? 0;
+    final totalPaid =
+        double.tryParse('${aggRow['total_paid']}') ?? 0.0;
+
+    // 2) Sirf current page ke rows
+    final rows = await conn.execute(
+      Sql.named('''
+        SELECT
+          cl.id, cl.store_id, cl.customer_id, cl.customer_name,
+          cl.counter_id, cl.user_id, cl.previous_amount, cl.pay_amount,
+          cl.new_amount, cl.notes, cl.created_at, cl.updated_at, cl.deleted_at,
+          bu.full_name AS user_full_name
+        FROM public.customer_ledger cl
+        LEFT JOIN public.branch_users bu ON bu.id = cl.user_id
+        $whereSql
+        ORDER BY cl.created_at DESC
+        LIMIT @limit OFFSET @offset
+      '''),
+      parameters: {
+        ...params,
+        'limit':  limit,
+        'offset': offset,
+      },
+    );
+
+    return LedgerPage(
+      rows: rows.map((r) => CustomerLedgerModel.fromMap(_toMap(r))).toList(),
+      total: total,
+      totalPaid: totalPaid,
+    );
+  }
 
   // ── GET BY CUSTOMER ───────────────────────────────────────
   Future<List<CustomerLedgerModel>> getByCustomer(String customerId) async {

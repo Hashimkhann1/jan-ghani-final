@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 
 import '../../data/model/dashboard_model.dart';
 
@@ -11,7 +12,7 @@ class TopProductsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ListPanel(
       title: 'Top 10 Products',
-      icon: Icons.inventory_2_outlined,
+      iconAsset: 'ic_top_products',
       headers: const ['#', 'Product', 'Qty', 'Amount'],
       rows: products.map((p) => _RowData(
         rank: p.rank,
@@ -32,7 +33,7 @@ class TopCustomersList extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ListPanel(
       title: 'Top 10 Customers',
-      icon: Icons.people_outline_rounded,
+      iconAsset: 'ic_top_customers',
       headers: const ['#', 'Customer', 'Orders', 'Amount'],
       rows: customers.map((c) => _RowData(
         rank: c.rank,
@@ -60,13 +61,13 @@ class _RowData {
 
 class _ListPanel extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final String iconAsset;
   final List<String> headers;
   final List<_RowData> rows;
 
   const _ListPanel({
     required this.title,
-    required this.icon,
+    required this.iconAsset,
     required this.headers,
     required this.rows,
   });
@@ -93,7 +94,7 @@ class _ListPanel extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
               children: [
-                Icon(icon, size: 18, color: const Color(0xFF6B7280)),
+                AppIcon(iconAsset, size: 18, color: const Color(0xFF6B7280)),
                 const SizedBox(width: 8),
                 Text(
                   title,

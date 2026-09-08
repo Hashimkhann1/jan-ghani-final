@@ -20,13 +20,12 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_reports/presentatio
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/screens/user_screen.dart';
 
+import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
+
 import 'nav_tile_widget.dart';
 
 const _kGrey     = Color(0xFFD3D3D3);
 const _kBg       = Color(0xFFF8F8F8);
-const _kDark     = Color(0xFF333333);
-const _kMid      = Color(0xFF666666);
-const _kSelected = Color(0xFF455A64);
 
 class NavItem {
   final IconData icon;
@@ -283,15 +282,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                     border: Border(bottom: BorderSide(color: _kGrey)),
                   ),
                   alignment: Alignment.center,
-                  child: const Text(
-                    'POS',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: _kDark,
-                      letterSpacing: 1,
-                    ),
-                  ),
+                  child: const AppLogo(size: 36, radius: 9),
                 ),
                 Expanded(
                   child: ListView.builder(

@@ -1007,6 +1007,7 @@ import 'package:jan_ghani_final/features/branch/customer/data/model/customer_mod
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/widget/sale_type_dropdown.dart';
 import '../../../../../core/color/app_color.dart';
+import '../../../../../core/widget/app_icon.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../../data/model/sale_return_model.dart';
 import '../provider/sale_invoice_provider.dart';
@@ -1958,7 +1959,7 @@ class _EmptyCart extends StatelessWidget {
           decoration: BoxDecoration(
               color: AppColor.primary.withOpacity(0.06),
               shape: BoxShape.circle),
-          child: const Icon(Icons.shopping_cart_outlined,
+          child: const AppIcon('ic_cart_empty',
               size: 48, color: AppColor.primary),
         ),
         const SizedBox(height: 14),

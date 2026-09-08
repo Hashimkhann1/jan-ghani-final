@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/data/model/branch_stock_model.dart';
 
@@ -231,7 +232,7 @@ class _BranchStockInventoryScreenState
         actions: [
           IconButton(
             onPressed: notifier.refresh,
-            icon:    const Icon(Icons.refresh_rounded),
+            icon:    const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
             style:   IconButton.styleFrom(
                 foregroundColor: AppColor.textSecondary),
@@ -267,14 +268,14 @@ class _BranchStockInventoryScreenState
                 SummaryCard(
                   title: 'Total Products',
                   value: '${posState.totalProducts.toStringAsFixed(0)}',
-                  icon:  Icons.inventory_2_outlined,
+                  iconAsset: 'ic_total_products',
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
                   title: 'Total Quantity',
                   value: totalQty.toStringAsFixed(2),
-                  icon:  Icons.layers_outlined,
+                  iconAsset: 'ic_total_quantity',
                   color: AppColor.info,
                 ),
                 if (canSeeCost) ...[
@@ -282,7 +283,7 @@ class _BranchStockInventoryScreenState
                   SummaryCard(
                     title: 'Total Purchase Price',
                     value: fmtAmt(totalCostVal),
-                    icon:  Icons.shopping_bag_outlined,
+                    iconAsset: 'ic_purchase_price',
                     color: AppColor.warning,
                   ),
                 ],
@@ -290,7 +291,7 @@ class _BranchStockInventoryScreenState
                 SummaryCard(
                   title: 'Total Sale Price',
                   value: fmtAmt(totalSaleVal),
-                  icon:  Icons.trending_up_rounded,
+                  iconAsset: 'ic_sale_price_trend',
                   color: AppColor.success,
                 ),
               ]);
@@ -317,8 +318,9 @@ class _BranchStockInventoryScreenState
                         hintText: 'Search ya barcode scan karo...',
                         hintStyle: const TextStyle(
                             color: AppColor.textHint, fontSize: 13),
-                        prefixIcon: const Icon(Icons.qr_code_scanner_rounded,
+                        prefixIcon: const AppIcon('ic_barcode',
                             size: 18, color: AppColor.grey400),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                         suffixIcon: _searchCtrl.text.isNotEmpty
                             ? IconButton(
                           icon: const Icon(Icons.close_rounded,
@@ -1015,18 +1017,20 @@ class _DataRow extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CustomerActionButton(
-                    icon:    Icons.edit_outlined,
-                    color:   AppColor.primary,
-                    tooltip: isOwner ? 'Edit' : 'Edit Shelf',
-                    onTap:   onEdit,
+                    icon:      Icons.edit_outlined,
+                    iconAsset: 'ic_edit',
+                    color:     AppColor.primary,
+                    tooltip:   isOwner ? 'Edit' : 'Edit Shelf',
+                    onTap:     onEdit,
                   ),
                   if (isOwner || auth.isManager) ...[
                     const SizedBox(width: 6),
                     CustomerActionButton(
-                      icon:    Icons.delete_outline_rounded,
-                      color:   AppColor.error,
-                      tooltip: 'Delete',
-                      onTap:   onDelete,
+                      icon:      Icons.delete_outline_rounded,
+                      iconAsset: 'ic_delete',
+                      color:     AppColor.error,
+                      tooltip:   'Delete',
+                      onTap:     onDelete,
                     ),
                   ],
                 ],

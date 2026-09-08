@@ -7,6 +7,8 @@ import '../../../branch_stock_inventory/presentation/provider/branch_stock_inven
 import '../../data/datasource/stock_transfer_remote_datasource.dart';
 import '../../data/model/stock_transfer_model.dart';
 
+const kTransferPageSize = 20;
+
 // DataSource provider
 final stockTransferDataSourceProvider = Provider((ref) {
   return StockTransferRemoteDataSource(Supabase.instance.client);
@@ -17,13 +19,50 @@ final currentStoreIdProvider = Provider<String>((ref) {
   return ref.watch(authProvider).storeId;
 });
 
+/// Server-side paged view of one store's transfers.
+///  - `rows`  : sirf `status` tab ke, sirf `page` ke transfers.
+///  - `agg`   : har status ka count + totals (tab badges + summary bar).
+class TransferPageData {
+  final String status;   // current tab: pending | accepted | rejected
+  final int    page;     // 0-based
+  final List<StockTransfer>           rows;
+  final Map<String, TransferStatusAgg> agg;
+
+  const TransferPageData({
+    this.status = 'pending',
+    this.page   = 0,
+    this.rows   = const [],
+    this.agg    = const {},
+  });
+
+  TransferStatusAgg aggFor(String s) =>
+      agg[s] ?? const TransferStatusAgg();
+
+  int get total     => aggFor(status).count;
+  int get pageCount =>
+      total == 0 ? 1 : ((total + kTransferPageSize - 1) ~/ kTransferPageSize);
+
+  TransferPageData copyWith({
+    String? status,
+    int?    page,
+    List<StockTransfer>? rows,
+    Map<String, TransferStatusAgg>? agg,
+  }) =>
+      TransferPageData(
+        status: status ?? this.status,
+        page:   page   ?? this.page,
+        rows:   rows   ?? this.rows,
+        agg:    agg    ?? this.agg,
+      );
+}
+
 // Transfers provider — AsyncNotifier
 final stockTransferProvider =
-    AsyncNotifierProvider<StockTransferNotifier, List<StockTransfer>>(
+    AsyncNotifierProvider<StockTransferNotifier, TransferPageData>(
   StockTransferNotifier.new,
 );
 
-class StockTransferNotifier extends AsyncNotifier<List<StockTransfer>> {
+class StockTransferNotifier extends AsyncNotifier<TransferPageData> {
   late StockTransferRemoteDataSource _dataSource;
   late String _storeId;
 
@@ -33,37 +72,84 @@ class StockTransferNotifier extends AsyncNotifier<List<StockTransfer>> {
   final Set<String> _inFlightIds = {};
 
   @override
-  Future<List<StockTransfer>> build() async {
+  Future<TransferPageData> build() async {
     _dataSource = ref.read(stockTransferDataSourceProvider);
     _storeId    = ref.watch(currentStoreIdProvider);
 
-    if (_storeId.isEmpty) return [];
-    return _dataSource.fetchTransfersByStore(_storeId);
+    if (_storeId.isEmpty) {
+      return const TransferPageData(agg: {});
+    }
+    return _load(status: 'pending', page: 0);
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _dataSource.fetchTransfersByStore(_storeId),
-    );
+  /// Aggregates + ek status/page ke rows dono fetch karke state banao.
+  Future<TransferPageData> _load({
+    required String status,
+    required int page,
+  }) async {
+    final results = await Future.wait([
+      _dataSource.fetchStatusAggregates(_storeId),
+      _dataSource.fetchTransfersPage(
+        _storeId,
+        status: status,
+        offset: page * kTransferPageSize,
+        limit:  kTransferPageSize,
+      ),
+    ]);
+
+    final agg  = results[0] as Map<String, TransferStatusAgg>;
+    var   rows = results[1] as List<StockTransfer>;
+
+    // Page range se bahar (delete/accept ke baad) — pichle valid page par.
+    final total   = (agg[status]?.count ?? 0);
+    final maxPage =
+        total == 0 ? 0 : (total - 1) ~/ kTransferPageSize;
+    if (page > maxPage) {
+      rows = await _dataSource.fetchTransfersPage(
+        _storeId,
+        status: status,
+        offset: maxPage * kTransferPageSize,
+        limit:  kTransferPageSize,
+      );
+      return TransferPageData(
+          status: status, page: maxPage, rows: rows, agg: agg);
+    }
+
+    return TransferPageData(
+        status: status, page: page, rows: rows, agg: agg);
   }
 
-  // Accept flow — ab fully atomic + idempotent + self-healing:
-  //  1. Supabase status ko GUARDED tareeqe se pending→accepted flip karo
-  //     (`WHERE status='pending'`). Agar 0 rows update hui to iska matlab
-  //     transfer already kisi aur call/device ne accept/reject kar diya —
-  //     idempotent no-op, local stock DOBARA add nahi karte.
-  //  2. Jeetne wala call hi local stock upsert karta hai (ek transaction
-  //     mein — sab items ya to poore apply hote hain ya koi nahi).
-  //  3. Agar step 2 fail ho jaye, Supabase status wapas 'pending' par
-  //     revert karte hain (compensation) — taake transfer safely retry ho
-  //     sake aur stock permanently "gum" na ho (purana silent-failure bug).
+  Future<void> _reload({String? status, int? page}) async {
+    final cur = state.value;
+    final s = status ?? cur?.status ?? 'pending';
+    final p = page   ?? cur?.page   ?? 0;
+    state = const AsyncLoading<TransferPageData>().copyWithPrevious(state);
+    state = await AsyncValue.guard(() => _load(status: s, page: p));
+  }
+
+  /// Tab change — status set karo, page 0 par jao.
+  Future<void> setStatus(String status) async {
+    if (state.value?.status == status) return;
+    await _reload(status: status, page: 0);
+  }
+
+  Future<void> setPage(int page) async {
+    if (state.value?.page == page) return;
+    await _reload(page: page);
+  }
+
+  Future<void> refresh() => _reload();
+
+  // Accept flow — atomic + idempotent + self-healing (pehle jaisa),
+  // ab success ke baad current page + aggregates dobara fetch hote hain.
   Future<bool> acceptTransfer(String transferId) async {
     if (_inFlightIds.contains(transferId)) return false;
     _inFlightIds.add(transferId);
     try {
-      final currentList = state.value ?? [];
-      final transfer    = currentList.firstWhere((t) => t.id == transferId);
+      final rows = state.value?.rows ?? const <StockTransfer>[];
+      final idx  = rows.indexWhere((t) => t.id == transferId);
+      if (idx < 0) return false;
+      final transfer = rows[idx];
 
       final wonClaim = await _dataSource.acceptTransfer(transferId);
 
@@ -84,21 +170,9 @@ class StockTransferNotifier extends AsyncNotifier<List<StockTransfer>> {
           rethrow;
         }
       }
-      // wonClaim == false → already accepted (elsewhere) → treat as
-      // success, just reflect status locally.
 
-      // Local state update
-      state = AsyncData(
-        currentList
-            .map((t) => t.id == transferId
-                ? _rebuildWithStatus(t, 'accepted')
-                : t)
-            .toList(),
-      );
-
-      // POS provider refresh karo
       await ref.read(branchStockProvider.notifier).load();
-
+      await _reload();
       return true;
     } catch (e, stack) {
       debugPrint('❌ acceptTransfer error: $e');
@@ -112,38 +186,11 @@ class StockTransferNotifier extends AsyncNotifier<List<StockTransfer>> {
   Future<bool> rejectTransfer(String transferId) async {
     try {
       await _dataSource.rejectTransfer(transferId);
-
-      final currentList = state.value ?? [];
-      state = AsyncData(
-        currentList.map((t) {
-          if (t.id == transferId) return _rebuildWithStatus(t, 'rejected');
-          return t;
-        }).toList(),
-      );
-
+      await _reload();
       return true;
     } catch (e) {
       debugPrint('❌ rejectTransfer error: $e');
       return false;
     }
-  }
-
-  // Local state ke liye helper
-  StockTransfer _rebuildWithStatus(StockTransfer t, String status) {
-    return StockTransfer(
-      id:             t.id,
-      transferNumber: t.transferNumber,
-      toStoreId:      t.toStoreId,
-      toStoreName:    t.toStoreName,
-      warehouseId:    t.warehouseId,
-      assignedByName: t.assignedByName,
-      assignedAt:     t.assignedAt,
-      notes:          t.notes,
-      totalItems:     t.totalItems,
-      totalCost:      t.totalCost,
-      totalSalePrice: t.totalSalePrice,
-      status:         status,
-      items:          t.items,
-    );
   }
 }
