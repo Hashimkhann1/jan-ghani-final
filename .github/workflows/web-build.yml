@@ -1,9 +1,13 @@
-name: Web Build
+name: Web Build (Accountant)
+
+# Accountant web app. Entry point: lib/main.dart (kIsWeb -> Accountant).
+# Trigger: push a tag like v1.2.5  (Branch Windows build bhi isi tag pe chalti hai).
+# Warehouse ke wh-v* tags yahan match nahi karte.
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]*'
   workflow_dispatch:
 
 jobs:
@@ -29,8 +33,8 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build Web
-        run: flutter build web --release
+      - name: Build Web (Accountant)
+        run: flutter build web --release -t lib/main.dart
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

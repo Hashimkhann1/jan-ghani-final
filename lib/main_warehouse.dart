@@ -1,3 +1,8 @@
+// Warehouse desktop app ka entry point.
+//   Local run : flutter run     -t lib/main_warehouse.dart
+//   CI build  : flutter build windows --release -t lib/main_warehouse.dart  (tag: wh-v*)
+// Branch/Accountant ke liye lib/main.dart use hoti hai — dono files alag rakho.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';

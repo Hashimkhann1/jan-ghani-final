@@ -1,17 +1,17 @@
-name: Windows Build (Branch)
+name: Windows Build (Warehouse)
 
-# Branch desktop app. Entry point: lib/main.dart (desktop -> Branch).
-# Trigger: push a tag like v1.2.5  (Accountant web build bhi isi tag pe chalti hai).
-# Warehouse ke wh-v* tags yahan match nahi karte — unke liye warehouse-build.yml hai.
+# Warehouse desktop app. Entry point: lib/main_warehouse.dart.
+# Trigger: push a tag like wh-v1.2.5  (git tag wh-v1.2.5 && git push origin wh-v1.2.5).
+# Ye tag Branch/Accountant workflows ko trigger nahi karta.
 
 on:
   push:
     tags:
-      - 'v[0-9]*'
+      - 'wh-v*'
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build-warehouse-windows:
     runs-on: windows-latest
 
     steps:
@@ -33,12 +33,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build Windows (Branch)
-        run: flutter build windows --release -t lib/main.dart
+      - name: Build Windows (Warehouse)
+        run: flutter build windows --release -t lib/main_warehouse.dart
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: branch-windows-release
+          name: warehouse-windows-release
           path: build/windows/x64/runner/Release/
           retention-days: 7
