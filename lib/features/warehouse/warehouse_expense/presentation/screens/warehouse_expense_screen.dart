@@ -175,7 +175,7 @@ class _Body extends StatelessWidget {
             _StatsRow(stats: state.stats),
             const SizedBox(height: 20),
 
-            // ── Search + Filter Row ───────────────────────────
+            // ── Search + Date range Row ───────────────────────
             Row(
               children: [
                 // Search
@@ -195,13 +195,13 @@ class _Body extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
 
-                // Filter tabs + Total badge
-                _FilterTabs(
-                  activeFilter:    state.activeFilter,
-                  filteredTotal:   state.filteredTotal,
-                  onFilterChanged: (f) => ref
+                // Date range picker (default last 30 din)
+                _DateRangeField(
+                  from: state.fromDate ?? DateTime.now(),
+                  to:   state.toDate   ?? DateTime.now(),
+                  onChanged: (f, t) => ref
                       .read(warehouseExpenseProvider.notifier)
-                      .onFilterChanged(f),
+                      .onDateRangeChanged(f, t),
                 ),
               ],
             ),
@@ -400,69 +400,67 @@ class _SearchBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// FILTER TABS
+// DATE RANGE FIELD  (default: last 30 din)
 // ─────────────────────────────────────────────────────────────
-class _FilterTabs extends StatelessWidget {
-  final String                activeFilter;
-  final double                filteredTotal;
-  final void Function(String) onFilterChanged;
+class _DateRangeField extends StatelessWidget {
+  final DateTime from;
+  final DateTime to;
+  final void Function(DateTime from, DateTime to) onChanged;
 
-  const _FilterTabs({
-    required this.activeFilter,
-    required this.filteredTotal,
-    required this.onFilterChanged,
+  const _DateRangeField({
+    required this.from,
+    required this.to,
+    required this.onChanged,
   });
 
-  static const _tabs = [
-    {'key': 'all',        'label': 'All Time'},
-    {'key': 'today',      'label': 'Today'},
-    {'key': 'this_week',  'label': 'This Week'},
-    {'key': 'this_month', 'label': 'This Month'},
-  ];
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Future<void> _pick(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context:          context,
+      initialDateRange: DateTimeRange(start: from, end: to),
+      firstDate:        DateTime(2020),
+      lastDate:         DateTime(now.year, now.month, now.day),
+      helpText:         'Select date range',
+      saveText:         'Apply',
+    );
+    if (picked != null) onChanged(picked.start, picked.end);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        ..._tabs.map((tab) {
-          final isActive = activeFilter == tab['key'];
-          return Padding(
-            padding: const EdgeInsets.only(left: 6),
-            child: GestureDetector(
-              onTap: () => onFilterChanged(tab['key']!),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                height:   42,
-                padding:  const EdgeInsets.symmetric(
-                    horizontal: 16),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColor.primary
-                      : AppColor.surface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isActive
-                        ? AppColor.primary
-                        : AppColor.grey300,
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  tab['label']!,
-                  style: TextStyle(
-                    fontSize:   13,
-                    fontWeight: FontWeight.w500,
-                    color: isActive
-                        ? AppColor.white
-                        : AppColor.textSecondary,
-                  ),
-                ),
+    return InkWell(
+      onTap:        () => _pick(context),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color:        AppColor.surface,
+          borderRadius: BorderRadius.circular(10),
+          border:       Border.all(color: AppColor.grey200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.date_range_rounded,
+                size: 16, color: AppColor.textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              '${_fmt(from)}  –  ${_fmt(to)}',
+              style: const TextStyle(
+                fontSize:   13,
+                fontWeight: FontWeight.w600,
+                color:      AppColor.textPrimary,
               ),
             ),
-          );
-        }),
-
-      ],
+            const SizedBox(width: 6),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: AppColor.textSecondary),
+          ],
+        ),
+      ),
     );
   }
 }

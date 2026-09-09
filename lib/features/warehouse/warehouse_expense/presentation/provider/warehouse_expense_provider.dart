@@ -15,7 +15,8 @@ class WarehouseExpenseState {
   final ExpenseStats                stats;
   final bool                        isLoading;
   final String?                     errorMessage;
-  final String                      activeFilter;  // all / today / this_week / this_month
+  final DateTime?                   fromDate;    // inclusive
+  final DateTime?                   toDate;      // inclusive (query converts +1 din)
   final String                      searchQuery;
 
   const WarehouseExpenseState({
@@ -23,11 +24,12 @@ class WarehouseExpenseState {
     this.stats        = const ExpenseStats(),
     this.isLoading    = false,
     this.errorMessage,
-    this.activeFilter = 'all',
+    this.fromDate,
+    this.toDate,
     this.searchQuery  = '',
   });
 
-  // Filter ke hisaab se total
+  // Loaded rows ka total (date filter + search ke andar)
   double get filteredTotal =>
       expenses.fold(0.0, (sum, e) => sum + e.amount);
 
@@ -36,7 +38,8 @@ class WarehouseExpenseState {
     ExpenseStats?                stats,
     bool?                        isLoading,
     String?                      errorMessage,
-    String?                      activeFilter,
+    DateTime?                    fromDate,
+    DateTime?                    toDate,
     String?                      searchQuery,
   }) {
     return WarehouseExpenseState(
@@ -44,7 +47,8 @@ class WarehouseExpenseState {
       stats:        stats        ?? this.stats,
       isLoading:    isLoading    ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
-      activeFilter: activeFilter ?? this.activeFilter,
+      fromDate:     fromDate     ?? this.fromDate,
+      toDate:       toDate       ?? this.toDate,
       searchQuery:  searchQuery  ?? this.searchQuery,
     );
   }
@@ -58,9 +62,28 @@ class WarehouseExpenseNotifier
   final WarehouseExpenseRepository _repo;
 
   WarehouseExpenseNotifier(this._repo)
-      : super(const WarehouseExpenseState()) {
+      : super(WarehouseExpenseState(
+    // Default: last 30 din (today-29 → today)
+    fromDate: _defaultFrom(),
+    toDate:   _defaultTo(),
+  )) {
     loadData();
   }
+
+  static DateTime _defaultFrom() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return today.subtract(const Duration(days: 29));
+  }
+
+  static DateTime _defaultTo() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  // Repo ke liye exclusive upper bound (to + 1 din — pura `to` din include ho).
+  DateTime? get _toExclusive =>
+      state.toDate == null ? null : state.toDate!.add(const Duration(days: 1));
 
   // ── Sab data load karo ───────────────────────────────────
   Future<void> loadData() async {
@@ -68,8 +91,9 @@ class WarehouseExpenseNotifier
     try {
       final results = await Future.wait([
         _repo.getAll(
-          filter: state.activeFilter == 'all' ? null : state.activeFilter,
-          search: state.searchQuery.isEmpty ? null : state.searchQuery,
+          fromDate: state.fromDate,
+          toDate:   _toExclusive,
+          search:   state.searchQuery.isEmpty ? null : state.searchQuery,
         ),
         _repo.getStats(),
       ]);
@@ -87,9 +111,9 @@ class WarehouseExpenseNotifier
     }
   }
 
-  // ── Filter change ────────────────────────────────────────
-  void onFilterChanged(String filter) {
-    state = state.copyWith(activeFilter: filter);
+  // ── Date range change ────────────────────────────────────
+  void onDateRangeChanged(DateTime from, DateTime to) {
+    state = state.copyWith(fromDate: from, toDate: to);
     loadData();
   }
 
@@ -157,11 +181,12 @@ class WarehouseExpenseNotifier
         createdByName:     userName,
       );
 
-      // List + stats fresh karo (filter/search respect karte hue)
+      // List + stats fresh karo (date range/search respect karte hue)
       final results = await Future.wait([
         _repo.getAll(
-          filter: state.activeFilter == 'all' ? null : state.activeFilter,
-          search: state.searchQuery.isEmpty ? null : state.searchQuery,
+          fromDate: state.fromDate,
+          toDate:   _toExclusive,
+          search:   state.searchQuery.isEmpty ? null : state.searchQuery,
         ),
         _repo.getStats(),
       ]);

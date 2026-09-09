@@ -19,25 +19,22 @@ class WarehouseExpenseRepository {
 
   // ─────────────────────────────────────────────────────────
   // 1. Sab expenses lo (latest first)
+  //    fromDate inclusive lower bound (expense_date >= fromDate)
+  //    toDate   exclusive upper bound (expense_date <  toDate) — pura `to`
+  //    din include karne ke liye caller `to + 1 day` bhejta hai
   // ─────────────────────────────────────────────────────────
   Future<List<WarehouseExpenseModel>> getAll({
-    String? filter,   // 'today' / 'this_week' / 'this_month' / null = all
-    String? search,   // expense_head search
+    DateTime? fromDate,
+    DateTime? toDate,
+    String?   search,   // expense_head search
   }) async {
     final conn = await _db;
 
-    String dateFilter = '';
-    if (filter == 'today') {
-      dateFilter = 'AND DATE(e.expense_date) = CURRENT_DATE';
-    } else if (filter == 'this_week') {
-      dateFilter = 'AND e.expense_date >= DATE_TRUNC(\'week\', NOW())';
-    } else if (filter == 'this_month') {
-      dateFilter = 'AND e.expense_date >= DATE_TRUNC(\'month\', NOW())';
-    }
-
-    String searchFilter = '';
+    final where = StringBuffer('WHERE e.warehouse_id = @wid AND e.deleted_at IS NULL');
+    if (fromDate != null) where.write('\n          AND e.expense_date >= @fromDate');
+    if (toDate   != null) where.write('\n          AND e.expense_date <  @toDate');
     if (search != null && search.isNotEmpty) {
-      searchFilter = 'AND LOWER(e.expense_head) LIKE LOWER(\'%$search%\')';
+      where.write('\n          AND LOWER(e.expense_head) LIKE LOWER(@search)');
     }
 
     final result = await conn.execute(
@@ -49,13 +46,15 @@ class WarehouseExpenseRepository {
           e.created_at, e.updated_at, e.deleted_at,
           e.sync_id, e.is_synced
         FROM warehouse_expenses e
-        WHERE e.warehouse_id = @wid
-          AND e.deleted_at   IS NULL
-          $dateFilter
-          $searchFilter
+        $where
         ORDER BY e.expense_date DESC, e.created_at DESC
       '''),
-      parameters: {'wid': _wid},
+      parameters: {
+        'wid': _wid,
+        if (fromDate != null) 'fromDate': fromDate,
+        if (toDate   != null) 'toDate':   toDate,
+        if (search != null && search.isNotEmpty) 'search': '%$search%',
+      },
     );
 
     return result

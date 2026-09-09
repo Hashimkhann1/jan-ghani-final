@@ -952,6 +952,66 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.janghani_warehouse_cash_tra
 
 ---
 
+## Session 11 — Store Customer Tab · Supplier Total Paid Card · PCS Calc Differentiation · Accountant Finance RPC ⭐
+
+### 1. Store Detail — Customers tab (reuses accountant screen)
+- **File:** [store_detail_shell.dart](lib/features/warehouse/link_stores/store_detail/presentation/screens/store_detail_shell.dart)
+- `_kSections` mein "Customers" section add: `AccountantCustomerReportScreen(branchId: store.storeId)`.
+- **Kyun safe:** `LinkedStoreModel.storeId` = accountant datasource ka `branchId` (`.eq('store_id', branchId)` — datasource comment: "store_id ke barabar").
+- Accountant screen self-contained (Supabase + intl + url_launcher + pdf) — koi accountant-only auth/route dependency nahi. Sirf **import** kiya, kuch touch nahi.
+- Rule "accountant touch nahi karna" respect — sirf reuse.
+
+### 2. Supplier Report — Clear Balance card → Total Paid card
+- **4 files touched:**
+  - **Model:** `SupplierSummaryData` mein naya `totalPaid` field (required double).
+  - **Local datasource:** `getSummary()` mein extra query `SUM(ABS(amount)) FROM supplier_ledger WHERE entry_type='payment'` — date-filter via existing `_dateWhere('created_at', ...)`.
+  - **Remote datasource:** naya paginated helper `_fetchPayments(from, to)` — same date-boundary pattern as POs (gte from-midnight + lt to+1). `.abs()` sum kyunki `payToSupplier` payments negative amount se store hoti hain.
+  - **Screen:** `_SummaryCardsRow` mein Clear Balance card → **Total Paid** (green, `Icons.payments_outlined`, badge "Payments"). `clearCount`/`hasBalanceCount` fields model mein preserved (dead — future cleanup).
+- **Filter aware:** Overall / This Month / Custom — sab respect karta (existing filter pattern).
+
+### 3. Purchase Invoice — PCS calc differentiation (Session 10 flip partially reverted for countable)
+- Session 10 mein `updateSubTotal` par flip kiya tha (`qty = subTotal / price` — price anchor). Woh **KG/continuous** ke liye sahi tha.
+- **Countable (pcs/box/pack/dozen/bottle/carton)** ke liye WAPAS purani logic: **`price = subTotal / qty` — qty anchor**. Iska matlab user PCS ke saath: qty type kare, phir subtotal type kare → **price auto-calculate**.
+- **File:** [purchase_invoice_provider.dart](lib/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart) — 3 methods mein countable branch update:
+  - `updateSubTotal` countable: `purchasePrice = newSubTotal / quantity` (qty > 0 required) + `customSubTotal` set (display crisp).
+  - `updateQuantity` countable: `clearCustomSubTotal: true` (qty anchor → subtotal formula reactivate).
+  - `updatePurchasePrice` countable: `clearCustomSubTotal: true` (price manual → subtotal formula).
+- Header comment updated documenting new PCS behavior. Continuous branch UNTOUCHED.
+
+### 4. Accountant Warehouse Finance RPC fix (Supabase-side, DB only) — ⚠️ affects accountant screen only, warehouse UI untouched
+- `accountant_warehouse_finance_summary(p_warehouse_id)` RPC ka `total_expense` source change:
+  - **Pehle:** `SUM(amount) FROM warehouse_cash_transactions WHERE entry_type='expense'` → salary rows (entry_type='salary') miss ho jati thi.
+  - **Ab:** `SUM(amount) FROM warehouse_expenses WHERE deleted_at IS NULL` — includes salary kyunki `paySalary` (Session 7) `warehouse_expenses` mein head='Salary' row bhi banata hai.
+- **Bonus:** `total_expense`, `total_cash_in/out`, `total_transactions` sab par **this-month filter** added — `>= DATE_TRUNC('month', NOW())` for date columns (`expense_date` warehouse_expenses, `created_at` cash_transactions). `cash_in_hand` untouched (balance point-in-time).
+- **Dart untouched** — RPC return shape same, `AccFinanceSummary` model as-is.
+- **Testing project applied.** Production pending user apply.
+
+---
+
+## ⚠️ Known Open Issues (pending fixes)
+
+### A. Cash chain drift — `cash_in_hand_before/after` snapshots
+> Root cause discovered Sep 2026. Fix approach agreed (Option D short-term + Option A long-term) but NOT yet implemented.
+
+- **Symptom:** Purani rows ke `before/after` chain break ho jati hai jab koi bhi code path `warehouse_cash_transactions.amount` UPDATE karta hai purani row par.
+- **Offending code paths:**
+  - `updateExpense()` — [warehouse_expense_repository.dart:163-226](lib/features/warehouse/warehouse_expense/data/warehouse_expense_repository.dart:163) Step 2 mein linked cash_txn ki amount update karta hai.
+  - `updatePO()` — purchase_order_remote_datasource.dart (received-branch).
+  - `deletePayment()` — [employee_repository.dart:249](lib/features/warehouse/employee/data/employee_repository.dart:249) salary delete par amount=0 set.
+- **Design flaw:** `warehouse_finance.cash_in_hand` trigger-recomputed hai (sahi rehta), lekin per-row `before/after` insert-time snapshot hai — edit par recompute nahi hoti → subsequent rows historically wrong.
+- **Recommended fix:** Immutable historical rows + reversal-entry pattern (`entry_type='adjustment'` new type) instead of editing amount. Naye edit se ek adjustment row bane, purani row untouched.
+- **Also secondary:** `_insertTransaction()` mein `runTx` + `SELECT ... FOR UPDATE` wrap missing — race window still exists for concurrent inserts.
+- **Trigger status:** `fn_update_cash_in_hand()` production laptop par salary case **already correct** (verified with `pg_get_functiondef`). No trigger update needed.
+- **Sync:** one-way local → Supabase confirmed. Supabase-side trigger not needed.
+- Details in personal memory `janghani-cash-chain-drift-bug.md`.
+
+### B. Branch Inventory Balance Workflow — design done, code pending
+> 3-role weekly workflow: warehouse initiate → reviewer accept/reject → branch accept/reject → actual stock adjust. Delta-not-absolute apply. Cycle Monday, last 7 din.
+- Nothing implemented in `lib/features/warehouse/`. Branch counting screen at [`lib/features/branch/inventory_management/`](lib/features/branch/inventory_management/) untouched.
+- Details in personal memory `janghani-inventory-balance-workflow.md`.
+
+---
+
 ## Project Path
 ```
 /Users/hashimkhan/Desktop/programming/jan_ghani_final/
@@ -959,5 +1019,5 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.janghani_warehouse_cash_tra
 
 ## Schema Path
 ```
-/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.9.sql
+/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.10.sql
 ```
