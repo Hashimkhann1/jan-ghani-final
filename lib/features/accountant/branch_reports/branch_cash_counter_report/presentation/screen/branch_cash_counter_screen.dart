@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/branch_cash_counter_model.dart';
 import '../provider/branch_cash_counter_provider.dart';
 
@@ -116,8 +117,8 @@ class _BranchCashCounterReportScreenState
         actions: [
           IconButton(
             onPressed: notifier.load,
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh',
+                size: 22, color: AppColor.textSecondary),
           ),
           TextButton(
             onPressed: () {
@@ -314,7 +315,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                   color:        AppColor.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.point_of_sale_outlined,
+                child: const AppIcon('ic_cash_registration',
                     size: 16, color: AppColor.primary),
               ),
               const SizedBox(width: 10),
@@ -338,7 +339,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                 Row(children: [
                   Expanded(
                     child: _SummaryGridCard(
-                      icon:  Icons.payments_outlined,
+                      icon:  'ic_cash_sale',
                       label: 'Cash Sale',
                       value: fmtAmt(summary.totalCashSale),
                       color: AppColor.success,
@@ -347,7 +348,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _SummaryGridCard(
-                      icon:  Icons.credit_card_outlined,
+                      icon:  'ic_card_sale',
                       label: 'Card Sale',
                       value: fmtAmt(summary.totalCardSale),
                       color: AppColor.info,
@@ -358,7 +359,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                 Row(children: [
                   Expanded(
                     child: _SummaryGridCard(
-                      icon:  Icons.receipt_long_outlined,
+                      icon:  'ic_credit_sale',
                       label: 'Credit Sale',
                       value: fmtAmt(summary.totalCreditSale),
                       color: AppColor.warning,
@@ -367,7 +368,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _SummaryGridCard(
-                      icon:  Icons.calendar_month_outlined,
+                      icon:  'ic_installment',
                       label: 'Installment',
                       value: fmtAmt(summary.totalInstallment),
                       color: AppColor.primary,
@@ -383,7 +384,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                 Row(children: [
                   Expanded(
                     child: _SummaryGridCard(
-                      icon:  Icons.south_rounded,
+                      icon:  'ic_cash_in',
                       label: 'Cash In',
                       value: fmtAmt(summary.totalCashIn),
                       color: AppColor.success,
@@ -392,7 +393,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _SummaryGridCard(
-                      icon:  Icons.north_rounded,
+                      icon:  'ic_cash_out',
                       label: 'Cash Out',
                       value: fmtAmt(summary.totalCashOut),
                       color: AppColor.error,
@@ -409,7 +410,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                 Row(children: [
                   Expanded(
                     child: _SummaryGridCard(
-                      icon:  Icons.shopping_cart_outlined,
+                      icon:  'ic_cash_registration',
                       label: 'Total Sale',
                       value: fmtAmt(summary.totalSale),
                       color: AppColor.primary,
@@ -419,7 +420,7 @@ class _PeriodSummaryCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _SummaryGridCard(
-                      icon:  Icons.account_balance_wallet_outlined,
+                      icon:  'ic_bank_net',
                       label: 'Total Amount',
                       value: fmtAmt(summary.totalAmount),
                       color: const Color(0xFF8B5CF6),
@@ -438,7 +439,7 @@ class _PeriodSummaryCard extends StatelessWidget {
 
 // ── Summary Grid Card ──────────────────────────────────────────────────────
 class _SummaryGridCard extends StatelessWidget {
-  final IconData icon;
+  final String   icon;
   final String   label;
   final String   value;
   final Color    color;
@@ -471,7 +472,7 @@ class _SummaryGridCard extends StatelessWidget {
             color:        color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(7),
           ),
-          child: Icon(icon, size: 14, color: color),
+          child: AppIcon(icon, size: 14, color: color),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -674,7 +675,7 @@ class _DayCardState extends State<_DayCard> {
                   Row(children: [
                     Expanded(
                       child: _DetailGridCard(
-                        icon:  Icons.payments_outlined,
+                        icon:  'ic_cash_sale',
                         label: 'Cash Sale',
                         value: widget.fmtAmt(d.cashSale),
                         color: AppColor.success,
@@ -683,7 +684,7 @@ class _DayCardState extends State<_DayCard> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _DetailGridCard(
-                        icon:  Icons.credit_card_outlined,
+                        icon:  'ic_card_sale',
                         label: 'Card Sale',
                         value: widget.fmtAmt(d.cardSale),
                         color: AppColor.info,
@@ -694,7 +695,7 @@ class _DayCardState extends State<_DayCard> {
                   Row(children: [
                     Expanded(
                       child: _DetailGridCard(
-                        icon:  Icons.receipt_long_outlined,
+                        icon:  'ic_credit_sale',
                         label: 'Credit Sale',
                         value: widget.fmtAmt(d.creditSale),
                         color: AppColor.warning,
@@ -703,7 +704,7 @@ class _DayCardState extends State<_DayCard> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _DetailGridCard(
-                        icon:  Icons.calendar_month_outlined,
+                        icon:  'ic_installment',
                         label: 'Installment',
                         value: widget.fmtAmt(d.installment),
                         color: AppColor.primary,
@@ -719,7 +720,7 @@ class _DayCardState extends State<_DayCard> {
                   Row(children: [
                     Expanded(
                       child: _DetailGridCard(
-                        icon:  Icons.south_rounded,
+                        icon:  'ic_cash_in',
                         label: 'Cash In',
                         value: widget.fmtAmt(d.cashIn),
                         color: AppColor.success,
@@ -728,7 +729,7 @@ class _DayCardState extends State<_DayCard> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _DetailGridCard(
-                        icon:  Icons.north_rounded,
+                        icon:  'ic_cash_out',
                         label: 'Cash Out',
                         value: widget.fmtAmt(d.cashOut),
                         color: AppColor.error,
@@ -744,7 +745,7 @@ class _DayCardState extends State<_DayCard> {
                   Row(children: [
                     Expanded(
                       child: _DetailGridCard(
-                        icon:  Icons.shopping_cart_outlined,
+                        icon:  'ic_cash_registration',
                         label: 'Total Sale',
                         value: widget.fmtAmt(d.totalSale),
                         color: AppColor.primary,
@@ -754,7 +755,7 @@ class _DayCardState extends State<_DayCard> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _DetailGridCard(
-                        icon:  Icons.account_balance_wallet_outlined,
+                        icon:  'ic_bank_net',
                         label: 'Total Amount',
                         value: widget.fmtAmt(d.totalAmount),
                         color: const Color(0xFF8B5CF6),
@@ -774,7 +775,7 @@ class _DayCardState extends State<_DayCard> {
 
 // ── Detail Grid Card (inside expanded day) ────────────────────────────────
 class _DetailGridCard extends StatelessWidget {
-  final IconData icon;
+  final String   icon;
   final String   label;
   final String   value;
   final Color    color;
@@ -806,7 +807,7 @@ class _DetailGridCard extends StatelessWidget {
             color:        color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: Icon(icon, size: 12, color: color),
+          child: AppIcon(icon, size: 12, color: color),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -901,7 +902,7 @@ class _DateField extends StatelessWidget {
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.calendar_today_outlined,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:    true,
           fillColor: AppColor.grey100,
@@ -932,7 +933,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.point_of_sale_outlined,
+        AppIcon('ic_cash_registration',
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text(
