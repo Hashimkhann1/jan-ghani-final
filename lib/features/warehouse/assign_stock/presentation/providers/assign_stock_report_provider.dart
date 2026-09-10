@@ -1,3 +1,4 @@
+// Updated on 2026-09-10 03:52 PM
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
@@ -46,17 +47,21 @@ class TransferReportItem {
       status: map['status'] as String,
       assignedById: map['assigned_by_id'] as String?,
       assignedByName: map['assigned_by_name'] as String?,
-      assignedAt: map['assigned_at'] is DateTime
-          ? map['assigned_at'] as DateTime
-          : DateTime.parse(map['assigned_at'].toString()),
+      // DB `timestamptz` columns UTC store hote hain; driver bhi UTC DateTime
+      // deta hai. Display par user ka LOCAL time chahiye — isliye .toLocal().
+      assignedAt: _parseLocalDate(map['assigned_at']),
       notes: map['notes'] as String?,
       totalItems: _parseInt(map['total_items']),
       totalCost: _parseDouble(map['total_cost']),
       totalSalePrice: _parseDouble(map['total_sale_price']),
-      createdAt: map['created_at'] is DateTime
-          ? map['created_at'] as DateTime
-          : DateTime.parse(map['created_at'].toString()),
+      createdAt: _parseLocalDate(map['created_at']),
     );
+  }
+
+  // UTC (ya any-tz) `timestamptz` value ko local DateTime mein badalta hai.
+  static DateTime _parseLocalDate(dynamic v) {
+    if (v is DateTime) return v.toLocal();
+    return DateTime.parse(v.toString()).toLocal();
   }
 
   static double _parseDouble(dynamic v) {

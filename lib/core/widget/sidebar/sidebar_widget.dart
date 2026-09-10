@@ -16,6 +16,7 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentatio
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/data/model/warehouse_cash_request_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/widget/cash_request_dialog.dart';
+import 'package:jan_ghani_final/features/warehouse/inventory_balance/presentation/screens/inventory_balance_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/presentation/screens/warehouse_reports_shell.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/screens/user_screen.dart';
@@ -90,6 +91,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       icon: Icons.badge_outlined,
       label: 'Salary',
       screen: const SalaryTrackingScreen(),
+    ),
+    NavItem(
+      icon: Icons.rule_folder_outlined,
+      label: 'Inventory Balance',
+      screen: const InventoryBalanceScreen(),
     ),
     NavItem(
       icon: Icons.bar_chart_rounded,
@@ -192,6 +198,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       icon: Icons.store_outlined,
       label: 'Link Stores',
       screen: LinkedStoresScreen(warehouseId: AppConfig.warehouseId),
+    ),
+    NavItem(
+      icon: Icons.rule_folder_outlined,
+      label: 'Inventory Balance',
+      screen: const InventoryBalanceScreen(),
     ),
     NavItem(
       icon: Icons.person_outline,

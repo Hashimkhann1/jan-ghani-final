@@ -7,6 +7,8 @@ import 'package:jan_ghani_final/features/accountant/investment/presentation/scre
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/providers/accountant_auth_providers.dart';
 import 'package:jan_ghani_final/features/accountant/accountant_all_warehouses/presentation/screen/accountant_all_warehouses_screen.dart';
+import 'package:jan_ghani_final/features/accountant/accountant_inventory_review/presentation/screen/accountant_inventory_review_screen.dart';
+import 'package:jan_ghani_final/features/installment/installment_dashboard/presentation/screen/installment_dashboard_screen.dart';
 
 import '../../../authentication/presentation/providers/accoutant_session_provider.dart';
 import '../../../branch_reports/accountant_branch/presentation/screen/accountant_branch_screen.dart';
@@ -45,6 +47,11 @@ const List<_NavItem> _allNavItems = [
     icon: 'sidebar_icons/branch_stock',
     label: 'Warehouse',
     allowedRoles: ['owner', 'accountant', 'warehouse_manager'],
+  ),
+  _NavItem(
+    icon: 'ic_sale_price_trend',
+    label: 'Inventory Review',
+    allowedRoles: ['owner'],
   ),
   _NavItem(
     icon: 'ic_sale_price_trend',
@@ -98,11 +105,12 @@ String _greeting() {
 
 Widget _screenByLabel(String label) {
   return switch (label) {
-    'Dashboard'  => const _DashboardBody(),
-    'Branch'     => BranchScreen(),
-    'Warehouse'  => const AccountantAllWarehousesScreen(),
-    'Investment' => const AccountantInvestmentScreen(),
-    _            => const _DashboardBody(),
+    'Dashboard'        => const _DashboardBody(),
+    'Branch'           => BranchScreen(),
+    'Warehouse'        => const AccountantAllWarehousesScreen(),
+    'Inventory Review' => const AccountantInventoryReviewScreen(),
+    'Investment'       => const AccountantInvestmentScreen(),
+    _                  => const _DashboardBody(),
   };
 }
 

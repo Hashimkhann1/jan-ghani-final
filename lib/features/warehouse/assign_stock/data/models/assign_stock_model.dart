@@ -1,3 +1,4 @@
+// Updated on 2026-09-10 03:49 PM
 import 'assign_stock_item_model.dart';
 
 class AssignStockState {
@@ -49,10 +50,12 @@ class AssignStockState {
   // Store select + non-empty cart + koi bhi item availableStock se zyada
   // qty na maang raha ho (pehle sirf pehle do check hote the — poori cart
   // bharne ke baad hi DB-level error milta tha).
+  // Qty 0 allow hai (info-update transfer — sirf product prices/barcode
+  // store par sync hoti hain, stock nahi jata). Negative qty block.
   bool get canSave =>
       selectedStoreId != null &&
       cartItems.isNotEmpty &&
-      cartItems.every((i) => i.quantity > 0 && i.quantity <= i.availableStock);
+      cartItems.every((i) => i.quantity >= 0 && i.quantity <= i.availableStock);
 
   AssignStockState copyWith({
     String? transferNumber,

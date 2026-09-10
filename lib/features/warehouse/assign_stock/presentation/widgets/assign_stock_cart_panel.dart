@@ -1,3 +1,4 @@
+// Updated on 2026-09-10 03:49 PM
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -222,8 +223,15 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
             separatorBuilder: (_, __) =>
             const SizedBox(height: 6),
             itemBuilder: (context, index) {
+              final item = state.cartItems[index];
+              // ValueKey(cartId) — Flutter row-states ko position se
+              // nahi, cartId se match kare. Warna cart se koi item
+              // remove karne par neechay wali row apne purane state
+              // (controllers) ke saath re-use ho jati thi aur upar wali
+              // (removed) item ki prices dikhati thi.
               return AssignStockCartRow(
-                item:  state.cartItems[index],
+                key: ValueKey(item.cartId),
+                item: item,
                 index: index,
               );
             },

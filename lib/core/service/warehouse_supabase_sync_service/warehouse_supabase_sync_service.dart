@@ -71,6 +71,11 @@ class WarehouseSupabaseSyncService {
     'stock_transfers',
     'stock_transfer_items',
 
+    // ── Level 8b: inventory balance (batches PEHLE — items ka FK) ──
+    'inventory_balance_batches',
+    'inventory_balance_items',
+    'inventory_balance_log',
+
     // ── Level 9: audit / logs ──
     'product_audit_log',
     'warehouse_sync_log',
