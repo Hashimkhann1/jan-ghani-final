@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
+import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 import 'package:jan_ghani_final/core/widget/textfield/app_text_field.dart';
 import 'package:jan_ghani_final/features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
 import '../providers/accountant_auth_providers.dart';
@@ -67,18 +69,12 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
     final isWide = screenWidth > 600;
 
     return Scaffold(
+      backgroundColor: AppColor.grey100,
       resizeToAvoidBottomInset: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF6C63FF), Color(0xFF9D97FF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: isWide ? _buildWebLayout(authState, isLoading) : _buildMobileLayout(authState, isLoading),
-        ),
+      body: SafeArea(
+        child: isWide
+            ? _buildWebLayout(authState, isLoading)
+            : _buildMobileLayout(authState, isLoading),
       ),
     );
   }
@@ -103,49 +99,38 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.4),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          size: 36,
-                          color: Colors.white,
-                        ),
-                      ),
+                      const AppLogo(size: 76, radius: 20),
                       const SizedBox(height: 24),
                       const Text(
-                        'CashFlow\nManager',
+                        'Our mission:\n10,000 shops\nacross Pakistan',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 40,
+                          color: AppColor.textDark,
+                          fontSize: 34,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -1,
-                          height: 1.1,
+                          height: 1.15,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Track every rupee, every day',
+                      const SizedBox(height: 14),
+                      const Text(
+                        'We deliver household goods to every '
+                        'family, right to their doorstep.',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.75),
+                          color: AppColor.textMuted,
                           fontSize: 16,
+                          height: 1.4,
                         ),
                       ),
                       const SizedBox(height: 32),
-                      // Feature badges
-                      _featureBadge(Icons.bar_chart_rounded, 'Real-time reports'),
+                      // Mission highlights
+                      _featureBadge('ic_cash_registration',
+                          '10,000 shops across Pakistan'),
                       const SizedBox(height: 10),
-                      _featureBadge(Icons.people_outline_rounded, 'Multi-branch support'),
+                      _featureBadge('ic_transfer',
+                          'Household goods delivered to your door'),
                       const SizedBox(height: 10),
-                      _featureBadge(Icons.sync_rounded, 'Live sync'),
+                      _featureBadge('ic_top_customers',
+                          'Serving every home, every family'),
                     ],
                   ),
                 ),
@@ -165,11 +150,12 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColor.grey200),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.12),
-                          blurRadius: 40,
-                          offset: const Offset(0, 16),
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 32,
+                          offset: const Offset(0, 12),
                         ),
                       ],
                     ),
@@ -187,80 +173,72 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
 
   // ── MOBILE LAYOUT ────────────────────────────────────────────────────────
   Widget _buildMobileLayout(AccountantAuthState authState, bool isLoading) {
-    return Column(
-      children: [
-        // Logo section
-        Expanded(
-          flex: 1,
-          child: Center(
-            child: FadeTransition(
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FadeTransition(
               opacity: _fadeAnim,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.4),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_rounded,
-                      size: 42,
-                      color: Colors.white,
-                    ),
-                  ),
+                  const AppLogo(size: 84, radius: 22),
                   const SizedBox(height: 16),
                   const Text(
-                    'CashFlow Manager',
+                    'Our mission: 10,000 shops across Pakistan',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
+                      color: AppColor.textDark,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
+                      height: 1.25,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Track every rupee, every day',
+                  const SizedBox(height: 8),
+                  const Text(
+                    'We deliver household goods to every family, '
+                    'right to their doorstep.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: AppColor.textMuted,
                       fontSize: 14,
+                      height: 1.4,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
-
-        // Card section
-        Expanded(
-          flex: 3,
-          child: SlideTransition(
-            position: _slideAnim,
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-                ),
-                padding: const EdgeInsets.fromLTRB(28, 36, 28, 28),
-                child: SingleChildScrollView(
+            const SizedBox(height: 32),
+            SlideTransition(
+              position: _slideAnim,
+              child: FadeTransition(
+                opacity: _fadeAnim,
+                child: Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColor.grey200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
                   child: _buildFormContent(authState, isLoading),
                 ),
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -279,7 +257,7 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
           ),
         ),
         const SizedBox(height: 4),
-        Text(
+        const Text(
           'Sign in to continue',
           style: TextStyle(fontSize: 14, color: AppColor.textMuted),
         ),
@@ -289,6 +267,10 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
           controller: _usernameCtrl,
           keyboardType: TextInputType.emailAddress,
           hint: 'Email address',
+          prefixIcon: const Padding(
+            padding: EdgeInsets.all(12),
+            child: AppIcon('ic_role_manager', size: 18, color: AppColor.textMuted),
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -296,11 +278,15 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
           controller: _passCtrl,
           obscureText: _obscure,
           hint: 'Password',
+          prefixIcon: const Padding(
+            padding: EdgeInsets.all(12),
+            child: AppIcon('ic_custom_access', size: 18, color: AppColor.textMuted),
+          ),
           suffixIcon: IconButton(
-            icon: Icon(
-              _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-              color: AppColor.textMuted,
+            icon: AppIcon(
+              'ic_view',
               size: 20,
+              color: _obscure ? AppColor.textMuted : AppColor.primary,
             ),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
@@ -318,7 +304,7 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                const AppIcon('ic_rejected', size: 16, color: Colors.red),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -386,23 +372,23 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
   }
 
   // ── Helper: feature badge (web only) ─────────────────────────────────────
-  Widget _featureBadge(IconData icon, String label) {
+  Widget _featureBadge(String icon, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: AppColor.primary.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: Colors.white, size: 16),
+          child: AppIcon(icon, size: 16, color: AppColor.primary),
         ),
         const SizedBox(width: 10),
         Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
+          style: const TextStyle(
+            color: AppColor.textDark,
             fontSize: 14,
           ),
         ),
