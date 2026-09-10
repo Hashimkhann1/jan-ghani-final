@@ -1,13 +1,14 @@
 name: Web Build (Accountant)
 
 # Accountant web app. Entry point: lib/main.dart (kIsWeb -> Accountant).
-# Trigger: push a tag like v1.2.5  (Branch Windows build bhi isi tag pe chalti hai).
-# Warehouse ke wh-v* tags yahan match nahi karte.
+# Trigger: push a tag jo 'acc' se start ho, jaise acc-v1.2.5
+#          (git tag acc-v1.2.5 && git push origin acc-v1.2.5).
+# 'br*' (Branch) aur 'ws*' (Warehouse) tags yahan match nahi karte.
 
 on:
   push:
     tags:
-      - 'v[0-9]*'
+      - 'acc*'
   workflow_dispatch:
 
 jobs:

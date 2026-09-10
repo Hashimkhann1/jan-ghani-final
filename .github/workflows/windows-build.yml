@@ -1,13 +1,14 @@
 name: Windows Build (Branch)
 
 # Branch desktop app. Entry point: lib/main.dart (desktop -> Branch).
-# Trigger: push a tag like v1.2.5  (Accountant web build bhi isi tag pe chalti hai).
-# Warehouse ke wh-v* tags yahan match nahi karte — unke liye warehouse-build.yml hai.
+# Trigger: push a tag jo 'br' se start ho, jaise br-v1.2.5
+#          (git tag br-v1.2.5 && git push origin br-v1.2.5).
+# 'acc*' (Accountant web) aur 'ws*' (Warehouse) tags yahan match nahi karte.
 
 on:
   push:
     tags:
-      - 'v[0-9]*'
+      - 'br*'
   workflow_dispatch:
 
 jobs:

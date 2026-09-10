@@ -1,13 +1,14 @@
 name: Windows Build (Warehouse)
 
 # Warehouse desktop app. Entry point: lib/main_warehouse.dart.
-# Trigger: push a tag like wh-v1.2.5  (git tag wh-v1.2.5 && git push origin wh-v1.2.5).
-# Ye tag Branch/Accountant workflows ko trigger nahi karta.
+# Trigger: push a tag jo 'ws' se start ho, jaise ws-v1.2.5
+#          (git tag ws-v1.2.5 && git push origin ws-v1.2.5).
+# 'br*' (Branch) aur 'acc*' (Accountant web) tags yahan match nahi karte.
 
 on:
   push:
     tags:
-      - 'wh-v*'
+      - 'ws*'
   workflow_dispatch:
 
 jobs:
