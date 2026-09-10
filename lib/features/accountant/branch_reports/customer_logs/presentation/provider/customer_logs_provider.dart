@@ -130,7 +130,7 @@ class CustomerLogsNotifier extends StateNotifier<CustomerLogsState> {
         page:      page,
       );
       state = state.copyWith(
-        entries:    paged.entries,
+        entries:    [...state.entries, ...paged.entries],
         pagination: BranchReportPageState(
           page:          page,
           hasNextPage:   paged.hasNextPage,

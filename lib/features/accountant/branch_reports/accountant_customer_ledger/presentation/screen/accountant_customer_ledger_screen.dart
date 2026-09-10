@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../accountant_customer/data/model/accountant_customer_model.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
@@ -219,11 +220,11 @@ class _AccountantCustomerLedgerScreenState
                     hintStyle: const TextStyle(
                         fontSize: 13,
                         color:    AppColor.textHint),
-                    prefixIcon: const Icon(Icons.search_rounded,
+                    prefixIcon: const AppIcon('ic_search',
                         size: 20, color: AppColor.primary),
                     suffixIcon: state.searchQuery.isNotEmpty
                         ? IconButton(
-                      icon: const Icon(Icons.clear_rounded,
+                      icon: const AppIcon('ic_clear',
                           size: 18, color: AppColor.textHint),
                       onPressed: () {
                         _searchCtrl.clear();
@@ -296,7 +297,7 @@ class _AccountantCustomerLedgerScreenState
                               color: AppColor.error
                                   .withOpacity(0.3)),
                         ),
-                        child: const Icon(Icons.close_rounded,
+                        child: const AppIcon('ic_clear',
                             size: 18, color: AppColor.error),
                       ),
                     ),
@@ -492,7 +493,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 130,
                 child: ElevatedButton.icon(
                   onPressed: onExportPdf,
-                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  icon: const AppIcon('ic_print', size: 18, color: Colors.white),
                   label: const Text('Export'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
@@ -510,7 +511,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 120,
                 child: OutlinedButton.icon(
                   onPressed: notifier.refresh,
-                  icon:  const Icon(Icons.refresh_rounded, size: 18),
+                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
                   label: const Text('Refresh'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.primary,
@@ -619,7 +620,7 @@ class _DesktopLayout extends StatelessWidget {
                           color:
                           AppColor.error.withOpacity(0.3)),
                     ),
-                    child: const Icon(Icons.close_rounded,
+                    child: const AppIcon('ic_clear',
                         size: 18, color: AppColor.error),
                   ),
                 ),
@@ -639,14 +640,14 @@ class _DesktopLayout extends StatelessWidget {
                 hintStyle: const TextStyle(
                     fontSize: 13,
                     color:    AppColor.textHint),
-                prefixIcon: const Icon(
-                    Icons.search_rounded,
+                prefixIcon: const AppIcon(
+                    'ic_search',
                     size:  18,
                     color: AppColor.primary),
                 suffixIcon: state.searchQuery.isNotEmpty
                     ? IconButton(
-                  icon: const Icon(
-                      Icons.clear_rounded,
+                  icon: const AppIcon(
+                      'ic_clear',
                       size:  16,
                       color: AppColor.textHint),
                   onPressed: () {
@@ -692,21 +693,21 @@ class _DesktopLayout extends StatelessWidget {
                 _DeskStatCard(
                   label: 'Total Collected',
                   value: fmt(state.totalCollected),
-                  icon:  Icons.account_balance_wallet_outlined,
+                  icon:  'ic_net_amount',
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 10),
                 _DeskStatCard(
                   label: 'Filtered Total',
                   value: fmt(state.totalPaid),
-                  icon:  Icons.payments_outlined,
+                  icon:  'ic_cash_in',
                   color: AppColor.success,
                 ),
                 const SizedBox(width: 10),
                 _DeskStatCard(
                   label: 'Entries',
                   value: '${state.filtered.length}',
-                  icon:  Icons.receipt_long_outlined,
+                  icon:  'ic_total_sale',
                   color: AppColor.warning,
                 ),
                 if (state.startDate != null ||
@@ -724,7 +725,7 @@ class _DesktopLayout extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.filter_alt_rounded,
+                        const AppIcon('ic_filter',
                             size: 14, color: AppColor.primary),
                         const SizedBox(width: 6),
                         Text(
@@ -782,7 +783,7 @@ class _DesktopLayout extends StatelessWidget {
 class _DeskStatCard extends StatelessWidget {
   final String   label;
   final String   value;
-  final IconData icon;
+  final String   icon;
   final Color    color;
 
   const _DeskStatCard({
@@ -810,7 +811,7 @@ class _DeskStatCard extends StatelessWidget {
             color:        color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(7),
           ),
-          child: Icon(icon, size: 14, color: color),
+          child: AppIcon(icon, size: 14, color: color),
         ),
         const SizedBox(width: 10),
         Column(
@@ -1008,8 +1009,8 @@ class _LedgerTable extends StatelessWidget {
                         padding:
                         const EdgeInsets.only(left: 12),
                         child: Row(children: [
-                          const Icon(
-                              Icons.access_time_rounded,
+                          const AppIcon(
+                              'ic_calendar',
                               size:  11,
                               color: AppColor.textHint),
                           const SizedBox(width: 4),
@@ -1111,8 +1112,8 @@ class _MobileLayout extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: onExportPdf,
-            icon: const Icon(Icons.picture_as_pdf_outlined,
-                color: AppColor.primary),
+            icon: const AppIcon('ic_print',
+                size: 22, color: AppColor.primary),
             tooltip: 'Export PDF',
           ),
           // ── Filter icon with active-count badge ──────────────────────────
@@ -1121,8 +1122,8 @@ class _MobileLayout extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: onOpenFilters,
-                icon: const Icon(Icons.filter_list_rounded,
-                    color: AppColor.textSecondary),
+                icon: const AppIcon('ic_filter',
+                    size: 22, color: AppColor.textSecondary),
                 tooltip: 'Filters',
               ),
               if (activeFilterCount > 0)
@@ -1152,8 +1153,8 @@ class _MobileLayout extends StatelessWidget {
           ),
           IconButton(
             onPressed: notifier.refresh,
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh',
+                size: 22, color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
           const SizedBox(width: 4),
@@ -1176,21 +1177,21 @@ class _MobileLayout extends StatelessWidget {
                 _SummaryCard(
                   label: 'Total Collected',
                   value: fmt(state.totalCollected),
-                  icon:  Icons.account_balance_wallet_outlined,
+                  icon:  'ic_net_amount',
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 8),
                 _SummaryCard(
                   label: 'Filtered Total',
                   value: fmt(state.totalPaid),
-                  icon:  Icons.payments_outlined,
+                  icon:  'ic_cash_in',
                   color: AppColor.success,
                 ),
                 const SizedBox(width: 8),
                 _SummaryCard(
                   label: 'Entries',
                   value: '${state.filtered.length}',
-                  icon:  Icons.receipt_long_outlined,
+                  icon:  'ic_total_sale',
                   color: AppColor.warning,
                 ),
               ]),
@@ -1222,7 +1223,7 @@ class _MobileLayout extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.filter_alt_rounded,
+                        const AppIcon('ic_filter',
                             size:  12,
                             color: AppColor.primary),
                         const SizedBox(width: 4),
@@ -1366,7 +1367,7 @@ class _LedgerCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Row(children: [
-                        const Icon(Icons.access_time_rounded,
+                        const AppIcon('ic_calendar',
                             size:  10,
                             color: AppColor.textHint),
                         const SizedBox(width: 3),
@@ -1452,7 +1453,7 @@ class _LedgerCard extends StatelessWidget {
                 entry.notes!.isNotEmpty) ...[
               const SizedBox(height: 10),
               Row(children: [
-                const Icon(Icons.notes_rounded,
+                const AppIcon('ic_message',
                     size: 13, color: AppColor.textHint),
                 const SizedBox(width: 4),
                 Expanded(
@@ -1508,7 +1509,7 @@ class _DateButton extends StatelessWidget {
           ),
         ),
         child: Row(children: [
-          Icon(Icons.calendar_today_rounded,
+          AppIcon('ic_calendar',
               size:  16,
               color: isSet
                   ? AppColor.primary
@@ -1577,7 +1578,7 @@ class _TimeButton extends StatelessWidget {
           ),
         ),
         child: Row(children: [
-          Icon(Icons.access_time_rounded,
+          AppIcon('ic_calendar',
               size:  16,
               color: isSet
                   ? AppColor.primary
@@ -1643,7 +1644,7 @@ class _AmountTile extends StatelessWidget {
 
 class _SummaryCard extends StatelessWidget {
   final String   label, value;
-  final IconData icon;
+  final String   icon;
   final Color    color;
 
   const _SummaryCard({
@@ -1672,7 +1673,7 @@ class _SummaryCard extends StatelessWidget {
               color:        color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 13, color: color),
+            child: AppIcon(icon, size: 13, color: color),
           ),
           const SizedBox(height: 8),
           Text(value,
@@ -1703,7 +1704,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.receipt_long_outlined,
+        AppIcon('sidebar_icons/customer_ledger',
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text(message,

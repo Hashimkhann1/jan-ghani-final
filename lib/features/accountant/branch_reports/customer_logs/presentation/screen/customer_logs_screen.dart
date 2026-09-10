@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
-import '../../../common/pagination/branch_report_pagination_controls.dart';
+import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/pagination/branch_report_infinite_scroll.dart';
 import '../../data/model/customer_logs_model.dart';
 import '../provider/customer_logs_provider.dart';
 
@@ -227,7 +228,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 120,
                 child: OutlinedButton.icon(
                   onPressed: notifier.load,
-                  icon:  const Icon(Icons.refresh_rounded, size: 18),
+                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
                   label: const Text('Refresh'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.primary,
@@ -255,7 +256,7 @@ class _DesktopLayout extends StatelessWidget {
                 child: _DateField(
                   controller: startCtrl,
                   hint:       'Start Date',
-                  icon:       Icons.calendar_today_rounded,
+                  icon:       'ic_calendar',
                   onTap:      onPickStart,
                   onClear:    startCtrl.text.isNotEmpty
                       ? onClearStart
@@ -274,7 +275,7 @@ class _DesktopLayout extends StatelessWidget {
                 child: _DateField(
                   controller: endCtrl,
                   hint:       'End Date',
-                  icon:       Icons.event_rounded,
+                  icon:       'ic_calendar',
                   onTap:      onPickEnd,
                   onClear:    endCtrl.text.isNotEmpty
                       ? onClearEnd
@@ -292,8 +293,8 @@ class _DesktopLayout extends StatelessWidget {
                       color:        AppColor.error.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                        Icons.filter_alt_off_rounded,
+                    child: const AppIcon(
+                        'ic_filter',
                         size:  16,
                         color: AppColor.error),
                   ),
@@ -309,28 +310,28 @@ class _DesktopLayout extends StatelessWidget {
               _DeskStatCard(
                 label: 'Total Entries',
                 value: '${state.totalCount}',
-                icon:  Icons.receipt_long_rounded,
+                icon:  'ic_total_sale',
                 color: AppColor.primary,
               ),
               const SizedBox(width: 10),
               _DeskStatCard(
                 label: 'Total Increase',
                 value: 'Rs ${amtFmt.format(state.totalIncrease.toInt())}',
-                icon:  Icons.arrow_upward_rounded,
+                icon:  'ic_cash_in',
                 color: const Color(0xFF10B981),
               ),
               const SizedBox(width: 10),
               _DeskStatCard(
                 label: 'Total Decrease',
                 value: 'Rs ${amtFmt.format(state.totalDecrease.toInt())}',
-                icon:  Icons.arrow_downward_rounded,
+                icon:  'ic_cash_out',
                 color: const Color(0xFFF97316),
               ),
               const SizedBox(width: 10),
               _DeskStatCard(
                 label: 'Net Change',
                 value: 'Rs ${amtFmt.format(state.netChange.toInt())}',
-                icon:  Icons.difference_rounded,
+                icon:  'sidebar_icons/difference',
                 color: state.netChange >= 0
                     ? const Color(0xFF10B981)
                     : AppColor.error,
@@ -341,30 +342,29 @@ class _DesktopLayout extends StatelessWidget {
         const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
         Expanded(
-          child: state.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : state.entries.isEmpty
-              ? const _EmptyState()
-              : _LogTable(items: state.entries, amtFmt: amtFmt),
-        ),
-        if (!state.isLoading && state.entries.isNotEmpty)
-          BranchReportPaginationControls(
-            page:        state.pagination.page,
-            hasNextPage: state.pagination.hasNextPage,
-            isLoading:   state.pagination.isLoadingPage,
-            onNext:      notifier.nextPage,
-            onPrevious:  notifier.previousPage,
+          child: BranchReportInfiniteScroll(
+            hasMore:    state.pagination.hasNextPage,
+            isLoading:  state.pagination.isLoadingPage,
+            onLoadMore: notifier.nextPage,
+            child: state.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : state.entries.isEmpty
+                ? const _EmptyState()
+                : _LogTable(items: state.entries, amtFmt: amtFmt),
           ),
+        ),
+        if (state.pagination.isLoadingPage)
+          const BranchReportLoadMoreStrip(),
       ],
     );
   }
 }
 
 class _DeskStatCard extends StatelessWidget {
-  final String   label;
-  final String   value;
-  final IconData icon;
-  final Color    color;
+  final String label;
+  final String value;
+  final String icon;
+  final Color  color;
 
   const _DeskStatCard({
     required this.label,
@@ -390,7 +390,7 @@ class _DeskStatCard extends StatelessWidget {
             color:        color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(7),
           ),
-          child: Icon(icon, size: 14, color: color),
+          child: AppIcon(icon, size: 14, color: color),
         ),
         const SizedBox(width: 10),
         Column(
@@ -532,10 +532,8 @@ class _LogTableRow extends StatelessWidget {
                     color:        color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    item.isIncrease
-                        ? Icons.arrow_upward_rounded
-                        : Icons.arrow_downward_rounded,
+                  child: AppIcon(
+                    item.isIncrease ? 'ic_cash_in' : 'ic_cash_out',
                     color: color,
                     size:  15,
                   ),
@@ -656,8 +654,8 @@ class _MobileLayout extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: notifier.load,
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh',
+                size: 22, color: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
         ],
@@ -672,7 +670,7 @@ class _MobileLayout extends StatelessWidget {
                   child: _DateField(
                     controller: startCtrl,
                     hint:       'Start Date',
-                    icon:       Icons.calendar_today_rounded,
+                    icon:       'ic_calendar',
                     onTap:      onPickStart,
                     onClear:    startCtrl.text.isNotEmpty
                         ? onClearStart
@@ -690,7 +688,7 @@ class _MobileLayout extends StatelessWidget {
                   child: _DateField(
                     controller: endCtrl,
                     hint:       'End Date',
-                    icon:       Icons.event_rounded,
+                    icon:       'ic_calendar',
                     onTap:      onPickEnd,
                     onClear:    endCtrl.text.isNotEmpty
                         ? onClearEnd
@@ -708,8 +706,8 @@ class _MobileLayout extends StatelessWidget {
                         color:        AppColor.error.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
-                          Icons.filter_alt_off_rounded,
+                      child: const AppIcon(
+                          'ic_filter',
                           size:  16,
                           color: AppColor.error),
                     ),
@@ -735,7 +733,7 @@ class _MobileLayout extends StatelessWidget {
                       _MobileSummaryCard(
                         label: 'Entries',
                         value: '${state.totalCount}',
-                        icon:  Icons.receipt_long_rounded,
+                        icon:  'ic_total_sale',
                         color: AppColor.primary,
                       ),
                       const SizedBox(width: 10),
@@ -743,7 +741,7 @@ class _MobileLayout extends StatelessWidget {
                         label: 'Increase',
                         value:
                         'Rs ${amtFmt.format(state.totalIncrease.toInt())}',
-                        icon:  Icons.arrow_upward_rounded,
+                        icon:  'ic_cash_in',
                         color: const Color(0xFF10B981),
                       ),
                     ],
@@ -755,7 +753,7 @@ class _MobileLayout extends StatelessWidget {
                         label: 'Decrease',
                         value:
                         'Rs ${amtFmt.format(state.totalDecrease.toInt())}',
-                        icon:  Icons.arrow_downward_rounded,
+                        icon:  'ic_cash_out',
                         color: const Color(0xFFF97316),
                       ),
                       const SizedBox(width: 10),
@@ -763,7 +761,7 @@ class _MobileLayout extends StatelessWidget {
                         label: 'Net Change',
                         value:
                         'Rs ${amtFmt.format(state.netChange.toInt())}',
-                        icon:  Icons.difference_rounded,
+                        icon:  'sidebar_icons/difference',
                         color: state.netChange >= 0
                             ? const Color(0xFF10B981)
                             : AppColor.error,
@@ -787,31 +785,30 @@ class _MobileLayout extends StatelessWidget {
             ),
 
           Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.entries.isEmpty
-                ? const _EmptyState()
-                : RefreshIndicator(
-              onRefresh: notifier.load,
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                itemCount: state.entries.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (_, i) => _LogCard(
-                  entry:  state.entries[i],
-                  amtFmt: amtFmt,
+            child: BranchReportInfiniteScroll(
+              hasMore:    state.pagination.hasNextPage,
+              isLoading:  state.pagination.isLoadingPage,
+              onLoadMore: notifier.nextPage,
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.entries.isEmpty
+                  ? const _EmptyState()
+                  : RefreshIndicator(
+                onRefresh: notifier.load,
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  itemCount: state.entries.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) => _LogCard(
+                    entry:  state.entries[i],
+                    amtFmt: amtFmt,
+                  ),
                 ),
               ),
             ),
           ),
-          if (!state.isLoading && state.entries.isNotEmpty)
-            BranchReportPaginationControls(
-              page:        state.pagination.page,
-              hasNextPage: state.pagination.hasNextPage,
-              isLoading:   state.pagination.isLoadingPage,
-              onNext:      notifier.nextPage,
-              onPrevious:  notifier.previousPage,
-            ),
+          if (state.pagination.isLoadingPage)
+            const BranchReportLoadMoreStrip(),
         ],
       ),
     );
@@ -821,7 +818,7 @@ class _MobileLayout extends StatelessWidget {
 class _MobileSummaryCard extends StatelessWidget {
   final String   label;
   final String   value;
-  final IconData icon;
+  final String   icon;
   final Color    color;
 
   const _MobileSummaryCard({
@@ -848,7 +845,7 @@ class _MobileSummaryCard extends StatelessWidget {
               color:        color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 16, color: color),
+            child: AppIcon(icon, size: 16, color: color),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -924,10 +921,8 @@ class _LogCard extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    entry.isIncrease
-                        ? Icons.arrow_upward_rounded
-                        : Icons.arrow_downward_rounded,
+                  child: AppIcon(
+                    entry.isIncrease ? 'ic_cash_in' : 'ic_cash_out',
                     color: color,
                     size:  20,
                   ),
@@ -951,7 +946,7 @@ class _LogCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Row(children: [
-                        const Icon(Icons.access_time_rounded,
+                        const AppIcon('ic_calendar',
                             size: 10, color: AppColor.textHint),
                         const SizedBox(width: 3),
                         Text(
@@ -1046,7 +1041,7 @@ class _AmountBlock extends StatelessWidget {
 class _DateField extends StatelessWidget {
   final TextEditingController controller;
   final String                hint;
-  final IconData              icon;
+  final String                icon;
   final VoidCallback          onTap;
   final VoidCallback?         onClear;
 
@@ -1070,11 +1065,11 @@ class _DateField extends StatelessWidget {
         decoration: InputDecoration(
           hintText:  hint,
           hintStyle: const TextStyle(fontSize: 12, color: AppColor.textHint),
-          prefixIcon: Icon(icon, size: 16, color: AppColor.primary),
+          prefixIcon: AppIcon(icon, size: 16, color: AppColor.primary),
           suffixIcon: onClear != null
               ? GestureDetector(
             onTap: onClear,
-            child: const Icon(Icons.close_rounded,
+            child: const AppIcon('ic_clear',
                 size: 14, color: AppColor.textHint),
           )
               : null,
@@ -1110,7 +1105,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.history_rounded, size: 64, color: Colors.grey.shade300),
+        AppIcon('sidebar_icons/customer_account', size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text('No customer logs found',
             style: TextStyle(

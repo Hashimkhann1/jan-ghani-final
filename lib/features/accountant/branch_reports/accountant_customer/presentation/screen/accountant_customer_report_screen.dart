@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/accountant_customer_model.dart';
 import '../../data/service/customer_report_pdf_service.dart';
 import '../provider/accountant_customer_provider.dart';
@@ -176,7 +177,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 130,
                 child: ElevatedButton.icon(
                   onPressed: onExportPdf,
-                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  icon: const AppIcon('ic_print', size: 18, color: Colors.white),
                   label: const Text('Export'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
@@ -194,7 +195,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 120,
                 child: OutlinedButton.icon(
                   onPressed: notifier.load,
-                  icon:  const Icon(Icons.refresh_rounded, size: 18),
+                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
                   label: const Text('Refresh'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.primary,
@@ -221,28 +222,28 @@ class _DesktopLayout extends StatelessWidget {
               _DeskSummaryCard(
                 label: 'Total',
                 value: '${state.summary.totalCustomers}',
-                icon:  Icons.people_outline_rounded,
+                icon:  'ic_top_customers',
                 color: AppColor.primary,
               ),
               const SizedBox(width: 10),
               _DeskSummaryCard(
                 label: 'Active',
                 value: '${state.summary.activeCustomers}',
-                icon:  Icons.person_outline_rounded,
+                icon:  'ic_active_check',
                 color: AppColor.success,
               ),
               const SizedBox(width: 10),
               _DeskSummaryCard(
                 label: 'Outstanding',
                 value: fmtAmt(state.summary.totalOutstanding),
-                icon:  Icons.account_balance_wallet_outlined,
+                icon:  'ic_credit_sale',
                 color: AppColor.error,
               ),
               const SizedBox(width: 10),
               _DeskSummaryCard(
                 label:    'Limit Cross',
                 value:    '${state.summary.limitExceededCount}',
-                icon:     Icons.warning_amber_rounded,
+                icon:     'ic_pending',
                 color:    const Color(0xFFEF4444),
                 selected: state.filterType == 'exceeded',
                 onTap:    () => notifier.setFilter(
@@ -299,11 +300,11 @@ class _DesktopLayout extends StatelessWidget {
                       hintStyle: const TextStyle(
                           fontSize: 13,
                           color:    AppColor.textHint),
-                      prefixIcon: const Icon(Icons.search_rounded,
+                      prefixIcon: const AppIcon('ic_search',
                           size: 18, color: AppColor.primary),
                       suffixIcon: state.searchQuery.isNotEmpty
                           ? IconButton(
-                        icon: const Icon(Icons.clear_rounded,
+                        icon: const AppIcon('ic_clear',
                             size: 16,
                             color: AppColor.textHint),
                         onPressed: () {
@@ -360,7 +361,7 @@ class _DesktopLayout extends StatelessWidget {
 class _DeskSummaryCard extends StatelessWidget {
   final String        label;
   final String        value;
-  final IconData      icon;
+  final String        icon;
   final Color         color;
   final bool          selected;
   final VoidCallback? onTap;
@@ -401,7 +402,7 @@ class _DeskSummaryCard extends StatelessWidget {
               color:        color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(7),
             ),
-            child: Icon(icon, size: 14, color: color),
+            child: AppIcon(icon, size: 14, color: color),
           ),
           const SizedBox(width: 10),
           Column(
@@ -832,7 +833,7 @@ class _CustomerTableRow extends StatelessWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.chat,
+                      AppIcon('ic_message',
                           size:  13,
                           color: Color(0xFF25D366)),
                       SizedBox(width: 4),
@@ -931,14 +932,14 @@ class _MobileLayout extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: onExportPdf,
-            icon: const Icon(Icons.picture_as_pdf_outlined,
-                color: AppColor.primary),
+            icon: const AppIcon('ic_print',
+                size: 22, color: AppColor.primary),
             tooltip: 'Export PDF',
           ),
           IconButton(
             onPressed: notifier.load,
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh',
+                size: 22, color: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
         ],
@@ -963,11 +964,11 @@ class _MobileLayout extends StatelessWidget {
                 hintText: 'Name, phone ya code se search karein...',
                 hintStyle: const TextStyle(
                     fontSize: 13, color: AppColor.textHint),
-                prefixIcon: const Icon(Icons.search_rounded,
+                prefixIcon: const AppIcon('ic_search',
                     size: 20, color: AppColor.primary),
                 suffixIcon: state.searchQuery.isNotEmpty
                     ? IconButton(
-                  icon: const Icon(Icons.clear_rounded,
+                  icon: const AppIcon('ic_clear',
                       size: 18, color: AppColor.textHint),
                   onPressed: () {
                     searchCtrl.clear();
@@ -1044,28 +1045,28 @@ class _MobileLayout extends StatelessWidget {
                   _SummaryCard(
                     label: 'Total',
                     value: '${state.summary.totalCustomers}',
-                    icon:  Icons.people_outline_rounded,
+                    icon:  'ic_top_customers',
                     color: AppColor.primary,
                   ),
                   const SizedBox(width: 8),
                   _SummaryCard(
                     label: 'Active',
                     value: '${state.summary.activeCustomers}',
-                    icon:  Icons.person_outline_rounded,
+                    icon:  'ic_active_check',
                     color: AppColor.success,
                   ),
                   const SizedBox(width: 8),
                   _SummaryCard(
                     label: 'Outstanding',
                     value: fmtAmt(state.summary.totalOutstanding),
-                    icon:  Icons.account_balance_wallet_outlined,
+                    icon:  'ic_credit_sale',
                     color: AppColor.error,
                   ),
                   const SizedBox(width: 8),
                   _SummaryCard(
                     label: 'Limit Cross',
                     value: '${state.summary.limitExceededCount}',
-                    icon:  Icons.warning_amber_rounded,
+                    icon:  'ic_pending',
                     color: const Color(0xFFEF4444),
                   ),
                 ]),
@@ -1117,7 +1118,7 @@ class _MobileLayout extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final String   label;
   final String   value;
-  final IconData icon;
+  final String   icon;
   final Color    color;
 
   const _SummaryCard({
@@ -1146,7 +1147,7 @@ class _SummaryCard extends StatelessWidget {
               color:        color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 13, color: color),
+            child: AppIcon(icon, size: 13, color: color),
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -1311,12 +1312,12 @@ class _CustomerCard extends StatelessWidget {
                         runSpacing: 4,
                         children: [
                           _MetaChip(
-                            icon: Icons.phone_outlined,
+                            icon: 'ic_message',
                             text: customer.phone.isEmpty
                                 ? '-' : customer.phone,
                           ),
                           _MetaChip(
-                            icon: Icons.tag_rounded,
+                            icon: 'ic_barcode',
                             text: customer.code,
                           ),
                         ],
@@ -1337,7 +1338,7 @@ class _CustomerCard extends StatelessWidget {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.warning_amber_rounded,
+                        AppIcon('ic_pending',
                             size: 11, color: Colors.white),
                         SizedBox(width: 3),
                         Text('LIMIT',
@@ -1440,10 +1441,8 @@ class _CustomerCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(children: [
-                        Icon(
-                          exceeded
-                              ? Icons.warning_amber_rounded
-                              : Icons.credit_score_outlined,
+                        AppIcon(
+                          exceeded ? 'ic_pending' : 'ic_credit_sale',
                           size:  12,
                           color: exceeded
                               ? const Color(0xFFEF4444)
@@ -1568,7 +1567,7 @@ class _CustomerCard extends StatelessWidget {
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.chat, size: 15, color: Color(0xFF25D366)),
+                      AppIcon('ic_message', size: 15, color: Color(0xFF25D366)),
                       SizedBox(width: 6),
                       Text(
                         'Send Payment Reminder',
@@ -1661,7 +1660,7 @@ class _ExceededChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.warning_amber_rounded,
+            AppIcon('ic_pending',
                 size: 13,
                 color: selected ? Colors.white : red),
             const SizedBox(width: 4),
@@ -1705,7 +1704,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.people_outline_rounded,
+        AppIcon('sidebar_icons/customer',
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text('Koi customer nahi mila',
@@ -1724,15 +1723,15 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _MetaChip extends StatelessWidget {
-  final IconData icon;
-  final String   text;
+  final String icon;
+  final String text;
   const _MetaChip({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 11, color: AppColor.textHint),
+      AppIcon(icon, size: 11, color: AppColor.textHint),
       const SizedBox(width: 3),
       Text(text,
           style: const TextStyle(
