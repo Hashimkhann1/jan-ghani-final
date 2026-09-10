@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_logo_widget.dart';
 import '../../../../../branch/authentication/presentation/provider/auth_provider.dart';
 import '../../../../authentication/presentation/providers/accoutant_session_provider.dart';
 import '../../../branch_report_list_screen.dart';
@@ -278,16 +279,7 @@ class _BranchGridCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width:  48,
-              height: 48,
-              decoration: BoxDecoration(
-                color:        AppColor.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.store_mall_directory_rounded,
-                  color: AppColor.primary, size: 24),
-            ),
+            const AppLogo(size: 48, radius: 12),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -559,16 +551,7 @@ class _BranchListCard extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
             horizontal: 14, vertical: 6),
-        leading: Container(
-          width:  46,
-          height: 46,
-          decoration: BoxDecoration(
-            color:        AppColor.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.store_mall_directory_rounded,
-              color: AppColor.primary, size: 22),
-        ),
+        leading: const AppLogo(size: 46, radius: 12),
         title: Text(
           branch.name,
           style: const TextStyle(

@@ -145,7 +145,7 @@ class BranchTransactionNotifier
         page:      page,
       );
       state = state.copyWith(
-        transactions: paged.transactions,
+        transactions: [...state.transactions, ...paged.transactions],
         pagination:   BranchReportPageState(
           page:          page,
           hasNextPage:   paged.hasNextPage,
