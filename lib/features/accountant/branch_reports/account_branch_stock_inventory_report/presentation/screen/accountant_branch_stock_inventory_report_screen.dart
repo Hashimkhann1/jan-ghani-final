@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
@@ -177,7 +178,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 130,
                 child: ElevatedButton.icon(
                   onPressed: () => _exportPdf(context, state),
-                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  icon: const AppIcon('ic_print', size: 18, color: Colors.white),
                   label: const Text('Export'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
@@ -193,7 +194,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 120,
                 child: OutlinedButton.icon(
                   onPressed: notifier.load,
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  icon: const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
                   label: const Text('Refresh'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.primary,
@@ -218,14 +219,14 @@ class _DesktopLayout extends StatelessWidget {
               _DeskSummaryCard(
                 label: 'Total',
                 value: '${state.summary.totalProducts}',
-                icon: Icons.inventory_2_outlined,
+                icon: 'ic_total_products',
                 color: AppColor.primary,
               ),
               const SizedBox(width: 10),
               _DeskSummaryCard(
                 label: 'In Stock',
                 value: '${state.summary.inStock}',
-                icon: Icons.check_circle_outline_rounded,
+                icon: 'ic_active_check',
                 color: AppColor.success,
                 selected: state.stockFilter == StockStatus.inStock,
                 onTap: () => notifier.setStockFilter(
@@ -235,7 +236,7 @@ class _DesktopLayout extends StatelessWidget {
               _DeskSummaryCard(
                 label: 'Low Stock',
                 value: '${state.summary.lowStock}',
-                icon: Icons.warning_amber_rounded,
+                icon: 'ic_pending',
                 color: AppColor.warning,
                 selected: state.stockFilter == StockStatus.lowStock,
                 onTap: () => notifier.setStockFilter(
@@ -245,7 +246,7 @@ class _DesktopLayout extends StatelessWidget {
               _DeskSummaryCard(
                 label: 'Out of Stock',
                 value: '${state.summary.outOfStock}',
-                icon: Icons.remove_circle_outline_rounded,
+                icon: 'ic_inactive',
                 color: AppColor.error,
                 selected: state.stockFilter == StockStatus.outOfStock,
                 onTap: () => notifier.setStockFilter(
@@ -255,7 +256,7 @@ class _DesktopLayout extends StatelessWidget {
               _DeskSummaryCard(
                 label: 'Diet Product',
                 value: '${state.summary.deadStock}',
-                icon: Icons.local_fire_department_outlined,
+                icon: 'ic_sale_price_trend',
                 color: const Color(0xFF8B5CF6),
                 selected: state.deadStockOnly,
                 onTap: notifier.toggleDeadStockOnly,
@@ -273,10 +274,10 @@ class _DesktopLayout extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: 'Product name, SKU or barcode...',
                       hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                      prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColor.primary),
-                      suffixIcon: state.searchQuery.isNotEmpty
+                      prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.primary),
+  suffixIcon: state.searchQuery.isNotEmpty
                           ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 16, color: AppColor.textHint),
+                        icon: const AppIcon('ic_clear', size: 16, color: AppColor.textHint),
                         onPressed: () {
                           searchCtrl.clear();
                           notifier.search('');
@@ -350,7 +351,7 @@ class _DesktopLayout extends StatelessWidget {
 class _DeskSummaryCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
+  final String icon;
   final Color color;
   final bool selected;
   final VoidCallback? onTap;
@@ -384,7 +385,7 @@ class _DeskSummaryCard extends StatelessWidget {
               color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(7),
             ),
-            child: Icon(icon, size: 14, color: color),
+            child: AppIcon(icon, size: 14, color: color),
           ),
           const SizedBox(width: 10),
           Column(
@@ -508,7 +509,7 @@ class _TableRow extends StatelessWidget {
             child: Row(
               children: [
                 if (item.isDeadStock) ...[
-                  const Icon(Icons.local_fire_department_outlined, size: 13, color: Color(0xFF8B5CF6)),
+                  const AppIcon('ic_sale_price_trend', size: 13, color: Color(0xFF8B5CF6)),
                   const SizedBox(width: 4),
                 ],
                 Expanded(
@@ -618,12 +619,12 @@ class _MobileLayout extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () => _exportPdf(context, state),
-            icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColor.primary),
+            icon: const AppIcon('ic_print', size: 22, color: AppColor.primary),
             tooltip: 'Export PDF',
           ),
           IconButton(
             onPressed: notifier.load,
-            icon: const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
           const SizedBox(width: 4),
@@ -647,10 +648,10 @@ class _MobileLayout extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: 'Product name, SKU or barcode...',
                 hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColor.primary),
+                prefixIcon: const AppIcon('ic_search', size: 20, color: AppColor.primary),
                 suffixIcon: state.searchQuery.isNotEmpty
                     ? IconButton(
-                  icon: const Icon(Icons.clear_rounded, size: 18, color: AppColor.textHint),
+                  icon: const AppIcon('ic_clear', size: 18, color: AppColor.textHint),
                   onPressed: () {
                     searchCtrl.clear();
                     notifier.search('');
@@ -740,7 +741,7 @@ class _MobileLayout extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 90,
-                    child: _MobileSummaryCard(label: 'Total', value: '${state.summary.totalProducts}', icon: Icons.inventory_2_outlined, color: AppColor.primary),
+                    child: _MobileSummaryCard(label: 'Total', value: '${state.summary.totalProducts}', icon: 'ic_total_products', color: AppColor.primary),
                   ),
                   const SizedBox(width: 8),
                   SizedBox(
@@ -748,7 +749,7 @@ class _MobileLayout extends StatelessWidget {
                     child: _MobileSummaryCard(
                       label: 'In Stock',
                       value: '${state.summary.inStock}',
-                      icon: Icons.check_circle_outline_rounded,
+                      icon: 'ic_active_check',
                       color: AppColor.success,
                       selected: state.stockFilter == StockStatus.inStock,
                       onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.inStock ? null : StockStatus.inStock),
@@ -760,7 +761,7 @@ class _MobileLayout extends StatelessWidget {
                     child: _MobileSummaryCard(
                       label: 'Low',
                       value: '${state.summary.lowStock}',
-                      icon: Icons.warning_amber_rounded,
+                      icon: 'ic_pending',
                       color: AppColor.warning,
                       selected: state.stockFilter == StockStatus.lowStock,
                       onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.lowStock ? null : StockStatus.lowStock),
@@ -772,7 +773,7 @@ class _MobileLayout extends StatelessWidget {
                     child: _MobileSummaryCard(
                       label: 'Out',
                       value: '${state.summary.outOfStock}',
-                      icon: Icons.remove_circle_outline_rounded,
+                      icon: 'ic_inactive',
                       color: AppColor.error,
                       selected: state.stockFilter == StockStatus.outOfStock,
                       onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.outOfStock ? null : StockStatus.outOfStock),
@@ -784,7 +785,7 @@ class _MobileLayout extends StatelessWidget {
                     child: _MobileSummaryCard(
                       label: 'Diet Product',
                       value: '${state.summary.deadStock}',
-                      icon: Icons.local_fire_department_outlined,
+                      icon: 'ic_sale_price_trend',
                       color: const Color(0xFF8B5CF6),
                       selected: state.deadStockOnly,
                       onTap: notifier.toggleDeadStockOnly,
@@ -850,7 +851,7 @@ class _MobileLayout extends StatelessWidget {
 class _MobileSummaryCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
+  final String icon;
   final Color color;
   final bool selected;
   final VoidCallback? onTap;
@@ -882,7 +883,7 @@ class _MobileSummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-            child: Icon(icon, size: 12, color: color),
+            child: AppIcon(icon, size: 12, color: color),
           ),
           const SizedBox(height: 7),
           Text(value,
@@ -950,18 +951,18 @@ class _ValuesRow extends StatelessWidget {
     }
 
     return Row(children: [
-      Expanded(child: _ValueCard(label: qtyLabel, value: fmtQty(qty), icon: Icons.straighten_rounded, color: accentColor)),
+      Expanded(child: _ValueCard(label: qtyLabel, value: fmtQty(qty), icon: 'ic_total_quantity', color: accentColor)),
       const SizedBox(width: 8),
-      Expanded(child: _ValueCard(label: 'Purchase Value', value: fmtAmt(purchaseVal), icon: Icons.shopping_cart_outlined, color: const Color(0xFF8B5CF6))),
+      Expanded(child: _ValueCard(label: 'Purchase Value', value: fmtAmt(purchaseVal), icon: 'ic_purchase_price', color: const Color(0xFF8B5CF6))),
       const SizedBox(width: 8),
-      Expanded(child: _ValueCard(label: 'Sale Value', value: fmtAmt(saleVal), icon: Icons.sell_outlined, color: AppColor.primary)),
+      Expanded(child: _ValueCard(label: 'Sale Value', value: fmtAmt(saleVal), icon: 'ic_sale_price_trend', color: AppColor.primary)),
     ]);
   }
 }
 
 class _ValueCard extends StatelessWidget {
   final String label, value;
-  final IconData icon;
+  final String icon;
   final Color color;
 
   const _ValueCard({required this.label, required this.value, required this.icon, required this.color});
@@ -977,7 +978,7 @@ class _ValueCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 14, color: color),
+        AppIcon(icon, size: 14, color: color),
         const SizedBox(height: 5),
         Text(value,
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color),
@@ -1043,7 +1044,7 @@ class _InventoryCard extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.inventory_2_outlined, color: _statusColor, size: 22),
+                  child: AppIcon('ic_total_products', color: _statusColor, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1053,7 +1054,7 @@ class _InventoryCard extends StatelessWidget {
                       Row(
                         children: [
                           if (item.isDeadStock) ...[
-                            const Icon(Icons.local_fire_department_outlined, size: 13, color: Color(0xFF8B5CF6)),
+                            const AppIcon('ic_sale_price_trend', size: 13, color: Color(0xFF8B5CF6)),
                             const SizedBox(width: 4),
                           ],
                           Expanded(
@@ -1066,17 +1067,17 @@ class _InventoryCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Row(children: [
-                        const Icon(Icons.tag_rounded, size: 11, color: AppColor.textHint),
+                        const AppIcon('ic_barcode', size: 11, color: AppColor.textHint),
                         const SizedBox(width: 2),
                         Text(item.sku, style: const TextStyle(fontSize: 11, color: AppColor.textHint)),
                         const SizedBox(width: 8),
-                        const Icon(Icons.straighten_rounded, size: 11, color: AppColor.textHint),
+                        const AppIcon('ic_total_quantity', size: 11, color: AppColor.textHint),
                         const SizedBox(width: 2),
                         Text(item.unit, style: const TextStyle(fontSize: 11, color: AppColor.textHint)),
                       ]),
                       const SizedBox(height: 4),
                       Row(children: [
-                        const Icon(Icons.category_outlined, size: 11, color: AppColor.textHint),
+                        const AppIcon('ic_top_products', size: 11, color: AppColor.textHint),
                         const SizedBox(width: 2),
                         Flexible(
                           child: Text(item.categoryName,
@@ -1119,7 +1120,7 @@ class _InventoryCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.layers_outlined, size: 13, color: _statusColor),
+                      AppIcon('ic_total_products', size: 13, color: _statusColor),
                       const SizedBox(width: 5),
                       Text('${fmtQty(item.stock)} ${item.unit}',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _statusColor)),
@@ -1149,11 +1150,11 @@ class _InventoryCard extends StatelessWidget {
             decoration: BoxDecoration(color: const Color(0xFFF5F6FA), borderRadius: BorderRadius.circular(10)),
             child: IntrinsicHeight(
               child: Row(children: [
-                Expanded(child: _PriceTile(icon: Icons.shopping_cart_outlined, label: 'Purchase', value: fmtAmt(item.purchasePrice), color: const Color(0xFF8B5CF6))),
+                Expanded(child: _PriceTile(icon: 'ic_purchase_price', label: 'Purchase', value: fmtAmt(item.purchasePrice), color: const Color(0xFF8B5CF6))),
                 VerticalDivider(width: 1, thickness: 1, color: Colors.grey.shade200),
-                Expanded(child: _PriceTile(icon: Icons.sell_outlined, label: 'Sale', value: fmtAmt(item.salePrice), color: AppColor.primary)),
+                Expanded(child: _PriceTile(icon: 'ic_sale_price_trend', label: 'Sale', value: fmtAmt(item.salePrice), color: AppColor.primary)),
                 VerticalDivider(width: 1, thickness: 1, color: Colors.grey.shade200),
-                Expanded(child: _PriceTile(icon: Icons.storefront_outlined, label: 'Wholesale', value: fmtAmt(item.wholesalePrice), color: const Color(0xFF0EA5E9))),
+                Expanded(child: _PriceTile(icon: 'ic_card_sale', label: 'Wholesale', value: fmtAmt(item.wholesalePrice), color: const Color(0xFF0EA5E9))),
               ]),
             ),
           ),
@@ -1164,7 +1165,7 @@ class _InventoryCard extends StatelessWidget {
 }
 
 class _PriceTile extends StatelessWidget {
-  final IconData icon;
+  final String icon;
   final String label, value;
   final Color color;
 
@@ -1177,7 +1178,7 @@ class _PriceTile extends StatelessWidget {
       Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, size: 14, color: color),
+        child: AppIcon(icon, size: 14, color: color),
       ),
       const SizedBox(height: 5),
       Text(value,
@@ -1223,7 +1224,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade300),
+        AppIcon('sidebar_icons/branch_stock', size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text('No product found',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),

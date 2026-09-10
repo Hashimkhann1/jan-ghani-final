@@ -44,10 +44,10 @@ class AccountantBranchInventoryState {
   // full catalog has to stay in memory anyway for search + the summary
   // cards, so pagination here just windows the already-fetched data.
   List<AccountantBranchInventoryModel> get pageItems {
-    final (start, end) = BranchReportPagination.range(pagination.page);
-    if (start >= filtered.length) return const [];
-    return filtered.sublist(
-        start, end + 1 > filtered.length ? filtered.length : end + 1);
+    // Infinite scroll: shuru se current page tak (cumulative window).
+    final (_, end) = BranchReportPagination.range(pagination.page);
+    final upper = end + 1 > filtered.length ? filtered.length : end + 1;
+    return filtered.sublist(0, upper);
   }
 
   bool get hasNextPage =>
