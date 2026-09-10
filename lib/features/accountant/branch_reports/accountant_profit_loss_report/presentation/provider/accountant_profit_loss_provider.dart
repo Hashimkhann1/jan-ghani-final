@@ -203,7 +203,7 @@ class PnlReportNotifier extends StateNotifier<PnlReportState> {
         page:     page,
       );
       state = state.copyWith(
-        rows:          result.rows,
+        rows:          [...state.rows, ...result.rows],
         page:          page,
         totalCount:    result.totalCount,
         hasNextPage:   result.rows.length == PnlReportDatasource.pageSize,

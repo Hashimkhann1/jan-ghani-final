@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/sale_return_report_model.dart';
@@ -346,7 +347,7 @@ class _AccountantSaleReturnReportScreenState
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close_rounded),
+                      icon: const AppIcon('ic_clear', size: 20, color: AppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -429,7 +430,7 @@ class _AccountantSaleReturnReportScreenState
               children: [
                 IconButton(
                   onPressed: () => _showFilterSheet(context),
-                  icon: const Icon(Icons.filter_alt_outlined, color: AppColor.textSecondary),
+                  icon: const AppIcon('ic_filter', size: 22, color: AppColor.textSecondary),
                   tooltip: 'Filters',
                 ),
                 if (hasActiveFilter)
@@ -450,7 +451,7 @@ class _AccountantSaleReturnReportScreenState
           }),
           IconButton(
             onPressed: notifier.load,
-            icon:    const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
+            icon:    const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
           TextButton(
@@ -561,28 +562,28 @@ class _AccountantSaleReturnReportScreenState
                     _SummaryCard(
                       label: 'Returns',
                       value: '${summary.totalReturns}',
-                      icon:  Icons.assignment_return_outlined,
+                      icon:  'sidebar_icons/sale_return_report',
                       color: AppColor.error,
                     ),
                     const SizedBox(width: 10),
                     _SummaryCard(
                       label: 'Total Return',
                       value: _fmtAmt(summary.totalAmount),
-                      icon:  Icons.payments_outlined,
+                      icon:  'ic_cash_sale',
                       color: AppColor.warning,
                     ),
                     const SizedBox(width: 10),
                     _SummaryCard(
                       label: 'Qty',
                       value: _fmtQty(summary.totalQuantity),
-                      icon:  Icons.inventory_2_outlined,
+                      icon:  'ic_total_quantity',
                       color: const Color(0xFF6366F1),
                     ),
                     const SizedBox(width: 10),
                     _SummaryCard(
                       label: 'Discount',
                       value: _fmtAmt(summary.totalDiscount),
-                      icon:  Icons.discount_outlined,
+                      icon:  'ic_purchase_price',
                       color: AppColor.success,
                     ),
                   ],
@@ -708,7 +709,7 @@ class _WideReturnContent extends StatelessWidget {
                   child: IconButton(
                     onPressed: () => onSelect(null),
                     tooltip: 'Close',
-                    icon: const Icon(Icons.close_rounded,
+                    icon: const AppIcon('ic_clear',
                         size: 18, color: AppColor.textSecondary),
                   ),
                 ),
@@ -835,8 +836,8 @@ class _ReturnTable extends StatelessWidget {
                     SizedBox(
                       width: 44,
                       child: IconButton(
-                        icon: Icon(
-                          Icons.visibility_outlined,
+                        icon: AppIcon(
+                          'ic_view',
                           size:  18,
                           color: isSelected
                               ? AppColor.error
@@ -863,7 +864,7 @@ class _ReturnTable extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final String   label;
   final String   value;
-  final IconData icon;
+  final String   icon;
   final Color    color;
 
   const _SummaryCard({
@@ -892,7 +893,7 @@ class _SummaryCard extends StatelessWidget {
               color:        color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 13, color: color),
+            child: AppIcon(icon, size: 13, color: color),
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -977,7 +978,7 @@ class _ReturnRow extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: const Icon(Icons.assignment_return_outlined,
+                child: const AppIcon('sidebar_icons/sale_return_report',
                     size: 20, color: AppColor.error),
               ),
               const SizedBox(width: 12),
@@ -1006,7 +1007,7 @@ class _ReturnRow extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.access_time_rounded,
+                        const AppIcon('ic_calendar',
                             size: 10, color: AppColor.textHint),
                         const SizedBox(width: 3),
                         Text(
@@ -1039,7 +1040,7 @@ class _ReturnRow extends StatelessWidget {
               IconButton(
                 onPressed: onView,
                 tooltip:   'View return',
-                icon: const Icon(Icons.visibility_outlined,
+                icon: const AppIcon('ic_view',
                     size: 20, color: AppColor.error),
               ),
             ],
@@ -1102,7 +1103,7 @@ class _ReturnDetailPanel extends StatelessWidget {
             style: const TextStyle(fontSize: 13, color: AppColor.textSecondary)),
         const SizedBox(height: 4),
         Row(children: [
-          const Icon(Icons.access_time_rounded, size: 12, color: AppColor.textHint),
+          const AppIcon('ic_calendar', size: 12, color: AppColor.textHint),
           const SizedBox(width: 4),
           Text(
             '${dateFmt.format(r.returnDate)}, ${timeFmt.format(r.returnDate)}',
@@ -1112,7 +1113,7 @@ class _ReturnDetailPanel extends StatelessWidget {
         if (r.returnReason != null && r.returnReason!.isNotEmpty) ...[
           const SizedBox(height: 6),
           Row(children: [
-            const Icon(Icons.info_outline, size: 12, color: AppColor.textHint),
+            const AppIcon('ic_message', size: 12, color: AppColor.textHint),
             const SizedBox(width: 4),
             Expanded(
               child: Text(
@@ -1244,7 +1245,7 @@ class _PanelEmptyState extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border:       Border.all(color: const Color(0xFFEEEEEE)),
           ),
-          child: const Icon(Icons.assignment_return_outlined,
+          child: const AppIcon('sidebar_icons/sale_return_report',
               size: 26, color: AppColor.textHint),
         ),
         const SizedBox(height: 14),
@@ -1296,7 +1297,7 @@ class _DateField extends StatelessWidget {
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.calendar_today_outlined,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:    true,
           fillColor: AppColor.grey100,
@@ -1383,7 +1384,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.assignment_return_outlined,
+        AppIcon('sidebar_icons/sale_return_report',
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text(

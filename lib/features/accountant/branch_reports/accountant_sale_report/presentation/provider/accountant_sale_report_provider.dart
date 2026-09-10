@@ -152,7 +152,7 @@ class AccountantSaleReportNotifier
         page:        page,
       );
       state = state.copyWith(
-        invoices:   paged.invoices,
+        invoices:   [...state.invoices, ...paged.invoices],
         pagination: BranchReportPageState(
           page:          page,
           hasNextPage:   paged.hasNextPage,

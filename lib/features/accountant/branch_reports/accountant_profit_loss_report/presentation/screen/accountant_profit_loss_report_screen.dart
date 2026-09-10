@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_profit_loss_model.dart';
 import '../provider/accountant_profit_loss_provider.dart';
@@ -115,8 +116,8 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
         actions: [
           IconButton(
             onPressed: notifier.load,
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh',
+                size: 22, color: AppColor.textSecondary),
           ),
           TextButton(
             onPressed: () {
@@ -279,14 +280,14 @@ class _PnlBody extends StatelessWidget {
                     label: 'Sale Profit',
                     value: fmtAmt(summary.grossSaleProfit),
                     color: AppColor.success,
-                    icon:  Icons.trending_up_rounded,
+                    icon:  'ic_sale_price_trend',
                   ),
                   const SizedBox(width: 10),
                   _StatChip(
                     label: 'Return Loss',
                     value: fmtAmt(summary.grossReturnProfit),
                     color: AppColor.error,
-                    icon:  Icons.trending_down_rounded,
+                    icon:  'ic_cash_out',
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -320,7 +321,7 @@ class _PnlBody extends StatelessWidget {
                   child: Column(children: [
                     const _PanelHeader(
                         title: 'Daily Breakdown',
-                        icon:  Icons.calendar_view_day_rounded),
+                        icon:  'ic_calendar'),
                     Expanded(
                       child: _DailyTab(
                         daily:  summary.daily,
@@ -337,7 +338,7 @@ class _PnlBody extends StatelessWidget {
                   child: Column(children: [
                     const _PanelHeader(
                         title: 'Invoices',
-                        icon:  Icons.receipt_long_rounded),
+                        icon:  'ic_total_sale'),
                     Expanded(
                       child: _InvoicesTab(
                         state:    state,
@@ -370,14 +371,14 @@ class _PnlBody extends StatelessWidget {
               label: 'Sale Profit',
               value: fmtAmt(summary.grossSaleProfit),
               color: AppColor.success,
-              icon:  Icons.trending_up_rounded,
+              icon:  'ic_sale_price_trend',
             ),
             const SizedBox(width: 8),
             _StatChip(
               label: 'Return Loss',
               value: fmtAmt(summary.grossReturnProfit),
               color: AppColor.error,
-              icon:  Icons.trending_down_rounded,
+              icon:  'ic_cash_out',
             ),
           ]),
           const SizedBox(height: 10),
@@ -438,8 +439,8 @@ class _PnlBody extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════
 
 class _PanelHeader extends StatelessWidget {
-  final String   title;
-  final IconData icon;
+  final String title;
+  final String icon;
   const _PanelHeader({required this.title, required this.icon});
 
   @override
@@ -448,7 +449,7 @@ class _PanelHeader extends StatelessWidget {
     color:   Colors.white,
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     child: Row(children: [
-      Icon(icon, size: 16, color: AppColor.primary),
+      AppIcon(icon, size: 16, color: AppColor.primary),
       const SizedBox(width: 8),
       Text(title,
           style: const TextStyle(
@@ -505,10 +506,8 @@ class _NetProfitBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Icon(
-                  isProfit
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
+                AppIcon(
+                  isProfit ? 'ic_cash_in' : 'ic_cash_out',
                   size: 14, color: color,
                 ),
                 const SizedBox(width: 4),
@@ -629,7 +628,7 @@ class _DayCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                const Icon(Icons.add_circle_outline,
+                const AppIcon('ic_cash_in',
                     size: 11, color: AppColor.success),
                 const SizedBox(width: 4),
                 Flexible(
@@ -645,7 +644,7 @@ class _DayCard extends StatelessWidget {
               if (day.returnProfit > 0) ...[
                 const SizedBox(height: 2),
                 Row(children: [
-                  const Icon(Icons.remove_circle_outline,
+                  const AppIcon('ic_cash_out',
                       size: 11, color: AppColor.error),
                   const SizedBox(width: 4),
                   Flexible(
@@ -908,10 +907,10 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
                   color:        accentColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
+                child: AppIcon(
                   isReturn
-                      ? Icons.assignment_return_outlined
-                      : Icons.receipt_outlined,
+                      ? 'sidebar_icons/sale_return_report'
+                      : 'ic_total_sale',
                   size: 18, color: accentColor,
                 ),
               ),
@@ -1113,10 +1112,10 @@ class _InvoicePnlCardState extends State<_InvoicePnlCard> {
 // ═══════════════════════════════════════════════════════════
 
 class _StatChip extends StatelessWidget {
-  final String   label;
-  final String   value;
-  final Color    color;
-  final IconData icon;
+  final String label;
+  final String value;
+  final Color  color;
+  final String icon;
 
   const _StatChip({
     required this.label,
@@ -1141,7 +1140,7 @@ class _StatChip extends StatelessWidget {
             color:        color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(7),
           ),
-          child: Icon(icon, size: 14, color: color),
+          child: AppIcon(icon, size: 14, color: color),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -1217,7 +1216,7 @@ class _DateField extends StatelessWidget {
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.calendar_today_outlined,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:    true,
           fillColor: AppColor.grey100,
@@ -1261,7 +1260,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.analytics_outlined,
+      AppIcon('ic_sale_price_trend',
           size: 64, color: Colors.grey.shade300),
       const SizedBox(height: 16),
       Text('Koi data nahi mila',

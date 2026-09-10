@@ -153,7 +153,7 @@ class AccountantSaleReturnNotifier
         page:       page,
       );
       state = state.copyWith(
-        returns:    paged.returns,
+        returns:    [...state.returns, ...paged.returns],
         pagination: BranchReportPageState(
           page:          page,
           hasNextPage:   paged.hasNextPage,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_sale_report_model.dart';
@@ -320,7 +321,7 @@ class _AccountantSaleReportScreenState
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close_rounded),
+                      icon: const AppIcon('ic_clear', size: 20, color: AppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -442,8 +443,8 @@ class _AccountantSaleReportScreenState
                     customerItems: customerItems,
                     paymentItems:  paymentItems,
                   ),
-                  icon: const Icon(Icons.filter_list_rounded,
-                      color: AppColor.textSecondary),
+                  icon: const AppIcon('ic_filter',
+                      size: 22, color: AppColor.textSecondary),
                   tooltip: 'Filters',
                 ),
                 if (activeFilterCount > 0)
@@ -474,8 +475,8 @@ class _AccountantSaleReportScreenState
           }),
           IconButton(
             onPressed: notifier.load,
-            icon:    const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon:    const AppIcon('ic_refresh',
+                size: 22, color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
           TextButton(
@@ -575,28 +576,28 @@ class _AccountantSaleReportScreenState
                     _SummaryCard(
                       label: 'Invoices',
                       value: '${summary.totalInvoices}',
-                      icon:  Icons.receipt_outlined,
+                      icon:  'sidebar_icons/sale_invoice_report',
                       color: AppColor.primary,
                     ),
                     const SizedBox(width: 10),
                     _SummaryCard(
                       label: 'Total Sale',
                       value: _fmtAmt(summary.totalSale),
-                      icon:  Icons.payments_outlined,
+                      icon:  'ic_cash_sale',
                       color: AppColor.success,
                     ),
                     const SizedBox(width: 10),
                     _SummaryCard(
                       label: 'Qty',
                       value: _fmtQty(summary.totalQuantity),
-                      icon:  Icons.inventory_2_outlined,
+                      icon:  'ic_total_quantity',
                       color: AppColor.warning,
                     ),
                     const SizedBox(width: 10),
                     _SummaryCard(
                       label: 'Discount',
                       value: _fmtAmt(summary.totalDiscount),
-                      icon:  Icons.discount_outlined,
+                      icon:  'ic_purchase_price',
                       color: const Color(0xFF6366F1),
                     ),
                   ],
@@ -735,7 +736,7 @@ class _WideInvoiceContent extends StatelessWidget {
                   child: IconButton(
                     onPressed: () => onSelect(null),
                     tooltip: 'Close',
-                    icon: const Icon(Icons.close_rounded,
+                    icon: const AppIcon('ic_clear',
                         size: 18, color: AppColor.textSecondary),
                   ),
                 ),
@@ -860,8 +861,8 @@ class _InvoiceTable extends StatelessWidget {
                     SizedBox(
                       width: 44,
                       child: IconButton(
-                        icon: Icon(
-                          Icons.visibility_outlined,
+                        icon: AppIcon(
+                          'ic_view',
                           size:  18,
                           color: isSelected
                               ? AppColor.primary
@@ -888,7 +889,7 @@ class _InvoiceTable extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final String   label;
   final String   value;
-  final IconData icon;
+  final String   icon;
   final Color    color;
 
   const _SummaryCard({
@@ -917,7 +918,7 @@ class _SummaryCard extends StatelessWidget {
               color:        color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 13, color: color),
+            child: AppIcon(icon, size: 13, color: color),
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -995,7 +996,7 @@ class _InvoiceRow extends StatelessWidget {
                   color: AppColor.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: const Icon(Icons.receipt_outlined,
+                child: const AppIcon('sidebar_icons/sale_invoice_report',
                     size: 20, color: AppColor.primary),
               ),
               const SizedBox(width: 12),
@@ -1024,7 +1025,7 @@ class _InvoiceRow extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.access_time_rounded,
+                        const AppIcon('ic_calendar',
                             size: 10, color: AppColor.textHint),
                         const SizedBox(width: 3),
                         Text(
@@ -1057,7 +1058,7 @@ class _InvoiceRow extends StatelessWidget {
               IconButton(
                 onPressed: onView,
                 tooltip:   'View invoice',
-                icon: const Icon(Icons.visibility_outlined,
+                icon: const AppIcon('ic_view',
                     size: 20, color: AppColor.primary),
               ),
             ],
@@ -1117,7 +1118,7 @@ class _InvoiceDetailPanel extends StatelessWidget {
             style: const TextStyle(fontSize: 13, color: AppColor.textSecondary)),
         const SizedBox(height: 4),
         Row(children: [
-          const Icon(Icons.access_time_rounded, size: 12, color: AppColor.textHint),
+          const AppIcon('ic_calendar', size: 12, color: AppColor.textHint),
           const SizedBox(width: 4),
           Text(
             '${dateFmt.format(inv.invoiceDate)}, ${timeFmt.format(inv.invoiceDate)}',
@@ -1279,7 +1280,7 @@ class _PanelEmptyState extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border:       Border.all(color: const Color(0xFFEEEEEE)),
           ),
-          child: const Icon(Icons.receipt_long_outlined,
+          child: const AppIcon('sidebar_icons/sale_invoice_report',
               size: 26, color: AppColor.textHint),
         ),
         const SizedBox(height: 14),
@@ -1365,7 +1366,7 @@ class _DateField extends StatelessWidget {
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.calendar_today_outlined,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:     true,
           fillColor:  AppColor.grey100,
@@ -1422,7 +1423,7 @@ class _TimeField extends StatelessWidget {
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.access_time_rounded,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:     true,
           fillColor:  AppColor.grey100,
@@ -1503,7 +1504,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.receipt_long_outlined,
+        AppIcon('sidebar_icons/sale_invoice_report',
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text(
