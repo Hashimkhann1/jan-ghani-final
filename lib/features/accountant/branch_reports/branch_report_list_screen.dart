@@ -4,6 +4,7 @@ import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_cu
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/screen/accountant_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_discount_wise_sale_report/presentation/screen/accountant_discount_wise_sale_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/pareto_report/presentation/screen/pareto_report_screen.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import '../../../../../../core/color/app_color.dart';
 import 'accountant_branch_transaction/presentation/screen/accountant_branch_transaction_report_screen.dart';
 import 'accountant_category_wise_sale_report/presentaion/screen/category_sale_report_screen.dart';
@@ -19,109 +20,120 @@ import 'branch_stock_inventory_logs/presentation/screen/branch_stock_inventory_l
 import 'customer_logs/presentation/screen/customer_logs_screen.dart';
 import 'inventory_counting/presentation/screen/inventory_counting_report_screen.dart';
 
-class BranchReportListScreen extends StatelessWidget {
+/// Web/desktop par sidebar dikhane ke liye minimum width.
+const double _kSidebarBreakpoint = 900;
+
+class BranchReportListScreen extends StatefulWidget {
   const BranchReportListScreen({super.key, required this.branchId});
   final String branchId;
 
+  @override
+  State<BranchReportListScreen> createState() => _BranchReportListScreenState();
+}
+
+class _BranchReportListScreenState extends State<BranchReportListScreen> {
+  /// Desktop sidebar par abhi kaunsi report khuli hai.
+  int _selected = 0;
+
   static const List<_ReportItem> _reports = [
     _ReportItem(
-      icon:     Icons.dashboard_rounded,
+      iconAsset: 'sidebar_icons/dashboard',
       label:    'Dashboard',
       subtitle: 'Overview of branch activities',
       color:    AppColor.primary,
     ),
     _ReportItem(
-      icon:     Icons.receipt_long_rounded,
+      iconAsset: 'sidebar_icons/sale_invoice_report',
       label:    'Sale Invoice Report',
       subtitle: 'All sale invoices record',
       color:    Color(0xFF10B981),
     ),
     _ReportItem(
-      icon:     Icons.assignment_return_rounded,
+      iconAsset: 'sidebar_icons/sale_return_report',
       label:    'Sale Return Report',
       subtitle: 'Details of returned items',
       color:    Color(0xFFF59E0B),
     ),
     _ReportItem(
-      icon:     Icons.inventory_2_rounded,
+      iconAsset: 'sidebar_icons/branch_stock',
       label:    'Inventory Report',
       subtitle: 'Stock and items list',
       color:    Color(0xFF8B5CF6),
     ),
     _ReportItem(
-      icon:     Icons.point_of_sale_rounded,
+      iconAsset: 'sidebar_icons/cash_counter',
       label:    'Cash Counter Report',
       subtitle: 'Cash transactions record',
       color:    Color(0xFF06B6D4),
     ),
     _ReportItem(
-      icon:     Icons.summarize_rounded,
+      iconAsset: 'ic_total_products',
       label:    'Branch Inventory Counting Report',
       subtitle: 'Complete Branch Inventory Counting Report',
       color:    Color(0xFFEC4899),
     ),
     _ReportItem(
-      icon:     Icons.swap_horiz_rounded,
+      iconAsset: 'sidebar_icons/branch_transactions',
       label:    'Branch Transaction Report',
       subtitle: 'Details of all transactions',
       color:    Color(0xFFF97316),
     ),
     _ReportItem(
-      icon:     Icons.people_alt_rounded,
+      iconAsset: 'sidebar_icons/customer',
       label:    'Customer Report',
       subtitle: 'Complete customers list',
       color:    Color(0xFF14B8A6),
     ),
     _ReportItem(
-      icon:     Icons.menu_book_rounded,
+      iconAsset: 'sidebar_icons/customer_ledger',
       label:    'Customer Ledger Report',
       subtitle: 'Customer account details',
       color:    Color(0xFF6366F1),
     ),
     _ReportItem(
-      icon:     Icons.trending_up_rounded,
+      iconAsset: 'ic_sale_price_trend',
       label:    'Profit and Loss Report',
       subtitle: 'Sale profit and loss report',
       color:    Color(0xFF059669),
     ),
     _ReportItem(
-      icon:     Icons.category_rounded,
+      iconAsset: 'ic_top_products',
       label:    'Category Wise Sale Report',
       subtitle: 'Track sales by category',
       color:    Color(0xFFD97706),
     ),
     _ReportItem(
-      icon:     Icons.assignment_return_rounded,
+      iconAsset: 'ic_net_amount',
       label:    'Discount Wise Sale Report',
       subtitle: 'Details of Discount Wise items',
       color:    Color(0xFFF59E0B),
     ),
     _ReportItem(
-      icon:     Icons.inventory_2_rounded,
+      iconAsset: 'sidebar_icons/stock_damage',
       label:    'Inventory Stock Damage Report',
       subtitle: 'Show All damage Stock',
       color:    Color(0xFF8B5CF6),
     ),
     _ReportItem(
-      icon:     Icons.inventory_2_rounded,
+      iconAsset: 'ic_top_customers',
       label:    'Pareto Principle Report',
-      subtitle: '',
+      subtitle: 'Top 20% products, customers & balance',
       color:    Color(0xFF8B5CF6),
     ),
     _ReportItem(
-      icon:     Icons.difference_rounded,
+      iconAsset: 'sidebar_icons/difference',
       label:    'Cash Difference Report',
       subtitle: 'Cash in/out transaction record',
       color:    Color(0xFF0EA5E9),
     ),
     _ReportItem(
-      icon:     Icons.history_rounded,
+      iconAsset: 'sidebar_icons/customer_account',
       label:    'Customer Logs',
       subtitle: 'Customer balance change history',
       color:    Color(0xFF7C3AED),
     ),
     _ReportItem(
-      icon:     Icons.inventory_2_outlined,
+      iconAsset: 'sidebar_icons/branch_stock',
       label:    'Stock Inventory Logs',
       subtitle: 'Product stock and price change history',
       color:    Color(0xFF0891B2),
@@ -129,7 +141,40 @@ class BranchReportListScreen extends StatelessWidget {
   ];
 
   bool _isDesktop(BuildContext context) =>
-      MediaQuery.of(context).size.width >= 800;
+      MediaQuery.of(context).size.width >= _kSidebarBreakpoint;
+
+  /// Index -> uski report screen (mobile push aur desktop pane dono use karte hain).
+  Widget _screenForIndex(int index, String branchId) {
+    switch (index) {
+      case 0:  return AccountantBranchDashboardScreen(branchId: branchId);
+      case 1:  return AccountantSaleReportScreen(branchId: branchId);
+      case 2:  return AccountantSaleReturnReportScreen(branchId: branchId);
+      case 3:  return AccountantBranchInventoryReportScreen(branchId: branchId);
+      case 4:  return BranchCashCounterReportScreen(branchId: branchId);
+      case 5:  return InventoryCountingReportScreen(storeId: branchId);
+      case 6:  return AccountantBranchTransactionScreen(branchId: branchId);
+      case 7:  return AccountantCustomerReportScreen(branchId: branchId);
+      case 8:  return AccountantCustomerLedgerScreen(branchId: branchId);
+      case 9:  return PnlReportScreen(branchId: branchId);
+      case 10: return CategorySaleReportScreen(branchId: branchId);
+      case 11: return DiscountWiseSaleReportScreen(branchId: branchId);
+      case 12: return AccountantBranchStockDamageReportScreen(branchId: branchId);
+      case 13: return ParetoReportScreen(branchId: branchId);
+      case 14: return BranchCashDifferenceScreen(branchId: branchId);
+      case 15: return CustomerLogsScreen(branchId: branchId);
+      case 16: return BranchStockInventoryLogsScreen(branchId: branchId);
+      default: return const SizedBox.shrink();
+    }
+  }
+
+  void _openMobile(int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _screenForIndex(index, widget.branchId),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,223 +182,205 @@ class BranchReportListScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: desktop ? _DesktopLayout(
-        reports:  _reports,
-        branchId: branchId,
-        onTap:    (i) => _onTap(context, i),
-      ) :
-      _MobileLayout(
-        reports:  _reports,
-        branchId: branchId,
-        onTap:    (i) => _onTap(context, i),
-      ),
+      body: desktop
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ReportSidebar(
+                  reports:  _reports,
+                  selected: _selected,
+                  onSelect: (i) => setState(() => _selected = i),
+                  onBack:   () => Navigator.pop(context),
+                ),
+                const VerticalDivider(width: 1, color: Color(0xFFE5E7EB)),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (ctx, constraints) {
+                      final mq = MediaQuery.of(ctx);
+                      // Report screen ko pane ki width "screen width" ki tarah
+                      // dikhao taake wo apna (desktop/mobile) layout theek chune.
+                      return MediaQuery(
+                        data: mq.copyWith(
+                          size: Size(constraints.maxWidth, mq.size.height),
+                        ),
+                        child: KeyedSubtree(
+                          key: ValueKey<int>(_selected),
+                          child: _screenForIndex(_selected, widget.branchId),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            )
+          : _MobileLayout(
+              reports: _reports,
+              onTap:   _openMobile,
+            ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AIBusinessChatbotScreen()),),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AIBusinessChatbotScreen()),
+        ),
         backgroundColor: AppColor.primary,
         child: const Icon(Icons.support_agent, color: Colors.white),
       ),
     );
   }
+}
 
-  void _onTap(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AccountantBranchDashboardScreen(branchId: branchId),
-        ));
-        break;
-      case 1:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AccountantSaleReportScreen(branchId: branchId),
-        ));
-        break;
-      case 2:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AccountantSaleReturnReportScreen(branchId: branchId),
-        ));
-        break;
-      case 3:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AccountantBranchInventoryReportScreen(branchId: branchId),
-        ));
-        break;
-      case 4:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => BranchCashCounterReportScreen(branchId: branchId),
-        ));
-        break;
-      case 5:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => InventoryCountingReportScreen(
-            storeId: branchId,
+// ── Desktop Sidebar ───────────────────────────────────────────────────────────
+class _ReportSidebar extends StatelessWidget {
+  final List<_ReportItem> reports;
+  final int selected;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onBack;
+
+  const _ReportSidebar({
+    required this.reports,
+    required this.selected,
+    required this.onSelect,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 300,
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ───────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.arrow_back_rounded,
+                      color: Color(0xFF1A1D23), size: 20),
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFFF5F6FA),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Branch Reports',
+                        style: TextStyle(
+                          fontSize:   17,
+                          fontWeight: FontWeight.w800,
+                          color:      Color(0xFF1A1D23),
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Select a report',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColor.textHint),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ));
-        break;
-      case 6:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AccountantBranchTransactionScreen(branchId: branchId),
-        ));
-        break;
-      case 7:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AccountantCustomerReportScreen(branchId: branchId),
-        ));
-        break;
-      case 8:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AccountantCustomerLedgerScreen(branchId: branchId),
-        ));
-        break;
-      case 9:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => PnlReportScreen(branchId: branchId),
-        ));
-        break;
-      case 10:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => CategorySaleReportScreen(branchId: branchId),
-        ));
-        break;
-      case 11:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => DiscountWiseSaleReportScreen(branchId: branchId),
-        ));
-        break;
-      case 12:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AccountantBranchStockDamageReportScreen(branchId: branchId),
-        ));
-      case 13:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => ParetoReportScreen(branchId: branchId),
-        ));
-      case 14:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => BranchCashDifferenceScreen(branchId: branchId),
-        ));
-        break;
-      case 15:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => CustomerLogsScreen(branchId: branchId),
-        ));
-        break;
-      case 16:
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => BranchStockInventoryLogsScreen(branchId: branchId),
-        ));
-        break;
-    }
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+          // ── Report list ──────────────────────────────────────
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: reports.length,
+              itemBuilder: (_, i) => _SidebarItem(
+                item:     reports[i],
+                selected: i == selected,
+                onTap:    () => onSelect(i),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-// ── Desktop Layout ────────────────────────────────────────────────────────────
-class _DesktopLayout extends StatelessWidget {
-  final List<_ReportItem> reports;
-  final String branchId;
-  final ValueChanged<int> onTap;
+class _SidebarItem extends StatelessWidget {
+  final _ReportItem  item;
+  final bool         selected;
+  final VoidCallback onTap;
 
-  const _DesktopLayout({
-    required this.reports,
-    required this.branchId,
+  const _SidebarItem({
+    required this.item,
+    required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Top bar ──────────────────────────────────────────
-        Container(
-          color:   Colors.white,
-          padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Back button
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_rounded,
-                    color: Color(0xFF1A1D23)),
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFFF5F6FA),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text(
-                    'Branch Reports',
-                    style: TextStyle(
-                      fontSize:   22,
-                      fontWeight: FontWeight.w700,
-                      color:      Color(0xFF1A1D23),
-                    ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Click on any report to view details',
-                    style: TextStyle(
-                        fontSize: 13, color: AppColor.textHint),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              // Reports count badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColor.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.bar_chart_rounded,
-                        size: 16, color: AppColor.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${reports.length} Reports',
-                      style: const TextStyle(
-                        fontSize:   13,
-                        fontWeight: FontWeight.w600,
-                        color:      AppColor.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
-        // ── Grid ────────────────────────────────────────────
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 360,
-                mainAxisExtent:     110,
-                crossAxisSpacing:   16,
-                mainAxisSpacing:    16,
-              ),
-              itemCount: reports.length,
-              itemBuilder: (_, i) => _ReportGridCard(
-                item:  reports[i],
-                onTap: () => onTap(i),
-              ),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? item.color.withOpacity(0.10) : Colors.transparent,
+          border: Border(
+            left: BorderSide(
+              color: selected ? item.color : Colors.transparent,
+              width: 3,
             ),
           ),
         ),
-      ],
+        child: Row(
+          children: [
+            Container(
+              width:  36,
+              height: 36,
+              decoration: BoxDecoration(
+                color:        item.color.withOpacity(selected ? 0.16 : 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: AppIcon(item.iconAsset, color: item.color, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.label,
+                    style: TextStyle(
+                      fontSize:   13,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      color: selected ? item.color : const Color(0xFF1A1D23),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (item.subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      item.subtitle,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColor.textHint),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -361,12 +388,10 @@ class _DesktopLayout extends StatelessWidget {
 // ── Mobile Layout ─────────────────────────────────────────────────────────────
 class _MobileLayout extends StatelessWidget {
   final List<_ReportItem> reports;
-  final String branchId;
   final ValueChanged<int> onTap;
 
   const _MobileLayout({
     required this.reports,
-    required this.branchId,
     required this.onTap,
   });
 
@@ -398,76 +423,6 @@ class _MobileLayout extends StatelessWidget {
         itemBuilder: (_, i) => _ReportListCard(
           item:  reports[i],
           onTap: () => onTap(i),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Report Grid Card (Desktop) ────────────────────────────────────────────────
-class _ReportGridCard extends StatelessWidget {
-  final _ReportItem  item;
-  final VoidCallback onTap;
-
-  const _ReportGridCard({
-    required this.item,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap:        onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color:        Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border:       Border.all(color: const Color(0xFFEEEEEE)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width:  48,
-              height: 48,
-              decoration: BoxDecoration(
-                color:        item.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(item.icon, color: item.color, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment:  MainAxisAlignment.center,
-                children: [
-                  Text(
-                    item.label,
-                    style: const TextStyle(
-                      fontSize:   14,
-                      fontWeight: FontWeight.w700,
-                      color:      Color(0xFF1A1D23),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.subtitle,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColor.textHint),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.arrow_forward_rounded,
-                size: 16, color: item.color),
-          ],
         ),
       ),
     );
@@ -512,7 +467,7 @@ class _ReportListCard extends StatelessWidget {
                   color:        item.color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(item.icon, color: item.color, size: 22),
+                child: AppIcon(item.iconAsset, color: item.color, size: 22),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -556,13 +511,13 @@ class _ReportListCard extends StatelessWidget {
 
 // ── Data Class ────────────────────────────────────────────────────────────────
 class _ReportItem {
-  final IconData icon;
-  final String   label;
-  final String   subtitle;
-  final Color    color;
+  final String iconAsset;
+  final String label;
+  final String subtitle;
+  final Color  color;
 
   const _ReportItem({
-    required this.icon,
+    required this.iconAsset,
     required this.label,
     required this.subtitle,
     required this.color,
