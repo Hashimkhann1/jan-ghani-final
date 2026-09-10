@@ -38,11 +38,10 @@ class AccountantBranchStockDamageState {
   // pagination here just slices the already-filtered list for display —
   // there's no server round-trip per page.
   List<AccountantBranchStockDamageModel> get pagedItems {
-    final start = pagination.page * BranchReportPagination.pageSize;
-    if (start >= filtered.length) return const [];
-    final end = (start + BranchReportPagination.pageSize)
+    // Infinite scroll: page 0 se current page tak sab rows (cumulative window).
+    final end = ((pagination.page + 1) * BranchReportPagination.pageSize)
         .clamp(0, filtered.length);
-    return filtered.sublist(start, end);
+    return filtered.sublist(0, end);
   }
 
   AccountantBranchStockDamageState copyWith({

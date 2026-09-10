@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/accountant_dashboard_model.dart';
 import '../provider/accountant_dashboard_provider.dart';
 
@@ -277,7 +278,7 @@ class _DesktopScaffold extends StatelessWidget {
                 width: 120,
                 child: OutlinedButton.icon(
                   onPressed: notifier.load,
-                  icon:  const Icon(Icons.refresh_rounded, size: 18),
+                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
                   label: const Text('Refresh'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.primary,
@@ -524,14 +525,14 @@ class _MobileScaffold extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () => _showFilterSheet(context),
-            icon: const Icon(Icons.filter_list_rounded,
-                color: AppColor.textSecondary),
+            icon: const AppIcon('ic_filter',
+                size: 22, color: AppColor.textSecondary),
             tooltip: 'Filters',
           ),
           IconButton(
             onPressed: notifier.load,
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh',
+                size: 22, color: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
         ],
@@ -719,7 +720,7 @@ class _DateField extends StatelessWidget {
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.calendar_today_outlined,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:     true,
           fillColor:  AppColor.grey100,
@@ -776,7 +777,7 @@ class _TimeField extends StatelessWidget {
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.access_time_rounded,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:     true,
           fillColor:  AppColor.grey100,
@@ -807,7 +808,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.dashboard_outlined,
+      AppIcon('sidebar_icons/dashboard',
           size: 64, color: Colors.grey.shade300),
       const SizedBox(height: 16),
       Text(

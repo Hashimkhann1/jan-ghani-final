@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/branch_stock_inventory_logs_model.dart';
 import '../provider/branch_stock_inventory_logs_provider.dart';
@@ -250,7 +251,7 @@ class _Layout extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Icon(Icons.refresh_rounded, size: 18),
+                  child: const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
                 ),
               ),
             ],
@@ -271,7 +272,7 @@ class _Layout extends StatelessWidget {
                 child: _DateField(
                   controller: startCtrl,
                   hint:       'Start Date',
-                  icon:       Icons.calendar_today_rounded,
+                  icon:       'ic_calendar',
                   onTap:      onPickStart,
                   onClear:    startCtrl.text.isNotEmpty
                       ? onClearStart
@@ -283,7 +284,7 @@ class _Layout extends StatelessWidget {
                 child: _DateField(
                   controller: endCtrl,
                   hint:       'End Date',
-                  icon:       Icons.event_rounded,
+                  icon:       'ic_calendar',
                   onTap:      onPickEnd,
                   onClear:    endCtrl.text.isNotEmpty
                       ? onClearEnd
@@ -300,8 +301,8 @@ class _Layout extends StatelessWidget {
                       color:        AppColor.error.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                        Icons.filter_alt_off_rounded,
+                    child: const AppIcon(
+                        'ic_filter',
                         size:  16,
                         color: AppColor.error),
                   ),
@@ -318,7 +319,7 @@ class _Layout extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.history_rounded,
+                    const AppIcon('ic_calendar',
                         size: 14, color: AppColor.primary),
                     const SizedBox(width: 8),
                     Text('${state.totalCount} changes',
@@ -418,7 +419,7 @@ class _LogCardState extends State<_LogCard> {
                       color: AppColor.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(11),
                     ),
-                    child: const Icon(Icons.inventory_2_outlined,
+                    child: const AppIcon('ic_total_products',
                         size: 20, color: AppColor.primary),
                   ),
                   const SizedBox(width: 12),
@@ -457,7 +458,7 @@ class _LogCardState extends State<_LogCard> {
                         ]),
                         const SizedBox(height: 4),
                         Row(children: [
-                          const Icon(Icons.access_time_rounded,
+                          const AppIcon('ic_calendar',
                               size: 10, color: AppColor.textHint),
                           const SizedBox(width: 3),
                           Text(
@@ -558,7 +559,7 @@ class _ChangeRow extends StatelessWidget {
 class _DateField extends StatelessWidget {
   final TextEditingController controller;
   final String                hint;
-  final IconData              icon;
+  final String                icon;
   final VoidCallback          onTap;
   final VoidCallback?         onClear;
 
@@ -582,11 +583,11 @@ class _DateField extends StatelessWidget {
         decoration: InputDecoration(
           hintText:  hint,
           hintStyle: const TextStyle(fontSize: 12, color: AppColor.textHint),
-          prefixIcon: Icon(icon, size: 16, color: AppColor.primary),
+          prefixIcon: AppIcon(icon, size: 16, color: AppColor.primary),
           suffixIcon: onClear != null
               ? GestureDetector(
             onTap: onClear,
-            child: const Icon(Icons.close_rounded,
+            child: const AppIcon('ic_clear',
                 size: 14, color: AppColor.textHint),
           )
               : null,
@@ -622,7 +623,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.inventory_2_outlined,
+        AppIcon('ic_total_products',
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text('No stock changes found',

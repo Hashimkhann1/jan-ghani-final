@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/inventory_counting_report_model.dart';
 import '../../data/service/inventory_counting_pdf_service.dart';
 import '../provider/inventory_counting_provider.dart';
@@ -145,7 +146,7 @@ class _InventoryCountingReportScreenState
               onPressed: (!state.isLoading && state.errorMessage == null && visible.isNotEmpty)
                   ? () => _exportPdf(context, visible, state)
                   : null,
-              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+              icon: const AppIcon('ic_print', size: 18, color: Colors.white),
               label: const Text('Export'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.primary,
@@ -204,7 +205,7 @@ class _InventoryCountingReportScreenState
         child: Row(
           children: [
             _StatCard(
-              icon: Icons.inventory_2_outlined,
+              icon: 'ic_total_products',
               iconColor: const Color(0xFF4A90D9),
               label: 'Total',
               value: '${visible.length}',
@@ -212,7 +213,7 @@ class _InventoryCountingReportScreenState
             ),
             const SizedBox(width: 10),
             _StatCard(
-              icon: Icons.trending_up,
+              icon: 'ic_cash_in',
               iconColor: Colors.green,
               label: 'Surplus',
               value: '$surplus',
@@ -220,7 +221,7 @@ class _InventoryCountingReportScreenState
             ),
             const SizedBox(width: 10),
             _StatCard(
-              icon: Icons.trending_down,
+              icon: 'ic_cash_out',
               iconColor: Colors.red,
               label: 'Shortage',
               value: '$shortage',
@@ -228,7 +229,7 @@ class _InventoryCountingReportScreenState
             ),
             const SizedBox(width: 10),
             _StatCard(
-              icon: Icons.check_circle_outline,
+              icon: 'ic_active_check',
               iconColor: Colors.grey,
               label: 'Matched',
               value: '$matched',
@@ -254,10 +255,10 @@ class _InventoryCountingReportScreenState
           hintText: 'Product name or barcode search...',
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           prefixIcon:
-          Icon(Icons.search, color: Colors.grey.shade400, size: 20),
+          AppIcon('ic_search', color: Colors.grey.shade400, size: 20),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-            icon: const Icon(Icons.clear, size: 18),
+            icon: AppIcon('ic_clear', size: 18, color: Colors.grey.shade500),
             onPressed: () {
               _searchController.clear();
               notifier.search('');
@@ -309,7 +310,7 @@ class _InventoryCountingReportScreenState
               decoration: InputDecoration(
                 hintText: 'Start date',
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                prefixIcon: Icon(Icons.calendar_today_outlined,
+                prefixIcon: AppIcon('ic_calendar',
                     size: 16, color: Colors.grey.shade500),
                 filled: true,
                 fillColor: const Color(0xFFF8F9FA),
@@ -343,7 +344,7 @@ class _InventoryCountingReportScreenState
               decoration: InputDecoration(
                 hintText: 'End date',
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                prefixIcon: Icon(Icons.calendar_today_outlined,
+                prefixIcon: AppIcon('ic_calendar',
                     size: 16, color: Colors.grey.shade500),
                 filled: true,
                 fillColor: const Color(0xFFF8F9FA),
@@ -369,7 +370,7 @@ class _InventoryCountingReportScreenState
             const SizedBox(width: 8),
             IconButton(
               onPressed: () => _clearDates(notifier),
-              icon: const Icon(Icons.filter_alt_off_outlined, size: 18, color: Colors.red),
+              icon: const AppIcon('ic_filter', size: 18, color: Colors.red),
               tooltip: 'Clear date filter',
               style: IconButton.styleFrom(
                 backgroundColor: Colors.red.withOpacity(0.08),
@@ -400,7 +401,7 @@ class _InventoryCountingReportScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const AppIcon('ic_rejected', size: 48, color: Colors.red),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -410,7 +411,7 @@ class _InventoryCountingReportScreenState
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () => notifier.loadReport(),
-              icon: const Icon(Icons.refresh),
+              icon: const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
               label: const Text('Retry'),
             ),
           ],
@@ -423,7 +424,7 @@ class _InventoryCountingReportScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inventory_2_outlined,
+            AppIcon('ic_total_products',
                 size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
@@ -521,7 +522,7 @@ class _InventoryCountingReportScreenState
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
-  final IconData icon;
+  final String icon;
   final Color iconColor;
   final String label;
   final String value;
@@ -547,7 +548,7 @@ class _StatCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: iconColor),
+          AppIcon(icon, size: 18, color: iconColor),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -838,7 +839,7 @@ class _MobileCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.tag_rounded, size: 12, color: Colors.grey.shade400),
+              AppIcon('ic_barcode', size: 12, color: Colors.grey.shade400),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(

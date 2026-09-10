@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/pareto_report_model.dart';
 import '../provider/pareto_report_provider.dart';
 
@@ -44,7 +45,7 @@ class ParetoReportScreen extends ConsumerWidget {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
+              icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
               tooltip: 'Refresh',
               onPressed: notifier.load,
             ),
@@ -111,16 +112,16 @@ class ParetoReportScreen extends ConsumerWidget {
 // underline indicator.
 // ═══════════════════════════════════════════════════════════
 class _TabSpec {
-  final IconData icon;
-  final String   label;
-  final Color    color;
+  final String icon;
+  final String label;
+  final Color  color;
   const _TabSpec(this.icon, this.label, this.color);
 }
 
 const _paretoTabs = [
-  _TabSpec(Icons.inventory_2_outlined, 'Products', AppColor.primary),
-  _TabSpec(Icons.people_outline_rounded, 'Customers', AppColor.success),
-  _TabSpec(Icons.account_balance_wallet_outlined, 'Balance', AppColor.error),
+  _TabSpec('ic_total_products', 'Products', AppColor.primary),
+  _TabSpec('ic_top_customers', 'Customers', AppColor.success),
+  _TabSpec('ic_net_amount', 'Balance', AppColor.error),
 ];
 
 class _ParetoTabBar extends StatefulWidget implements PreferredSizeWidget {
@@ -196,7 +197,7 @@ class _ParetoTabBarState extends State<_ParetoTabBar> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(spec.icon,
+                      AppIcon(spec.icon,
                           size:  15,
                           color: selected ? Colors.white : AppColor.textSecondary),
                       const SizedBox(width: 5),
@@ -302,14 +303,14 @@ class _DateFilterBar extends StatelessWidget {
           _DatePickerField(
             label: 'From',
             date:  startDate,
-            icon:  Icons.calendar_today_outlined,
+            icon:  'ic_calendar',
             onTap: () => _pick(context, true),
           ),
           const SizedBox(width: 10),
           _DatePickerField(
             label: 'To',
             date:  endDate,
-            icon:  Icons.calendar_month_outlined,
+            icon:  'ic_calendar',
             onTap: () => _pick(context, false),
           ),
           const SizedBox(width: 16),
@@ -326,7 +327,7 @@ class _DateFilterBar extends StatelessWidget {
                 child: _DatePickerField(
                   label: 'From',
                   date:  startDate,
-                  icon:  Icons.calendar_today_outlined,
+                  icon:  'ic_calendar',
                   onTap: () => _pick(context, true),
                 ),
               ),
@@ -335,7 +336,7 @@ class _DateFilterBar extends StatelessWidget {
                 child: _DatePickerField(
                   label: 'To',
                   date:  endDate,
-                  icon:  Icons.calendar_month_outlined,
+                  icon:  'ic_calendar',
                   onTap: () => _pick(context, false),
                 ),
               ),
@@ -379,7 +380,7 @@ class _DateFilterBar extends StatelessWidget {
 class _DatePickerField extends StatelessWidget {
   final String   label;
   final DateTime date;
-  final IconData icon;
+  final String   icon;
   final VoidCallback onTap;
 
   const _DatePickerField({
@@ -404,7 +405,7 @@ class _DatePickerField extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: AppColor.primary),
+            AppIcon(icon, size: 16, color: AppColor.primary),
             const SizedBox(width: 6),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,7 +464,7 @@ class _ProductTab extends StatelessWidget {
         Expanded(
           child: products.isEmpty
               ? const _EmptyState(
-            icon:     Icons.inventory_2_outlined,
+            icon:     'ic_total_products',
             message:  'No products found',
             subtitle: 'Try a different date range',
           )
@@ -618,7 +619,7 @@ class _CustomerSalesTab extends StatelessWidget {
         Expanded(
           child: customers.isEmpty
               ? const _EmptyState(
-            icon:     Icons.people_outline_rounded,
+            icon:     'ic_top_customers',
             message:  'No customers found',
             subtitle: 'Try a different date range',
           )
@@ -761,7 +762,7 @@ class _CustomerBalanceTab extends StatelessWidget {
         Expanded(
           child: customers.isEmpty
               ? const _EmptyState(
-            icon:     Icons.account_balance_wallet_outlined,
+            icon:     'ic_net_amount',
             message:  'No pending balances',
             subtitle: 'Try a different date range',
           )
@@ -937,7 +938,7 @@ class _ParetoLabel extends StatelessWidget {
       color: color.withOpacity(0.07),
       child: Row(
         children: [
-          Icon(Icons.star_rounded, size: 14, color: color),
+          AppIcon('ic_top_products', size: 14, color: color),
           const SizedBox(width: 6),
           Expanded(
             child: Text(label,
@@ -1218,9 +1219,9 @@ class _Td extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String   message;
-  final String   subtitle;
+  final String icon;
+  final String message;
+  final String subtitle;
   const _EmptyState({
     required this.icon,
     required this.message,
@@ -1232,7 +1233,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 64, color: Colors.grey.shade300),
+        AppIcon(icon, size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text(
           message,
@@ -1262,7 +1263,7 @@ class _ErrorView extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.error_outline, size: 48, color: AppColor.error),
+        const AppIcon('ic_rejected', size: 48, color: AppColor.error),
         const SizedBox(height: 12),
         Text(message,
             textAlign: TextAlign.center,
@@ -1276,7 +1277,7 @@ class _ErrorView extends StatelessWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
-          icon:  const Icon(Icons.refresh),
+          icon:  const AppIcon('ic_refresh', size: 18, color: Colors.white),
           label: const Text('Retry'),
         ),
       ],

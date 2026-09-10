@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../../core/color/app_color.dart';
+import '../../../../../../../core/widget/app_icon.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_stock_damage_model.dart';
 import '../../data/service/accountant_branch_stock_damage_pdf_service.dart';
@@ -190,7 +191,7 @@ class _DateFilterRow extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'Start date',
               hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-              prefixIcon: const Icon(Icons.calendar_today_outlined, size: 16, color: AppColor.primary),
+              prefixIcon: const AppIcon('ic_calendar', size: 16, color: AppColor.primary),
               filled: true,
               fillColor: AppColor.grey100,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -216,7 +217,7 @@ class _DateFilterRow extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'End date',
               hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-              prefixIcon: const Icon(Icons.calendar_today_outlined, size: 16, color: AppColor.primary),
+              prefixIcon: const AppIcon('ic_calendar', size: 16, color: AppColor.primary),
               filled: true,
               fillColor: AppColor.grey100,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -234,7 +235,7 @@ class _DateFilterRow extends StatelessWidget {
           const SizedBox(width: 10),
           IconButton(
             onPressed: onClearDates,
-            icon: const Icon(Icons.filter_alt_off_outlined, size: 18, color: AppColor.error),
+            icon: const AppIcon('ic_filter', size: 18, color: AppColor.error),
             tooltip: 'Clear date filter',
             style: IconButton.styleFrom(
               backgroundColor: AppColor.error.withOpacity(0.08),
@@ -315,7 +316,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 130,
                 child: ElevatedButton.icon(
                   onPressed: () => _exportPdf(context, state),
-                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  icon: const AppIcon('ic_print', size: 18, color: Colors.white),
                   label: const Text('Export'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
@@ -331,7 +332,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 120,
                 child: OutlinedButton.icon(
                   onPressed: notifier.load,
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  icon: const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
                   label: const Text('Refresh'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.primary,
@@ -359,28 +360,28 @@ class _DesktopLayout extends StatelessWidget {
                   _DeskSummaryCard(
                     label: 'Records',
                     value: '${state.summary.totalRecords}',
-                    icon: Icons.receipt_long_outlined,
+                    icon: 'ic_total_sale',
                     color: AppColor.primary,
                   ),
                   const SizedBox(width: 10),
                   _DeskSummaryCard(
                     label: 'Damaged Qty',
                     value: fmtQty(state.summary.totalDamageQty),
-                    icon: Icons.broken_image_outlined,
+                    icon: 'sidebar_icons/stock_damage',
                     color: AppColor.error,
                   ),
                   const SizedBox(width: 10),
                   _DeskSummaryCard(
                     label: 'Purchase Loss',
                     value: fmtAmt(state.summary.totalPurchaseLoss),
-                    icon: Icons.shopping_cart_outlined,
+                    icon: 'ic_purchase_price',
                     color: const Color(0xFF8B5CF6),
                   ),
                   const SizedBox(width: 10),
                   _DeskSummaryCard(
                     label: 'Sale Loss',
                     value: fmtAmt(state.summary.totalSaleLoss),
-                    icon: Icons.sell_outlined,
+                    icon: 'ic_sale_price_trend',
                     color: AppColor.warning,
                   ),
                   const SizedBox(width: 16),
@@ -396,10 +397,10 @@ class _DesktopLayout extends StatelessWidget {
                         decoration: InputDecoration(
                           hintText: 'Search product name...',
                           hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                          prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColor.primary),
+                          prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.primary),
                           suffixIcon: state.searchQuery.isNotEmpty
                               ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 16, color: AppColor.textHint),
+                            icon: const AppIcon('ic_clear', size: 16, color: AppColor.textHint),
                             onPressed: () {
                               searchCtrl.clear();
                               notifier.search('');
@@ -463,7 +464,7 @@ class _DesktopLayout extends StatelessWidget {
 class _DeskSummaryCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
+  final String icon;
   final Color color;
 
   const _DeskSummaryCard({
@@ -490,7 +491,7 @@ class _DeskSummaryCard extends StatelessWidget {
             color: color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(7),
           ),
-          child: Icon(icon, size: 14, color: color),
+          child: AppIcon(icon, size: 14, color: color),
         ),
         const SizedBox(width: 10),
         Column(
@@ -697,12 +698,12 @@ class _MobileLayout extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () => _exportPdf(context, state),
-            icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColor.primary),
+            icon: const AppIcon('ic_print', size: 22, color: AppColor.primary),
             tooltip: 'Export PDF',
           ),
           IconButton(
             onPressed: notifier.load,
-            icon: const Icon(Icons.refresh_rounded, color: AppColor.textSecondary),
+            icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
           const SizedBox(width: 4),
@@ -726,10 +727,10 @@ class _MobileLayout extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: 'Search product name...',
                 hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColor.primary),
+                prefixIcon: const AppIcon('ic_search', size: 20, color: AppColor.primary),
                 suffixIcon: state.searchQuery.isNotEmpty
                     ? IconButton(
-                  icon: const Icon(Icons.clear_rounded, size: 18, color: AppColor.textHint),
+                  icon: const AppIcon('ic_clear', size: 18, color: AppColor.textHint),
                   onPressed: () {
                     searchCtrl.clear();
                     notifier.search('');
@@ -769,9 +770,9 @@ class _MobileLayout extends StatelessWidget {
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Row(children: [
-              _MobileSummaryCard(label: 'Records', value: '${state.summary.totalRecords}', icon: Icons.receipt_long_outlined, color: AppColor.primary),
+              _MobileSummaryCard(label: 'Records', value: '${state.summary.totalRecords}', icon: 'ic_total_sale', color: AppColor.primary),
               const SizedBox(width: 8),
-              _MobileSummaryCard(label: 'Damaged', value: fmtQty(state.summary.totalDamageQty), icon: Icons.broken_image_outlined, color: AppColor.error),
+              _MobileSummaryCard(label: 'Damaged', value: fmtQty(state.summary.totalDamageQty), icon: 'sidebar_icons/stock_damage', color: AppColor.error),
             ]),
           ),
 
@@ -784,7 +785,7 @@ class _MobileLayout extends StatelessWidget {
                 child: _ValueCard(
                   label: 'Purchase Loss',
                   value: fmtAmt(state.summary.totalPurchaseLoss),
-                  icon: Icons.shopping_cart_outlined,
+                  icon: 'ic_purchase_price',
                   color: const Color(0xFF8B5CF6),
                 ),
               ),
@@ -793,7 +794,7 @@ class _MobileLayout extends StatelessWidget {
                 child: _ValueCard(
                   label: 'Sale Loss',
                   value: fmtAmt(state.summary.totalSaleLoss),
-                  icon: Icons.sell_outlined,
+                  icon: 'ic_sale_price_trend',
                   color: AppColor.error,
                 ),
               ),
@@ -842,7 +843,7 @@ class _MobileLayout extends StatelessWidget {
 class _MobileSummaryCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
+  final String icon;
   final Color color;
 
   const _MobileSummaryCard({
@@ -867,7 +868,7 @@ class _MobileSummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-            child: Icon(icon, size: 12, color: color),
+            child: AppIcon(icon, size: 12, color: color),
           ),
           const SizedBox(height: 7),
           Text(value,
@@ -884,7 +885,7 @@ class _MobileSummaryCard extends StatelessWidget {
 
 class _ValueCard extends StatelessWidget {
   final String label, value;
-  final IconData icon;
+  final String icon;
   final Color color;
 
   const _ValueCard({required this.label, required this.value, required this.icon, required this.color});
@@ -900,7 +901,7 @@ class _ValueCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 14, color: color),
+        AppIcon(icon, size: 14, color: color),
         const SizedBox(height: 5),
         Text(value,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color),
@@ -956,7 +957,7 @@ class _DamageCard extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.broken_image_outlined, color: AppColor.error, size: 22),
+                  child: const AppIcon('sidebar_icons/stock_damage', color: AppColor.error, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -969,7 +970,7 @@ class _DamageCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
                       Row(children: [
-                        const Icon(Icons.calendar_today_outlined, size: 11, color: AppColor.textHint),
+                        const AppIcon('ic_calendar', size: 11, color: AppColor.textHint),
                         const SizedBox(width: 4),
                         Text(fmtDate(item.createdAt), style: const TextStyle(fontSize: 11, color: AppColor.textHint)),
                       ]),
@@ -997,9 +998,9 @@ class _DamageCard extends StatelessWidget {
             decoration: BoxDecoration(color: const Color(0xFFF5F6FA), borderRadius: BorderRadius.circular(10)),
             child: IntrinsicHeight(
               child: Row(children: [
-                Expanded(child: _PriceTile(icon: Icons.shopping_cart_outlined, label: 'Purchase Loss', value: fmtAmt(item.purchaseLoss), color: const Color(0xFF8B5CF6))),
+                Expanded(child: _PriceTile(icon: 'ic_purchase_price', label: 'Purchase Loss', value: fmtAmt(item.purchaseLoss), color: const Color(0xFF8B5CF6))),
                 VerticalDivider(width: 1, thickness: 1, color: Colors.grey.shade200),
-                Expanded(child: _PriceTile(icon: Icons.sell_outlined, label: 'Sale Loss', value: fmtAmt(item.saleLoss), color: AppColor.error)),
+                Expanded(child: _PriceTile(icon: 'ic_sale_price_trend', label: 'Sale Loss', value: fmtAmt(item.saleLoss), color: AppColor.error)),
               ]),
             ),
           ),
@@ -1010,7 +1011,7 @@ class _DamageCard extends StatelessWidget {
 }
 
 class _PriceTile extends StatelessWidget {
-  final IconData icon;
+  final String icon;
   final String label, value;
   final Color color;
 
@@ -1023,7 +1024,7 @@ class _PriceTile extends StatelessWidget {
       Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, size: 14, color: color),
+        child: AppIcon(icon, size: 14, color: color),
       ),
       const SizedBox(height: 5),
       Text(value,
@@ -1044,7 +1045,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade300),
+        AppIcon('sidebar_icons/stock_damage', size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text('No damage record found',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
