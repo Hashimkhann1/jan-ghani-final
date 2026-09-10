@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../data/datasource/category_sale_report_datasource.dart';
 import '../../data/model/category_sale_report_model.dart';
@@ -129,8 +130,8 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
         actions: [
           IconButton(
             onPressed: notifier.load,
-            icon:    const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon:    const AppIcon('ic_refresh',
+                size: 20, color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
           TextButton(
@@ -245,28 +246,28 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
                       _SummaryTile(
                         label: 'Categories',
                         value: '${summary.totalCategories}',
-                        icon:  Icons.category_outlined,
+                        icon:  'ic_top_products',
                         color: AppColor.primary,
                       ),
                       _divider(),
                       _SummaryTile(
                         label: 'Total Sale',
                         value: _fmtAmt(summary.totalSales),
-                        icon:  Icons.payments_outlined,
+                        icon:  'ic_cash_sale',
                         color: AppColor.success,
                       ),
                       _divider(),
                       _SummaryTile(
                         label: 'Profit',
                         value: _fmtAmt(summary.totalProfit),
-                        icon:  Icons.trending_up_rounded,
+                        icon:  'ic_sale_price_trend',
                         color: AppColor.warning,
                       ),
                       _divider(),
                       _SummaryTile(
                         label: 'Qty',
                         value: _fmtQty(summary.totalQuantity),
-                        icon:  Icons.inventory_2_outlined,
+                        icon:  'ic_total_quantity',
                         color: const Color(0xFF6366F1),
                       ),
                     ]),
@@ -731,7 +732,7 @@ class _DateField extends StatelessWidget {
         style: const TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.calendar_today_outlined,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:     true,
           fillColor:  AppColor.grey100,
@@ -758,10 +759,10 @@ class _DateField extends StatelessWidget {
 }
 
 class _SummaryTile extends StatelessWidget {
-  final String   label;
-  final String   value;
-  final IconData icon;
-  final Color    color;
+  final String label;
+  final String value;
+  final String icon;
+  final Color  color;
 
   const _SummaryTile({
     required this.label,
@@ -780,7 +781,7 @@ class _SummaryTile extends StatelessWidget {
             color:        color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 16, color: color),
+          child: AppIcon(icon, size: 16, color: color),
         ),
         const SizedBox(height: 6),
         Text(value,
@@ -805,7 +806,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.category_outlined,
+        AppIcon('ic_top_products',
             size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text('Koi category nahi mili',

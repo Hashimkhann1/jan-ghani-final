@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
+import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_discount_wise_sale_report_model.dart';
@@ -360,7 +361,7 @@ class _DesktopLayout extends StatelessWidget {
                 width: 120,
                 child: OutlinedButton.icon(
                   onPressed: notifier.load,
-                  icon:  const Icon(Icons.refresh_rounded, size: 18),
+                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
                   label: const Text('Refresh'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColor.primary,
@@ -420,28 +421,28 @@ class _DesktopLayout extends StatelessWidget {
               _SummaryCard(
                 label: 'Discounted Products',
                 value: '${summary.totalProducts}',
-                icon:  Icons.inventory_2_outlined,
+                icon:  'ic_total_products',
                 color: AppColor.primary,
               ),
               const SizedBox(width: 12),
               _SummaryCard(
                 label: 'Total Discount',
                 value: fmtAmt(summary.totalDiscountAmount),
-                icon:  Icons.discount_outlined,
+                icon:  'ic_purchase_price',
                 color: AppColor.error,
               ),
               const SizedBox(width: 12),
               _SummaryCard(
                 label: 'Total Qty',
                 value: fmtQty(summary.totalQuantity),
-                icon:  Icons.numbers_rounded,
+                icon:  'ic_total_quantity',
                 color: AppColor.warning,
               ),
               const SizedBox(width: 12),
               _SummaryCard(
                 label: 'Affected Invoices',
                 value: '${summary.totalInvoices}',
-                icon:  Icons.receipt_outlined,
+                icon:  'ic_total_sale',
                 color: AppColor.success,
               ),
             ],
@@ -558,8 +559,8 @@ class _MobileLayout extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: onOpenFilters,
-                icon: const Icon(Icons.filter_list_rounded,
-                    color: AppColor.textSecondary),
+                icon: const AppIcon('ic_filter',
+                    size: 22, color: AppColor.textSecondary),
                 tooltip: 'Filters',
               ),
               if (activeFilterCount > 0)
@@ -589,8 +590,8 @@ class _MobileLayout extends StatelessWidget {
           ),
           IconButton(
             onPressed: notifier.load,
-            icon:    const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
+            icon:    const AppIcon('ic_refresh',
+                size: 22, color: AppColor.textSecondary),
             tooltip: 'Refresh',
           ),
           TextButton(
@@ -614,28 +615,28 @@ class _MobileLayout extends StatelessWidget {
                 _SummaryCard(
                   label: 'Products',
                   value: '${summary.totalProducts}',
-                  icon:  Icons.inventory_2_outlined,
+                  icon:  'ic_total_products',
                   color: AppColor.primary,
                 ),
                 const SizedBox(width: 8),
                 _SummaryCard(
                   label: 'Discount',
                   value: fmtAmt(summary.totalDiscountAmount),
-                  icon:  Icons.discount_outlined,
+                  icon:  'ic_purchase_price',
                   color: AppColor.error,
                 ),
                 const SizedBox(width: 8),
                 _SummaryCard(
                   label: 'Qty',
                   value: fmtQty(summary.totalQuantity),
-                  icon:  Icons.numbers_rounded,
+                  icon:  'ic_total_quantity',
                   color: AppColor.warning,
                 ),
                 const SizedBox(width: 8),
                 _SummaryCard(
                   label: 'Invoices',
                   value: '${summary.totalInvoices}',
-                  icon:  Icons.receipt_outlined,
+                  icon:  'ic_total_sale',
                   color: AppColor.success,
                 ),
               ],
@@ -682,7 +683,7 @@ class _MobileLayout extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final String   label;
   final String   value;
-  final IconData icon;
+  final String   icon;
   final Color    color;
 
   const _SummaryCard({
@@ -711,7 +712,7 @@ class _SummaryCard extends StatelessWidget {
               color:        color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 13, color: color),
+            child: AppIcon(icon, size: 13, color: color),
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -810,7 +811,7 @@ class _ProductCardState extends State<_ProductCard> {
                       ),
                       borderRadius: BorderRadius.circular(11),
                     ),
-                    child: const Icon(Icons.discount_outlined,
+                    child: const AppIcon('ic_purchase_price',
                         size: 20, color: AppColor.error),
                   ),
                   const SizedBox(width: 12),
@@ -837,7 +838,7 @@ class _ProductCardState extends State<_ProductCard> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.receipt_long_outlined,
+                            const AppIcon('ic_total_sale',
                                 size: 10, color: AppColor.textHint),
                             const SizedBox(width: 3),
                             Text(
@@ -1001,7 +1002,7 @@ class _DateField extends StatelessWidget {
         cursorHeight: 14,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.calendar_today_outlined,
+          prefixIcon: const AppIcon('ic_calendar',
               size: 16, color: AppColor.primary),
           filled:     true,
           fillColor:  AppColor.grey100,
@@ -1033,7 +1034,7 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.discount_outlined, size: 64, color: Colors.grey.shade300),
+        AppIcon('ic_purchase_price', size: 64, color: Colors.grey.shade300),
         const SizedBox(height: 16),
         Text(
           'Koi discount wala item nahi mila',

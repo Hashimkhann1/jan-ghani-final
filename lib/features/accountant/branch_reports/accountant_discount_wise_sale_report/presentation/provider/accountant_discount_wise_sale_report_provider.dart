@@ -48,10 +48,10 @@ class DiscountWiseSaleReportState {
   // ranking by total discount needs every matching invoice, so pagination
   // here just windows the already-computed, already-sorted product list.
   List<DiscountReportProduct> get pagedProducts {
-    final (start, end) = BranchReportPagination.range(pagination.page);
-    if (start >= products.length) return const [];
-    return products.sublist(
-        start, end + 1 > products.length ? products.length : end + 1);
+    // Infinite scroll: shuru se current page tak (cumulative window).
+    final (_, end) = BranchReportPagination.range(pagination.page);
+    final upper = end + 1 > products.length ? products.length : end + 1;
+    return products.sublist(0, upper);
   }
 
   bool get hasNextPage =>
