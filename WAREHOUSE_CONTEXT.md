@@ -988,6 +988,139 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.janghani_warehouse_cash_tra
 
 ---
 
+## Session 12 — Branch Inventory Balance workflow + Salary advance-cap fix ⭐⭐
+
+> **Do saath ke masle hal:** (1) **Deleted products** ab counting/inventory listings mein nahi aate — do Supabase objects mein `deleted_at IS NULL` filter add. (2) **Balance workflow** ka Session-11 ka "delivered" design refine — Create Request mein Physical ki jagah **Delta editable**, saath **count date+time** dikhao, aur poori chain (branch write → warehouse show → reviewer queue → reports) ko **UTC-store + toLocal-display** par align.
+>
+> Feature ka pura foundation code ab implemented hai (jo Section B mein "pending" tha): `lib/features/warehouse/inventory_balance/` (create-batch panel, report panel, provider, models, remote datasource) + `lib/features/accountant/accountant_inventory_review/` (queue + history + reject dialog) + `lib/features/branch/inventory_management/` (branch counting). Applied stock deduction path abhi separate work item hai (branch acceptance par live stock adjust).
+
+### 1. Deleted-products filter — Supabase RPC + view (2 objects)
+
+**File / DB object impacted:**
+- **RPC** `get_daily_counting_products(p_store_id, p_days, p_limit)` (used by [`branch/inventory_management/data/datasource/inventory_counting_datasource.dart`](lib/features/branch/inventory_management/data/datasource/inventory_counting_datasource.dart)) — do jagah `AND b.deleted_at IS NULL` add: (a) initial batch INSERT..SELECT par (deleted product batch mein hi na aaye), (b) return QUERY par (batch banne ke baad koi product delete ho jaye to bhi skip).
+- **View** `linked_store_inventory_v` (used by [`warehouse/link_stores/inventory/data/datasources/linked_store_inventory_remote_datasource.dart`](lib/features/warehouse/link_stores/inventory/data/datasources/linked_store_inventory_remote_datasource.dart)) — `WHERE deleted_at IS NULL` add. Isse warehouse ke **linked store inventory** screen mein list, chip counts (all/low/out) sab correct — deleted products bahar.
+
+Dart code untouched — sirf DB-side migrations lage. Naye deployments ke saath ye migrations chalane zaroori.
+
+### 2. Daily counting batch size 100 → 120
+
+- [`branch/inventory_management/data/datasource/inventory_counting_datasource.dart`](lib/features/branch/inventory_management/data/datasource/inventory_counting_datasource.dart) — `_pageSize = 120`. Client is value ko RPC ka `p_limit` param mein pass karta hai, isliye server-side batch bhi 120 ka banega (RPC default `100` chhera nahi — client override kar raha hai).
+- [`inventory_counting_provider.dart`](lib/features/branch/inventory_management/presentation/provider/inventory_counting_provider.dart) + [`inventory_counting_screen.dart`](lib/features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart) — comments/labels 100 → 120 ("Load Next 120", "120 products counted!").
+- **Note:** Aaj ka batch agar 100 ka pehle bana chuka ho to `inventory_counting_batch` ki purani rows kal tak preserve — kal se 120 wale batch banenge.
+
+### 3. Inventory Balance — **Delta editable, Physical read-only** (semantic swap)
+
+**Kyun swap hua:** Balance workflow ka semantic hi `stock_after = current_system_now + delta` hai. Physical = branch ki count evidence (immutable), warehouse ka faisla "kitna adjust karna hai" ka hai (delta). Pehle physical stepper tha jo effectively branch ka count over-write karta — non-honest UX + weak audit trail.
+
+**Files:**
+- [`create_batch_panel.dart`](lib/features/warehouse/inventory_balance/presentation/widgets/create_batch_panel.dart) — `_ItemCard` mein 3-col stats:
+  - **SYSTEM** (read-only, count-time snapshot)
+  - **PHYSICAL** (read-only, branch ka count)
+  - **DELTA** — naya `_DeltaStepper` (signed +/-, color-coded green+/red-, **negative allowed** — free range, no lower clamp). Purana `_NumberStepper` remove.
+- [`inventory_balance_provider.dart`](lib/features/warehouse/inventory_balance/presentation/provider/inventory_balance_provider.dart) — `CreateBatchState.overrides: Map<String, double>` ka semantic **swap**:
+  - Pehle: `overrides[countingId] = physical qty`
+  - **Ab:** `overrides[countingId] = DELTA` (warehouse ka override adjustment)
+  - `submit()` mein: `physical = row.physicalStock` (immutable), `delta = overrides[id] ?? (physical - system)`.
+- Summary tiles, view-filter chips, sticky footer sab **delta-override** semantic par recompute karte hain (per-row `delta = state.overrides[r.countingId] ?? (r.physicalStock - r.systemStock)`).
+
+### 4. Count date + time visible per product (Create Request card)
+
+- [`inventory_balance_remote_datasource.dart`](lib/features/warehouse/inventory_balance/data/datasource/inventory_balance_remote_datasource.dart) — `fetchPendingCounts` select mein `updated_at` add + `.order('updated_at', ...)`. `PendingCountRow.countedAt` ab `updated_at ?? counted_date` se populate (pehle sirf `counted_date` — date-only, midnight aata tha).
+- [`create_batch_panel.dart`](lib/features/warehouse/inventory_balance/presentation/widgets/create_batch_panel.dart) `_ItemCard` mein niche 🕐 footer: **`Counted: 12 Sep 2026, 2:30 PM`** (`_fmtDateTime` helper, always `.toLocal()`).
+
+### 5. UTC-store + toLocal-display pattern (poori time chain fix)
+
+**Root problem:** Branch counting side `DateTime.now().toIso8601String()` (naive local) likh raha tha → Supabase `timestamptz` UTC assume karta tha → naye rows ~5 hrs off (PKT vs UTC). Display side bhi `.hour`/`.minute` directly use ho rahe the without `.toLocal()`.
+
+**Fix pattern (write UTC, display local) — poori inventory balance chain par apply:**
+
+| Where | File | Change |
+|---|---|---|
+| Branch write | [`inventory_countting_model.dart`](lib/features/branch/inventory_management/data/model/inventory_countting_model.dart) `toMap()` | `updatedAt.toUtc().toIso8601String()` (Z suffix) |
+| Reviewer write | [`inventory_review_remote_datasource.dart`](lib/features/accountant/accountant_inventory_review/data/datasource/inventory_review_remote_datasource.dart) | pehle se `DateTime.now().toUtc().toIso8601String()` — sahi ✅ |
+| Warehouse batch header display | [`balance_report_panel.dart`](lib/features/warehouse/inventory_balance/presentation/widgets/balance_report_panel.dart) `_fmtDate()` | `d.toLocal()` pehle, phir `hour`/`minute`/AM/PM |
+| Reviewer queue batch line | [`review_queue_panel.dart`](lib/features/accountant/accountant_inventory_review/presentation/widget/review_queue_panel.dart) | naya top-level `_fmtLocal(d)` helper (`d.toLocal()` + local date+time compact), header line ab `name · date-time · timeAgo` teeno saath |
+| Create Request count footer | [`create_batch_panel.dart`](lib/features/warehouse/inventory_balance/presentation/widgets/create_batch_panel.dart) `_ItemCard._fmtDateTime()` | `d.toLocal()` |
+| Branch inventory counting report | [`inventory_counting_report_screen.dart`](lib/features/accountant/branch_reports/inventory_counting/presentation/screen/inventory_counting_report_screen.dart) | web table + mobile card "Counted On" `DateFormat('dd MMM yyyy · hh:mm a').format(record.updatedAt.toLocal())` (pehle sirf `countedDate` date-only, isliye time hamesha 00:00 aata tha) |
+| `timeAgo` extension | [`app_extention.dart`](lib/core/extension/app_extention.dart) | ab `DateTime.now().toUtc().difference(toUtc())` + negative-safe (future timestamp par "Just now") |
+
+**Rule going forward (yaad rakho):**
+1. Supabase `timestamptz` par likhna hai to hamesha `DateTime.now().toUtc().toIso8601String()` (Z suffix).
+2. Display se pehle hamesha `.toLocal()` — `d.hour`, `d.day`, format helpers sab ko local-normalized DateTime do.
+3. `timeAgo` (difference-based) tz-safe, lekin caller ko UTC-normalized DateTime ho to consistent rehta.
+
+### Files (Session 12)
+
+**DB (Supabase):**
+- RPC `get_daily_counting_products` — deleted filter (2 jagah)
+- View `linked_store_inventory_v` — `WHERE deleted_at IS NULL`
+
+**Branch:**
+- [`inventory_counting_datasource.dart`](lib/features/branch/inventory_management/data/datasource/inventory_counting_datasource.dart) — pageSize 100→120
+- [`inventory_counting_provider.dart`](lib/features/branch/inventory_management/presentation/provider/inventory_counting_provider.dart) — comment update
+- [`inventory_counting_screen.dart`](lib/features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart) — labels 100→120
+- [`inventory_countting_model.dart`](lib/features/branch/inventory_management/data/model/inventory_countting_model.dart) — `updated_at` UTC ISO
+
+**Warehouse inventory_balance:**
+- [`inventory_balance_remote_datasource.dart`](lib/features/warehouse/inventory_balance/data/datasource/inventory_balance_remote_datasource.dart) — `updated_at` select + `countedAt`
+- [`inventory_balance_provider.dart`](lib/features/warehouse/inventory_balance/presentation/provider/inventory_balance_provider.dart) — overrides = delta, submit() semantic
+- [`create_batch_panel.dart`](lib/features/warehouse/inventory_balance/presentation/widgets/create_batch_panel.dart) — DELTA stepper + PHYSICAL read-only + count time footer + `_DeltaStepper` widget; `_NumberStepper` removed
+- [`balance_report_panel.dart`](lib/features/warehouse/inventory_balance/presentation/widgets/balance_report_panel.dart) — `_fmtDate` toLocal
+
+**Accountant:**
+- [`review_queue_panel.dart`](lib/features/accountant/accountant_inventory_review/presentation/widget/review_queue_panel.dart) — `_fmtLocal` + queue header line
+- [`inventory_counting_report_screen.dart`](lib/features/accountant/branch_reports/inventory_counting/presentation/screen/inventory_counting_report_screen.dart) — updatedAt + time format (2 places)
+
+**Core:**
+- [`app_extention.dart`](lib/core/extension/app_extention.dart) — `timeAgo` UTC-normalized
+
+### 6. Salary advance-cap bypass — FIX (regression from Session 7 design)
+
+> **Bug:** Employee ka `max_advance_percent` set ho (e.g. 20% → max 6,000 out of 30,000), phir bhi **current month** mein full 30,000 pay ho jata tha — cap silently bypass.
+>
+> **Root cause** ([`pay_salary_dialog.dart:46-50`](lib/features/warehouse/employee/presentation/widgets/pay_salary_dialog.dart:46) — auto-type logic pehle):
+> ```dart
+> _type = s.month.isAfter(currentMonth) ? advance : salary;
+> // → sirf FUTURE month = advance
+> // → current + past = salary (cap check bypass)
+> ```
+> Session 7 mein "current = Salary" jaan-bujh kar kiya tha (documented rationale: *"month-end full salary advance-cap par block na ho"*), lekin nateeja: mahine ke first day se hi full salary paid ja sakti thi, advance % ka koi matlab nahi tha.
+
+**Fix (Session 12) — with 20-tareekh cutoff:** current month **20 tareekh se pehle** = Advance (cap enforced), **20 ya baad** = Salary (full pay allowed).
+
+```dart
+const int kFullSalaryDayCutoff = 20;  // top-level constant, easy tune
+...
+final isCurrent       = s.month.year==currentMonth.year && s.month.month==currentMonth.month;
+final currentUnlocked = isCurrent && now.day >= kFullSalaryDayCutoff;
+_type = (s.month.isBefore(currentMonth) || currentUnlocked)
+    ? SalaryPaymentType.salary
+    : SalaryPaymentType.advance;
+```
+
+**3 cases table:**
+| Month | Aaj ki date | Type | Cap |
+|---|---|---|---|
+| Past | — | Salary | Koi cap nahi |
+| **Current** | **>= 20** | **Salary** | **Koi cap nahi (full pay)** |
+| **Current** | **< 20** | **Advance** | **% cap lagega** |
+| Future | — | Advance | % cap lagega |
+
+**AUTO-type badge subtitle** dynamic — cutoff value inline show karta hai (`20 tareekh se ya mahina khatam hone ke baad payable`).
+
+**Tune karna hai to sirf constant badlo:** [`pay_salary_dialog.dart`](lib/features/warehouse/employee/presentation/widgets/pay_salary_dialog.dart) top pe `kFullSalaryDayCutoff` (default 20). Badge text bhi automatically iski value use karta hai.
+
+**File:** [`pay_salary_dialog.dart`](lib/features/warehouse/employee/presentation/widgets/pay_salary_dialog.dart) — 3 blocks: top-level constant + `initState` type logic + badge subtitle.
+
+### ⚠️ Session 12 lessons (yaad rakho)
+
+1. **Supabase timestamptz strictly UTC**: dart `DateTime.now().toIso8601String()` **naive** hai (no `Z`, no offset) → Postgres us naive value ko UTC treat karta → local time silently shifted by TZ offset. Hamesha `.toUtc().toIso8601String()`.
+2. **Dart parse behavior:** `DateTime.parse('2026-09-12T14:30:00')` → LOCAL. `DateTime.parse('2026-09-12T14:30:00Z')` → UTC. Supabase timestamptz mostly `+00:00` ke saath aata hai → parse UTC-marked deta → `.hour` UTC hour deta → display UTC dikha deta. Fix: `.toLocal()` display se pehle.
+3. **Existing batches purane semantic ke saath immutable rehte hain** — feature swap sirf naye batches par lagta (jo bane the physical-override wale unke data pehle se `physicalStock` mein hai; ab display consistent hoga kyunki dono values `physical_stock` DB column se hi aati hain, sirf editing flow badla).
+4. **`counted_date` vs `updated_at`:** `counted_date` sirf DATE (yyyy-mm-dd) hai — filter/grouping ke liye theek, actual timestamp ke liye NAHI. Actual time hamesha `updated_at` se lo.
+
+---
+
 ## ⚠️ Known Open Issues (pending fixes)
 
 ### A. Cash chain drift — `cash_in_hand_before/after` snapshots
@@ -1005,9 +1138,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.janghani_warehouse_cash_tra
 - **Sync:** one-way local → Supabase confirmed. Supabase-side trigger not needed.
 - Details in personal memory `janghani-cash-chain-drift-bug.md`.
 
-### B. Branch Inventory Balance Workflow — design done, code pending
-> 3-role weekly workflow: warehouse initiate → reviewer accept/reject → branch accept/reject → actual stock adjust. Delta-not-absolute apply. Cycle Monday, last 7 din.
-- Nothing implemented in `lib/features/warehouse/`. Branch counting screen at [`lib/features/branch/inventory_management/`](lib/features/branch/inventory_management/) untouched.
+### B. Branch Inventory Balance — Apply-to-live-stock step (still pending)
+> Session 11 mein workflow foundation (batch create → reviewer accept/reject → branch queue) implement ho gaya. Session 12 mein UX/time polish (delta editable, count date+time, UTC/toLocal) complete. **Baaki:** branch acceptance par actual `branch_stock_inventory.stock` adjust nahi hota — apply step abhi likha nahi.
+- **Feature paths (implemented so far):**
+  - Warehouse init: [`lib/features/warehouse/inventory_balance/`](lib/features/warehouse/inventory_balance/)
+  - Reviewer queue/history: [`lib/features/accountant/accountant_inventory_review/`](lib/features/accountant/accountant_inventory_review/)
+  - Branch counting entry: [`lib/features/branch/inventory_management/`](lib/features/branch/inventory_management/)
+- **Applied stock adjust — kaise honi chahiye:** branch app par `status='branch_pending'` items ka acceptance screen bane; accept par `branch_stock_inventory.stock = stock + delta` (delta apply, NOT absolute), stamp `applied_at/applied_stock_before/applied_stock_after`, status → `applied`. Reject → `branch_rejected` + reason. RLS/SECURITY DEFINER RPC use karo.
+- **Delta apply (NOT absolute) — kyun crucial:** count aur apply ke beech mein sales/transfers ho sakti hain. `after = system_now + delta` safe hai; `after = physical_stock` (absolute) galat — sales double-count kar deta.
 - Details in personal memory `janghani-inventory-balance-workflow.md`.
 
 ---

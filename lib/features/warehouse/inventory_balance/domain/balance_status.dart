@@ -46,7 +46,7 @@ enum BalanceStatus {
 
   Color get color {
     switch (this) {
-      case BalanceStatus.reviewPending:    return AppColor.warning;
+      case BalanceStatus.reviewPending:    return AppColor.warningDark;
       case BalanceStatus.branchPending:    return AppColor.info;
       case BalanceStatus.reviewerRejected: return AppColor.error;
       case BalanceStatus.branchRejected:   return AppColor.error;

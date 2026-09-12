@@ -1,3 +1,4 @@
+// Updated on 2026-09-12 12:50 PM
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -725,9 +726,12 @@ class _WebTableView extends StatelessWidget {
                               ),
                             ),
                             Expanded(
+                              // updatedAt = full timestamptz (UTC-marked).
+                              // toLocal() se user ki timezone mein show hota.
+                              // countedDate sirf date hai — time midnight aata hai.
                               child: Text(
-                                DateFormat('dd MMM yyyy')
-                                    .format(r.countedDate),
+                                DateFormat('dd MMM yyyy · hh:mm a')
+                                    .format(r.updatedAt.toLocal()),
                                 textAlign: TextAlign.right,
                                 style: TextStyle(
                                     fontSize: 12,
@@ -894,7 +898,9 @@ class _MobileCard extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 12, color: Colors.grey.shade500)),
               Text(
-                DateFormat('dd MMM yyyy').format(record.countedDate),
+                // updatedAt = actual timestamp; countedDate is date-only.
+                DateFormat('dd MMM yyyy · hh:mm a')
+                    .format(record.updatedAt.toLocal()),
                 style: TextStyle(
                     fontSize: 12, color: Colors.grey.shade600),
               ),

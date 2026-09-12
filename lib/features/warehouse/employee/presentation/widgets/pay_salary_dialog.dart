@@ -1,3 +1,4 @@
+// Updated on 2026-09-12 01:08 PM
 // =============================================================
 // pay_salary_dialog.dart — salary ya advance pay karo
 // =============================================================
@@ -11,6 +12,11 @@ import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage
 import '../../domain/employee_month_status.dart';
 import '../../domain/salary_payment_model.dart';
 import '../provider/salary_provider.dart';
+
+// Current month mein FULL salary tab hi payable jab aaj ki date >= is cutoff.
+// (Business rule: 20 tareekh se pehle current month = advance-capped;
+//  20 ya us ke baad current month = salary type — full pay allowed.)
+const int kFullSalaryDayCutoff = 20;
 
 class PaySalaryDialog extends ConsumerStatefulWidget {
   final EmployeeMonthStatus status;
@@ -40,14 +46,26 @@ class _PaySalaryDialogState extends ConsumerState<PaySalaryDialog> {
   @override
   void initState() {
     super.initState();
-    // AUTO type: selected month FUTURE hai → Advance, warna (current/past) → Salary.
-    // (Current month = Salary, taake month-end par poori salary advance-cap
-    //  par block na ho. Future month ka paisa = advance, cap ke saath.)
+    // AUTO type — 3 cases:
+    //   • PAST month              → Salary (no cap, mahina khatam)
+    //   • CURRENT month:
+    //       aaj.day >= cutoff (20) → Salary (full pay allowed)
+    //       aaj.day <  cutoff      → Advance (percentage cap lagega)
+    //   • FUTURE month             → Advance (percentage cap lagega)
+    //
+    // Cutoff (20) → business rule: mahine ke last 10-11 din mein full
+    // salary payable, warna advance-capped. Constant kFullSalaryDayCutoff
+    // se easily tune ho sakta hai.
     final now = DateTime.now();
     final currentMonth = DateTime(now.year, now.month, 1);
-    _type = s.month.isAfter(currentMonth)
-        ? SalaryPaymentType.advance
-        : SalaryPaymentType.salary;
+    final isPast    = s.month.isBefore(currentMonth);
+    final isCurrent = s.month.year == currentMonth.year &&
+                      s.month.month == currentMonth.month;
+    final currentUnlocked = isCurrent && now.day >= kFullSalaryDayCutoff;
+
+    _type = (isPast || currentUnlocked)
+        ? SalaryPaymentType.salary
+        : SalaryPaymentType.advance;
 
     // Default amount type ke hisaab se
     if (_type == SalaryPaymentType.advance) {
@@ -179,11 +197,11 @@ class _PaySalaryDialogState extends ConsumerState<PaySalaryDialog> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: (isAdvance ? AppColor.warning : AppColor.success)
+                  color: (isAdvance ? AppColor.warningDark : AppColor.success)
                       .withOpacity(0.10),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                      color: (isAdvance ? AppColor.warning : AppColor.success)
+                      color: (isAdvance ? AppColor.warningDark : AppColor.success)
                           .withOpacity(0.35)),
                 ),
                 child: Row(children: [
@@ -192,19 +210,21 @@ class _PaySalaryDialogState extends ConsumerState<PaySalaryDialog> {
                           ? Icons.trending_down_rounded
                           : Icons.payments_outlined,
                       size: 16,
-                      color: isAdvance ? AppColor.warning : AppColor.success),
+                      color: isAdvance ? AppColor.warningDark : AppColor.success),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       isAdvance
-                          ? 'ADVANCE — yeh month abhi aaya nahi, isliye yeh '
-                              'advance count hoga (salary se auto-adjust)'
-                          : 'SALARY — is month ki salary payment',
+                          ? 'ADVANCE — ${s.employee.maxAdvancePercent.toStringAsFixed(0)}% cap lagega '
+                              '(salary se auto-adjust). Full salary '
+                              '$kFullSalaryDayCutoff tareekh se ya mahina khatam hone ke baad payable.'
+                          : 'SALARY — full salary payment allowed '
+                              '(mahina khatam / $kFullSalaryDayCutoff tareekh ya baad)',
                       style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color:
-                              isAdvance ? AppColor.warning : AppColor.success),
+                              isAdvance ? AppColor.warningDark : AppColor.success),
                     ),
                   ),
                 ]),

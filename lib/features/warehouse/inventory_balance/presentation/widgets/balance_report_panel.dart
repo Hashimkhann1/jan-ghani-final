@@ -1,3 +1,4 @@
+// Updated on 2026-09-12 12:50 PM
 // =============================================================
 // balance_report_panel.dart
 // Tab 2 — History & Report (Stitch-inspired minimal design).
@@ -257,7 +258,7 @@ class _KpiRow extends StatelessWidget {
           label: 'Review Pending',
           value: rp.toString(),
           hint:  '${pct(rp)} of total',
-          color: AppColor.warning,
+          color: AppColor.warningDark,
         )),
         const SizedBox(width: 10),
         Expanded(child: _KpiCard(
@@ -545,10 +546,13 @@ class _BatchCardState extends State<_BatchCard> {
   }
 
   static String _fmtDate(DateTime d) {
+    // Supabase timestamptz aata hai UTC-marked — display se pehle local mein
+    // convert warna user ko UTC time dikhega (5 hrs off PKT ke).
+    final l = d.toLocal();
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    final h = d.hour == 0 ? 12 : (d.hour > 12 ? d.hour - 12 : d.hour);
-    final ampm = d.hour >= 12 ? 'PM' : 'AM';
-    return 'Sent ${months[d.month - 1]} ${d.day}, ${h.toString()}:${d.minute.toString().padLeft(2, '0')} $ampm';
+    final h = l.hour == 0 ? 12 : (l.hour > 12 ? l.hour - 12 : l.hour);
+    final ampm = l.hour >= 12 ? 'PM' : 'AM';
+    return 'Sent ${months[l.month - 1]} ${l.day}, ${h.toString()}:${l.minute.toString().padLeft(2, '0')} $ampm';
   }
 }
 

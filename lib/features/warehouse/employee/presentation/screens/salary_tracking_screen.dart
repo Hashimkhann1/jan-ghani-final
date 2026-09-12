@@ -129,7 +129,7 @@ class SalaryTrackingScreen extends ConsumerWidget {
                   icon: Icons.check_circle_outline_rounded, color: AppColor.success),
               const SizedBox(width: 12),
               _StatCard(label: 'Pending', value: '${state.pendingCount}',
-                  icon: Icons.schedule_rounded, color: AppColor.warning),
+                  icon: Icons.schedule_rounded, color: AppColor.warningDark),
               const SizedBox(width: 12),
               _StatCard(label: 'Total Paid', value: 'Rs ${state.totalPaid.pkrFormat}',
                   icon: Icons.payments_outlined, color: AppColor.primary),
@@ -211,7 +211,7 @@ class _EmployeeRow extends StatelessWidget {
   Color get _statusColor {
     switch (status.status) {
       case SalaryStatus.paid:    return AppColor.success;
-      case SalaryStatus.partial: return AppColor.warning;
+      case SalaryStatus.partial: return AppColor.warningDark;
       case SalaryStatus.pending: return AppColor.error;
     }
   }
@@ -319,7 +319,7 @@ class _EmployeeRow extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(children: [
                   Icon(p.isAdvance ? Icons.trending_down_rounded : Icons.payments_outlined,
-                      size: 13, color: p.isAdvance ? AppColor.warning : AppColor.success),
+                      size: 13, color: p.isAdvance ? AppColor.warningDark : AppColor.success),
                   const SizedBox(width: 6),
                   Text('${p.typeLabel} · Rs ${p.amount.pkrFormat}',
                       style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
