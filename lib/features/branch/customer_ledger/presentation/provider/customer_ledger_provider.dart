@@ -11,7 +11,7 @@ import '../../domain/usecase/delete_ledger_usecase.dart';
 import '../../domain/usecase/get_ledgers_usecase.dart';
 import '../../domain/usecase/update_ledger_usecase.dart';
 
-const kLedgerPageSize = 25;
+const kLedgerPageSize = 50;
 
 class CustomerLedgerState {
   /// Sirf current page ke rows (server-side pagination).
@@ -49,17 +49,9 @@ class CustomerLedgerState {
   int get pageCount =>
       totalCount == 0 ? 1 : ((totalCount + kLedgerPageSize - 1) ~/ kLedgerPageSize);
 
-  /// Kya date range abhi default "current month" par hai (Clear Filter
-  /// button sirf tab dikhayein jab user ne isse hata kar kuch aur chuna ho).
-  bool get isDefaultDateRange {
-    if (toDate != null) return false;
-    final now = DateTime.now();
-    final defaultFrom = DateTime(now.year, now.month, 1);
-    return fromDate != null &&
-        fromDate!.year  == defaultFrom.year &&
-        fromDate!.month == defaultFrom.month &&
-        fromDate!.day   == defaultFrom.day;
-  }
+  /// Kya date range abhi default (koi filter nahi) par hai — Clear Filter
+  /// button sirf tab dikhayein jab user ne from/to mein se koi date chuni ho.
+  bool get isDefaultDateRange => fromDate == null && toDate == null;
 
   CustomerLedgerState copyWith({
     List<CustomerLedgerModel>? allLedgers,
@@ -110,12 +102,11 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
     super.dispose();
   }
 
-  // Default: current month — poori history ek saath load karne se list
-  // bohut bhari ho jati thi, is liye ab sirf isi mahine ka data aata hai.
-  static CustomerLedgerState _initialState() {
-    final now = DateTime.now();
-    return CustomerLedgerState(fromDate: DateTime(now.year, now.month, 1));
-  }
+  // Default: koi date filter nahi (poori history) — list bhari hone se
+  // bachne ke liye pagination (kLedgerPageSize) har baar sirf ek page
+  // (50 rows) DB se laati hai, is liye poori history load karna bhi halka
+  // rehta hai.
+  static CustomerLedgerState _initialState() => const CustomerLedgerState();
 
   /// Server se current page load karo. [resetPage] true ho to page 0 par
   /// wapas jao (filter / search / date change ke baad).
@@ -276,7 +267,7 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
     loadLedgers(resetPage: true);
   }
 
-  // Wapas current month par — poori history dobara load nahi hoti.
+  // From/To dono hata kar wapas default (koi filter nahi) par.
   void clearDateFilter() {
     state = _initialState().copyWith(
       allLedgers:  state.allLedgers,

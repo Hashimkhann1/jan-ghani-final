@@ -231,7 +231,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: const Text('Customer Sale & Return Report',
+        title: const Text('Customer Ledger Report',
             style: TextStyle(fontWeight: FontWeight.w700)),
         toolbarHeight: 60,
         backgroundColor: Colors.white,
@@ -263,7 +263,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Summary Banner ───────────────────────────────
-            if (state.hasCustomer) _CsrSummaryBanner(state: state),
+            _CsrSummaryBanner(state: state),
 
             const SizedBox(height: 16),
 
@@ -407,8 +407,6 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
             Expanded(
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : !state.hasCustomer
-                  ? const _SelectCustomerPlaceholder()
                   : state.filteredEntries.isEmpty
                   ? _EmptyState(
                   isSearching: state.searchQuery.isNotEmpty)
@@ -540,7 +538,7 @@ class _CsrSummaryBanner extends StatelessWidget {
                   size: 16, color: AppColor.primary),
               const SizedBox(width: 8),
               Text(
-                state.selectedCustomerName ?? 'Customer',
+                state.selectedCustomerName ?? 'All Customers',
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -1500,32 +1498,6 @@ class _StatusBadge extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: color)),
-  );
-}
-
-class _SelectCustomerPlaceholder extends StatelessWidget {
-  const _SelectCustomerPlaceholder();
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.person_search_outlined,
-            size: 64, color: AppColor.grey300),
-        const SizedBox(height: 16),
-        const Text('Customer Select Karein',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary)),
-        const SizedBox(height: 6),
-        const Text(
-            'Upar se customer choose karein report dekhne ke liye',
-            style:
-            TextStyle(fontSize: 13, color: AppColor.textHint)),
-      ],
-    ),
   );
 }
 

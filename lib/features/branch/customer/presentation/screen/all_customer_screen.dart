@@ -4,6 +4,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/widget/add_customer_dialog.dart';
+import 'package:jan_ghani_final/features/branch/permissions/presentation/provider/permissions_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/widget/app_icon.dart';
@@ -156,6 +157,9 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
     final state     = ref.watch(customerProvider);
     final allRows   = _sortedCustomers(state.filteredCustomers);
     final auth      = ref.watch(authProvider);
+    final perms     = ref.watch(permissionsProvider);
+    final canEdit   = perms.isGranted(auth.userId, auth.role, 'customer.edit');
+    final canDelete = perms.isGranted(auth.userId, auth.role, 'customer.delete');
 
     // ── Page maths ───────────────────────────────────────────
     final totalRows = allRows.length;
@@ -483,8 +487,8 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
 
-                                    // Edit — cashier ko nahi dikhega
-                                    if (auth.user?.role != 'cashier') ...[
+                                    // Edit — sirf 'customer.edit' permission grant hone par
+                                    if (canEdit) ...[
                                       CustomerActionButton(
                                         icon: Icons.edit_outlined,
                                         iconAsset: 'ic_edit',
@@ -495,8 +499,8 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                       const SizedBox(width: 6),
                                     ],
 
-                                    // Delete — cashier ko nahi dikhega
-                                    if (auth.user?.role != 'cashier') ...[
+                                    // Delete — sirf 'customer.delete' permission grant hone par
+                                    if (canDelete) ...[
                                       CustomerActionButton(
                                         icon: Icons.delete_outline_rounded,
                                         iconAsset: 'ic_delete',

@@ -11,6 +11,7 @@ import 'package:jan_ghani_final/features/branch/customer_ledger/presentation/pro
 
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/presentation/widget/customer_action_button_widget.dart';
+import '../../../permissions/presentation/provider/permissions_provider.dart';
 import '../widget/add_ledger_dialog.dart';
 import '../widget/amount_badge_widget.dart';
 import '../widget/counter_chip_widget.dart';
@@ -28,6 +29,17 @@ class _CounterCustomerLedgerScreenState
 
   static final _dateFmt = DateFormat('dd MMM yyyy');
 
+  // Persistent controller — search field ab poore build() ke tabdeel hote
+  // hue bhi apni text/focus save rakhta hai (pehle controller na hone ki
+  // wajah se, jab isLoading spinner body ko replace karta tha, field
+  // dobara ban'ta tha aur typed text + focus dono gayab ho jate thay).
+  final _searchCtrl = TextEditingController();
+
+  // Full-page spinner sirf pehli dafa load hone tak — uske baad (jese
+  // search/filter change par) chhota inline loading bar dikhta hai taake
+  // search field mount hi rahe.
+  bool _hasLoadedOnce = false;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +47,12 @@ class _CounterCustomerLedgerScreenState
       ref.read(customerLedgerProvider.notifier).loadLedgers();
       ref.read(counterProvider.notifier).loadCounters();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   // ── Edit Dialog ───────────────────────────────────────────
@@ -158,6 +176,9 @@ class _CounterCustomerLedgerScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(customerLedgerProvider);
     final auth = ref.watch(authProvider);
+    final perms = ref.watch(permissionsProvider);
+    final canEdit   = perms.isGranted(auth.userId, auth.role, 'customer_ledger.edit');
+    final canDelete = perms.isGranted(auth.userId, auth.role, 'customer_ledger.delete');
     final counters = ref.watch(counterProvider).counters;
     final fmt = DateFormat('dd MMM yyyy  hh:mm a');
     final notifier = ref.read(customerLedgerProvider.notifier);
@@ -171,6 +192,8 @@ class _CounterCustomerLedgerScreenState
     final totalPaid = state.totalPaid;
 
     ref.listen<CustomerLedgerState>(customerLedgerProvider, (prev, next) {
+      if (!next.isLoading) _hasLoadedOnce = true;
+
       if (next.errorMessage != null &&
           next.errorMessage != prev?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -231,13 +254,24 @@ class _CounterCustomerLedgerScreenState
           const SizedBox(width: 16),
         ],
       ),
-      body: state.isLoading
+      body: (state.isLoading && !_hasLoadedOnce)
           ? const Center(child: CircularProgressIndicator())
           : Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
+            // Inline loading bar (search/filter refetch) — search field ko
+            // mounted/focused rehne deta hai, full spinner ki tarah destroy
+            // nahi karta.
+            SizedBox(
+              height: 2,
+              child: state.isLoading
+                  ? const LinearProgressIndicator(minHeight: 2)
+                  : null,
+            ),
+            const SizedBox(height: 6),
 
             // ── Counter Banner ───────────────────────
             if (auth.counterId == null)
@@ -292,6 +326,7 @@ class _CounterCustomerLedgerScreenState
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _searchCtrl,
                     onChanged: notifier.onSearchChanged,
                     style: const TextStyle(fontSize: 13),
                     cursorHeight: 14,
@@ -326,7 +361,7 @@ class _CounterCustomerLedgerScreenState
                   TextButton.icon(
                     onPressed: notifier.clearDateFilter,
                     icon: const Icon(Icons.filter_alt_off_outlined, size: 16),
-                    label: const Text('This Month'),
+                    label: const Text('Clear Filter'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColor.error,
                       textStyle: const TextStyle(fontSize: 13),
@@ -423,7 +458,8 @@ class _CounterCustomerLedgerScreenState
                                 // Actions
                                 DataCell(Row(
                                   children: [
-                                    if (auth.user?.role != 'cashier') ...[
+                                    // Edit — sirf 'customer_ledger.edit' grant hone par
+                                    if (canEdit) ...[
                                       CustomerActionButton(
                                         icon: Icons.edit_outlined,
                                         color: AppColor.primary,
@@ -431,13 +467,15 @@ class _CounterCustomerLedgerScreenState
                                         onTap: () => _openEditDialog(context, l),
                                       ),
                                       const SizedBox(width: 6),
+                                    ],
+                                    // Delete — sirf 'customer_ledger.delete' grant hone par
+                                    if (canDelete)
                                       CustomerActionButton(
                                         icon: Icons.delete_outline_rounded,
                                         color: AppColor.error,
                                         tooltip: 'Delete',
                                         onTap: () => _confirmDelete(context, l),
                                       ),
-                                    ],
                                   ],
                                 )),
                               ],

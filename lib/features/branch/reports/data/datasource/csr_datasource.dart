@@ -11,7 +11,7 @@ class CsrDatasource {
     required String storeId,
     required DateTime fromDate,
     required DateTime toDate,
-    required String customerId,
+    String? customerId,
   }) async {
     final conn = await DataBaseService.getConnection();
 
@@ -40,7 +40,7 @@ class CsrDatasource {
         LEFT JOIN public.branch_users        u   ON u.id  = si.user_id
         LEFT JOIN public.sale_invoice_payments sip ON sip.invoice_id = si.id
         WHERE si.store_id          = @storeId::uuid
-          AND si.customer_id       = @customerId::uuid
+          ${customerId != null ? 'AND si.customer_id = @customerId::uuid' : ''}
           AND si.deleted_at        IS NULL
           AND si.invoice_date::date >= @fromDate
           AND si.invoice_date::date <= @toDate
@@ -54,7 +54,7 @@ class CsrDatasource {
       '''),
       parameters: {
         'storeId': storeId,
-        'customerId': customerId,
+        if (customerId != null) 'customerId': customerId,
         'fromDate': fromDate.toIso8601String().substring(0, 10),
         'toDate': toDate.toIso8601String().substring(0, 10),
       },
@@ -132,7 +132,7 @@ class CsrDatasource {
     required String storeId,
     required DateTime fromDate,
     required DateTime toDate,
-    required String customerId,
+    String? customerId,
   }) async {
     final conn = await DataBaseService.getConnection();
 
@@ -162,7 +162,7 @@ class CsrDatasource {
         LEFT JOIN public.branch_users   u   ON u.id  = sr.user_id
         LEFT JOIN public.sale_return_payments srp ON srp.return_id = sr.id
         WHERE sr.store_id          = @storeId::uuid
-          AND sr.customer_id       = @customerId::uuid
+          ${customerId != null ? 'AND sr.customer_id = @customerId::uuid' : ''}
           AND sr.deleted_at        IS NULL
           AND sr.return_date::date >= @fromDate
           AND sr.return_date::date <= @toDate
@@ -176,7 +176,7 @@ class CsrDatasource {
       '''),
       parameters: {
         'storeId': storeId,
-        'customerId': customerId,
+        if (customerId != null) 'customerId': customerId,
         'fromDate': fromDate.toIso8601String().substring(0, 10),
         'toDate': toDate.toIso8601String().substring(0, 10),
       },
@@ -255,7 +255,7 @@ class CsrDatasource {
     required String storeId,
     required DateTime fromDate,
     required DateTime toDate,
-    required String customerId,
+    String? customerId,
   }) async {
     final conn = await DataBaseService.getConnection();
 
@@ -276,7 +276,7 @@ class CsrDatasource {
         LEFT JOIN public.branch_counter co ON co.id = cl.counter_id
         LEFT JOIN public.branch_users   bu ON bu.id = cl.user_id
         WHERE cl.store_id        = @storeId::uuid
-          AND cl.customer_id     = @customerId::uuid
+          ${customerId != null ? 'AND cl.customer_id = @customerId::uuid' : ''}
           AND cl.deleted_at      IS NULL
           AND cl.created_at::date >= @fromDate
           AND cl.created_at::date <= @toDate
@@ -284,7 +284,7 @@ class CsrDatasource {
       '''),
       parameters: {
         'storeId': storeId,
-        'customerId': customerId,
+        if (customerId != null) 'customerId': customerId,
         'fromDate': fromDate.toIso8601String().substring(0, 10),
         'toDate': toDate.toIso8601String().substring(0, 10),
       },
@@ -321,7 +321,7 @@ class CsrDatasource {
     required String storeId,
     required DateTime fromDate,
     required DateTime toDate,
-    required String customerId,
+    String? customerId,
   }) async {
     final results = await Future.wait([
       getSales(

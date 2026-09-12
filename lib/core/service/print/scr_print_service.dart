@@ -78,7 +78,7 @@ class CsrPrintService {
         pw.SizedBox(height: 2),
         pw.Center(
           child: pw.Text(
-            'CUSTOMER SALE & RETURN REPORT',
+            'CUSTOMER LEDGER REPORT',
             style: pw.TextStyle(
               fontSize: 8,
               fontWeight: pw.FontWeight.bold,

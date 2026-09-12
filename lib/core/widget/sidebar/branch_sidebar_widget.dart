@@ -86,9 +86,10 @@ class NavItem {
 
 // ── Cashier Items ──────────────────────────────────────────────
 // Cashier gets: Sale Invoice, Customer, Customer Account, Customer Ledger,
-// Cash Counter, Assign Stock to My Branch, Branch Stock (read-only), CS&R.
+// Cash Counter, Assign Stock to My Branch, Branch Stock (read-only),
+// Customer Ledger Report.
 // Alt+S=Sale Invoice, Alt+C=Customer, Alt+A=Customer Account, Alt+L=Ledger,
-// Alt+X=Cash Counter, Alt+I=Branch Stock, Alt+G=CS&R Report
+// Alt+X=Cash Counter, Alt+I=Branch Stock, Alt+G=Customer Ledger Report
 final _cashierItems = <NavItem>[
   NavItem(
     icon: Icons.point_of_sale_rounded, label: 'Sale Invoice',
@@ -139,7 +140,7 @@ final _cashierItems = <NavItem>[
     permKey: 'stock_transfer',
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'CS&R Report',
+    icon: Icons.bar_chart_rounded, label: 'Customer Ledger Report',
     screen: const CsrScreen(),
     section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyG,
@@ -246,7 +247,7 @@ final _stockOfficerItems = <NavItem>[
     permKey: 'report_sale_return',
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'CS&R Report',
+    icon: Icons.bar_chart_rounded, label: 'Customer Ledger Report',
     screen: const CsrScreen(),
     section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyG,
@@ -258,7 +259,7 @@ final _stockOfficerItems = <NavItem>[
 // Alt+D=Dashboard, Alt+U=Users, Alt+S=Sale Invoice, Alt+C=Customer,
 // Alt+A=Customer Account, Alt+L=Ledger, Alt+T=Difference,
 // Alt+X=Cash Counter, Alt+I=Branch Stock, Alt+R=Sale Invoice Report,
-// Alt+N=Sale Return Report, Alt+G=CS&R Report
+// Alt+N=Sale Return Report, Alt+G=Customer Ledger Report
 final _managerItems = <NavItem>[
   NavItem(
     icon: Icons.dashboard_rounded, label: 'Dashboard',
@@ -358,7 +359,7 @@ final _managerItems = <NavItem>[
     permKey: 'report_sale_return',
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'CS&R Report',
+    icon: Icons.bar_chart_rounded, label: 'Customer Ledger Report',
     screen: const CsrScreen(),
     section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyG,

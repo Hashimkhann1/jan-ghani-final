@@ -120,7 +120,11 @@ class PermissionCatalog {
         ),
         PermModule(
           key: 'customer_ledger', label: 'Customer Ledger',
-          icon: Icons.account_balance_wallet_rounded, actions: _viewOnly,
+          icon: Icons.account_balance_wallet_rounded,
+          actions: [
+            PermAction.view, PermAction.edit, PermAction.delete,
+            PermAction.export,
+          ],
         ),
       ],
     ),
@@ -183,7 +187,7 @@ class PermissionCatalog {
           icon: Icons.bar_chart_rounded, actions: _viewOnly,
         ),
         PermModule(
-          key: 'report_csr', label: 'CS&R Report',
+          key: 'report_csr', label: 'Customer Ledger Report',
           icon: Icons.bar_chart_rounded, actions: _viewOnly,
         ),
       ],
@@ -247,12 +251,12 @@ class PermissionCatalog {
           'sale_invoice', 'customer', 'customer_account',
           'customer_ledger', 'cash_counter', 'branch_stock',
           'stock_transfer', 'report_csr',
-        ], readOnlyStock: true);
+        ], readOnlyStock: true, readOnlyLedger: true);
     }
   }
 
   static Set<String> _keysFor(List<String> moduleKeys,
-      {bool readOnlyStock = false}) {
+      {bool readOnlyStock = false, bool readOnlyLedger = false}) {
     final wanted = moduleKeys.toSet();
     final out = <String>{};
     for (final m in allModules) {
@@ -261,6 +265,14 @@ class PermissionCatalog {
         if (readOnlyStock &&
             m.key == 'branch_stock' &&
             a != PermAction.view) {
+          continue;
+        }
+        // Cashier ke liye ledger entries edit/delete nahi — sirf
+        // dekh/export kar sakta hai (customer.edit/delete se alag rule).
+        if (readOnlyLedger &&
+            m.key == 'customer_ledger' &&
+            a != PermAction.view &&
+            a != PermAction.export) {
           continue;
         }
         out.add(m.actionKey(a));

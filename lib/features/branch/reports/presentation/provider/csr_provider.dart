@@ -34,13 +34,17 @@ class CsrState {
     this.showSales = true,
     this.showReturns = true,
     this.showLedger = true,
-  })  : fromDate = fromDate ?? _today(),
+  })  : fromDate = fromDate ?? _weekAgo(),
         toDate = toDate ?? _today();
 
   static DateTime _today() {
     final n = DateTime.now();
     return DateTime(n.year, n.month, n.day);
   }
+
+  // Default range: pichle 7 din (aaj samet) — koi customer select kiye
+  // bina bhi report khud-ba-khud sab customers ka weekly data dikhata hai.
+  static DateTime _weekAgo() => _today().subtract(const Duration(days: 6));
 
   // ── Filtered entries ──────────────────────────────────────
   List<CsrEntry> get filteredEntries {
@@ -150,20 +154,21 @@ class CsrNotifier extends StateNotifier<CsrState> {
 
   CsrNotifier(this._ref)
       : _ds = CsrDatasource(),
-        super(CsrState());
+        super(CsrState()) {
+    load();
+  }
 
   String get _storeId => _ref.read(authProvider).storeId;
 
+  // Customer select na ho to bhi (default) — poore branch ka data aata hai.
   Future<void> load() async {
-    if (state.selectedCustomerId == null) return;
-
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final entries = await _ds.getAll(
         storeId: _storeId,
         fromDate: state.fromDate,
         toDate: state.toDate,
-        customerId: state.selectedCustomerId!,
+        customerId: state.selectedCustomerId,
       );
       state = state.copyWith(allEntries: entries, isLoading: false);
     } catch (e) {
@@ -176,18 +181,14 @@ class CsrNotifier extends StateNotifier<CsrState> {
       state = state.copyWith(
         clearSelectedCustomer: true,
         clearSelectedCustomerName: true,
-        allEntries: [],
       );
     } else {
-      final today = CsrState._today();
       state = state.copyWith(
         selectedCustomerId: customerId,
         selectedCustomerName: customerName,
-        fromDate: today.subtract(const Duration(days: 30)),
-        toDate: today,
       );
-      load();
     }
+    load();
   }
 
   void setDateRange(DateTime from, DateTime to) {
