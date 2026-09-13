@@ -172,6 +172,11 @@ class PermissionCatalog {
           icon: Icons.report_gmailerrorred_outlined,
           actions: [PermAction.view, PermAction.create, PermAction.delete],
         ),
+        PermModule(
+          key: 'inventory_balance', label: 'Stock Balance Requests',
+          icon: Icons.sync_alt_rounded,
+          actions: [PermAction.view, PermAction.edit],
+        ),
       ],
     ),
     PermGroup(
@@ -241,8 +246,8 @@ class PermissionCatalog {
           'dashboard', 'sale_invoice', 'sale_return', 'customer',
           'customer_account', 'customer_ledger', 'cash_counter',
           'cash_difference', 'branch_transaction', 'branch_stock',
-          'stock_transfer', 'stock_damage', 'report_sale_invoice',
-          'report_sale_return', 'report_csr',
+          'stock_transfer', 'stock_damage', 'inventory_balance',
+          'report_sale_invoice', 'report_sale_return', 'report_csr',
         ]);
 
       case 'cashier':

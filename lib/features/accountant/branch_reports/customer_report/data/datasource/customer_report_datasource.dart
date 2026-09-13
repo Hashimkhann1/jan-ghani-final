@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/customer_invoice_model.dart';
 import '../model/customer_return_model.dart';
@@ -300,6 +302,47 @@ class CustomerReportDatasource {
     required DateTime fromDate,
     required DateTime toDate,
   }) => fetchLedger(customerId: customerId, fromDate: fromDate, toDate: toDate);
+
+  // ── Photo ────────────────────────────────────────────────────
+  static const _photoBucket = 'customer-photos';
+
+  Future<String?> getCustomerPhotoUrl(String customerId) async {
+    try {
+      final row = await _client
+          .from('customer')
+          .select('photo_url')
+          .eq('id', customerId)
+          .maybeSingle();
+      final url = row?['photo_url']?.toString();
+      return (url == null || url.isEmpty) ? null : url;
+    } catch (e) {
+      print('❌ getCustomerPhotoUrl error: $e');
+      return null;
+    }
+  }
+
+  Future<String> uploadCustomerPhoto({
+    required String customerId,
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    final path = '$customerId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+    await _client.storage.from(_photoBucket).uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(contentType: 'image/$fileExt', upsert: true),
+    );
+
+    final url = _client.storage.from(_photoBucket).getPublicUrl(path);
+
+    await _client
+        .from('customer')
+        .update({'photo_url': url})
+        .eq('id', customerId);
+
+    return url;
+  }
 
   // ── Utility ──────────────────────────────────────────────────
   static double? _dbl(dynamic v) {

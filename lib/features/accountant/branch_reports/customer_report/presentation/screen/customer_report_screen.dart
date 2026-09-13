@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../data/model/customer_invoice_model.dart';
 import '../../data/model/customer_return_model.dart';
@@ -7,6 +8,7 @@ import '../../data/model/specific_customer_ledger_model.dart';
 import '../../data/service/customer_report_pdf_service.dart';
 import '../provider/customer_report_provider.dart';
 import 'package:jan_ghani_final/core/service/session/accountant_session.dart';
+import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -219,6 +221,7 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
       appBar: _buildAppBar(context),
       body: Column(children: [
         _CustomerHeader(
+          customerId: widget.customerId,
           name:    widget.customerName,
           phone:   widget.customerPhone,
           balance: widget.customerBalance,
@@ -292,6 +295,7 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _CustomerHeaderVertical(
+                      customerId: widget.customerId,
                       name:    widget.customerName,
                       phone:   widget.customerPhone,
                       balance: widget.customerBalance,
@@ -380,8 +384,7 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
     ),
     actions: [
       IconButton(
-        icon: const Icon(Icons.picture_as_pdf_outlined,
-            size: 20, color: _Clr.textSecond),
+        icon: const AppIcon('ic_print', size: 20, color: _Clr.textSecond),
         tooltip:   'Export PDF',
         onPressed: _exportPdf,
       ),
@@ -400,12 +403,13 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
 // Customer Header — Mobile (horizontal)
 // ══════════════════════════════════════════════════════════════
 class _CustomerHeader extends StatelessWidget {
+  final String  customerId;
   final String  name;
   final String? phone;
   final double  balance;
   final String Function(double) fmt;
   const _CustomerHeader({
-    required this.name, this.phone,
+    required this.customerId, required this.name, this.phone,
     required this.balance, required this.fmt,
   });
 
@@ -416,23 +420,7 @@ class _CustomerHeader extends StatelessWidget {
       color: _Clr.card,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Row(children: [
-        // Avatar
-        Container(
-          width: 46, height: 46,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1570EF), Color(0xFF0E4FBB)],
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            name.isNotEmpty ? name[0].toUpperCase() : '?',
-            style: const TextStyle(
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-        ),
+        _CustomerAvatar(customerId: customerId, name: name, size: 46),
         const SizedBox(width: 12),
         // Name + phone
         Expanded(
@@ -490,12 +478,13 @@ class _CustomerHeader extends StatelessWidget {
 // Customer Header — Web sidebar (vertical)
 // ══════════════════════════════════════════════════════════════
 class _CustomerHeaderVertical extends StatelessWidget {
+  final String  customerId;
   final String  name;
   final String? phone;
   final double  balance;
   final String Function(double) fmt;
   const _CustomerHeaderVertical({
-    required this.name, this.phone,
+    required this.customerId, required this.name, this.phone,
     required this.balance, required this.fmt,
   });
 
@@ -504,22 +493,7 @@ class _CustomerHeaderVertical extends StatelessWidget {
     final hasBalance = balance > 0;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Container(
-          width: 42, height: 42,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1570EF), Color(0xFF0E4FBB)],
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            name.isNotEmpty ? name[0].toUpperCase() : '?',
-            style: const TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-        ),
+        _CustomerAvatar(customerId: customerId, name: name, size: 42),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -566,6 +540,98 @@ class _CustomerHeaderVertical extends StatelessWidget {
         ]),
       ),
     ]);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Customer Avatar — tap to upload photo (falls back to initial)
+// ══════════════════════════════════════════════════════════════
+class _CustomerAvatar extends ConsumerWidget {
+  final String customerId;
+  final String name;
+  final double size;
+  const _CustomerAvatar({
+    required this.customerId, required this.name, this.size = 46,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photoUrl = ref.watch(customerPhotoProvider(customerId)).asData?.value;
+    final radius   = size * 0.3;
+
+    return GestureDetector(
+      onTap: () => _pickAndUploadCustomerPhoto(context, ref, customerId),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: size, height: size,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1570EF), Color(0xFF0E4FBB)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(radius),
+            ),
+            clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center,
+            child: (photoUrl != null && photoUrl.isNotEmpty)
+                ? Image.network(
+              photoUrl,
+              width: size, height: size, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _initial(),
+            )
+                : _initial(),
+          ),
+          Positioned(
+            right: -2, bottom: -2,
+            child: Container(
+              width: size * 0.36, height: size * 0.36,
+              decoration: BoxDecoration(
+                color:  _Clr.accent,
+                shape:  BoxShape.circle,
+                border: Border.all(color: _Clr.card, width: 2),
+              ),
+              child: Icon(Icons.camera_alt_rounded,
+                  size: size * 0.2, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _initial() => Text(
+    name.isNotEmpty ? name[0].toUpperCase() : '?',
+    style: TextStyle(
+        color: Colors.white, fontSize: size * 0.43,
+        fontWeight: FontWeight.w700),
+  );
+}
+
+Future<void> _pickAndUploadCustomerPhoto(
+    BuildContext context, WidgetRef ref, String customerId) async {
+  try {
+    final file = await ImagePicker().pickImage(
+      source:      ImageSource.gallery,
+      maxWidth:    1024,
+      imageQuality: 85,
+    );
+    if (file == null) return;
+
+    final bytes = await file.readAsBytes();
+    final ext = file.name.contains('.')
+        ? file.name.split('.').last.toLowerCase()
+        : 'jpg';
+
+    await ref.read(customerPhotoProvider(customerId).notifier).upload(bytes, ext);
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Photo upload failed: $e'),
+        backgroundColor: _Clr.redText,
+      ));
+    }
   }
 }
 
@@ -720,13 +786,13 @@ class _SearchBar extends StatelessWidget {
         decoration: InputDecoration(
           hintText:  'Search invoice, product…',
           hintStyle: const TextStyle(fontSize: 13, color: _Clr.textMuted),
-          prefixIcon: const Icon(Icons.search_rounded,
+          prefixIcon: const AppIcon('ic_search',
               size: 18, color: _Clr.textMuted),
           suffixIcon: ListenableBuilder(
             listenable: controller,
             builder: (_, __) => controller.text.isNotEmpty
                 ? IconButton(
-              icon: const Icon(Icons.close_rounded,
+              icon: const AppIcon('ic_clear',
                   size: 16, color: _Clr.textMuted),
               onPressed: () {
                 controller.clear();
@@ -822,7 +888,7 @@ class _SaleCardState extends State<_SaleCard> {
                     color: _Clr.blueBg,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.receipt_long_outlined,
+                  child: const AppIcon('sidebar_icons/sale_invoice',
                       size: 16, color: _Clr.blueText),
                 ),
                 const SizedBox(width: 10),
@@ -944,7 +1010,7 @@ class _ReturnCardState extends State<_ReturnCard> {
                     color: _Clr.amberBg,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.keyboard_return_rounded,
+                  child: const AppIcon('sidebar_icons/sale_return_report',
                       size: 16, color: _Clr.amberText),
                 ),
                 const SizedBox(width: 10),
@@ -1053,8 +1119,8 @@ class _LedgerCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: iconBg, borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                isPayment ? Icons.payments_outlined : Icons.add_card_outlined,
+              child: AppIcon(
+                isPayment ? 'ic_pay_now' : 'ic_credit_sale',
                 size: 16, color: amtColor,
               ),
             ),
@@ -1149,7 +1215,7 @@ class _DateField extends StatelessWidget {
     decoration: InputDecoration(
       labelText:  label,
       labelStyle: const TextStyle(fontSize: 11, color: _Clr.textSecond),
-      prefixIcon: const Icon(Icons.calendar_today_outlined,
+      prefixIcon: const AppIcon('ic_calendar',
           size: 14, color: _Clr.textMuted),
       filled:         true,
       fillColor:      _Clr.card,
@@ -1315,7 +1381,7 @@ class _EmptyState extends StatelessWidget {
             border:       Border.all(color: _Clr.border),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Icon(Icons.inbox_outlined, size: 32, color: _Clr.textMuted),
+          child: const AppIcon('ic_cart_empty', size: 32, color: _Clr.textMuted),
         ),
         const SizedBox(height: 16),
         Text(message,

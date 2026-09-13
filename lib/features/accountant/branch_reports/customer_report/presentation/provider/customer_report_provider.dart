@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasource/customer_report_datasource.dart';
 import '../../data/model/customer_invoice_model.dart';
@@ -353,4 +355,42 @@ final customerReportLedgerProvider = StateNotifierProvider.family<
     customerId: args.customerId,
     customerName: args.customerName,
   ),
+);
+
+// ═════════════════════════════════════════════════════════════
+// 4. PHOTO PROVIDER — customer avatar upload
+// ═════════════════════════════════════════════════════════════
+
+class CustomerPhotoNotifier extends StateNotifier<AsyncValue<String?>> {
+  final CustomerReportDatasource _ds;
+  final String customerId;
+
+  CustomerPhotoNotifier(this.customerId)
+      : _ds = CustomerReportDatasource(),
+        super(const AsyncValue.loading()) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final url = await _ds.getCustomerPhotoUrl(customerId);
+      state = AsyncValue.data(url);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> upload(Uint8List bytes, String fileExt) async {
+    final url = await _ds.uploadCustomerPhoto(
+      customerId: customerId,
+      bytes: bytes,
+      fileExt: fileExt,
+    );
+    state = AsyncValue.data(url);
+  }
+}
+
+final customerPhotoProvider = StateNotifierProvider.family<
+    CustomerPhotoNotifier, AsyncValue<String?>, String>(
+      (ref, customerId) => CustomerPhotoNotifier(customerId),
 );

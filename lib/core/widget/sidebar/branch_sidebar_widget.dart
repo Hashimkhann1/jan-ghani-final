@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_damage/presentation/screen/branch_stock_damage_screen.dart';
+// import 'package:jan_ghani_final/features/branch/inventory_balance/presentation/screen/branch_inventory_balance_screen.dart'; // hidden until apply_inventory_balance_item RPC migration is run
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';
 import 'package:jan_ghani_final/features/branch/permissions/presentation/provider/permissions_provider.dart';
@@ -232,6 +233,12 @@ final _stockOfficerItems = <NavItem>[
     section: 'INVENTORY',
     permKey: 'stock_damage',
   ),
+  // NavItem(
+  //   icon: Icons.sync_alt_rounded, label: 'Stock Balance Requests',
+  //   screen: const BranchInventoryBalanceScreen(),
+  //   section: 'INVENTORY',
+  //   permKey: 'inventory_balance',
+  // ), // hidden until apply_inventory_balance_item RPC migration is run
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'Sale Report',
     screen: const SaleInvoiceListScreen(),
@@ -344,6 +351,12 @@ final _managerItems = <NavItem>[
     section: 'INVENTORY',
     permKey: 'stock_damage',
   ),
+  // NavItem(
+  //   icon: Icons.sync_alt_rounded, label: 'Stock Balance Requests',
+  //   screen: const BranchInventoryBalanceScreen(),
+  //   section: 'INVENTORY',
+  //   permKey: 'inventory_balance',
+  // ), // hidden until apply_inventory_balance_item RPC migration is run
   NavItem(
     icon: Icons.bar_chart_rounded, label: 'Sale Invoice Report',
     screen: const SaleInvoiceListScreen(),
