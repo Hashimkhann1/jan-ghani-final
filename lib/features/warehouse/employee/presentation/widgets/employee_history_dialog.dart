@@ -138,7 +138,7 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                   _vDiv(),
                   _totCol('Salary', salaryTotal, AppColor.success),
                   _vDiv(),
-                  _totCol('Advance', advanceTotal, AppColor.warning),
+                  _totCol('Advance', advanceTotal, AppColor.warningDark),
                 ]),
               ),
             ),
@@ -216,7 +216,7 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                                         : Icons.payments_outlined,
                                     size: 15,
                                     color: pay.isAdvance
-                                        ? AppColor.warning
+                                        ? AppColor.warningDark
                                         : AppColor.success),
                                 const SizedBox(width: 8),
                                 Container(
@@ -224,7 +224,7 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                                       horizontal: 7, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: (pay.isAdvance
-                                            ? AppColor.warning
+                                            ? AppColor.warningDark
                                             : AppColor.success)
                                         .withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(5),
@@ -234,7 +234,7 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w700,
                                           color: pay.isAdvance
-                                              ? AppColor.warning
+                                              ? AppColor.warningDark
                                               : AppColor.success)),
                                 ),
                                 const SizedBox(width: 8),

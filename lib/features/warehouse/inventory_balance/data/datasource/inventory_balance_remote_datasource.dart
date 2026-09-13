@@ -1,3 +1,4 @@
+// Updated on 2026-09-12 12:50 PM
 // =============================================================
 // inventory_balance_remote_datasource.dart
 // Warehouse app ka Supabase-side READ layer.
@@ -51,11 +52,11 @@ class InventoryBalanceRemoteDatasource {
     try {
       rows = await _client
           .from('inventory_counting')
-          .select('id, product_id, product_stock, counting_stock, counted_date, store_id')
+          .select('id, product_id, product_stock, counting_stock, counted_date, updated_at, store_id')
           .eq('store_id', storeId)
           .gte('counted_date', _dayStart(from))
           .lt ('counted_date', _dayAfter(now))
-          .order('counted_date', ascending: false)
+          .order('updated_at', ascending: false)
           .limit(1000);
     } on PostgrestException catch (e) {
       // Missing table (PGRST205) — testing DB par branch schema deploy nahi
@@ -104,7 +105,9 @@ class InventoryBalanceRemoteDatasource {
         systemStock:   _d(r['product_stock']),
         physicalStock: _d(r['counting_stock']),
         unitPrice:     _d(p['selling_price']),
-        countedAt:     _parseDate(r['counted_date']),
+        // updated_at (full timestamp, UTC) preferred — display side toLocal()
+        // karega. Fallback: counted_date (sirf date, midnight ho jayega).
+        countedAt:     _parseDate(r['updated_at'] ?? r['counted_date']),
         storeId:       storeId,
       ));
     }

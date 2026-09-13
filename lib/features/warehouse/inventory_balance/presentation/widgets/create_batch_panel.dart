@@ -1,3 +1,4 @@
+// Updated on 2026-09-12 12:50 PM
 // =============================================================
 // create_batch_panel.dart
 // Tab 1 — Create Balance Request (redesigned).
@@ -27,6 +28,37 @@ class CreateBatchPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state    = ref.watch(createBatchProvider);
     final notifier = ref.read(createBatchProvider.notifier);
+
+    // Auto-select first store on initial load (jab tak koi selection na ho).
+    // Note: `fireImmediately` iss Riverpod version mein available nahi hai,
+    // isliye current async value bhi manually check karte hain + future
+    // changes ke liye ref.listen bhi lagate hain.
+    final storesAsync = ref.watch(linkedStoresProvider(AppConfig.warehouseId));
+    if (state.selectedStoreId == null) {
+      storesAsync.whenData((stores) {
+        if (stores.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Guard: user ya doosri build ne is dauran select kar liya to skip
+            if (ref.read(createBatchProvider).selectedStoreId == null) {
+              ref.read(createBatchProvider.notifier)
+                  .selectStore(stores.first.storeId);
+            }
+          });
+        }
+      });
+    }
+    ref.listen<AsyncValue<List<LinkedStoreModel>>>(
+      linkedStoresProvider(AppConfig.warehouseId),
+      (prev, next) {
+        next.whenData((stores) {
+          final selected = ref.read(createBatchProvider).selectedStoreId;
+          if (selected == null && stores.isNotEmpty) {
+            ref.read(createBatchProvider.notifier)
+                .selectStore(stores.first.storeId);
+          }
+        });
+      },
+    );
 
     // Success + error toasts
     ref.listen<CreateBatchState>(createBatchProvider, (prev, next) {
@@ -292,8 +324,10 @@ class _SummaryTiles extends ConsumerWidget {
       error:   (_, __) => const _TilesLoader(),
       data: (rows) {
         final effective = rows.map((r) {
-          final physical = state.overrides[r.countingId] ?? r.physicalStock;
-          final delta    = physical - r.systemStock;
+          // Delta editable — override ho to woh, warna (physical - system).
+          final delta    = state.overrides[r.countingId]
+              ?? (r.physicalStock - r.systemStock);
+          final physical = r.physicalStock; // read-only, branch's evidence
           final impact   = (delta * r.unitPrice).abs();
           return (row: r, physical: physical, delta: delta, impact: impact,
                   isHigh: impact > kHighVarianceRupeeThreshold);
@@ -470,8 +504,8 @@ class _ViewFilterChips extends ConsumerWidget {
         int allCount = rows.length;
         int redFlag = 0, missing = 0, extra = 0;
         for (final r in rows) {
-          final physical = state.overrides[r.countingId] ?? r.physicalStock;
-          final delta = physical - r.systemStock;
+          final delta = state.overrides[r.countingId]
+              ?? (r.physicalStock - r.systemStock);
           final impact = (delta * r.unitPrice).abs();
           if (impact > kHighVarianceRupeeThreshold) redFlag++;
           if (delta < 0) missing++;
@@ -747,20 +781,22 @@ List<PendingCountRow> _visibleRows(List<PendingCountRow> rows, CreateBatchState 
         (r.productSku ?? '').toLowerCase().contains(q));
   }
 
-  // View filter — override-aware
-  double effDelta(PendingCountRow r) =>
-      (st.overrides[r.countingId] ?? r.physicalStock) - r.systemStock;
-  double effImpact(PendingCountRow r) => (effDelta(r) * r.unitPrice).abs();
+  // ⚠️ View filter + sort — ORIGINAL delta/impact par based (branch ka
+  // counted_stock). User ke overrides (stepper edits) IGNORE hote hain
+  // taake edit karte waqt item apni position/list par baithi rahe
+  // (warna re-sort item ko upar/neechay udaa deta hai — bug).
+  double origDelta(PendingCountRow r) => r.physicalStock - r.systemStock;
+  double origImpact(PendingCountRow r) => (origDelta(r) * r.unitPrice).abs();
 
   switch (st.viewFilter) {
     case CreateViewFilter.redFlag:
-      it = it.where((r) => effImpact(r) > kHighVarianceRupeeThreshold);
+      it = it.where((r) => origImpact(r) > kHighVarianceRupeeThreshold);
       break;
     case CreateViewFilter.missing:
-      it = it.where((r) => effDelta(r) < 0);
+      it = it.where((r) => origDelta(r) < 0);
       break;
     case CreateViewFilter.extra:
-      it = it.where((r) => effDelta(r) > 0);
+      it = it.where((r) => origDelta(r) > 0);
       break;
     case CreateViewFilter.all:
       break;
@@ -771,10 +807,10 @@ List<PendingCountRow> _visibleRows(List<PendingCountRow> rows, CreateBatchState 
   // Sort
   switch (st.sortMode) {
     case CreateSortMode.impactDesc:
-      list.sort((a, b) => effImpact(b).compareTo(effImpact(a)));
+      list.sort((a, b) => origImpact(b).compareTo(origImpact(a)));
       break;
     case CreateSortMode.impactAsc:
-      list.sort((a, b) => effImpact(a).compareTo(effImpact(b)));
+      list.sort((a, b) => origImpact(a).compareTo(origImpact(b)));
       break;
     case CreateSortMode.productName:
       list.sort((a, b) => a.productName.toLowerCase()
@@ -821,8 +857,10 @@ class _ItemCard extends ConsumerWidget {
     final notifier = ref.read(createBatchProvider.notifier);
     final selected = state.selectedCountingIds.contains(row.countingId);
     final override = state.overrides[row.countingId];
-    final physical = override ?? row.physicalStock;
-    final delta = physical - row.systemStock;
+    // Delta editable: override ho to woh, warna original (physical - system).
+    // Physical strict read-only — branch ne jo gina wahi.
+    final delta = override ?? (row.physicalStock - row.systemStock);
+    final physical = row.physicalStock;
     final impact = (delta * row.unitPrice).abs();
     final isHigh = impact > kHighVarianceRupeeThreshold;
 
@@ -848,9 +886,12 @@ class _ItemCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
               // Avatar (product initial)
               // _ProductAvatar(name: row.productName),
               // const SizedBox(width: 12),
@@ -908,30 +949,28 @@ class _ItemCard extends ConsumerWidget {
                 child: Row(children: [
                   _StatCol(label: 'SYSTEM', value: _fmt(row.systemStock)),
                   const SizedBox(width: 16),
+                  _StatCol(
+                    label: 'PHYSICAL',
+                    value: _fmt(physical),
+                  ),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('PHYSICAL',
+                        const Text('DELTA',
                             style: TextStyle(
                               fontSize: 10, color: AppColor.textSecondary,
                               fontWeight: FontWeight.w700, letterSpacing: 0.8,
                             )),
                         const SizedBox(height: 4),
-                        _NumberStepper(
-                          value: physical,
+                        _DeltaStepper(
+                          value: delta,
                           isOverridden: override != null,
                           onChanged: (v) => notifier.setOverride(row.countingId, v),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  _StatCol(
-                    label: 'DELTA',
-                    value: (delta >= 0 ? '+' : '−') + _fmt(delta.abs()),
-                    valueColor: delta >= 0 ? AppColor.success : AppColor.error,
-                    valueWeight: FontWeight.w800,
                   ),
                 ]),
               ),
@@ -974,6 +1013,21 @@ class _ItemCard extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          // Counted on — local date + time (branch ne kab gina)
+          Row(children: [
+            const Icon(Icons.schedule_rounded,
+                size: 12, color: AppColor.textHint),
+            const SizedBox(width: 5),
+            Text('Counted: ${_fmtDateTime(row.countedAt)}',
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  color: AppColor.textHint,
+                  fontWeight: FontWeight.w600,
+                )),
+          ]),
+          ],
+          ),
         ),
       ),
     );
@@ -981,6 +1035,15 @@ class _ItemCard extends ConsumerWidget {
 
   static String _fmt(double v) =>
       v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
+
+  static String _fmtDateTime(DateTime d) {
+    final l = d.toLocal();
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final h12 = l.hour == 0 ? 12 : (l.hour > 12 ? l.hour - 12 : l.hour);
+    final ampm = l.hour >= 12 ? 'PM' : 'AM';
+    final mm = l.minute.toString().padLeft(2, '0');
+    return '${l.day} ${months[l.month - 1]} ${l.year}, $h12:$mm $ampm';
+  }
 }
 
 class _ProductAvatar extends StatelessWidget {
@@ -1054,22 +1117,23 @@ class _StatCol extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Number stepper — minus / editable / plus
-class _NumberStepper extends StatefulWidget {
+// Delta stepper — same UI as _NumberStepper, but allows NEGATIVE values
+// (warehouse ka adjustment amount +/- dono ho sakta hai).
+class _DeltaStepper extends StatefulWidget {
   final double value;
   final bool isOverridden;
   final void Function(double? val) onChanged;
-  const _NumberStepper({
+  const _DeltaStepper({
     required this.value,
     required this.isOverridden,
     required this.onChanged,
   });
 
   @override
-  State<_NumberStepper> createState() => _NumberStepperState();
+  State<_DeltaStepper> createState() => _DeltaStepperState();
 }
 
-class _NumberStepperState extends State<_NumberStepper> {
+class _DeltaStepperState extends State<_DeltaStepper> {
   late final TextEditingController _ctrl;
 
   @override
@@ -1079,7 +1143,7 @@ class _NumberStepperState extends State<_NumberStepper> {
   }
 
   @override
-  void didUpdateWidget(covariant _NumberStepper old) {
+  void didUpdateWidget(covariant _DeltaStepper old) {
     super.didUpdateWidget(old);
     if (widget.value != old.value && _ctrl.text != _fmt(widget.value)) {
       _ctrl.text = _fmt(widget.value);
@@ -1092,17 +1156,25 @@ class _NumberStepperState extends State<_NumberStepper> {
     super.dispose();
   }
 
-  String _fmt(double v) =>
-      v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(2);
+  // Signed format: +5, -3, 0
+  String _fmt(double v) {
+    final abs = v.abs();
+    final s = abs % 1 == 0 ? abs.toInt().toString() : abs.toStringAsFixed(2);
+    if (v > 0) return '+$s';
+    if (v < 0) return '-$s';
+    return '0';
+  }
 
   void _bump(double step) {
-    final next = (widget.value + step).clamp(0, 999999).toDouble();
-    widget.onChanged(next);
+    // No clamp — delta free range.
+    widget.onChanged(widget.value + step);
   }
 
   void _commit() {
-    final v = double.tryParse(_ctrl.text.trim());
-    if (v != null && v >= 0) {
+    // Accept: 5, +5, -3, 3.5
+    final raw = _ctrl.text.trim().replaceAll('−', '-');
+    final v = double.tryParse(raw);
+    if (v != null) {
       widget.onChanged(v);
     } else {
       _ctrl.text = _fmt(widget.value);
@@ -1111,6 +1183,12 @@ class _NumberStepperState extends State<_NumberStepper> {
 
   @override
   Widget build(BuildContext context) {
+    final positive = widget.value > 0;
+    final negative = widget.value < 0;
+    final signColor = positive
+        ? AppColor.success
+        : (negative ? AppColor.error : AppColor.textPrimary);
+
     return Container(
       height: 32,
       decoration: BoxDecoration(
@@ -1128,10 +1206,12 @@ class _NumberStepperState extends State<_NumberStepper> {
           child: TextField(
             controller: _ctrl,
             textAlign: TextAlign.center,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600,
-              color: AppColor.textPrimary,
+            keyboardType: const TextInputType.numberWithOptions(
+                decimal: true, signed: true),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: signColor,
             ),
             decoration: const InputDecoration(
               border: InputBorder.none, isDense: true,
@@ -1184,8 +1264,8 @@ class _StickyFooter extends ConsumerWidget {
     int highSelected = 0;
     int highTotal = 0;
     for (final r in rows) {
-      final physical = state.overrides[r.countingId] ?? r.physicalStock;
-      final delta = physical - r.systemStock;
+      final delta = state.overrides[r.countingId]
+          ?? (r.physicalStock - r.systemStock);
       final impact = (delta * r.unitPrice).abs();
       if (impact > kHighVarianceRupeeThreshold) {
         highTotal++;
@@ -1193,8 +1273,8 @@ class _StickyFooter extends ConsumerWidget {
       }
     }
     for (final r in selected) {
-      final physical = state.overrides[r.countingId] ?? r.physicalStock;
-      final delta = physical - r.systemStock;
+      final delta = state.overrides[r.countingId]
+          ?? (r.physicalStock - r.systemStock);
       totalImpact += (delta * r.unitPrice).abs();
     }
     final selectedCount = state.selectedCountingIds.length;

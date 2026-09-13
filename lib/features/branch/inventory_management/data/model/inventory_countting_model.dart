@@ -1,3 +1,4 @@
+// Updated on 2026-09-12 12:50 PM
 // data/model/inventory_countting_model.dart
 
 class InventoryProductModel {
@@ -58,7 +59,9 @@ class InventoryCountingModel {
       'product_id': productId,
       'product_stock': productStock,
       'counting_stock': countingStock,
-      'updated_at': updatedAt.toIso8601String(),
+      // UTC ISO (Z suffix) — Supabase timestamptz reads back tz-aware,
+      // display side .toLocal() call karta hai.
+      'updated_at': updatedAt.toUtc().toIso8601String(),
       'counted_date': countedDate,
       'store_id': storeId,
     };

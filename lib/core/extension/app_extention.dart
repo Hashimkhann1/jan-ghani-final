@@ -217,9 +217,12 @@ extension DateTimeExtension on DateTime {
     return day == tomorrow.day && month == tomorrow.month && year == tomorrow.year;
   }
 
-  /// Time ago
+  /// Time ago — safe under UTC vs local (difference works on tz-aware DTs).
+  /// Naive DateTime jo actually UTC stored ho, use case rare hai — but caller
+  /// ko chahiye .toUtc() ya .toLocal() consistent karke bheje.
   String get timeAgo {
-    final diff = DateTime.now().difference(this);
+    final diff = DateTime.now().toUtc().difference(toUtc());
+    if (diff.isNegative) return 'Just now';
     if (diff.inSeconds < 60) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';

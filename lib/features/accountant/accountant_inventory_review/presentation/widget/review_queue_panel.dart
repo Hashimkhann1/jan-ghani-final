@@ -1,3 +1,4 @@
+// Updated on 2026-09-12 12:50 PM
 // =============================================================
 // review_queue_panel.dart
 // Reviewer's Tab 1 — items with status='review_pending', grouped
@@ -86,6 +87,16 @@ class ReviewQueuePanel extends ConsumerWidget {
   }
 }
 
+// Batch createdAt (Supabase UTC) → local date+time compact display.
+String _fmtLocal(DateTime d) {
+  final l = d.toLocal();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  final h = l.hour == 0 ? 12 : (l.hour > 12 ? l.hour - 12 : l.hour);
+  final ampm = l.hour >= 12 ? 'PM' : 'AM';
+  final mm = l.minute.toString().padLeft(2, '0');
+  return '${l.day} ${months[l.month - 1]}, $h:$mm $ampm';
+}
+
 class _BatchGroupCard extends ConsumerWidget {
   final BalanceBatchModel? batch;
   final List<BalanceItemModel> items;
@@ -131,9 +142,13 @@ class _BatchGroupCard extends ConsumerWidget {
                               fontWeight: FontWeight.w700,
                               color: AppColor.textPrimary)),
                       if (batch != null)
-                        Text('${batch!.createdByName ?? '—'}  ·  ${batch!.createdAt.timeAgo}',
-                            style: const TextStyle(
-                                fontSize: 10.5, color: AppColor.textSecondary)),
+                        Text(
+                          '${batch!.createdByName ?? '—'}  ·  '
+                          '${_fmtLocal(batch!.createdAt)}  ·  '
+                          '${batch!.createdAt.timeAgo}',
+                          style: const TextStyle(
+                              fontSize: 10.5, color: AppColor.textSecondary),
+                        ),
                     ],
                   ),
                 ),

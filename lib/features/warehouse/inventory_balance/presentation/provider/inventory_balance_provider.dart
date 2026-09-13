@@ -1,3 +1,4 @@
+// Updated on 2026-09-12 12:50 PM
 // =============================================================
 // inventory_balance_provider.dart
 // Warehouse-side providers for Inventory Balance feature.
@@ -37,7 +38,10 @@ enum CreateSortMode   { impactDesc, impactAsc, productName, recent }
 class CreateBatchState {
   final String?              selectedStoreId;
   final Set<String>          selectedCountingIds;
-  final Map<String, double>  overrides;   // countingId → user-entered physical qty
+  // countingId → user-entered DELTA (physical - system). Physical is treated
+  // as branch's read-only evidence; warehouse decides the adjustment amount.
+  // Removing an entry restores the row's original delta (physical - system).
+  final Map<String, double>  overrides;
   final String               notes;
   final bool                 isSaving;
   final String?              errorMessage;
@@ -116,12 +120,14 @@ class CreateBatchNotifier extends StateNotifier<CreateBatchState> {
     }
   }
 
-  void setOverride(String countingId, double? qty) {
+  /// [delta] null = original delta (physical - system) restore ho jayega.
+  /// Delta free-range hai — negative bhi ho sakta hai.
+  void setOverride(String countingId, double? delta) {
     final map = {...state.overrides};
-    if (qty == null) {
+    if (delta == null) {
       map.remove(countingId);
     } else {
-      map[countingId] = qty;
+      map[countingId] = delta;
     }
     state = state.copyWith(overrides: map);
   }
@@ -157,9 +163,11 @@ class CreateBatchNotifier extends StateNotifier<CreateBatchState> {
           .toList();
 
       final items = picked.map((r) {
-        // Physical stock — override ho to woh, warna row ka original counting_stock.
-        final physical = state.overrides[r.countingId] ?? r.physicalStock;
-        final delta    = physical - r.systemStock;
+        // Delta — warehouse ka adjustment amount. Override na ho to row ka
+        // original delta (physical - system).
+        // Physical stock IMMUTABLE hai — branch ne jo gina wahi record hoga.
+        final delta    = state.overrides[r.countingId] ?? (r.physicalStock - r.systemStock);
+        final physical = r.physicalStock;
         return BalanceItemModel(
           id:                 '', // datasource generate karega
           batchId:            '', // datasource set karega
