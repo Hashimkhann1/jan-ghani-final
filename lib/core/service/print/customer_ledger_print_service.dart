@@ -143,6 +143,92 @@ class CustomerLedgerPrintService {
     }
   }
 
+  // ── Customer Balance Slip ────────────────────────────────
+  static Future<void> printCustomerBalance({
+    required String storeName,
+    required String branchAddress,
+    required String branchPhone,
+    required String counterName,
+    required String customerName,
+    required String customerPhone,
+    required double balance,
+  }) async {
+    final doc = pw.Document();
+
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat(
+          _paperWidth,
+          double.infinity,
+          marginAll: 2 * PdfPageFormat.mm,
+        ),
+        build: (_) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            // ── Store Name ──────────────────────────────
+            pw.Center(
+              child: pw.Text(
+                storeName,
+                style: pw.TextStyle(
+                  fontSize: 11,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 1),
+            if (branchAddress.isNotEmpty)
+              pw.Center(
+                child: pw.Text(
+                  branchAddress,
+                  style: const pw.TextStyle(fontSize: 7.5),
+                ),
+              ),
+            if (branchPhone.isNotEmpty)
+              pw.Center(
+                child: pw.Text(
+                  branchPhone,
+                  style: const pw.TextStyle(fontSize: 7.5),
+                ),
+              ),
+            pw.SizedBox(height: 1),
+            _thinDivider(),
+
+            // ── Counter ─────────────────────────────────
+            _kv('Counter', counterName),
+            _thinDivider(),
+
+            // ── Customer ────────────────────────────────
+            _kv('Customer', customerName),
+            if (customerPhone.isNotEmpty) _kv('Phone', customerPhone),
+            _thinDivider(),
+
+            // ── Balance ─────────────────────────────────
+            _kvBold(
+              balance < 0 ? 'Advance' : 'Balance Due',
+              'Rs ${balance.abs().toStringAsFixed(2)}',
+            ),
+
+            pw.SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    // ── Print ────────────────────────────────────────────
+    try {
+      final printer = await _getThermalPrinter();
+      await Printing.directPrintPdf(
+        printer: printer,
+        onLayout: (_) async => doc.save(),
+        name: 'Balance_$customerName',
+      );
+      debugPrint('✅ Customer balance slip printed');
+    } catch (e) {
+      debugPrint('❌ Print failed: $e');
+      rethrow;
+    }
+  }
+
   // ── Helpers ──────────────────────────────────────────────
 
   static pw.Widget _thinDivider() =>
