@@ -1,6 +1,7 @@
 // lib/core/service/print/print_service.dart
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -11,6 +12,15 @@ import '../../../features/branch/sale_invoice/data/model/sale_return_model.dart'
 
 class ThermalPrintService {
   static const double _paperWidth = 72 * PdfPageFormat.mm;
+
+  static pw.MemoryImage? _logo;
+
+  static Future<pw.MemoryImage> _getLogo() async {
+    if (_logo != null) return _logo!;
+    final bytes = await rootBundle.load('assets/images/jan_ghani.png');
+    _logo = pw.MemoryImage(bytes.buffer.asUint8List());
+    return _logo!;
+  }
 
   static Future<Printer> _getThermalPrinter() async {
     final printers = await Printing.listPrinters();
@@ -47,6 +57,7 @@ class ThermalPrintService {
     String? notes,
   }) async {
     final doc = pw.Document();
+    final logo = await _getLogo();
     final dateFmt = DateFormat('dd/MM/yyyy');
     final timeFmt = DateFormat('hh:mm a');
 
@@ -75,6 +86,12 @@ class ThermalPrintService {
       build: (_) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
+          // ── Logo ───────────────────────────────────────────
+          pw.Center(
+            child: pw.Image(logo, width: 90, height: 90),
+          ),
+          pw.SizedBox(height: 4),
+
           // ── Store Header ───────────────────────────────────
           pw.Center(
             child: pw.Text(
@@ -348,6 +365,7 @@ class ThermalPrintService {
     double? currentBalance,
   }) async {
     final doc = pw.Document();
+    final logo = await _getLogo();
     final dateFmt = DateFormat('dd/MM/yyyy');
     final timeFmt = DateFormat('hh:mm a');
     final hasCustomer = customerName != null && customerName.isNotEmpty;
@@ -364,6 +382,10 @@ class ThermalPrintService {
       build: (_) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
+          pw.Center(
+            child: pw.Image(logo, width: 90, height: 90),
+          ),
+          pw.SizedBox(height: 4),
           pw.Center(
             child: pw.Text(
               storeName.toUpperCase(),
