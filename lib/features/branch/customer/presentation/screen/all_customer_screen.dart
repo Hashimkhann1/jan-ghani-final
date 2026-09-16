@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/branch/branch_info/presentation/provider/branch_provider.dart';
+import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/widget/add_customer_dialog.dart';
 import 'package:jan_ghani_final/features/branch/permissions/presentation/provider/permissions_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../../core/service/print/customer_ledger_print_service.dart';
 import '../../../../../core/widget/app_icon.dart';
 import '../../../../../core/widget/figure_card_widget.dart';
 import '../../data/model/customer_model.dart';
@@ -30,7 +33,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
   // ── Pagination ───────────────────────────────────────────
   int _page        = 0;      // 0-based current page
   int _rowsPerPage  = 25;
-  static const _rowsPerPageChoices = [10, 25, 50, 100];
+  static const _rowsPerPageChoices = [10, 25, 50, 100, 500];
 
   void _openDialog(BuildContext context, {CustomerModel? customer}) {
     showDialog(
@@ -69,6 +72,38 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
         ],
       ),
     );
+  }
+
+  // ── Print Balance ────────────────────────────────────────
+  Future<void> _printBalance(BuildContext context, WidgetRef ref, CustomerModel c) async {
+    try {
+      final auth = ref.read(authProvider);
+      final branch = await ref.read(branchProvider(auth.storeId).future);
+      final counters = ref.read(counterProvider).counters;
+      final counterName = auth.counterId != null
+          ? counters.where((cnt) => cnt.id == auth.counterId).map((cnt) => cnt.counterName).firstOrNull ?? 'Counter'
+          : 'Counter';
+
+      await CustomerLedgerPrintService.printCustomerBalance(
+        storeName:     branch?.name ?? '',
+        branchAddress: branch?.address ?? '',
+        branchPhone:   branch?.phone ?? '',
+        counterName:   counterName,
+        customerName:  c.name,
+        customerPhone: c.phone,
+        balance:       c.balance,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Print failed: $e'),
+            backgroundColor: AppColor.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   // ── WhatsApp Reminder ──────────────────────────────────────
@@ -114,7 +149,13 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
   }
 
   List<CustomerModel> _sortedCustomers(List<CustomerModel> customers) {
-    if (_sortColumnIndex == null) return customers;
+    if (_sortColumnIndex == null) {
+      // Default sort: jis customer ka record sabse recently update hua ho
+      // wo sabse pehle (top) show ho.
+      final sorted = List<CustomerModel>.from(customers);
+      sorted.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return sorted;
+    }
 
     final sorted = List<CustomerModel>.from(customers);
 
@@ -510,6 +551,16 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                     ],
+
+                                    // Print — sabhi users ke liye, permission required nahi
+                                    CustomerActionButton(
+                                      icon: Icons.print_outlined,
+                                      iconAsset: 'ic_print',
+                                      color: AppColor.textSecondary,
+                                      tooltip: 'Print Balance',
+                                      onTap: () => _printBalance(context, ref, c),
+                                    ),
+                                    const SizedBox(width: 6),
 
                                     // WhatsApp — sirf tab jab phone ho aur balance > 0
                                     if (hasPhone && hasBalance)
