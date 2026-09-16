@@ -6,8 +6,11 @@
 //   • branchBalanceHistoryProvider — history (Tab 2)
 // =============================================================
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/provider/branch_stock_inventory_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/inventory_balance/data/model/balance_batch_model.dart';
 import 'package:jan_ghani_final/features/warehouse/inventory_balance/data/model/balance_item_model.dart';
 import 'package:jan_ghani_final/features/warehouse/inventory_balance/domain/balance_status.dart';
@@ -86,6 +89,27 @@ class BranchBalanceQueueNotifier extends StateNotifier<BranchBalanceQueueState> 
         branchUserId:   auth.userId,
         branchUserName: auth.fullName,
       );
+
+      // Supabase item claimed — ab branch ki REAL (local) stock par
+      // counted physical stock ABSOLUTE set karo (delta nahi — see
+      // applyLocalStockCount). Yeh fail ho to Supabase claim revert
+      // karo taake Accept dobara try ho sake.
+      try {
+        await BranchInventoryBalanceRepository.instance.applyLocalStockCount(
+          storeId:       item.storeId,
+          productId:     item.productId,
+          physicalStock: item.physicalStock,
+        );
+      } catch (e) {
+        try {
+          await BranchInventoryBalanceRepository.instance
+              .revertAppliedItem(item.id);
+        } catch (_) {}
+        rethrow;
+      }
+
+      // Local stock badal gaya — POS/inventory screens ko refresh karo.
+      unawaited(_ref.read(branchStockProvider.notifier).load());
     });
   }
 

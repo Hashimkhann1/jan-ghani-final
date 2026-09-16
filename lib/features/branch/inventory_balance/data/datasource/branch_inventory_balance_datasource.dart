@@ -16,6 +16,8 @@ import 'package:jan_ghani_final/features/warehouse/inventory_balance/data/model/
 import 'package:jan_ghani_final/features/warehouse/inventory_balance/data/model/balance_item_model.dart';
 import 'package:jan_ghani_final/features/warehouse/inventory_balance/domain/balance_status.dart';
 
+import '../../../../../core/service/db/db_service.dart';
+
 class BranchInventoryBalanceApplyException implements Exception {
   final String code;
   const BranchInventoryBalanceApplyException(this.code);
@@ -123,6 +125,56 @@ class BranchInventoryBalanceDatasource {
       throw BranchInventoryBalanceApplyException(
           map['error']?.toString() ?? 'unknown_error');
     }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Branch's REAL operational stock — local Postgres (StoreConfig
+  // db_host), NOT Supabase. Sync is one-way local → Supabase, so
+  // the RPC above (Supabase-only) never reaches POS / sale screens.
+  // Isliye Accept ke baad yahan bhi apply karna zaroori hai.
+  //
+  // ABSOLUTE set (not delta) — physical count hi nayi truth hai.
+  // Delta add karna galat tha: agar live stock count ke baad drift
+  // ho chuka ho (aur sales), purane delta ko naye live stock par
+  // add karne se bakwas number ban jata (e.g. live -5, delta -3
+  // se -8 — jabke counted physical stock sirf 3 tha).
+  // ─────────────────────────────────────────────────────────
+  Future<void> applyLocalStockCount({
+    required String storeId,
+    required String productId,
+    required double physicalStock,
+  }) async {
+    final conn = await DataBaseService.getConnection();
+    final result = await conn.execute(
+      r'''UPDATE public.branch_stock_inventory
+          SET stock = $1, updated_at = NOW()
+          WHERE store_id = $2 AND product_id = $3
+          RETURNING stock''',
+      parameters: [physicalStock, storeId, productId],
+    );
+    if (result.isEmpty) {
+      throw StateError('local_stock_row_not_found');
+    }
+  }
+
+  // Compensation: agar local stock update fail ho jaye, Supabase item
+  // ko wapas branch_pending par revert karo — taake Accept safely
+  // retry ho sake (stock_transfer feature ka wahi self-healing pattern).
+  Future<void> revertAppliedItem(String itemId) async {
+    await _client
+        .from('inventory_balance_items')
+        .update({
+          'status':               BalanceStatus.branchPending.code,
+          'branch_user_id':       null,
+          'branch_user_name':     null,
+          'branch_reviewed_at':   null,
+          'applied_at':           null,
+          'applied_stock_before': null,
+          'applied_stock_after':  null,
+          'is_synced':            false,
+        })
+        .eq('id', itemId)
+        .eq('status', 'applied');
   }
 
   // ─────────────────────────────────────────────────────────
