@@ -121,25 +121,10 @@ class SaleInvoiceDatasource {
         );
       }
 
-      // ── 4. Credit portion ko customer ke balance mein jama karo ──
-      final creditTotal = payments
-          .where((p) => p.method == 'credit' && p.amount > 0)
-          .fold<double>(0, (sum, p) => sum + p.amount);
-
-      if (customerId != null && creditTotal > 0) {
-        await tx.execute(
-          Sql.named('''
-            UPDATE public.customer
-            SET balance = balance + @creditTotal,
-                updated_at = NOW()
-            WHERE id = @customerId::uuid
-          '''),
-          parameters: {
-            'customerId':   customerId,
-            'creditTotal':  creditTotal,
-          },
-        );
-      }
+      // customer.balance is updated automatically by a DB trigger on
+      // sale_invoice_payments insert (see step 3) — same pattern as
+      // sale_return_datasource.dart. Do not update it manually here,
+      // it double-counts the credit amount.
     });
 
     return invoiceId;

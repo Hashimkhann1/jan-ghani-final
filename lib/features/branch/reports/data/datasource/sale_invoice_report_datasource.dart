@@ -268,8 +268,8 @@ class SaleInvoiceListDatasource {
         id:            id,
         invoiceNo:     m['invoice_no']?.toString()   ?? '',
         invoiceDate:   m['invoice_date'] is DateTime
-            ? m['invoice_date'] as DateTime
-            : DateTime.tryParse(m['invoice_date'].toString()) ?? DateTime.now(),
+            ? (m['invoice_date'] as DateTime).toLocal()
+            : DateTime.tryParse(m['invoice_date'].toString())?.toLocal() ?? DateTime.now(),
         paymentType:   m['payment_type']?.toString() ?? 'cash',
         status:        m['status']?.toString()       ?? 'completed',
         totalAmount:   _dbl(m['total_amount'])       ?? 0,

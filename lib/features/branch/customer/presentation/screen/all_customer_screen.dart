@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/branch/branch_info/presentation/provider/branch_provider.dart';
@@ -161,22 +162,22 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
 
     sorted.sort((a, b) {
       switch (_sortColumnIndex) {
-        case 0: // Code
-          return _compare(a.code, b.code);
-        case 1: // Name
+        case 0: // Name
           return _compare(a.name.toLowerCase(), b.name.toLowerCase());
-        case 2: // Phone
+        case 1: // Phone
           return _compare(a.phone, b.phone);
-        case 3: // Address
+        case 2: // Address
           return _compare((a.address ?? '').toLowerCase(), (b.address ?? '').toLowerCase());
-        case 4: // Type
+        case 3: // Type
           return _compare(a.customerType.toString(), b.customerType.toString());
-        case 5: // Credit Limit
+        case 4: // Credit Limit
           return _compare(a.creditLimitLabel, b.creditLimitLabel);
-        case 6: // Balance
+        case 5: // Balance
           return _compare(a.balance, b.balance);
-        case 7: // Status
+        case 6: // Status
           return _compare(a.isActive ? 1 : 0, b.isActive ? 1 : 0);
+        case 8: // Updated At
+          return _compare(a.updatedAt, b.updatedAt);
         default:
           return 0;
       }
@@ -436,10 +437,6 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                           sortAscending: _sortAscending,
                           columns: [
                             DataColumn(
-                              label: const Text('#'),
-                              onSort: _onSort,
-                            ),
-                            DataColumn(
                               label: const Text('Customer'),
                               onSort: _onSort,
                             ),
@@ -468,6 +465,10 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                               onSort: _onSort,
                             ),
                             const DataColumn(label: Text('Actions')),
+                            DataColumn(
+                              label: const Text('Updated At'),
+                              onSort: _onSort,
+                            ),
                           ],
                           rows: List.generate(customers.length, (i) {
                             final c = customers[i];
@@ -477,11 +478,6 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                             return DataRow(
                               onSelectChanged: (_) {},
                               cells: [
-
-                                // # Code
-                                DataCell(Text(c.code,
-                                    style: const TextStyle(
-                                        color: AppColor.textSecondary, fontSize: 12))),
 
                                 // Name
                                 DataCell(GestureDetector(
@@ -588,6 +584,12 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                       ),
                                   ],
                                 )),
+
+                                // Updated At
+                                DataCell(Text(
+                                    DateFormat('dd MMM yyyy, hh:mm a')
+                                        .format(c.updatedAt.toLocal()),
+                                    style: const TextStyle(fontSize: 13))),
                               ],
                             );
                           }),

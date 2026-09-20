@@ -19,6 +19,7 @@ import 'branch_stock_damage_report/presentation/screen/accountant_branch_stock_d
 import 'branch_stock_inventory_logs/presentation/screen/branch_stock_inventory_logs_screen.dart';
 import 'customer_logs/presentation/screen/customer_logs_screen.dart';
 import 'inventory_counting/presentation/screen/inventory_counting_report_screen.dart';
+import 'product_profit_loss_report/presentation/screen/product_profit_loss_report_screen.dart';
 
 /// Web/desktop par sidebar dikhane ke liye minimum width.
 const double _kSidebarBreakpoint = 900;
@@ -138,6 +139,12 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       subtitle: 'Product stock and price change history',
       color:    Color(0xFF0891B2),
     ),
+    _ReportItem(
+      iconAsset: 'ic_sale_price_trend',
+      label:    'Product Profit & Loss Report',
+      subtitle: 'Stock, sales, returns and profit per product',
+      color:    Color(0xFF16A34A),
+    ),
   ];
 
   bool _isDesktop(BuildContext context) =>
@@ -163,6 +170,7 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       case 14: return BranchCashDifferenceScreen(branchId: branchId);
       case 15: return CustomerLogsScreen(branchId: branchId);
       case 16: return BranchStockInventoryLogsScreen(branchId: branchId);
+      case 17: return ProductProfitLossReportScreen(branchId: branchId);
       default: return const SizedBox.shrink();
     }
   }
