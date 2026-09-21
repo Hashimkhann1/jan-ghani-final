@@ -33,6 +33,74 @@ class AccountantSaleReportDatasource {
     String?           customerId,
     String?           paymentType,
   }) async {
+    final (start, end) = BranchReportPagination.range(page);
+    final result = await _fetchRows(
+      fromDate:   fromDate,
+      toDate:     toDate,
+      customerId: customerId,
+      start:      start,
+      end:        end,
+    );
+
+    var invoices = result
+        .where((r) => r['deleted_at'] == null)
+        .map(_mapInvoice)
+        .toList();
+
+    final hasNextPage = BranchReportPagination.hasNextPage(result.length);
+
+    // Payment type is stored per-payment, so filtering it server-side
+    // alongside range-based pagination isn't reliable — until that
+    // column exists on sale_invoices, payment type stays a client-side
+    // filter applied to the fetched page below.
+    if (paymentType != null) {
+      invoices = invoices
+          .where((inv) => inv.paymentMethods.contains(paymentType))
+          .toList();
+    }
+
+    return PagedSaleReport(invoices: invoices, hasNextPage: hasNextPage);
+  }
+
+  // ── Every invoice matching the filters, for Excel export. Fetched in
+  //    large chunks — the on-screen list only holds the pages the user has
+  //    scrolled to, which would silently truncate the export. ────────────
+  static const int _exportChunk = 200;
+
+  Future<List<SaleReportInvoice>> getAllForExport({
+    required DateTime fromDate,
+    required DateTime toDate,
+    String?           customerId,
+    String?           paymentType,
+  }) async {
+    final all = <SaleReportInvoice>[];
+    var start = 0;
+    while (true) {
+      final result = await _fetchRows(
+        fromDate:   fromDate,
+        toDate:     toDate,
+        customerId: customerId,
+        start:      start,
+        end:        start + _exportChunk - 1,
+      );
+      all.addAll(result
+          .where((r) => r['deleted_at'] == null)
+          .map(_mapInvoice));
+      if (result.length < _exportChunk) break;
+      start += _exportChunk;
+    }
+
+    if (paymentType == null) return all;
+    return all.where((inv) => inv.paymentMethods.contains(paymentType)).toList();
+  }
+
+  Future<List<dynamic>> _fetchRows({
+    required DateTime fromDate,
+    required DateTime toDate,
+    String?           customerId,
+    required int      start,
+    required int      end,
+  }) async {
     var query = _client
         .from('sale_invoices')
         .select('''
@@ -56,30 +124,10 @@ class AccountantSaleReportDatasource {
       query = query.eq('customer_id', customerId);
     }
 
-    // Payment type is stored per-payment, so filtering it server-side
-    // alongside range-based pagination isn't reliable — until that
-    // column exists on sale_invoices, payment type stays a client-side
-    // filter applied to the fetched page below.
-    final (start, end) = BranchReportPagination.range(page);
     final result = await query
         .order('invoice_date', ascending: false)
         .range(start, end);
-
-    var invoices = (result as List)
-        .where((r) => r['deleted_at'] == null)
-        .map(_mapInvoice)
-        .toList();
-
-    final hasNextPage = BranchReportPagination.hasNextPage(
-        (result).length);
-
-    if (paymentType != null) {
-      invoices = invoices
-          .where((inv) => inv.paymentMethods.contains(paymentType))
-          .toList();
-    }
-
-    return PagedSaleReport(invoices: invoices, hasNextPage: hasNextPage);
+    return result as List;
   }
 
   // ── Aggregate totals across every matching invoice — one RPC

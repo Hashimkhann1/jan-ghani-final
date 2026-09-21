@@ -389,6 +389,7 @@ class CsrPrintService {
         _dashedLine(),
 
         // Info
+        _infoRow(isSale ? 'INVOICE:' : 'RETURN NO:', entry.entryNo),
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -407,9 +408,8 @@ class CsrPrintService {
         pw.SizedBox(height: 1.5),
         if (entry.cashierName != null)
           _infoRow('CASHIER:', entry.cashierName!.toUpperCase()),
-        _infoRow('DATE:', dateFmt.format(entry.entryDate)),
-        _infoRow('TIME:', timeFmt.format(entry.entryDate)),
-        _infoRow(isSale ? 'INVOICE:' : 'RETURN NO:', entry.entryNo),
+        _infoRow('DATE:',
+            '${dateFmt.format(entry.entryDate)}  ${timeFmt.format(entry.entryDate)}'),
         if (!isSale &&
             entry.returnReason != null &&
             entry.returnReason!.isNotEmpty)
@@ -472,21 +472,6 @@ class CsrPrintService {
         ),
         pw.SizedBox(height: 3),
         _dashedLine(),
-
-        // QR Code for customer
-        if (entry.customerId != null && entry.customerId!.isNotEmpty) ...[
-          pw.SizedBox(height: 5),
-          pw.Center(
-            child: pw.BarcodeWidget(
-              barcode: pw.Barcode.qrCode(),
-              data: 'https://janghani.netlify.app/${entry.customerId}',
-              width: 60,
-              height: 60,
-            ),
-          ),
-          pw.SizedBox(height: 4),
-          _dashedLine(),
-        ],
 
         pw.SizedBox(height: 2),
         pw.Text('1) NO WARRANTY WITHOUT ORIGINAL INVOICE.',

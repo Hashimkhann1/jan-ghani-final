@@ -6,6 +6,7 @@ import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/sale_return_report_model.dart';
+import '../../data/service/sale_return_report_excel_service.dart';
 import '../provider/sale_return_report_provider.dart';
 
 /// ── Responsive breakpoint ──
@@ -30,6 +31,7 @@ class _AccountantSaleReturnReportScreenState
   final _toCtrl   = TextEditingController();
 
   String? _selectedId;
+  bool    _exporting = false;
 
   @override
   void initState() {
@@ -49,6 +51,53 @@ class _AccountantSaleReturnReportScreenState
   String _fmtAmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
   String _fmtQty(double q) =>
       q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixed(2);
+
+  // ── Export Excel — re-fetches every return for the current filters,
+  //    not just the pages loaded on screen ────────────────────────────────
+  Future<void> _exportExcel() async {
+    if (_exporting) return;
+    final provider  = accountantSaleReturnProvider(widget.branchId);
+    final state     = ref.read(provider);
+    final notifier  = ref.read(provider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
+
+    String? customerName;
+    for (final c in state.customers) {
+      if (c.id == state.selectedCustomerId) customerName = c.name;
+    }
+
+    setState(() => _exporting = true);
+    messenger.showSnackBar(const SnackBar(
+      content:  Text('Preparing Excel...'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+    try {
+      final returns = await notifier.fetchAllForExport();
+      if (returns.isEmpty) {
+        messenger.showSnackBar(const SnackBar(
+          content:  Text('No returns to export for the selected filters'),
+          behavior: SnackBarBehavior.floating,
+        ));
+        return;
+      }
+      await SaleReturnReportExcelService.exportAndSave(
+        returns:      returns,
+        fromDate:     state.fromDate,
+        toDate:       state.toDate,
+        customerName: customerName,
+        refundType:   state.selectedRefundType,
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content:         Text('Export failed: $e'),
+        backgroundColor: AppColor.error,
+        behavior:        SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   SaleReturnInvoice? _findById(List<SaleReturnInvoice> list, String? id) {
     if (id == null) return null;
@@ -449,6 +498,16 @@ class _AccountantSaleReturnReportScreenState
               ],
             );
           }),
+          IconButton(
+            onPressed: _exporting ? null : _exportExcel,
+            icon: _exporting
+                ? const SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.table_view_outlined,
+                    size: 22, color: AppColor.primary),
+            tooltip: 'Export Excel',
+          ),
           IconButton(
             onPressed: notifier.load,
             icon:    const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),

@@ -5,6 +5,7 @@ import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../data/model/product_profit_loss_model.dart';
+import '../../data/service/product_profit_loss_excel_service.dart';
 import '../../data/service/product_profit_loss_pdf_service.dart';
 import '../provider/product_profit_loss_provider.dart';
 
@@ -23,8 +24,22 @@ String _fmtQty(double q) => q.toStringAsFixed(2);
 Color _pnlColor(double v) => v >= 0 ? AppColor.success : AppColor.error;
 
 class ProductProfitLossReportScreen extends ConsumerStatefulWidget {
-  const ProductProfitLossReportScreen({super.key, required this.branchId});
+  const ProductProfitLossReportScreen({
+    super.key,
+    required this.branchId,
+    this.provider,
+    this.showBack = true,
+  });
   final String branchId;
+
+  /// Which data source to read from. Defaults to the accountant (Supabase)
+  /// provider; the branch app passes its local-database one.
+  final AutoDisposeStateNotifierProviderFamily<ProductProfitLossNotifier,
+      ProductProfitLossState, String>? provider;
+
+  /// Back arrow in the desktop header. Off when the screen is a sidebar
+  /// root (branch app) and there is nothing to go back to.
+  final bool showBack;
 
   @override
   ConsumerState<ProductProfitLossReportScreen> createState() =>
@@ -74,14 +89,48 @@ class _ProductProfitLossReportScreenState
     }
   }
 
+  Future<void> _exportExcel(ProductProfitLossState state) async {
+    final items = state.exportItems;
+    if (items.isEmpty) return;
+
+    String? categoryName;
+    if (state.categoryFilter != null) {
+      final m = state.categories.where((c) => c.id == state.categoryFilter);
+      categoryName = m.isNotEmpty ? m.first.name : null;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(const SnackBar(
+      content: Text('Preparing Excel...'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+    try {
+      await ProductProfitLossExcelService.exportAndSave(
+        items: items,
+        fromDate: state.fromDate,
+        toDate: state.toDate,
+        isSelection: state.selectedIds.isNotEmpty,
+        categoryName: categoryName,
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('Export failed: $e'),
+        backgroundColor: AppColor.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final state    = ref.watch(productProfitLossProvider(widget.branchId));
-    final notifier = ref.read(productProfitLossProvider(widget.branchId).notifier);
+    final provider = widget.provider ?? productProfitLossProvider;
+    final state    = ref.watch(provider(widget.branchId));
+    final notifier = ref.read(provider(widget.branchId).notifier);
     final desktop  = MediaQuery.of(context).size.width >= 800;
 
     ref.listen<ProductProfitLossState>(
-      productProfitLossProvider(widget.branchId),
+      provider(widget.branchId),
       (_, next) {
         if (next.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -101,6 +150,8 @@ class _ProductProfitLossReportScreenState
     final selCount = state.selectedIds.length;
     final exportLabel =
         selCount > 0 ? 'Export PDF ($selCount)' : 'Export PDF';
+    final excelLabel =
+        selCount > 0 ? 'Export Excel ($selCount)' : 'Export Excel';
 
     final body = Column(
       children: [
@@ -135,16 +186,18 @@ class _ProductProfitLossReportScreenState
               padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.maybePop(context),
-                    icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
-                    style: IconButton.styleFrom(
-                      backgroundColor: _kBg,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                  if (widget.showBack) ...[
+                    IconButton(
+                      onPressed: () => Navigator.maybePop(context),
+                      icon: const Icon(Icons.arrow_back_rounded, color: _kInk),
+                      style: IconButton.styleFrom(
+                        backgroundColor: _kBg,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
+                    const SizedBox(width: 16),
+                  ],
                   const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -168,6 +221,23 @@ class _ProductProfitLossReportScreenState
                     ),
                     const SizedBox(width: 8),
                   ],
+                  OutlinedButton.icon(
+                    onPressed:
+                        state.filtered.isEmpty ? null : () => _exportExcel(state),
+                    icon: const Icon(Icons.table_view_outlined,
+                        size: 18, color: AppColor.primary),
+                    label: Text(excelLabel),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                      foregroundColor: AppColor.primary,
+                      side: const BorderSide(color: AppColor.primary),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   ElevatedButton.icon(
                     onPressed: state.filtered.isEmpty ? null : () => _export(state),
                     icon: const AppIcon('ic_print', size: 18, color: Colors.white),
@@ -229,6 +299,16 @@ class _ProductProfitLossReportScreenState
               child: const AppIcon('ic_print', size: 22, color: AppColor.primary),
             ),
             tooltip: exportLabel,
+          ),
+          IconButton(
+            onPressed: state.filtered.isEmpty ? null : () => _exportExcel(state),
+            icon: Badge(
+              isLabelVisible: selCount > 0,
+              label: Text('$selCount'),
+              child: const Icon(Icons.table_view_outlined,
+                  size: 22, color: AppColor.primary),
+            ),
+            tooltip: excelLabel,
           ),
           IconButton(
             onPressed: notifier.load,
@@ -304,6 +384,10 @@ class _Filters extends StatelessWidget {
         break;
     }
   }
+
+  /// The branch report has no category data (names live in the warehouse
+  /// DB), so the filter and column only appear when categories loaded.
+  bool get showCategory => state.categories.isNotEmpty;
 
   List<DropdownItem<String?>> get _categoryItems => [
         const DropdownItem<String?>(
@@ -417,15 +501,17 @@ class _Filters extends StatelessWidget {
             Row(children: [
               Expanded(child: _search()),
               const SizedBox(width: 16),
-              AppSearchableDropdown<String?>(
-                items: _categoryItems,
-                value: state.categoryFilter,
-                hint: 'Category',
-                prefixIcon: Icons.category_outlined,
-                desktopWidth: 220,
-                onChanged: notifier.setCategoryFilter,
-              ),
-              const SizedBox(width: 12),
+              if (showCategory) ...[
+                AppSearchableDropdown<String?>(
+                  items: _categoryItems,
+                  value: state.categoryFilter,
+                  hint: 'Category',
+                  prefixIcon: Icons.category_outlined,
+                  desktopWidth: 220,
+                  onChanged: notifier.setCategoryFilter,
+                ),
+                const SizedBox(width: 12),
+              ],
               _onlySold(),
             ]),
           ],
@@ -450,15 +536,17 @@ class _Filters extends StatelessWidget {
           const SizedBox(height: 8),
           _search(),
           const SizedBox(height: 10),
-          AppSearchableDropdown<String?>(
-            items: _categoryItems,
-            value: state.categoryFilter,
-            hint: 'Category',
-            prefixIcon: Icons.category_outlined,
-            fullWidth: true,
-            onChanged: notifier.setCategoryFilter,
-          ),
-          const SizedBox(height: 6),
+          if (showCategory) ...[
+            AppSearchableDropdown<String?>(
+              items: _categoryItems,
+              value: state.categoryFilter,
+              hint: 'Category',
+              prefixIcon: Icons.category_outlined,
+              fullWidth: true,
+              onChanged: notifier.setCategoryFilter,
+            ),
+            const SizedBox(height: 6),
+          ],
           _onlySold(),
         ],
       ),
@@ -578,7 +666,7 @@ class _Table extends StatelessWidget {
             ),
             const _TH('#', flex: 1),
             const _TH('Product', flex: 4),
-            const _TH('Category', flex: 2),
+            if (state.categories.isNotEmpty) const _TH('Category', flex: 2),
             const _TH('Sale Price', flex: 2, right: true),
             const _TH('Purchase Price', flex: 2, right: true),
             const _TH('Inventory Stock', flex: 2, center: true),
@@ -598,6 +686,7 @@ class _Table extends StatelessWidget {
             itemBuilder: (_, i) => _Row(
               index: i + 1,
               item: items[i],
+              showCategory: state.categories.isNotEmpty,
               selected: state.selectedIds.contains(items[i].productId),
               onToggle: () => notifier.toggleSelect(items[i].productId),
             ),
@@ -636,11 +725,13 @@ class _TH extends StatelessWidget {
 class _Row extends StatelessWidget {
   final int index;
   final ProductProfitLossModel item;
+  final bool showCategory;
   final bool selected;
   final VoidCallback onToggle;
   const _Row({
     required this.index,
     required this.item,
+    required this.showCategory,
     required this.selected,
     required this.onToggle,
   });
@@ -678,7 +769,7 @@ class _Row extends StatelessWidget {
           _cell(1, '$index', color: AppColor.textHint),
           _cell(4, item.productName,
               color: _kInk, weight: FontWeight.w600, size: 13),
-          _cell(2, item.categoryName, size: 11),
+          if (showCategory) _cell(2, item.categoryName, size: 11),
           _cell(2, _fmtAmt(item.salePrice),
               align: TextAlign.right, color: AppColor.primary, weight: FontWeight.w600),
           _cell(2, _fmtAmt(item.purchasePrice),
@@ -757,6 +848,7 @@ class _CardList extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (_, i) => _Card(
                 item: items[i],
+                showCategory: state.categories.isNotEmpty,
                 selected: state.selectedIds.contains(items[i].productId),
                 onToggle: () => notifier.toggleSelect(items[i].productId),
               ),
@@ -770,9 +862,15 @@ class _CardList extends StatelessWidget {
 
 class _Card extends StatelessWidget {
   final ProductProfitLossModel item;
+  final bool showCategory;
   final bool selected;
   final VoidCallback onToggle;
-  const _Card({required this.item, required this.selected, required this.onToggle});
+  const _Card({
+    required this.item,
+    required this.showCategory,
+    required this.selected,
+    required this.onToggle,
+  });
 
   Widget _kv(String k, String v, Color c) => Expanded(
         child: Column(children: [
@@ -815,10 +913,12 @@ class _Card extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w700, color: _kInk)),
-                    const SizedBox(height: 2),
-                    Text(item.categoryName,
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColor.textHint)),
+                    if (showCategory) ...[
+                      const SizedBox(height: 2),
+                      Text(item.categoryName,
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColor.textHint)),
+                    ],
                   ],
                 ),
               ),

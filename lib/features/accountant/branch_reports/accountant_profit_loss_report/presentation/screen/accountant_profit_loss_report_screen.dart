@@ -13,8 +13,13 @@ String _fmtQty(double q) => q % 1 == 0 ? q.toInt().toString() : q.toStringAsFixe
 const double _kWideBreakpoint = 900;
 
 class PnlReportScreen extends ConsumerStatefulWidget {
-  const PnlReportScreen({super.key, required this.branchId});
+  const PnlReportScreen({super.key, required this.branchId, this.provider});
   final String branchId;
+
+  /// Which data source to read from. Defaults to the accountant (Supabase)
+  /// provider; the branch app passes its local-database one.
+  final StateNotifierProviderFamily<PnlReportNotifier, PnlReportState,
+      String>? provider;
 
   @override
   ConsumerState<PnlReportScreen> createState() => _PnlReportScreenState();
@@ -47,10 +52,13 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
     super.dispose();
   }
 
+  StateNotifierProviderFamily<PnlReportNotifier, PnlReportState, String>
+      get _provider => widget.provider ?? pnlReportProvider;
+
   String _fmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
 
   Future<void> _pickDate(BuildContext context, bool isFrom) async {
-    final state  = ref.read(pnlReportProvider(widget.branchId));
+    final state  = ref.read(_provider(widget.branchId));
     final init   = isFrom ? state.fromDate : state.toDate;
     final picked = await showDatePicker(
       context:     context,
@@ -65,7 +73,7 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
       ),
     );
     if (picked != null) {
-      final n = ref.read(pnlReportProvider(widget.branchId).notifier);
+      final n = ref.read(_provider(widget.branchId).notifier);
       if (isFrom) {
         _fromCtrl.text = _dateFmt.format(picked);
         n.setFromDate(picked);
@@ -78,10 +86,10 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
 
   @override
   Widget build(BuildContext context) {
-    final state    = ref.watch(pnlReportProvider(widget.branchId));
-    final notifier = ref.read(pnlReportProvider(widget.branchId).notifier);
+    final state    = ref.watch(_provider(widget.branchId));
+    final notifier = ref.read(_provider(widget.branchId).notifier);
 
-    ref.listen<PnlReportState>(pnlReportProvider(widget.branchId), (prev, next) {
+    ref.listen<PnlReportState>(_provider(widget.branchId), (prev, next) {
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:         Text(next.errorMessage!),

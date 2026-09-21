@@ -182,6 +182,15 @@ class AccountantSaleReturnNotifier
     await _loadPage(state.pagination.page - 1);
   }
 
+  // ── Every return matching the current filters — the on-screen list only
+  //    holds the pages loaded so far, so Excel export re-fetches in full ───
+  Future<List<SaleReturnInvoice>> fetchAllForExport() => _ds.getAllForExport(
+        fromDate:   state.fromDate,
+        toDate:     state.toDate,
+        customerId: state.selectedCustomerId,
+        refundType: state.selectedRefundType,
+      );
+
   void setFromDate(DateTime d) {
     state = state.copyWith(fromDate: d);
     load();

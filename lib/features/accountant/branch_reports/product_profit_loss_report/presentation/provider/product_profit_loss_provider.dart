@@ -74,10 +74,10 @@ class ProductProfitLossState {
 }
 
 class ProductProfitLossNotifier extends StateNotifier<ProductProfitLossState> {
-  final ProductProfitLossDatasource _ds;
+  final ProductProfitLossSource _ds;
 
-  ProductProfitLossNotifier({required String branchId})
-      : _ds = ProductProfitLossDatasource(branchId: branchId),
+  ProductProfitLossNotifier({required ProductProfitLossSource source})
+      : _ds = source,
         super(_initial()) {
     load();
   }
@@ -189,5 +189,7 @@ class ProductProfitLossNotifier extends StateNotifier<ProductProfitLossState> {
 
 final productProfitLossProvider = StateNotifierProvider.autoDispose
     .family<ProductProfitLossNotifier, ProductProfitLossState, String>(
-  (ref, branchId) => ProductProfitLossNotifier(branchId: branchId),
+  (ref, branchId) => ProductProfitLossNotifier(
+    source: ProductProfitLossDatasource(branchId: branchId),
+  ),
 );

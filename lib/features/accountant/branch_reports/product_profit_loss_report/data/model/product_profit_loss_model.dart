@@ -90,3 +90,16 @@ class ProductPnlCategory {
   final String name;
   const ProductPnlCategory({required this.id, required this.name});
 }
+
+/// Where the report's rows come from. The accountant app reads Supabase
+/// (cloud), the branch app reads its local Postgres — same screen, same
+/// provider, different source.
+abstract class ProductProfitLossSource {
+  Future<List<ProductPnlCategory>> fetchCategories();
+
+  Future<List<ProductProfitLossModel>> fetchReport({
+    required DateTime fromDate,
+    required DateTime toDate,
+    required Map<String, String> categoryNameById,
+  });
+}

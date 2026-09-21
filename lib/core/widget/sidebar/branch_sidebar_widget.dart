@@ -13,6 +13,8 @@ import 'package:jan_ghani_final/features/branch/permissions/presentation/screen/
 import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all_customer_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer_account/presentation/screen/customer_account_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/csr_screen.dart';
+import 'package:jan_ghani_final/features/branch/reports/presentation/screen/pnl_report_screen.dart';
+import 'package:jan_ghani_final/features/branch/reports/presentation/screen/product_profit_loss_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale_return_report_screen.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
 import 'package:jan_ghani_final/features/branch/services/presentation/screen/service_screen.dart';
@@ -84,70 +86,6 @@ class NavItem {
     this.permKey,
   });
 }
-
-// ── Cashier Items ──────────────────────────────────────────────
-// Cashier gets: Sale Invoice, Customer, Customer Account, Customer Ledger,
-// Cash Counter, Assign Stock to My Branch, Branch Stock (read-only),
-// Customer Ledger Report.
-// Alt+S=Sale Invoice, Alt+C=Customer, Alt+A=Customer Account, Alt+L=Ledger,
-// Alt+X=Cash Counter, Alt+I=Branch Stock, Alt+G=Customer Ledger Report
-final _cashierItems = <NavItem>[
-  NavItem(
-    icon: Icons.point_of_sale_rounded, label: 'Sale Invoice',
-    screen: const SaleInvoiceScreen(),
-    section: 'SALES',
-    shortcutKey: LogicalKeyboardKey.keyS,
-    permKey: 'sale_invoice',
-  ),
-  NavItem(
-    icon: Icons.people_alt_rounded, label: 'Customer',
-    screen: const AllCustomerScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyC,
-    permKey: 'customer',
-  ),
-  NavItem(
-    icon: Icons.people_alt_rounded, label: 'Customer account',
-    screen: const CustomerAccountScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyA,
-    permKey: 'customer_account',
-  ),
-  NavItem(
-    icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
-    screen: const CounterCustomerLedgerScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyL,
-    permKey: 'customer_ledger',
-  ),
-  NavItem(
-    icon: Icons.savings_rounded, label: 'Cash Counter',
-    screen: const CashCounterScreen(),
-    section: 'CASH',
-    shortcutKey: LogicalKeyboardKey.keyX,
-    permKey: 'cash_counter',
-  ),
-  NavItem(
-    icon: Icons.inventory_2_rounded, label: 'Branch Stock',
-    screen: const BranchStockInventoryScreen(),
-    section: 'INVENTORY',
-    shortcutKey: LogicalKeyboardKey.keyI,
-    permKey: 'branch_stock',
-  ),
-  NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
-    screen: const BranchTransferListScreen(),
-    section: 'INVENTORY',
-    permKey: 'stock_transfer',
-  ),
-  NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Customer Ledger Report',
-    screen: const CsrScreen(),
-    section: 'REPORTS',
-    shortcutKey: LogicalKeyboardKey.keyG,
-    permKey: 'report_csr',
-  ),
-];
 
 // ── Stock Officer Items ──────────────────────────────────────────
 // Alt+D=Dashboard, Alt+S=Sale Invoice, Alt+C=Customer,
@@ -259,6 +197,18 @@ final _stockOfficerItems = <NavItem>[
     section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyG,
     permKey: 'report_csr',
+  ),
+  NavItem(
+    icon: Icons.account_balance_rounded, label: 'Profit & Loss',
+    screen: const BranchPnlReportScreen(),
+    section: 'REPORTS',
+    permKey: 'report_pnl',
+  ),
+  NavItem(
+    icon: Icons.trending_up_rounded, label: 'Product Profit & Loss',
+    screen: const BranchProductProfitLossScreen(),
+    section: 'REPORTS',
+    permKey: 'report_product_pnl',
   ),
 ];
 
@@ -379,6 +329,18 @@ final _managerItems = <NavItem>[
     permKey: 'report_csr',
   ),
   NavItem(
+    icon: Icons.account_balance_rounded, label: 'Profit & Loss',
+    screen: const BranchPnlReportScreen(),
+    section: 'REPORTS',
+    permKey: 'report_pnl',
+  ),
+  NavItem(
+    icon: Icons.trending_up_rounded, label: 'Product Profit & Loss',
+    screen: const BranchProductProfitLossScreen(),
+    section: 'REPORTS',
+    permKey: 'report_product_pnl',
+  ),
+  NavItem(
     icon: Icons.manage_accounts_rounded, label: 'Users',
     screen: const AllUserScreen(),
     section: 'ADMINISTRATION',
@@ -411,12 +373,15 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
 
   List<NavItem> _baseItems(String role) {
     switch (role) {
-      case 'cashier':
-        return _cashierItems;
       case 'stock_officer':
         return _stockOfficerItems;
       default:
-        return _managerItems; // store_manager & store_owner
+        // store_manager, store_owner & cashier. Cashier ko bhi poori list
+        // milti hai — kya dikhega yeh sirf `_visibleItems` ka permission
+        // filter tay karta hai (role defaults `PermissionCatalog` me hain),
+        // warna Permissions screen se di gayi Dashboard / Reports wagera
+        // ki permission sidebar me kabhi nazar nahi aati.
+        return _managerItems;
     }
   }
 

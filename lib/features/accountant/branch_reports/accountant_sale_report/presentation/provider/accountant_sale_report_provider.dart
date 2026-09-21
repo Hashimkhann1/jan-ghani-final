@@ -181,6 +181,15 @@ class AccountantSaleReportNotifier
     await _loadPage(state.pagination.page - 1);
   }
 
+  // ── Every invoice matching the current filters — the on-screen list only
+  //    holds the pages loaded so far, so Excel export re-fetches in full ───
+  Future<List<SaleReportInvoice>> fetchAllForExport() => _ds.getAllForExport(
+        fromDate:    state.fromDate,
+        toDate:      state.toDate,
+        customerId:  state.selectedCustomerId,
+        paymentType: state.selectedPaymentType,
+      );
+
   void setFromDate(DateTime d) {
     state = state.copyWith(fromDate: d);
     load();

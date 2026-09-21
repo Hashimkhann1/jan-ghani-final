@@ -98,10 +98,10 @@ class PnlReportState {
 // ═══════════════════════════════════════════════════════════
 
 class PnlReportNotifier extends StateNotifier<PnlReportState> {
-  final PnlReportDatasource _ds;
+  final PnlSource _ds;
 
-  PnlReportNotifier(String storeId)
-      : _ds = PnlReportDatasource(),
+  PnlReportNotifier(String storeId, {PnlSource? source})
+      : _ds = source ?? PnlReportDatasource(),
         super(PnlReportState(storeId: storeId)) {
     load();
   }

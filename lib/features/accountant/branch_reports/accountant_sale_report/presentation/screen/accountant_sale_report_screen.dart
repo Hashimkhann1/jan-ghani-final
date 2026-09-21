@@ -6,6 +6,7 @@ import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_sale_report_model.dart';
+import '../../data/service/sale_report_excel_service.dart';
 import '../provider/accountant_sale_report_provider.dart';
 
 /// ── Responsive breakpoint ──
@@ -31,6 +32,7 @@ class _AccountantSaleReportScreenState
   final _amtFmt       = NumberFormat('#,##,###', 'en_IN');
 
   String? _selectedId;
+  bool    _exporting = false;
 
   @override
   void initState() {
@@ -62,6 +64,53 @@ class _AccountantSaleReportScreenState
       if (inv.id == id) return inv;
     }
     return null;
+  }
+
+  // ── Export Excel — re-fetches every invoice for the current filters,
+  //    not just the pages loaded on screen ────────────────────────────────
+  Future<void> _exportExcel() async {
+    if (_exporting) return;
+    final provider  = accountantSaleReportProvider(widget.branchId);
+    final state     = ref.read(provider);
+    final notifier  = ref.read(provider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
+
+    String? customerName;
+    for (final c in state.customers) {
+      if (c.id == state.selectedCustomerId) customerName = c.name;
+    }
+
+    setState(() => _exporting = true);
+    messenger.showSnackBar(const SnackBar(
+      content:  Text('Preparing Excel...'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+    try {
+      final invoices = await notifier.fetchAllForExport();
+      if (invoices.isEmpty) {
+        messenger.showSnackBar(const SnackBar(
+          content:  Text('No invoices to export for the selected filters'),
+          behavior: SnackBarBehavior.floating,
+        ));
+        return;
+      }
+      await SaleReportExcelService.exportAndSave(
+        invoices:     invoices,
+        fromDate:     state.fromDate,
+        toDate:       state.toDate,
+        customerName: customerName,
+        paymentType:  state.selectedPaymentType,
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content:         Text('Export failed: $e'),
+        backgroundColor: AppColor.error,
+        behavior:        SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   Future<void> _pickDate(BuildContext context, bool isFrom) async {
@@ -473,6 +522,16 @@ class _AccountantSaleReportScreenState
               ],
             );
           }),
+          IconButton(
+            onPressed: _exporting ? null : _exportExcel,
+            icon: _exporting
+                ? const SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.table_view_outlined,
+                    size: 22, color: AppColor.primary),
+            tooltip: 'Export Excel',
+          ),
           IconButton(
             onPressed: notifier.load,
             icon:    const AppIcon('ic_refresh',

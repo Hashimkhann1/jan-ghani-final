@@ -1,9 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/accountant_profit_loss_model.dart';
 
-enum PnlInvoiceFilter { all, profit, loss }
+export '../model/accountant_profit_loss_model.dart' show PnlInvoiceFilter;
 
-class PnlReportDatasource {
+class PnlReportDatasource implements PnlSource {
   final _client = Supabase.instance.client;
 
   static const pageSize = 20;
@@ -13,6 +13,7 @@ class PnlReportDatasource {
   // ── Aggregate totals + daily breakdown — one RPC round trip,
   //    computed entirely in Postgres (SUM/COUNT/GROUP BY). Never
   //    fetches invoice rows. ─────────────────────────────────────
+  @override
   Future<PnlSummary> getSummary({
     required DateTime fromDate,
     required DateTime toDate,
@@ -49,6 +50,7 @@ class PnlReportDatasource {
   // ── One page of the Invoices tab, with its exact total count for
   //    the current filter — from `pnl_transactions_view`, which has
   //    profit/revenue/cost pre-aggregated per invoice/return. ──────
+  @override
   Future<PnlTransactionsPage> getTransactionsPage({
     required DateTime fromDate,
     required DateTime toDate,
@@ -90,6 +92,7 @@ class PnlReportDatasource {
 
   // ── Lightweight head-only count for one filter tab (no rows
   //    fetched at all — just `Prefer: count=exact`). ───────────────
+  @override
   Future<int> getFilterCount({
     required DateTime fromDate,
     required DateTime toDate,
@@ -114,6 +117,7 @@ class PnlReportDatasource {
 
   // ── Item breakdown for ONE invoice/return — fetched lazily only
   //    when its card is expanded in the UI. ────────────────────────
+  @override
   Future<List<PnlItem>> getTransactionItems({
     required String type,
     required String id,

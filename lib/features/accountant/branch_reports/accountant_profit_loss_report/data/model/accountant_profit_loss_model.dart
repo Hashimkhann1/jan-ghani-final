@@ -1,3 +1,36 @@
+enum PnlInvoiceFilter { all, profit, loss }
+
+/// Where the report's numbers come from. The accountant app reads Supabase
+/// (view + RPC), the branch app reads its local Postgres — same screen,
+/// same provider, different source.
+abstract class PnlSource {
+  Future<PnlSummary> getSummary({
+    required DateTime fromDate,
+    required DateTime toDate,
+    required String storeId,
+  });
+
+  Future<PnlTransactionsPage> getTransactionsPage({
+    required DateTime fromDate,
+    required DateTime toDate,
+    required String storeId,
+    required PnlInvoiceFilter filter,
+    required int page,
+  });
+
+  Future<int> getFilterCount({
+    required DateTime fromDate,
+    required DateTime toDate,
+    required String storeId,
+    required PnlInvoiceFilter filter,
+  });
+
+  Future<List<PnlItem>> getTransactionItems({
+    required String type,
+    required String id,
+  });
+}
+
 class PnlItem {
   final String  productName;
   final String? sku;

@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/product_profit_loss_model.dart';
 
-class ProductProfitLossDatasource {
+class ProductProfitLossDatasource implements ProductProfitLossSource {
   final _client = Supabase.instance.client;
   final String branchId;
 
@@ -9,6 +9,7 @@ class ProductProfitLossDatasource {
 
   static const int _pageSize = 1000;
 
+  @override
   Future<List<ProductPnlCategory>> fetchCategories() async {
     final rows = await _client
         .from('warehouse_categories')
@@ -86,6 +87,7 @@ class ProductProfitLossDatasource {
             .range(from, to) as List,
       );
 
+  @override
   Future<List<ProductProfitLossModel>> fetchReport({
     required DateTime fromDate,
     required DateTime toDate,

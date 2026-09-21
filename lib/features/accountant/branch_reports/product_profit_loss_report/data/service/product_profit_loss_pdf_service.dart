@@ -44,6 +44,14 @@ class ProductProfitLossPdfService {
     final doc = pw.Document();
     final s = ProductProfitLossSummary.from(items);
 
+    // Branch report rows carry no category — leave that column out.
+    final showCategory = items.any((i) => i.categoryName.isNotEmpty);
+    final headers = <String>[
+      '#', 'Product', if (showCategory) 'Category', 'Sale Price',
+      'Purchase Price', 'Inventory Stock', 'Sold Qty', 'Return Qty',
+      'Net Sold', 'Profit / Loss', 'Status',
+    ];
+
     final filters = <String>[
       '${_dateFmt.format(fromDate)} - ${_dateFmt.format(toDate)}',
       isSelection ? 'Selected products (${items.length})' : 'All products',
@@ -116,29 +124,21 @@ class ProductProfitLossPdfService {
                 const pw.BoxDecoration(color: PdfColors.blueGrey800),
             cellStyle: const pw.TextStyle(fontSize: 8.5),
             cellAlignments: {
-              0: pw.Alignment.centerLeft,
-              1: pw.Alignment.centerLeft,
-              2: pw.Alignment.centerLeft,
-              3: pw.Alignment.centerRight,
-              4: pw.Alignment.centerRight,
-              5: pw.Alignment.center,
-              6: pw.Alignment.center,
-              7: pw.Alignment.center,
-              8: pw.Alignment.center,
-              9: pw.Alignment.centerRight,
-              10: pw.Alignment.center,
+              for (var c = 0; c < headers.length; c++)
+                c: switch (headers[c]) {
+                  '#' || 'Product' || 'Category' => pw.Alignment.centerLeft,
+                  'Sale Price' || 'Purchase Price' || 'Profit / Loss' =>
+                    pw.Alignment.centerRight,
+                  _ => pw.Alignment.center,
+                },
             },
-            headers: const [
-              '#', 'Product', 'Category', 'Sale Price', 'Purchase Price',
-              'Inventory Stock', 'Sold Qty', 'Return Qty', 'Net Sold',
-              'Profit / Loss', 'Status',
-            ],
+            headers: headers,
             data: List.generate(items.length, (i) {
               final it = items[i];
               return [
                 '${i + 1}',
                 it.productName,
-                it.categoryName,
+                if (showCategory) it.categoryName,
                 _fmtAmt(it.salePrice),
                 _fmtAmt(it.purchasePrice),
                 _fmtQty(it.inventoryStock),

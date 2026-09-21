@@ -33,6 +33,74 @@ class AccountantSaleReturnDatasource {
     String?           customerId,
     String?           refundType,
   }) async {
+    final (start, end) = BranchReportPagination.range(page);
+    final result = await _fetchRows(
+      fromDate:   fromDate,
+      toDate:     toDate,
+      customerId: customerId,
+      start:      start,
+      end:        end,
+    );
+
+    var returns = result
+        .where((r) => r['deleted_at'] == null)
+        .map(_mapReturn)
+        .toList();
+
+    final hasNextPage = BranchReportPagination.hasNextPage(result.length);
+
+    // refund_type isn't filterable server-side against a stable column
+    // set here, so — same as before — it's applied client-side to the
+    // fetched page below.
+    if (refundType != null) {
+      returns = returns
+          .where((r) => r.refundType == refundType)
+          .toList();
+    }
+
+    return PagedSaleReturnReport(
+        returns: returns, hasNextPage: hasNextPage);
+  }
+
+  // ── Every return matching the filters, for Excel export. Fetched in
+  //    large chunks — the on-screen list only holds the pages the user has
+  //    scrolled to, which would silently truncate the export. ────────────
+  static const int _exportChunk = 200;
+
+  Future<List<SaleReturnInvoice>> getAllForExport({
+    required DateTime fromDate,
+    required DateTime toDate,
+    String?           customerId,
+    String?           refundType,
+  }) async {
+    final all = <SaleReturnInvoice>[];
+    var start = 0;
+    while (true) {
+      final result = await _fetchRows(
+        fromDate:   fromDate,
+        toDate:     toDate,
+        customerId: customerId,
+        start:      start,
+        end:        start + _exportChunk - 1,
+      );
+      all.addAll(result
+          .where((r) => r['deleted_at'] == null)
+          .map(_mapReturn));
+      if (result.length < _exportChunk) break;
+      start += _exportChunk;
+    }
+
+    if (refundType == null) return all;
+    return all.where((r) => r.refundType == refundType).toList();
+  }
+
+  Future<List<dynamic>> _fetchRows({
+    required DateTime fromDate,
+    required DateTime toDate,
+    String?           customerId,
+    required int      start,
+    required int      end,
+  }) async {
     var query = _client
         .from('sale_returns')
         .select('''
@@ -61,30 +129,10 @@ class AccountantSaleReturnDatasource {
       query = query.eq('customer_id', customerId);
     }
 
-    // refund_type isn't filterable server-side against a stable column
-    // set here, so — same as before — it's applied client-side to the
-    // fetched page below.
-    final (start, end) = BranchReportPagination.range(page);
     final result = await query
         .order('return_date', ascending: false)
         .range(start, end);
-
-    var returns = (result as List)
-        .where((r) => r['deleted_at'] == null)
-        .map(_mapReturn)
-        .toList();
-
-    final hasNextPage = BranchReportPagination.hasNextPage(
-        (result).length);
-
-    if (refundType != null) {
-      returns = returns
-          .where((r) => r.refundType == refundType)
-          .toList();
-    }
-
-    return PagedSaleReturnReport(
-        returns: returns, hasNextPage: hasNextPage);
+    return result as List;
   }
 
   // ── Aggregate totals across every matching return — one RPC

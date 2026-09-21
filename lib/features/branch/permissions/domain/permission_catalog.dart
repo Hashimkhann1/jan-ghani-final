@@ -195,6 +195,14 @@ class PermissionCatalog {
           key: 'report_csr', label: 'Customer Ledger Report',
           icon: Icons.bar_chart_rounded, actions: _viewOnly,
         ),
+        PermModule(
+          key: 'report_pnl', label: 'Profit & Loss Report',
+          icon: Icons.account_balance_rounded, actions: _viewOnly,
+        ),
+        PermModule(
+          key: 'report_product_pnl', label: 'Product Profit & Loss Report',
+          icon: Icons.trending_up_rounded, actions: _viewOnly,
+        ),
       ],
     ),
     PermGroup(
