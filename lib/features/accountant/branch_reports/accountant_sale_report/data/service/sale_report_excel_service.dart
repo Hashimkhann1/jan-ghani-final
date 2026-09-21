@@ -5,14 +5,16 @@ import '../model/accountant_sale_report_model.dart';
 class SaleReportExcelService {
   static final _rangeFmt = DateFormat('dd MMM yyyy hh:mm a');
 
-  /// [invoices] must be the full, filtered result — not just the pages
+  /// [data] must be the full, filtered result — not just the pages
   /// currently loaded on screen.
   ///
-  /// Two sheets: "Invoices" (one row per invoice, invoice-level totals) and
-  /// "Items" (one row per sold line item). Invoice-level amounts are kept off
-  /// the Items sheet so summing a column never double-counts an invoice.
+  /// Two sheets: "Sales Transactions" (a fact table — one row per product sold
+  /// per invoice, no totals row so it can be pivoted/loaded into BI tools) and
+  /// "Invoices" (one row per invoice, invoice-level totals). Invoice-level
+  /// amounts are kept off the fact table so summing a column never
+  /// double-counts an invoice.
   static Future<void> exportAndSave({
-    required List<SaleReportInvoice> invoices,
+    required SaleReportExportData data,
     required DateTime fromDate,
     required DateTime toDate,
     String? customerName,
@@ -26,14 +28,17 @@ class SaleReportExcelService {
 
     await ReportExcelExport.save(
       fileNamePrefix: 'sale_invoice_report',
-      sheets: buildSheets(invoices: invoices, subtitle: subtitle),
+      sheets: buildSheets(data: data, subtitle: subtitle),
     );
   }
 
+  static const _uncategorized = 'Uncategorized';
+
   static List<ExcelSheetData> buildSheets({
-    required List<SaleReportInvoice> invoices,
+    required SaleReportExportData data,
     required String subtitle,
   }) {
+    final invoices = data.invoices;
     var totalQty = 0.0, totalAmount = 0.0, totalDiscount = 0.0, grandTotal = 0.0;
     final invoiceRows = <List<Object?>>[];
     for (final inv in invoices) {
@@ -57,30 +62,48 @@ class SaleReportExcelService {
       ]);
     }
 
-    var itemQty = 0.0, itemDiscount = 0.0, itemTotal = 0.0;
-    final itemRows = <List<Object?>>[];
+    final factRows = <List<Object?>>[];
     for (final inv in invoices) {
       for (final i in inv.items) {
-        itemQty      += i.quantity;
-        itemDiscount += i.discount;
-        itemTotal    += i.totalAmount;
-        itemRows.add([
+        factRows.add([
           inv.invoiceNo,
           inv.invoiceDate,
-          inv.customerLabel,
-          inv.paymentLabel,
+          data.branchName,
+          inv.cashierName ?? '',
           i.productName,
-          i.sku ?? '',
+          data.categoryNameByProductId[i.productId] ?? _uncategorized,
           i.quantity,
           i.salePrice,
           i.purchasePrice,
           i.discount,
-          i.totalAmount,
+          inv.paymentLabel,
+          inv.customerLabel,
         ]);
       }
     }
 
     return [
+      ExcelSheetData(
+        name:     'Sales Transactions',
+        title:    'Sales Transactions — Fact Table (one row per product sold per invoice)',
+        subtitle: '$subtitle   •   ${factRows.length} line items',
+        columns: const [
+          ExcelColumn('invoice_no',    width: 18),
+          ExcelColumn('date_time',     width: 18, type: ExcelColType.dateTime,
+              format: 'yyyy-mm-dd hh:mm'),
+          ExcelColumn('branch',        width: 20),
+          ExcelColumn('cashier',       width: 18),
+          ExcelColumn('product',       width: 34),
+          ExcelColumn('category',      width: 20),
+          ExcelColumn('qty',           width: 8,  type: ExcelColType.quantity),
+          ExcelColumn('sale_price',    width: 12, type: ExcelColType.amount),
+          ExcelColumn('cost_price',    width: 12, type: ExcelColType.amount),
+          ExcelColumn('discount',      width: 10, type: ExcelColType.amount),
+          ExcelColumn('payment_type',  width: 14),
+          ExcelColumn('customer',      width: 26),
+        ],
+        rows: factRows,
+      ),
       ExcelSheetData(
         name:     'Invoices',
         title:    'Sale Invoice Report',
@@ -102,27 +125,6 @@ class SaleReportExcelService {
         rows:   invoiceRows,
         totals: ['TOTAL', null, null, null, null, totalQty, totalAmount,
                  totalDiscount, grandTotal, null, null, null],
-      ),
-      ExcelSheetData(
-        name:     'Items',
-        title:    'Sale Invoice Report — Line Items',
-        subtitle: '$subtitle   •   ${itemRows.length} line items',
-        columns: const [
-          ExcelColumn('Invoice No',     width: 18),
-          ExcelColumn('Date & Time',    width: 22, type: ExcelColType.dateTime),
-          ExcelColumn('Customer',       width: 26),
-          ExcelColumn('Payment',        width: 14),
-          ExcelColumn('Product',        width: 34),
-          ExcelColumn('SKU',            width: 16),
-          ExcelColumn('Qty',            width: 10, type: ExcelColType.quantity),
-          ExcelColumn('Sale Price',     width: 13, type: ExcelColType.amount),
-          ExcelColumn('Purchase Price', width: 15, type: ExcelColType.amount),
-          ExcelColumn('Discount',       width: 12, type: ExcelColType.amount),
-          ExcelColumn('Line Total',     width: 14, type: ExcelColType.amount),
-        ],
-        rows:   itemRows,
-        totals: ['TOTAL', null, null, null, null, null, itemQty, null, null,
-                 itemDiscount, itemTotal],
       ),
     ];
   }

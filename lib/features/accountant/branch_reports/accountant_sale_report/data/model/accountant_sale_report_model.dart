@@ -4,6 +4,7 @@ class SaleReportInvoice {
   final DateTime invoiceDate;
   final String?  customerName;
   final String?  customerId;
+  final String?  cashierName;
   final double   totalAmount;
   final double   totalDiscount;
   final double   grandTotal;
@@ -23,6 +24,7 @@ class SaleReportInvoice {
     required this.invoiceDate,
     this.customerName,
     this.customerId,
+    this.cashierName,
     required this.totalAmount,
     required this.totalDiscount,
     required this.grandTotal,
@@ -49,6 +51,7 @@ class SaleReportInvoice {
 }
 
 class SaleReportItem {
+  final String? productId;
   final String  productName;
   final String? sku;
   final double  salePrice;
@@ -58,6 +61,7 @@ class SaleReportItem {
   final double  totalAmount;
 
   const SaleReportItem({
+    this.productId,
     required this.productName,
     this.sku,
     required this.salePrice,
@@ -79,6 +83,20 @@ class SaleReportSummary {
     required this.totalSale,
     required this.totalQuantity,
     required this.totalDiscount,
+  });
+}
+
+/// Everything the Excel export needs: the full filtered invoice list plus the
+/// lookups that turn ids into the branch / category names shown in the sheet.
+class SaleReportExportData {
+  final List<SaleReportInvoice> invoices;
+  final String                  branchName;
+  final Map<String, String>     categoryNameByProductId;
+
+  const SaleReportExportData({
+    required this.invoices,
+    required this.branchName,
+    required this.categoryNameByProductId,
   });
 }
 

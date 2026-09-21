@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../common/export/branch_export_lookups.dart';
 import '../../data/datasource/branch_cash_counter_datasource.dart';
 import '../../data/model/branch_cash_counter_model.dart';
 
@@ -105,6 +106,10 @@ class BranchCashCounterNotifier
     state = state.copyWith(fromDate: d, toDate: d);
     load();
   }
+
+  /// The export puts the branch name on every row.
+  Future<String> fetchBranchName() =>
+      BranchExportLookups(branchId: state.branchId).branchName();
 
   void clearError() => state = state.copyWith(errorMessage: null);
 }

@@ -87,8 +87,8 @@ class _AccountantSaleReportScreenState
       behavior: SnackBarBehavior.floating,
     ));
     try {
-      final invoices = await notifier.fetchAllForExport();
-      if (invoices.isEmpty) {
+      final data = await notifier.fetchAllForExport();
+      if (data.invoices.isEmpty) {
         messenger.showSnackBar(const SnackBar(
           content:  Text('No invoices to export for the selected filters'),
           behavior: SnackBarBehavior.floating,
@@ -96,7 +96,7 @@ class _AccountantSaleReportScreenState
         return;
       }
       await SaleReportExcelService.exportAndSave(
-        invoices:     invoices,
+        data:         data,
         fromDate:     state.fromDate,
         toDate:       state.toDate,
         customerName: customerName,

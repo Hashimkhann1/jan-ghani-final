@@ -5,14 +5,16 @@ import '../model/sale_return_report_model.dart';
 class SaleReturnReportExcelService {
   static final _rangeFmt = DateFormat('dd MMM yyyy');
 
-  /// [returns] must be the full, filtered result — not just the pages
+  /// [data] must be the full, filtered result — not just the pages
   /// currently loaded on screen.
   ///
-  /// Two sheets: "Returns" (one row per return, return-level totals) and
-  /// "Items" (one row per returned line item). Return-level amounts are kept
-  /// off the Items sheet so summing a column never double-counts a return.
+  /// Two sheets: "Returns" (a fact table — one row per product returned, no
+  /// totals row so it can be pivoted/loaded into BI tools) and "Return
+  /// Summary" (one row per return, return-level totals). Return-level amounts
+  /// are kept off the fact table so summing a column never double-counts a
+  /// return.
   static Future<void> exportAndSave({
-    required List<SaleReturnInvoice> returns,
+    required SaleReturnExportData data,
     required DateTime fromDate,
     required DateTime toDate,
     String? customerName,
@@ -26,14 +28,17 @@ class SaleReturnReportExcelService {
 
     await ReportExcelExport.save(
       fileNamePrefix: 'sale_return_report',
-      sheets: buildSheets(returns: returns, subtitle: subtitle),
+      sheets: buildSheets(data: data, subtitle: subtitle),
     );
   }
 
+  static const _uncategorized = 'Uncategorized';
+
   static List<ExcelSheetData> buildSheets({
-    required List<SaleReturnInvoice> returns,
+    required SaleReturnExportData data,
     required String subtitle,
   }) {
+    final returns = data.returns;
     var totalQty = 0.0, totalAmount = 0.0, totalDiscount = 0.0, grandTotal = 0.0;
     final returnRows = <List<Object?>>[];
     for (final r in returns) {
@@ -56,26 +61,21 @@ class SaleReturnReportExcelService {
       ]);
     }
 
-    var itemQty = 0.0, itemDiscount = 0.0, itemTotal = 0.0;
-    final itemRows = <List<Object?>>[];
+    final factRows = <List<Object?>>[];
     for (final r in returns) {
       for (final i in r.items) {
-        itemQty      += i.quantity;
-        itemDiscount += i.discount;
-        itemTotal    += i.totalAmount;
-        itemRows.add([
+        factRows.add([
           r.returnNo,
           r.returnDate,
-          r.customerLabel,
+          data.branchName,
+          r.invoiceNo ?? '',
+          i.productName,
+          data.categoryNameByProductId[i.productId] ?? _uncategorized,
+          i.quantity,
+          i.totalAmount,
           r.refundType == null ? '' : _cap(r.refundType!),
           r.returnReason ?? '',
-          i.productName,
-          i.sku ?? '',
-          i.quantity,
-          i.salePrice,
-          i.purchasePrice,
-          i.discount,
-          i.totalAmount,
+          r.customerLabel,
         ]);
       }
     }
@@ -83,6 +83,26 @@ class SaleReturnReportExcelService {
     return [
       ExcelSheetData(
         name:     'Returns',
+        title:    'Returns — Fact Table (one row per product returned)',
+        subtitle: '$subtitle   •   ${factRows.length} line items',
+        columns: const [
+          ExcelColumn('return_no',     width: 18),
+          ExcelColumn('date_time',     width: 18, type: ExcelColType.dateTime,
+              format: 'yyyy-mm-dd hh:mm'),
+          ExcelColumn('branch',        width: 20),
+          ExcelColumn('invoice_no',    width: 18),
+          ExcelColumn('product',       width: 34),
+          ExcelColumn('category',      width: 20),
+          ExcelColumn('qty',           width: 8,  type: ExcelColType.quantity),
+          ExcelColumn('refund_amount', width: 15, type: ExcelColType.amount),
+          ExcelColumn('refund_type',   width: 14),
+          ExcelColumn('reason',        width: 30),
+          ExcelColumn('customer',      width: 26),
+        ],
+        rows: factRows,
+      ),
+      ExcelSheetData(
+        name:     'Return Summary',
         title:    'Sale Return Report',
         subtitle: '$subtitle   •   ${returns.length} returns',
         columns: const [
@@ -101,28 +121,6 @@ class SaleReturnReportExcelService {
         rows:   returnRows,
         totals: ['TOTAL', null, null, null, null, null, null, totalQty,
                  totalAmount, totalDiscount, grandTotal],
-      ),
-      ExcelSheetData(
-        name:     'Items',
-        title:    'Sale Return Report — Line Items',
-        subtitle: '$subtitle   •   ${itemRows.length} line items',
-        columns: const [
-          ExcelColumn('Return No',      width: 18),
-          ExcelColumn('Date & Time',    width: 22, type: ExcelColType.dateTime),
-          ExcelColumn('Customer',       width: 26),
-          ExcelColumn('Refund Type',    width: 14),
-          ExcelColumn('Reason',         width: 30),
-          ExcelColumn('Product',        width: 34),
-          ExcelColumn('SKU',            width: 16),
-          ExcelColumn('Qty',            width: 10, type: ExcelColType.quantity),
-          ExcelColumn('Sale Price',     width: 13, type: ExcelColType.amount),
-          ExcelColumn('Purchase Price', width: 15, type: ExcelColType.amount),
-          ExcelColumn('Discount',       width: 12, type: ExcelColType.amount),
-          ExcelColumn('Line Total',     width: 14, type: ExcelColType.amount),
-        ],
-        rows:   itemRows,
-        totals: ['TOTAL', null, null, null, null, null, null, itemQty, null,
-                 null, itemDiscount, itemTotal],
       ),
     ];
   }

@@ -5,6 +5,8 @@ class SaleReturnInvoice {
   final String?  customerName;
   final String?  customerId;
   final String?  invoiceId;
+  /// Original sale invoice number — null when the return isn't linked to one.
+  final String?  invoiceNo;
   final double   totalAmount;
   final double   totalDiscount;
   final double   grandTotal;
@@ -21,6 +23,7 @@ class SaleReturnInvoice {
     this.customerName,
     this.customerId,
     this.invoiceId,
+    this.invoiceNo,
     required this.totalAmount,
     required this.totalDiscount,
     required this.grandTotal,
@@ -45,6 +48,7 @@ class SaleReturnInvoice {
 }
 
 class SaleReturnItem {
+  final String? productId;
   final String  productName;
   final String? sku;
   final double  salePrice;      // price → salePrice
@@ -54,6 +58,7 @@ class SaleReturnItem {
   final double  totalAmount;
 
   const SaleReturnItem({
+    this.productId,
     required this.productName,
     this.sku,
     required this.salePrice,
@@ -75,6 +80,20 @@ class SaleReturnSummary {
     required this.totalAmount,
     required this.totalQuantity,
     required this.totalDiscount,
+  });
+}
+
+/// Everything the Excel export needs: the full filtered return list plus the
+/// lookups that turn ids into the branch / category names shown in the sheet.
+class SaleReturnExportData {
+  final List<SaleReturnInvoice> returns;
+  final String                  branchName;
+  final Map<String, String>     categoryNameByProductId;
+
+  const SaleReturnExportData({
+    required this.returns,
+    required this.branchName,
+    required this.categoryNameByProductId,
   });
 }
 

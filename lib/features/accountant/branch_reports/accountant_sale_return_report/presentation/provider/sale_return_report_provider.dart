@@ -184,7 +184,7 @@ class AccountantSaleReturnNotifier
 
   // ── Every return matching the current filters — the on-screen list only
   //    holds the pages loaded so far, so Excel export re-fetches in full ───
-  Future<List<SaleReturnInvoice>> fetchAllForExport() => _ds.getAllForExport(
+  Future<SaleReturnExportData> fetchAllForExport() => _ds.getExportData(
         fromDate:   state.fromDate,
         toDate:     state.toDate,
         customerId: state.selectedCustomerId,

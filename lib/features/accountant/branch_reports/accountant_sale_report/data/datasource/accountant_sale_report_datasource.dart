@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../common/export/branch_export_lookups.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
 import '../model/accountant_sale_report_model.dart';
 
@@ -6,7 +7,10 @@ class AccountantSaleReportDatasource {
   final _client = Supabase.instance.client;
   final String  branchId;
 
-  AccountantSaleReportDatasource({required this.branchId});
+  AccountantSaleReportDatasource({required this.branchId})
+      : _lookups = BranchExportLookups(branchId: branchId);
+
+  final BranchExportLookups _lookups;
 
   // ── Get Customers for dropdown ────────────────────────────
   Future<List<CustomerOption>> getCustomers() async {
@@ -67,6 +71,29 @@ class AccountantSaleReportDatasource {
   //    scrolled to, which would silently truncate the export. ────────────
   static const int _exportChunk = 200;
 
+  Future<SaleReportExportData> getExportData({
+    required DateTime fromDate,
+    required DateTime toDate,
+    String?           customerId,
+    String?           paymentType,
+  }) async {
+    final results = await Future.wait([
+      getAllForExport(
+        fromDate:    fromDate,
+        toDate:      toDate,
+        customerId:  customerId,
+        paymentType: paymentType,
+      ),
+      _lookups.branchName(),
+      _lookups.categoryNameByProductId(),
+    ]);
+    return SaleReportExportData(
+      invoices:                results[0] as List<SaleReportInvoice>,
+      branchName:              results[1] as String,
+      categoryNameByProductId: results[2] as Map<String, String>,
+    );
+  }
+
   Future<List<SaleReportInvoice>> getAllForExport({
     required DateTime fromDate,
     required DateTime toDate,
@@ -109,9 +136,10 @@ class AccountantSaleReportDatasource {
           status, customer_id, deleted_at,
           previous_amount, new_amount, pay_amount, paid_amount,
           customer (name),
+          cashier:user_id ( full_name ),
           sale_invoice_payments (payment_method, amount),
           sale_invoice_items (
-            product_name, sku, sale_price,
+            product_id, product_name, sku, sale_price,
             purchase_price, quantity, discount, total_amount
           )
         ''')
@@ -166,6 +194,7 @@ class AccountantSaleReportDatasource {
 
     final items = (r['sale_invoice_items'] as List? ?? [])
         .map((i) => SaleReportItem(
+      productId:     i['product_id']?.toString(),
       productName:   i['product_name']?.toString() ?? '',
       sku:           i['sku']?.toString(),
       salePrice:     _dbl(i['sale_price'])          ?? 0,
@@ -188,6 +217,7 @@ class AccountantSaleReportDatasource {
           .toLocal(),
       customerName:   customerName,
       customerId:     r['customer_id']?.toString(),
+      cashierName:    (r['cashier'] as Map?)?['full_name']?.toString(),
       totalAmount:    _dbl(r['total_amount'])       ?? 0,
       totalDiscount:  _dbl(r['total_discount'])     ?? 0,
       grandTotal:     _dbl(r['grand_total'])        ?? 0,

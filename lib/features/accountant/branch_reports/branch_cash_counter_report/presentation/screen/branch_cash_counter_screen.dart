@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/branch_cash_counter_model.dart';
+import '../../data/service/branch_cash_counter_excel_service.dart';
 import '../provider/branch_cash_counter_provider.dart';
 
 class BranchCashCounterReportScreen extends ConsumerStatefulWidget {
@@ -23,6 +24,7 @@ class _BranchCashCounterReportScreenState
   final _amtFmt   = NumberFormat('#,##,###', 'en_IN');
   final _fromCtrl = TextEditingController();
   final _toCtrl   = TextEditingController();
+  bool _exporting = false;
 
   @override
   void initState() {
@@ -42,6 +44,47 @@ class _BranchCashCounterReportScreenState
   }
 
   String _fmt(double v) => 'Rs ${_amtFmt.format(v.toInt())}';
+
+  // ── Export Excel — one row per day for the current date range ──────────
+  Future<void> _exportExcel() async {
+    if (_exporting) return;
+    final provider  = branchCashCounterProvider(widget.branchId);
+    final state     = ref.read(provider);
+    final messenger = ScaffoldMessenger.of(context);
+
+    final summary = state.summary;
+    if (summary == null || summary.days.isEmpty) {
+      messenger.showSnackBar(const SnackBar(
+        content:  Text('No cash counter data to export for the selected dates'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+
+    setState(() => _exporting = true);
+    messenger.showSnackBar(const SnackBar(
+      content:  Text('Preparing Excel...'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+    try {
+      final branchName = await ref.read(provider.notifier).fetchBranchName();
+      await BranchCashCounterExcelService.exportAndSave(
+        summary:    summary,
+        branchName: branchName,
+        fromDate:   state.fromDate,
+        toDate:     state.toDate,
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content:         Text('Export failed: $e'),
+        backgroundColor: AppColor.error,
+        behavior:        SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   Future<void> _pickDate(BuildContext context, bool isFrom) async {
     final state  = ref.read(branchCashCounterProvider(widget.branchId));
@@ -115,6 +158,16 @@ class _BranchCashCounterReportScreenState
           ),
         ),
         actions: [
+          IconButton(
+            onPressed: _exporting ? null : _exportExcel,
+            icon: _exporting
+                ? const SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.table_view_outlined,
+                    size: 22, color: AppColor.primary),
+            tooltip: 'Export Excel',
+          ),
           IconButton(
             onPressed: notifier.load,
             icon: const AppIcon('ic_refresh',

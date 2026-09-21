@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/accountant_customer_model.dart';
+import '../../../common/export/branch_export_lookups.dart';
+import '../../data/service/accountant_customer_excel_service.dart';
 import '../../data/service/customer_report_pdf_service.dart';
 import '../provider/accountant_customer_provider.dart';
 
@@ -65,6 +67,41 @@ class _AccountantCustomerReportScreenState
     }
   }
 
+  // ── Export Excel — same rule as the PDF: exports the current filtered list ──
+  Future<void> _exportExcel(
+      BuildContext context, AccountantCustomerReportState state) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (state.filtered.isEmpty) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text('No customers to export for the selected filters'),
+          behavior: SnackBarBehavior.floating,
+        ));
+        return;
+      }
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Preparing Excel...'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ));
+
+      final branchName =
+          await BranchExportLookups(branchId: _branchId).branchName();
+      await AccountantCustomerExcelService.exportAndSave(
+        items: state.filtered,
+        branchName: branchName,
+        filterType: state.filterType,
+        searchQuery: state.searchQuery,
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('Export failed: $e'),
+        backgroundColor: AppColor.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(
@@ -102,6 +139,7 @@ class _AccountantCustomerReportScreenState
         fmtAmt:     _fmt,
         searchCtrl: _searchCtrl,
         onExportPdf: () => _exportPdf(context, state),
+        onExportExcel: () => _exportExcel(context, state),
       )
           : _MobileLayout(
         state:      state,
@@ -109,6 +147,7 @@ class _AccountantCustomerReportScreenState
         fmtAmt:     _fmt,
         searchCtrl: _searchCtrl,
         onExportPdf: () => _exportPdf(context, state),
+        onExportExcel: () => _exportExcel(context, state),
       ),
     );
   }
@@ -123,6 +162,7 @@ class _DesktopLayout extends StatelessWidget {
   final String Function(double)       fmtAmt;
   final TextEditingController         searchCtrl;
   final VoidCallback                  onExportPdf;
+  final VoidCallback                  onExportExcel;
 
   const _DesktopLayout({
     required this.state,
@@ -130,6 +170,7 @@ class _DesktopLayout extends StatelessWidget {
     required this.fmtAmt,
     required this.searchCtrl,
     required this.onExportPdf,
+    required this.onExportExcel,
   });
 
   @override
@@ -178,7 +219,26 @@ class _DesktopLayout extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: onExportPdf,
                   icon: const AppIcon('ic_print', size: 18, color: Colors.white),
-                  label: const Text('Export'),
+                  label: const Text('PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 130,
+                child: ElevatedButton.icon(
+                  onPressed: onExportExcel,
+                  icon: const Icon(Icons.table_view_outlined,
+                      size: 18, color: Colors.white),
+                  label: const Text('Excel'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
                     foregroundColor: Colors.white,
@@ -907,6 +967,7 @@ class _MobileLayout extends StatelessWidget {
   final String Function(double)       fmtAmt;
   final TextEditingController         searchCtrl;
   final VoidCallback                  onExportPdf;
+  final VoidCallback                  onExportExcel;
 
   const _MobileLayout({
     required this.state,
@@ -914,6 +975,7 @@ class _MobileLayout extends StatelessWidget {
     required this.fmtAmt,
     required this.searchCtrl,
     required this.onExportPdf,
+    required this.onExportExcel,
   });
 
   @override
@@ -935,6 +997,12 @@ class _MobileLayout extends StatelessWidget {
             icon: const AppIcon('ic_print',
                 size: 22, color: AppColor.primary),
             tooltip: 'Export PDF',
+          ),
+          IconButton(
+            onPressed: onExportExcel,
+            icon: const Icon(Icons.table_view_outlined,
+                size: 22, color: AppColor.primary),
+            tooltip: 'Export Excel',
           ),
           IconButton(
             onPressed: notifier.load,

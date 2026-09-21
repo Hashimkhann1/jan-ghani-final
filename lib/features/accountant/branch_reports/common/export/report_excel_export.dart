@@ -13,10 +13,15 @@ class ExcelColumn {
   final double       width;
   final ExcelColType type;
 
+  /// Excel number-format code overriding the type's default, e.g.
+  /// `yyyy-mm-dd hh:mm`.
+  final String?      format;
+
   const ExcelColumn(
     this.header, {
     this.width = 16,
     this.type  = ExcelColType.text,
+    this.format,
   });
 }
 
@@ -119,8 +124,13 @@ class ReportExcelExport {
     var r = headerRow + 1;
     for (final row in data.rows) {
       for (var c = 0; c < data.columns.length; c++) {
-        put(c, r, _cellValue(data.columns[c].type, row[c]),
-            _dataStyle(data.columns[c].type, bold: false));
+        final col = data.columns[c];
+        var style = _dataStyle(col.type, bold: false);
+        if (col.format != null) {
+          style = style.copyWith(
+              numberFormat: NumFormat.custom(formatCode: col.format!));
+        }
+        put(c, r, _cellValue(col.type, row[c]), style);
       }
       r++;
     }

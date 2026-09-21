@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/inventory_counting_report_model.dart';
+import '../../../common/export/branch_export_lookups.dart';
+import '../../data/service/inventory_counting_excel_service.dart';
 import '../../data/service/inventory_counting_pdf_service.dart';
 import '../provider/inventory_counting_provider.dart';
 
@@ -118,6 +120,38 @@ class _InventoryCountingReportScreenState
     }
   }
 
+  // ── Export Excel — same rule as the PDF: exports the visible filtered list ──
+  Future<void> _exportExcel(
+      BuildContext context,
+      List<InventoryCountingRecord> visible,
+      InventoryCountingReportState state,
+      ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Preparing Excel...'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ));
+
+      final branchName =
+          await BranchExportLookups(branchId: widget.storeId).branchName();
+      await InventoryCountingExcelService.exportAndSave(
+        records: visible,
+        branchName: branchName,
+        searchQuery: state.searchQuery,
+        startDate: state.startDate,
+        endDate: state.endDate,
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('Export failed: $e'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryCountingReportProvider(widget.storeId));
@@ -148,7 +182,25 @@ class _InventoryCountingReportScreenState
                   ? () => _exportPdf(context, visible, state)
                   : null,
               icon: const AppIcon('ic_print', size: 18, color: Colors.white),
-              label: const Text('Export'),
+              label: const Text('PDF'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColor.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 130,
+            child: ElevatedButton.icon(
+              onPressed: (!state.isLoading && state.errorMessage == null && visible.isNotEmpty)
+                  ? () => _exportExcel(context, visible, state)
+                  : null,
+              icon: const Icon(Icons.table_view_outlined, size: 18, color: Colors.white),
+              label: const Text('Excel'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.primary,
                 foregroundColor: Colors.white,

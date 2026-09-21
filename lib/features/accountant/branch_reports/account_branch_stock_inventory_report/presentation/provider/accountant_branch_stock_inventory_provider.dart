@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../common/export/branch_export_lookups.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
 import '../../data/datasource/accountant_branch_stock_inventory_datasource.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
@@ -92,9 +93,11 @@ class AccountantBranchInventoryState {
 class AccountantBranchInventoryNotifier
     extends StateNotifier<AccountantBranchInventoryState> {
   final AccountantBranchInventoryDatasource _ds;
+  final BranchExportLookups                 _lookups;
 
   AccountantBranchInventoryNotifier({required String branchId})
-      : _ds = AccountantBranchInventoryDatasource(branchId: branchId),
+      : _ds      = AccountantBranchInventoryDatasource(branchId: branchId),
+        _lookups = BranchExportLookups(branchId: branchId),
         super(const AccountantBranchInventoryState()) {
     load();
   }
@@ -183,6 +186,9 @@ class AccountantBranchInventoryNotifier
       pagination: state.pagination.copyWith(page: state.pagination.page - 1),
     );
   }
+
+  /// Branch name for the Excel export's `branch` column.
+  Future<String> fetchBranchName() => _lookups.branchName();
 
   void clearError() => state = state.copyWith(errorMessage: null);
 

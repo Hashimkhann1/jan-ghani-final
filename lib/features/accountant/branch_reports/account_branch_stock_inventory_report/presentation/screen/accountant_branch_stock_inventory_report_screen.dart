@@ -6,6 +6,7 @@ import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
+import '../../data/service/accountant_branch_inventory_excel_service.dart';
 import '../../data/service/accountant_branch_inventory_pdf_service.dart';
 import '../provider/accountant_branch_stock_inventory_provider.dart';
 
@@ -124,6 +125,51 @@ Future<void> _exportPdf(BuildContext context, AccountantBranchInventoryState sta
   }
 }
 
+// Export Excel — same rule as the PDF: exports state.filtered (what's on screen)
+Future<void> _exportExcel(
+  BuildContext context,
+  AccountantBranchInventoryState state,
+  dynamic notifier,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    if (state.filtered.isEmpty) {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('No products to export for the selected filters'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    messenger.showSnackBar(const SnackBar(
+      content: Text('Preparing Excel...'),
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    ));
+
+    String? categoryName;
+    if (state.categoryFilter != null) {
+      final match = state.categories.where((c) => c.id == state.categoryFilter);
+      categoryName = match.isNotEmpty ? match.first.name : null;
+    }
+
+    final branchName = await notifier.fetchBranchName() as String;
+    await AccountantBranchInventoryExcelService.exportAndSave(
+      items: state.filtered,
+      branchName: branchName,
+      categoryName: categoryName,
+      stockFilter: state.stockFilter,
+      deadStockOnly: state.deadStockOnly,
+      searchQuery: state.searchQuery,
+    );
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(
+      content: Text('Export failed: $e'),
+      backgroundColor: AppColor.error,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // DESKTOP LAYOUT
 // ══════════════════════════════════════════════════════════════════════════════
@@ -179,7 +225,23 @@ class _DesktopLayout extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () => _exportPdf(context, state),
                   icon: const AppIcon('ic_print', size: 18, color: Colors.white),
-                  label: const Text('Export'),
+                  label: const Text('PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 130,
+                child: ElevatedButton.icon(
+                  onPressed: () => _exportExcel(context, state, notifier),
+                  icon: const Icon(Icons.table_view_outlined, size: 18, color: Colors.white),
+                  label: const Text('Excel'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
                     foregroundColor: Colors.white,
@@ -621,6 +683,11 @@ class _MobileLayout extends StatelessWidget {
             onPressed: () => _exportPdf(context, state),
             icon: const AppIcon('ic_print', size: 22, color: AppColor.primary),
             tooltip: 'Export PDF',
+          ),
+          IconButton(
+            onPressed: () => _exportExcel(context, state, notifier),
+            icon: const Icon(Icons.table_view_outlined, size: 22, color: AppColor.primary),
+            tooltip: 'Export Excel',
           ),
           IconButton(
             onPressed: notifier.load,

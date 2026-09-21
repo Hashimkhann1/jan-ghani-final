@@ -73,8 +73,8 @@ class _AccountantSaleReturnReportScreenState
       behavior: SnackBarBehavior.floating,
     ));
     try {
-      final returns = await notifier.fetchAllForExport();
-      if (returns.isEmpty) {
+      final data = await notifier.fetchAllForExport();
+      if (data.returns.isEmpty) {
         messenger.showSnackBar(const SnackBar(
           content:  Text('No returns to export for the selected filters'),
           behavior: SnackBarBehavior.floating,
@@ -82,7 +82,7 @@ class _AccountantSaleReturnReportScreenState
         return;
       }
       await SaleReturnReportExcelService.exportAndSave(
-        returns:      returns,
+        data:         data,
         fromDate:     state.fromDate,
         toDate:       state.toDate,
         customerName: customerName,
