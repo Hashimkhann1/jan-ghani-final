@@ -1,3 +1,4 @@
+// Updated on 2026-09-25 04:51 PM
 // =============================================================
 // accountant_transfer_model.dart
 // Accountant ke Stock Transfer Record feature ke models (read-only)
@@ -99,7 +100,7 @@ class AccTransferItemModel {
   final String  unitOfMeasure;
   final double  quantitySent;
   final double  quantityReceived;
-  final double  unitCost;
+  final double  purchasePrice; // stock_transfer_items.purchase_price
   final double  salePrice;
   final double  totalCost;
 
@@ -110,7 +111,7 @@ class AccTransferItemModel {
     required this.unitOfMeasure,
     required this.quantitySent,
     required this.quantityReceived,
-    required this.unitCost,
+    required this.purchasePrice,
     required this.salePrice,
     required this.totalCost,
   });
@@ -123,7 +124,9 @@ class AccTransferItemModel {
       unitOfMeasure:    map['unit_of_measure']?.toString() ?? 'pcs',
       quantitySent:     _toDouble(map['quantity_sent']),
       quantityReceived: _toDouble(map['quantity_received']),
-      unitCost:         _toDouble(map['unit_cost']),
+      // ⚠️ Ex-`unit_cost` — woh column stock_transfer_items par kabhi populate
+      // nahi hoti thi. Actual cost `purchase_price` mein hoti hai.
+      purchasePrice:    _toDouble(map['purchase_price']),
       salePrice:        _toDouble(map['sale_price']),
       totalCost:        _toDouble(map['total_cost']),
     );

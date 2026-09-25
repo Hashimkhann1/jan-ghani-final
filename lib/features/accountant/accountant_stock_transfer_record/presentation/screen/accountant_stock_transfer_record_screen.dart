@@ -1,3 +1,4 @@
+// Updated on 2026-09-25 04:51 PM
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -619,7 +620,7 @@ class _TransferItemsList extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          '${_qty(item.quantitySent)} ${item.unitOfMeasure} × ${_money(item.unitCost)}'
+                          '${_qty(item.quantitySent)} ${item.unitOfMeasure} × ${_money(item.purchasePrice)}'
                           '${item.sku?.isNotEmpty == true ? '  •  ${item.sku}' : ''}',
                           style: const TextStyle(
                               fontSize: 11, color: AppColor.textMuted),

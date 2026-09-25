@@ -1,3 +1,5 @@
+<!-- Updated on 2026-09-25 04:51 PM -->
+
 # Jan Ghani POS — Project Context
 
 ## Overview
@@ -1118,6 +1120,46 @@ _type = (s.month.isBefore(currentMonth) || currentUnlocked)
 2. **Dart parse behavior:** `DateTime.parse('2026-09-12T14:30:00')` → LOCAL. `DateTime.parse('2026-09-12T14:30:00Z')` → UTC. Supabase timestamptz mostly `+00:00` ke saath aata hai → parse UTC-marked deta → `.hour` UTC hour deta → display UTC dikha deta. Fix: `.toLocal()` display se pehle.
 3. **Existing batches purane semantic ke saath immutable rehte hain** — feature swap sirf naye batches par lagta (jo bane the physical-override wale unke data pehle se `physicalStock` mein hai; ab display consistent hoga kyunki dono values `physical_stock` DB column se hi aati hain, sirf editing flow badla).
 4. **`counted_date` vs `updated_at`:** `counted_date` sirf DATE (yyyy-mm-dd) hai — filter/grouping ke liye theek, actual timestamp ke liye NAHI. Actual time hamesha `updated_at` se lo.
+
+---
+
+## Session 13 — Link Stores → Branch Reports · Transfer Record Price Fix ⭐
+
+### 1. Link Stores card tap → `BranchReportListScreen`
+> **Change:** Warehouse app mein "Link Stores" screen par kisi store card ko tap karne se ab wo store ki **17 branch reports** wali shell khulti hai (accountant ki `BranchReportListScreen`) — pehle apni ~2-section `StoreDetailShell` (Inventory + Customers) khulti thi.
+
+- **File:** [`linked_stores_screen.dart`](lib/features/warehouse/link_stores/presentation/screens/linked_stores_screen.dart)
+  - `onTap` builder: `StoreDetailShell(store: ...)` → `BranchReportListScreen(branchId: store.storeId)`
+  - Import swap: `store_detail/presentation/screens/store_detail_shell.dart` → `accountant/branch_reports/branch_report_list_screen.dart`
+- **Contract:** `storeId` (linked_stores.store_id) → `branchId` — accountant screens ka standard (jaise `accountant_customer_datasource` mein `.eq('store_id', branchId)`).
+- **Cleanup:** [`store_detail_shell.dart`](lib/features/warehouse/link_stores/store_detail/presentation/screens/) **DELETE** — kahin aur reference nahi tha. Parent folder (`store_detail/`) khali reh gaya but as-is chhoda hai (`git` empty dirs track nahi karta).
+- **Note:** `AccountantCustomerReportScreen` ka jo tab pehle `StoreDetailShell` mein tha, wo ab `BranchReportListScreen` ki 17 reports mein "Customer Report" ke naam se accessible hai — cheez gum nahi hui, sirf superset shell dikha rahe hain.
+- Rule "accountant touch nahi karna" respect — sirf **import + navigator push** kiya. Accountant code untouched.
+
+### 2. Accountant Stock Transfer Record — items price 0 fix
+> **Bug:** Har transfer expand karo → items ke saath `qty × Rs 0.00` dikha raha tha, qty sahi thi lekin price hamesha 0.
+>
+> **Root cause:** Model `unit_cost` column read kar raha tha `stock_transfer_items` se, lekin production data mein **4915/4915 rows (100%)** par `unit_cost = 0/NULL` hai. Warehouse-side assign_stock flow historically sirf `purchase_price` + `sale_price` + `total_cost` populate karta hai; `unit_cost` column exist to karta hai lekin insert path mein set nahi hota (verified with Supabase aggregate query).
+
+**Fix — Option A applied (simple, no data migration):**
+
+| File | Change |
+|---|---|
+| [`accountant_transfer_remote_datasource.dart`](lib/features/accountant/accountant_stock_transfer_record/data/datasource/accountant_transfer_remote_datasource.dart) | `stock_transfer_items` select: `unit_cost` → `purchase_price` |
+| [`accountant_transfer_model.dart`](lib/features/accountant/accountant_stock_transfer_record/data/model/accountant_transfer_model.dart) | `AccTransferItemModel.unitCost` field rename → `purchasePrice`, parse `map['purchase_price']` |
+| [`accountant_stock_transfer_record_screen.dart`](lib/features/accountant/accountant_stock_transfer_record/presentation/screen/accountant_stock_transfer_record_screen.dart) line 622 | Display: `item.unitCost` → `item.purchasePrice` |
+
+**Baaqi options** (documented for future ref):
+- **Option B (data migration):** assign_stock ka insert path mein `unit_cost = purchase_price` bhi set, phir one-time `UPDATE stock_transfer_items SET unit_cost = purchase_price` — zyada work, 2 apps + cleanup.
+- **Option C (sale price display):** `unitCost` → `salePrice` — agar business intent customer-facing rate dikhana ho.
+
+**Choice reasoning:** Option A minimal + surgical — sirf accountant read layer badla, warehouse write flow untouched, koi migration nahi. 70 rows par `purchase_price` bhi 0 hai (pre-existing data quality issue, separate investigation).
+
+### ⚠️ Session 13 lessons
+
+1. **Data column bug pakadne ka pattern:** UI zero dikha rahi hai → Supabase par direct aggregate query (`COUNT(*) FILTER (WHERE col = 0 OR col IS NULL)`) chalao. Column-wise zero-ratio se pata chal jata konsa column populate nahi hota vs read galat.
+2. **Naming consistency vs safety:** Field `unitCost` rename kiya `purchasePrice` — thoda intrusive lag sakta lekin future readers ke liye clear (naam column reality reflect karta). Provider/repository mein koi aur reference nahi tha → safe rename.
+3. **"Superset UI" pattern:** Existing 2-section shell (`StoreDetailShell`) delete kar diya kyunki 17-report shell (`BranchReportListScreen`) ne functionally cover kar liya (Inventory Report + Customer Report + 15 more). Zero functionality loss, actually gain.
 
 ---
 

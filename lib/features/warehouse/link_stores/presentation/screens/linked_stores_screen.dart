@@ -1,9 +1,10 @@
+// Updated on 2026-09-25 03:51 PM
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/branch_report_list_screen.dart';
 import '../providers/link_stores_provider.dart';
 import '../widgets/linked_store_row.dart';
 import 'available_stores_screen.dart';
-import '../../store_detail/presentation/screens/store_detail_shell.dart';
 
 class LinkedStoresScreen extends ConsumerWidget {
   final String warehouseId;
@@ -72,7 +73,10 @@ class LinkedStoresScreen extends ConsumerWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => StoreDetailShell(store: stores[index]),
+                    // store ka storeId → branchId (accountant screens ka contract).
+                    builder: (_) => BranchReportListScreen(
+                      branchId: stores[index].storeId,
+                    ),
                   ),
                 ),
               );

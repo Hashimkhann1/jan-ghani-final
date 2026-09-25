@@ -1,3 +1,4 @@
+// Updated on 2026-09-25 04:51 PM
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/accountant_transfer_model.dart';
 
@@ -40,11 +41,14 @@ class AccountantTransferRemoteDatasourceImpl
   Future<List<AccTransferItemModel>> getTransferItems(
       String transferId) async {
     try {
+      // Note: `unit_cost` column stock_transfer_items par kabhi populate nahi
+      // hoti (assign_stock flow sirf `purchase_price`/`sale_price` insert
+      // karta hai). Isliye price display ke liye `purchase_price` use karo.
       final res = await _client
           .from('stock_transfer_items')
           .select(
               'id, product_name, sku, unit_of_measure, quantity_sent, '
-              'quantity_received, unit_cost, sale_price, total_cost')
+              'quantity_received, purchase_price, sale_price, total_cost')
           .eq('transfer_id', transferId);
 
       return (res as List)
