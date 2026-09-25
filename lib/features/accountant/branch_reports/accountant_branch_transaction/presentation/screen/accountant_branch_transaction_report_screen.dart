@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../data/service/branch_transaction_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
@@ -267,6 +269,18 @@ class _DesktopLayout extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ReportExportButton(
+                fileNamePrefix: 'branch_transactions',
+                filled: true,
+                enabled: state.transactions.isNotEmpty,
+                loadSheets: () async => BranchTransactionExportSheets.build(
+                  transactions: await notifier.fetchAllForExport(),
+            branchName: state.branchName,
+                  startDate: state.startDate,
+                  endDate: state.endDate,
                 ),
               ),
               const SizedBox(width: 10),
@@ -691,6 +705,16 @@ class _MobileLayout extends StatelessWidget {
           ReportFilterButton(
             onPressed:   onFilters,
             activeCount: hasFilter ? 1 : 0,
+          ),
+          ReportExportButton(
+            fileNamePrefix: 'branch_transactions',
+            enabled: state.transactions.isNotEmpty,
+            loadSheets: () async => BranchTransactionExportSheets.build(
+              transactions: await notifier.fetchAllForExport(),
+            branchName: state.branchName,
+              startDate: state.startDate,
+              endDate: state.endDate,
+            ),
           ),
           IconButton(
             onPressed: notifier.load,

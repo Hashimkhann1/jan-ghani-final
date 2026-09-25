@@ -7,6 +7,8 @@ import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/accountant_customer_model.dart';
 import '../../../common/export/branch_export_lookups.dart';
+import '../../../common/export/report_excel_export.dart';
+import '../../../common/export/report_export_button.dart';
 import '../../data/service/accountant_customer_excel_service.dart';
 import '../../data/service/customer_report_pdf_service.dart';
 import '../provider/accountant_customer_provider.dart';
@@ -68,40 +70,28 @@ class _AccountantCustomerReportScreenState
     }
   }
 
-  // ── Export Excel — same rule as the PDF: exports the current filtered list ──
-  Future<void> _exportExcel(
-      BuildContext context, AccountantCustomerReportState state) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      if (state.filtered.isEmpty) {
-        messenger.showSnackBar(const SnackBar(
-          content: Text('No customers to export for the selected filters'),
-          behavior: SnackBarBehavior.floating,
-        ));
-        return;
-      }
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Preparing Excel...'),
-        duration: Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ));
-
-      final branchName =
-          await BranchExportLookups(branchId: _branchId).branchName();
-      await AccountantCustomerExcelService.exportAndSave(
-        items: state.filtered,
-        branchName: branchName,
-        filterType: state.filterType,
-        searchQuery: state.searchQuery,
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(
-        content: Text('Export failed: $e'),
-        backgroundColor: AppColor.error,
-        behavior: SnackBarBehavior.floating,
-      ));
-    }
+  // ── Export (Excel / PDF / CSV) — the current filtered list ──────────────
+  Future<List<ExcelSheetData>> _exportSheets(
+      AccountantCustomerReportState state) async {
+    if (state.filtered.isEmpty) return const [];
+    final branchName =
+        await BranchExportLookups(branchId: _branchId).branchName();
+    return AccountantCustomerExcelService.exportSheets(
+      items: state.filtered,
+      branchName: branchName,
+      filterType: state.filterType,
+      searchQuery: state.searchQuery,
+    );
   }
+
+  Widget _exportButton(AccountantCustomerReportState state,
+          {bool filled = false}) =>
+      ReportExportButton(
+        fileNamePrefix: 'customer_report',
+        filled: filled,
+        loadSheets: () => _exportSheets(state),
+        customPdf: () => _exportPdf(context, state),
+      );
 
   void _openFilters() {
     final provider = accountantCustomerReportProvider(_branchId);
@@ -223,16 +213,14 @@ class _AccountantCustomerReportScreenState
         notifier:   notifier,
         fmtAmt:     _fmt,
         onFilters:  _openFilters,
-        onExportPdf: () => _exportPdf(context, state),
-        onExportExcel: () => _exportExcel(context, state),
+        exportButton: ({bool filled = false}) => _exportButton(state, filled: filled),
       )
           : _MobileLayout(
         state:      state,
         notifier:   notifier,
         fmtAmt:     _fmt,
         onFilters:  _openFilters,
-        onExportPdf: () => _exportPdf(context, state),
-        onExportExcel: () => _exportExcel(context, state),
+        exportButton: ({bool filled = false}) => _exportButton(state, filled: filled),
       ),
     );
   }
@@ -246,16 +234,14 @@ class _DesktopLayout extends StatelessWidget {
   final dynamic                       notifier;
   final String Function(double)       fmtAmt;
   final VoidCallback                  onFilters;
-  final VoidCallback                  onExportPdf;
-  final VoidCallback                  onExportExcel;
+  final Widget Function({bool filled}) exportButton;
 
   const _DesktopLayout({
     required this.state,
     required this.notifier,
     required this.fmtAmt,
     required this.onFilters,
-    required this.onExportPdf,
-    required this.onExportExcel,
+    required this.exportButton,
   });
 
   @override
@@ -314,42 +300,7 @@ class _DesktopLayout extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              SizedBox(
-                width: 130,
-                child: ElevatedButton.icon(
-                  onPressed: onExportPdf,
-                  icon: const AppIcon('ic_print', size: 18, color: Colors.white),
-                  label: const Text('PDF'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 130,
-                child: ElevatedButton.icon(
-                  onPressed: onExportExcel,
-                  icon: const Icon(Icons.table_view_outlined,
-                      size: 18, color: Colors.white),
-                  label: const Text('Excel'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              exportButton(filled: true),
               const SizedBox(width: 10),
               SizedBox(
                 width: 120,
@@ -942,16 +893,14 @@ class _MobileLayout extends StatelessWidget {
   final dynamic                       notifier;
   final String Function(double)       fmtAmt;
   final VoidCallback                  onFilters;
-  final VoidCallback                  onExportPdf;
-  final VoidCallback                  onExportExcel;
+  final Widget Function({bool filled}) exportButton;
 
   const _MobileLayout({
     required this.state,
     required this.notifier,
     required this.fmtAmt,
     required this.onFilters,
-    required this.onExportPdf,
-    required this.onExportExcel,
+    required this.exportButton,
   });
 
   @override
@@ -972,18 +921,7 @@ class _MobileLayout extends StatelessWidget {
             onPressed:   onFilters,
             activeCount: _activeFilterCount(state),
           ),
-          IconButton(
-            onPressed: onExportPdf,
-            icon: const AppIcon('ic_print',
-                size: 22, color: AppColor.primary),
-            tooltip: 'Export PDF',
-          ),
-          IconButton(
-            onPressed: onExportExcel,
-            icon: const Icon(Icons.table_view_outlined,
-                size: 22, color: AppColor.primary),
-            tooltip: 'Export Excel',
-          ),
+          exportButton(),
           IconButton(
             onPressed: notifier.load,
             icon: const AppIcon('ic_refresh',

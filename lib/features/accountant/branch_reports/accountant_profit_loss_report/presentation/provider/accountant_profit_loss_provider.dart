@@ -106,6 +106,33 @@ class PnlReportNotifier extends StateNotifier<PnlReportState> {
     load();
   }
 
+  /// Every transaction for the current date range and All/Profit/Loss
+  /// filter — for export, not paging.
+  Future<List<PnlTransactionRow>> fetchAllForExport() async {
+    final ds = _ds;
+    if (ds is PnlReportDatasource) {
+      return ds.getAllTransactions(
+        fromDate: state.fromDate,
+        toDate:   state.toDate,
+        storeId:  state.storeId,
+        filter:   state.filter,
+      );
+    }
+    final all = <PnlTransactionRow>[];
+    for (var page = 0;; page++) {
+      final result = await ds.getTransactionsPage(
+        fromDate: state.fromDate,
+        toDate:   state.toDate,
+        storeId:  state.storeId,
+        filter:   state.filter,
+        page:     page,
+      );
+      all.addAll(result.rows);
+      if (result.rows.length < PnlReportDatasource.pageSize) break;
+    }
+    return all;
+  }
+
   // ── Summary (RPC) + page 0 of the invoices tab + fresh tab
   //    counts, for the current date range / filter. ────────────
   Future<void> load() async {

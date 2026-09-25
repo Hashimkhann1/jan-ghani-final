@@ -47,7 +47,44 @@ class CustomerLogsDatasource {
     );
   }
 
-  // ── Totals across every matching entry ──────────────────
+    // ── Every matching row, for export (all pages, not just the visible one) ──
+  Future<List<CustomerLogEntry>> fetchAllLogs({
+    required String  branchId,
+    DateTime?        startDate,
+    DateTime?        endDate,
+  }) async {
+    final all = <CustomerLogEntry>[];
+    const pageSize = 1000;
+    var from = 0;
+    while (true) {
+      var query = _client
+          .from('customer_logs')
+          .select(
+        'id, customer_id, customer_name, old_balance, new_balance, '
+            'change_amount, created_by, created_at',
+      )
+          .eq('store_id', branchId);
+  
+      if (startDate != null) {
+        query = query.gte('created_at', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        final end = DateTime(
+            endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+        query = query.lte('created_at', end.toIso8601String());
+      }
+      final rows = await query
+          .order('created_at', ascending: false)
+          .range(from, from + pageSize - 1) as List;
+      all.addAll(rows.map(
+          (r) => CustomerLogEntry.fromMap(r as Map<String, dynamic>)));
+      if (rows.length < pageSize) break;
+      from += pageSize;
+    }
+    return all;
+  }
+
+// ── Totals across every matching entry ──────────────────
   // Kept separate from the page fetch so the summary cards still reflect
   // the whole filtered date range, not just the 20 rows on screen.
   Future<CustomerLogsTotals> fetchTotals({

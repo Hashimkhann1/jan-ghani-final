@@ -13,15 +13,25 @@ class StockMovementExcelService {
     required DateTime toDate,
     StockMovementType? type,
   }) async {
+    await ReportExcelExport.save(
+      fileNamePrefix: 'stock_movement_log',
+      sheets: exportSheets(
+          data: data, fromDate: fromDate, toDate: toDate, type: type),
+    );
+  }
+
+  /// Sheets for any export format (Excel / PDF / CSV).
+  static List<ExcelSheetData> exportSheets({
+    required StockMovementReportData data,
+    required DateTime fromDate,
+    required DateTime toDate,
+    StockMovementType? type,
+  }) {
     final subtitle = [
       '${_rangeFmt.format(fromDate)}  →  ${_rangeFmt.format(toDate)}',
       'Event: ${type?.label ?? 'All'}',
     ].join('   •   ');
-
-    await ReportExcelExport.save(
-      fileNamePrefix: 'stock_movement_log',
-      sheets: buildSheets(data: data, subtitle: subtitle),
-    );
+    return buildSheets(data: data, subtitle: subtitle);
   }
 
   /// Two sheets: "Stock Movement" (fact table — one row per stock-changing

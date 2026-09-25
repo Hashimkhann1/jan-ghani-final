@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../data/service/branch_stock_inventory_logs_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
@@ -246,6 +248,16 @@ class _Layout extends StatelessWidget {
               ReportFilterButton(
                 onPressed:   onFilters,
                 activeCount: hasFilter ? 1 : 0,
+              ),
+              ReportExportButton(
+                fileNamePrefix: 'stock_inventory_logs',
+                filled: true,
+                enabled: state.entries.isNotEmpty,
+                loadSheets: () async => BranchStockInventoryLogsExportSheets.build(
+                  entries: await notifier.fetchAllForExport(),
+                  startDate: state.startDate,
+                  endDate: state.endDate,
+                ),
               ),
               const SizedBox(width: 6),
               SizedBox(

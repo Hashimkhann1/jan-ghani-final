@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../data/service/dashboard_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/accountant_dashboard_model.dart';
 import '../provider/accountant_dashboard_provider.dart';
@@ -311,6 +313,17 @@ class _DesktopScaffold extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
+              ReportExportButton(
+                fileNamePrefix: 'branch_dashboard',
+                filled: true,
+                enabled: state.data != null,
+                loadSheets: () async => DashboardExportSheets.build(
+                  data: state.data!,
+                  fromDate: state.fromDate,
+                  toDate: state.toDate,
+                ),
+              ),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 120,
                 child: OutlinedButton.icon(
@@ -386,6 +399,15 @@ class _MobileScaffold extends StatelessWidget {
             icon: const AppIcon('ic_filter',
                 size: 22, color: AppColor.textSecondary),
             tooltip: 'Filters',
+          ),
+          ReportExportButton(
+            fileNamePrefix: 'branch_dashboard',
+            enabled: state.data != null,
+            loadSheets: () async => DashboardExportSheets.build(
+              data: state.data!,
+              fromDate: state.fromDate,
+              toDate: state.toDate,
+            ),
           ),
           IconButton(
             onPressed: notifier.load,

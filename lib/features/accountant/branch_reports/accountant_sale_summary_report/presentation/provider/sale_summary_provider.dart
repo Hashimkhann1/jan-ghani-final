@@ -80,6 +80,14 @@ class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
     } catch (_) {}
   }
 
+  /// Every invoice for the current date range / customer — for export.
+  Future<List<SummaryInvoice>> fetchAllForExport() => _ds.getAllInvoices(
+        fromDate:   state.fromDate,
+        toDate:     state.toDate,
+        customerId: state.selectedCustomerId,
+      );
+
+
   Future<void> load() async {
     state = state.copyWith(
       isLoading:  true,

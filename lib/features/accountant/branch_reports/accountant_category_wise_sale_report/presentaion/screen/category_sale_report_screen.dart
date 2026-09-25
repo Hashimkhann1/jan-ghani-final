@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../data/service/category_sale_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/datasource/category_sale_report_datasource.dart';
 import '../../data/model/category_sale_report_model.dart';
@@ -179,6 +181,24 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
           ReportFilterButton(
             onPressed:   _openFilters,
             activeCount: state.selectedCategoryId != null ? 1 : 0,
+          ),
+          ReportExportButton(
+            fileNamePrefix: 'category_sale_report',
+            enabled: state.visibleReports.isNotEmpty,
+            loadSheets: () async {
+              String? categoryName;
+              if (state.selectedCategoryId != null) {
+                final m = state.categories
+                    .where((c) => c.id == state.selectedCategoryId);
+                categoryName = m.isNotEmpty ? m.first.name : null;
+              }
+              return CategorySaleExportSheets.build(
+                reports: state.visibleReports,
+                fromDate: state.fromDate,
+                toDate: state.toDate,
+                categoryName: categoryName,
+              );
+            },
           ),
           IconButton(
             onPressed: notifier.load,

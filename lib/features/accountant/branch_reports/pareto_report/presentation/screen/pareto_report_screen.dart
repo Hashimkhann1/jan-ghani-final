@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../data/service/pareto_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/pareto_report_model.dart';
 import '../provider/pareto_report_provider.dart';
@@ -57,6 +59,15 @@ class ParetoReportScreen extends ConsumerWidget {
                     compact:   true,
                   );
                 }),
+              ),
+            ),
+            ReportExportButton(
+              fileNamePrefix: 'pareto_report',
+              enabled: !state.isLoading,
+              loadSheets: () async => ParetoExportSheets.build(
+                data: state.data,
+                startDate: state.startDate,
+                endDate: state.endDate,
               ),
             ),
             IconButton(

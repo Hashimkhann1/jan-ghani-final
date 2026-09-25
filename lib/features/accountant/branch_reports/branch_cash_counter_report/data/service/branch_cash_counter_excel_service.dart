@@ -11,18 +11,30 @@ class BranchCashCounterExcelService {
     required DateTime                 fromDate,
     required DateTime                 toDate,
   }) async {
-    final subtitle =
-        '${_rangeFmt.format(fromDate)}  →  ${_rangeFmt.format(toDate)}';
-
     await ReportExcelExport.save(
       fileNamePrefix: 'cash_counter_report',
-      sheets: buildSheets(
+      sheets: exportSheets(
         summary:    summary,
         branchName: branchName,
-        subtitle:   subtitle,
+        fromDate:   fromDate,
+        toDate:     toDate,
       ),
     );
   }
+
+  /// Sheets for any export format (Excel / PDF / CSV).
+  static List<ExcelSheetData> exportSheets({
+    required BranchCashCounterSummary summary,
+    required String                   branchName,
+    required DateTime                 fromDate,
+    required DateTime                 toDate,
+  }) =>
+      buildSheets(
+        summary:    summary,
+        branchName: branchName,
+        subtitle:
+            '${_rangeFmt.format(fromDate)}  →  ${_rangeFmt.format(toDate)}',
+      );
 
   /// Two sheets: "Daily Cash Log" (fact table — one row per branch per day,
   /// no totals row so it can be pivoted / loaded into BI tools) and

@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/export/report_excel_export.dart';
+import '../../../common/export/report_export_button.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/product_profit_loss_model.dart';
 import '../../data/service/product_profit_loss_excel_service.dart';
@@ -90,9 +92,9 @@ class _ProductProfitLossReportScreenState
     }
   }
 
-  Future<void> _exportExcel(ProductProfitLossState state) async {
+  Future<List<ExcelSheetData>> _exportSheets(ProductProfitLossState state) async {
     final items = state.exportItems;
-    if (items.isEmpty) return;
+    if (items.isEmpty) return const [];
 
     String? categoryName;
     if (state.categoryFilter != null) {
@@ -100,28 +102,27 @@ class _ProductProfitLossReportScreenState
       categoryName = m.isNotEmpty ? m.first.name : null;
     }
 
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(const SnackBar(
-      content: Text('Preparing Excel...'),
-      duration: Duration(seconds: 2),
-      behavior: SnackBarBehavior.floating,
-    ));
-    try {
-      await ProductProfitLossExcelService.exportAndSave(
+    return [
+      ProductProfitLossExcelService.buildSheet(
         items: items,
         fromDate: state.fromDate,
         toDate: state.toDate,
         isSelection: state.selectedIds.isNotEmpty,
         categoryName: categoryName,
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(
-        content: Text('Export failed: $e'),
-        backgroundColor: AppColor.error,
-        behavior: SnackBarBehavior.floating,
-      ));
-    }
+      ),
+    ];
   }
+
+  Widget _exportButton(ProductProfitLossState state,
+          {required String label, bool filled = false}) =>
+      ReportExportButton(
+        fileNamePrefix: 'product_profit_loss',
+        filled: filled,
+        label: label,
+        enabled: state.filtered.isNotEmpty,
+        loadSheets: () => _exportSheets(state),
+        customPdf: () => _export(state),
+      );
 
   void _openFilters() {
     final provider = widget.provider ?? productProfitLossProvider;
@@ -167,9 +168,7 @@ class _ProductProfitLossReportScreenState
 
     final selCount = state.selectedIds.length;
     final exportLabel =
-        selCount > 0 ? 'Export PDF ($selCount)' : 'Export PDF';
-    final excelLabel =
-        selCount > 0 ? 'Export Excel ($selCount)' : 'Export Excel';
+        selCount > 0 ? 'Export ($selCount)' : 'Export';
 
     final body = Column(
       children: [
@@ -238,40 +237,7 @@ class _ProductProfitLossReportScreenState
                         (state.categoryFilter != null ? 1 : 0),
                   ),
                   const SizedBox(width: 6),
-                  OutlinedButton.icon(
-                    onPressed:
-                        state.filtered.isEmpty ? null : () => _exportExcel(state),
-                    icon: const Icon(Icons.table_view_outlined,
-                        size: 18, color: AppColor.primary),
-                    label: Text(excelLabel),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      foregroundColor: AppColor.primary,
-                      side: const BorderSide(color: AppColor.primary),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    onPressed: state.filtered.isEmpty ? null : () => _export(state),
-                    icon: const AppIcon('ic_print', size: 18, color: Colors.white),
-                    label: Text(exportLabel),
-                    style: ElevatedButton.styleFrom(
-                      // App theme sets minimumSize.width = infinity; override it
-                      // or the button can't lay out inside this Row.
-                      minimumSize: const Size(0, 44),
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
+                  _exportButton(state, label: exportLabel, filled: true),
                   const SizedBox(width: 10),
                   OutlinedButton.icon(
                     onPressed: notifier.load,
@@ -313,24 +279,10 @@ class _ProductProfitLossReportScreenState
             activeCount: (state.searchQuery.isNotEmpty ? 1 : 0) +
                 (state.categoryFilter != null ? 1 : 0),
           ),
-          IconButton(
-            onPressed: state.filtered.isEmpty ? null : () => _export(state),
-            icon: Badge(
-              isLabelVisible: selCount > 0,
-              label: Text('$selCount'),
-              child: const AppIcon('ic_print', size: 22, color: AppColor.primary),
-            ),
-            tooltip: exportLabel,
-          ),
-          IconButton(
-            onPressed: state.filtered.isEmpty ? null : () => _exportExcel(state),
-            icon: Badge(
-              isLabelVisible: selCount > 0,
-              label: Text('$selCount'),
-              child: const Icon(Icons.table_view_outlined,
-                  size: 22, color: AppColor.primary),
-            ),
-            tooltip: excelLabel,
+          Badge(
+            isLabelVisible: selCount > 0,
+            label: Text('$selCount'),
+            child: _exportButton(state, label: exportLabel),
           ),
           IconButton(
             onPressed: notifier.load,

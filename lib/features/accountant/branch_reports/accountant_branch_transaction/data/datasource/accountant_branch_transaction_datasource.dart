@@ -61,7 +61,45 @@ class BranchTransactionDatasource {
     );
   }
 
-  // ── Totals across every matching transaction ────────────
+    // ── Every matching row, for export (all pages, not just the visible one) ──
+  Future<List<BranchTransactionModel>> fetchAllTransactions({
+    required String  branchId,
+    DateTime?        startDate,
+    DateTime?        endDate,
+  }) async {
+    final all = <BranchTransactionModel>[];
+    const pageSize = 1000;
+    var from = 0;
+    while (true) {
+      var query = _client
+          .from('branch_transaction_to_janghani')
+          .select(
+        'id, branch_id, assign_by_id, assign_by_name, assign_to_id, '
+            'type, before_amount, pay_amount, after_amount, '
+            'is_synced, created_at, updated_at',
+      )
+          .eq('branch_id', branchId);
+  
+      if (startDate != null) {
+        query = query.gte('created_at', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        final end = DateTime(
+            endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+        query = query.lte('created_at', end.toIso8601String());
+      }
+      final rows = await query
+          .order('created_at', ascending: false)
+          .range(from, from + pageSize - 1) as List;
+      all.addAll(rows.map(
+          (r) => BranchTransactionModel.fromMap(r as Map<String, dynamic>)));
+      if (rows.length < pageSize) break;
+      from += pageSize;
+    }
+    return all;
+  }
+
+// ── Totals across every matching transaction ────────────
   // Kept separate from the page fetch so the summary cards still reflect
   // the whole filtered date range, not just the 20 rows on screen.
   Future<BranchTransactionTotals> fetchTransactionTotals({

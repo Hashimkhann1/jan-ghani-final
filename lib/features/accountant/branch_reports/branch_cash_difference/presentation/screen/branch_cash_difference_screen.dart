@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../data/service/branch_cash_difference_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
@@ -251,6 +253,17 @@ class _DesktopLayout extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ReportExportButton(
+                fileNamePrefix: 'cash_difference_report',
+                filled: true,
+                enabled: state.entries.isNotEmpty,
+                loadSheets: () async => BranchCashDifferenceExportSheets.build(
+                  entries: await notifier.fetchAllForExport(),
+                  startDate: state.startDate,
+                  endDate: state.endDate,
                 ),
               ),
               const SizedBox(width: 10),
@@ -646,6 +659,15 @@ class _MobileLayout extends StatelessWidget {
           ReportFilterButton(
             onPressed:   onFilters,
             activeCount: hasFilter ? 1 : 0,
+          ),
+          ReportExportButton(
+            fileNamePrefix: 'cash_difference_report',
+            enabled: state.entries.isNotEmpty,
+            loadSheets: () async => BranchCashDifferenceExportSheets.build(
+              entries: await notifier.fetchAllForExport(),
+              startDate: state.startDate,
+              endDate: state.endDate,
+            ),
           ),
           IconButton(
             onPressed: notifier.load,

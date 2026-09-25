@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../data/service/sale_summary_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/sale_summary_model.dart';
@@ -208,6 +210,25 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
           ReportFilterButton(
             onPressed:   _openFilters,
             activeCount: state.selectedCustomerId != null ? 1 : 0,
+          ),
+          ReportExportButton(
+            fileNamePrefix: 'sale_summary',
+            enabled: !state.isLoading,
+            loadSheets: () async {
+              String? customerName;
+              if (state.selectedCustomerId != null) {
+                final m = state.customers
+                    .where((c) => c.id == state.selectedCustomerId);
+                customerName = m.isNotEmpty ? m.first.name : null;
+              }
+              return SaleSummaryExportSheets.build(
+                summary: state.summary,
+                invoices: await notifier.fetchAllForExport(),
+                fromDate: state.fromDate,
+                toDate: state.toDate,
+                customerName: customerName,
+              );
+            },
           ),
           IconButton(
             onPressed: notifier.load,

@@ -90,6 +90,44 @@ class PnlReportDatasource implements PnlSource {
     return PnlTransactionsPage(rows: rows, totalCount: res.count);
   }
 
+  // ── Every transaction for the range/filter, for export (1000 per request
+  //    instead of the 20-row UI page). ───────────────────────────────────
+  Future<List<PnlTransactionRow>> getAllTransactions({
+    required DateTime fromDate,
+    required DateTime toDate,
+    required String storeId,
+    required PnlInvoiceFilter filter,
+  }) async {
+    final all = <PnlTransactionRow>[];
+    const exportPage = 1000;
+    var from = 0;
+    while (true) {
+      var query = _client
+          .from('pnl_transactions_view')
+          .select('''
+          id, type, doc_no, tx_date, customer_name,
+          total_revenue, total_cost, total_profit, item_count
+        ''')
+          .eq('store_id', storeId)
+          .gte('tx_date', fromDate.toIso8601String())
+          .lte('tx_date', _endOfDay(toDate).toIso8601String());
+
+      if (filter == PnlInvoiceFilter.profit) {
+        query = query.gte('total_profit', 0);
+      } else if (filter == PnlInvoiceFilter.loss) {
+        query = query.lt('total_profit', 0);
+      }
+
+      final rows = await query
+          .order('tx_date', ascending: false)
+          .range(from, from + exportPage - 1) as List;
+      all.addAll(rows.cast<Map<String, dynamic>>().map(_mapRow));
+      if (rows.length < exportPage) break;
+      from += exportPage;
+    }
+    return all;
+  }
+
   // ── Lightweight head-only count for one filter tab (no rows
   //    fetched at all — just `Prefer: count=exact`). ───────────────
   @override

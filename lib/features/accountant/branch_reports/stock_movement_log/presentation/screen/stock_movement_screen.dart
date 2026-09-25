@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/export/report_excel_export.dart';
+import '../../../common/export/report_export_button.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
@@ -24,7 +26,6 @@ class StockMovementScreen extends ConsumerStatefulWidget {
 
 class _StockMovementScreenState extends ConsumerState<StockMovementScreen> {
   final _dateFmt = DateFormat('dd MMM yyyy');
-  bool _exporting = false;
 
   Future<void> _pickDate({required bool isFrom}) async {
     final provider = stockMovementProvider(widget.branchId);
@@ -50,44 +51,19 @@ class _StockMovementScreenState extends ConsumerState<StockMovementScreen> {
     isFrom ? notifier.setFromDate(picked) : notifier.setToDate(picked);
   }
 
-  // ── Export Excel — the full filtered log, not just the visible page ────
-  Future<void> _exportExcel() async {
-    if (_exporting) return;
-    final state     = ref.read(stockMovementProvider(widget.branchId));
-    final messenger = ScaffoldMessenger.of(context);
+  // ── Export (Excel / PDF / CSV) — the full filtered log, not one page ────
+  Future<List<ExcelSheetData>> _exportSheets() async {
+    final state = ref.read(stockMovementProvider(widget.branchId));
+    final rows  = state.filteredRows;
+    if (rows.isEmpty) return const [];
 
-    final rows = state.filteredRows;
-    if (rows.isEmpty) {
-      messenger.showSnackBar(const SnackBar(
-        content:  Text('No stock movements to export for the selected filters'),
-        behavior: SnackBarBehavior.floating,
-      ));
-      return;
-    }
-
-    setState(() => _exporting = true);
-    messenger.showSnackBar(const SnackBar(
-      content:  Text('Preparing Excel...'),
-      duration: Duration(seconds: 2),
-      behavior: SnackBarBehavior.floating,
-    ));
-    try {
-      await StockMovementExcelService.exportAndSave(
-        data: StockMovementReportData(
-            rows: rows, branchName: state.data.branchName),
-        fromDate: state.fromDate,
-        toDate:   state.toDate,
-        type:     state.selectedType,
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(
-        content:         Text('Export failed: $e'),
-        backgroundColor: AppColor.error,
-        behavior:        SnackBarBehavior.floating,
-      ));
-    } finally {
-      if (mounted) setState(() => _exporting = false);
-    }
+    return StockMovementExcelService.exportSheets(
+      data: StockMovementReportData(
+          rows: rows, branchName: state.data.branchName),
+      fromDate: state.fromDate,
+      toDate:   state.toDate,
+      type:     state.selectedType,
+    );
   }
 
   void _openFilters() {
@@ -189,15 +165,9 @@ class _StockMovementScreenState extends ConsumerState<StockMovementScreen> {
             onPressed:   _openFilters,
             activeCount: state.selectedType != null ? 1 : 0,
           ),
-          IconButton(
-            onPressed: _exporting ? null : _exportExcel,
-            icon: _exporting
-                ? const SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.table_view_outlined,
-                    size: 22, color: AppColor.primary),
-            tooltip: 'Export Excel',
+          ReportExportButton(
+            fileNamePrefix: 'stock_movement_log',
+            loadSheets: _exportSheets,
           ),
           IconButton(
             onPressed: notifier.load,

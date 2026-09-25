@@ -56,7 +56,52 @@ class BranchStockInventoryLogsDatasource {
     );
   }
 
-  // ── Total count across every matching entry ─────────────
+    // ── Every matching row, for export (all pages, not just the visible one) ──
+  Future<List<BranchStockInventoryLogEntry>> fetchAllLogs({
+    required String  branchId,
+    DateTime?        startDate,
+    DateTime?        endDate,
+  }) async {
+    final all = <BranchStockInventoryLogEntry>[];
+    const pageSize = 1000;
+    var from = 0;
+    while (true) {
+      var query = _client
+          .from('branch_stock_inventory_logs')
+          .select(
+        'id, product_id, product_name, change_type, '
+            'old_stock, new_stock, '
+            'old_sale_price, new_sale_price, '
+            'old_purchase_price, new_purchase_price, '
+            'old_wholesale_price, new_wholesale_price, '
+            'old_shelf_name, new_shelf_name, '
+            'old_min_stock, new_min_stock, '
+            'old_max_stock, new_max_stock, '
+            'user_id, created_at',
+      )
+          .eq('store_id', branchId)
+          .isFilter('deleted_at', null);
+  
+      if (startDate != null) {
+        query = query.gte('created_at', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        final end = DateTime(
+            endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+        query = query.lte('created_at', end.toIso8601String());
+      }
+      final rows = await query
+          .order('created_at', ascending: false)
+          .range(from, from + pageSize - 1) as List;
+      all.addAll(rows.map(
+          (r) => BranchStockInventoryLogEntry.fromMap(r as Map<String, dynamic>)));
+      if (rows.length < pageSize) break;
+      from += pageSize;
+    }
+    return all;
+  }
+
+// ── Total count across every matching entry ─────────────
   // Kept separate from the page fetch (and only selects `id`) so the
   // summary card reflects the whole filtered date range, not just the
   // 20 rows on screen, without re-fetching the heavy old/new columns.

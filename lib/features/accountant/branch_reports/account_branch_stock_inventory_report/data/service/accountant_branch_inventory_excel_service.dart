@@ -15,20 +15,38 @@ class AccountantBranchInventoryExcelService {
     bool deadStockOnly = false,
     String searchQuery = '',
   }) async {
+    await ReportExcelExport.save(
+      fileNamePrefix: 'inventory_report',
+      sheets: exportSheets(
+        items:         items,
+        branchName:    branchName,
+        categoryName:  categoryName,
+        stockFilter:   stockFilter,
+        deadStockOnly: deadStockOnly,
+        searchQuery:   searchQuery,
+      ),
+    );
+  }
+
+  /// Sheets for any export format (Excel / PDF / CSV).
+  static List<ExcelSheetData> exportSheets({
+    required List<AccountantBranchInventoryModel> items,
+    required String branchName,
+    String? categoryName,
+    StockStatus? stockFilter,
+    bool deadStockOnly = false,
+    String searchQuery = '',
+  }) {
     final subtitle = [
       'Category: ${categoryName ?? 'All'}',
       'Status: ${stockFilter == null ? 'All' : _statusLabel(stockFilter)}',
       if (deadStockOnly) 'Dead stock only',
       if (searchQuery.isNotEmpty) 'Search: "$searchQuery"',
     ].join('   •   ');
-
-    await ReportExcelExport.save(
-      fileNamePrefix: 'inventory_report',
-      sheets: buildSheets(
-        items:      items,
-        branchName: branchName,
-        subtitle:   subtitle,
-      ),
+    return buildSheets(
+      items:      items,
+      branchName: branchName,
+      subtitle:   subtitle,
     );
   }
 

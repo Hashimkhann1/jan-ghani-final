@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/export/report_excel_export.dart';
+import '../../../common/export/report_export_button.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
@@ -222,50 +224,43 @@ Future<void> _exportPdf(BuildContext context, AccountantBranchInventoryState sta
   }
 }
 
-// Export Excel — same rule as the PDF: exports state.filtered (what's on screen)
-Future<void> _exportExcel(
-  BuildContext context,
+// Sheets for the export button — same rule as the PDF: state.filtered
+// (what's on screen).
+Future<List<ExcelSheetData>> _exportSheets(
   AccountantBranchInventoryState state,
   dynamic notifier,
 ) async {
-  final messenger = ScaffoldMessenger.of(context);
-  try {
-    if (state.filtered.isEmpty) {
-      messenger.showSnackBar(const SnackBar(
-        content: Text('No products to export for the selected filters'),
-        behavior: SnackBarBehavior.floating,
-      ));
-      return;
-    }
-    messenger.showSnackBar(const SnackBar(
-      content: Text('Preparing Excel...'),
-      duration: Duration(seconds: 2),
-      behavior: SnackBarBehavior.floating,
-    ));
+  if (state.filtered.isEmpty) return const [];
 
-    String? categoryName;
-    if (state.categoryFilter != null) {
-      final match = state.categories.where((c) => c.id == state.categoryFilter);
-      categoryName = match.isNotEmpty ? match.first.name : null;
-    }
-
-    final branchName = await notifier.fetchBranchName() as String;
-    await AccountantBranchInventoryExcelService.exportAndSave(
-      items: state.filtered,
-      branchName: branchName,
-      categoryName: categoryName,
-      stockFilter: state.stockFilter,
-      deadStockOnly: state.deadStockOnly,
-      searchQuery: state.searchQuery,
-    );
-  } catch (e) {
-    messenger.showSnackBar(SnackBar(
-      content: Text('Export failed: $e'),
-      backgroundColor: AppColor.error,
-      behavior: SnackBarBehavior.floating,
-    ));
+  String? categoryName;
+  if (state.categoryFilter != null) {
+    final match = state.categories.where((c) => c.id == state.categoryFilter);
+    categoryName = match.isNotEmpty ? match.first.name : null;
   }
+
+  final branchName = await notifier.fetchBranchName() as String;
+  return AccountantBranchInventoryExcelService.exportSheets(
+    items: state.filtered,
+    branchName: branchName,
+    categoryName: categoryName,
+    stockFilter: state.stockFilter,
+    deadStockOnly: state.deadStockOnly,
+    searchQuery: state.searchQuery,
+  );
 }
+
+Widget _exportButton(
+  BuildContext context,
+  AccountantBranchInventoryState state,
+  dynamic notifier, {
+  bool filled = false,
+}) =>
+    ReportExportButton(
+      fileNamePrefix: 'inventory_report',
+      filled: filled,
+      loadSheets: () => _exportSheets(state, notifier),
+      customPdf: () => _exportPdf(context, state),
+    );
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DESKTOP LAYOUT
@@ -332,37 +327,7 @@ class _DesktopLayout extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              SizedBox(
-                width: 130,
-                child: ElevatedButton.icon(
-                  onPressed: () => _exportPdf(context, state),
-                  icon: const AppIcon('ic_print', size: 18, color: Colors.white),
-                  label: const Text('PDF'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 130,
-                child: ElevatedButton.icon(
-                  onPressed: () => _exportExcel(context, state, notifier),
-                  icon: const Icon(Icons.table_view_outlined, size: 18, color: Colors.white),
-                  label: const Text('Excel'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              _exportButton(context, state, notifier, filled: true),
               const SizedBox(width: 10),
               SizedBox(
                 width: 120,
@@ -754,16 +719,7 @@ class _MobileLayout extends StatelessWidget {
             onPressed:   onFilters,
             activeCount: _activeFilterCount(state),
           ),
-          IconButton(
-            onPressed: () => _exportPdf(context, state),
-            icon: const AppIcon('ic_print', size: 22, color: AppColor.primary),
-            tooltip: 'Export PDF',
-          ),
-          IconButton(
-            onPressed: () => _exportExcel(context, state, notifier),
-            icon: const Icon(Icons.table_view_outlined, size: 22, color: AppColor.primary),
-            tooltip: 'Export Excel',
-          ),
+          _exportButton(context, state, notifier),
           IconButton(
             onPressed: notifier.load,
             icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),

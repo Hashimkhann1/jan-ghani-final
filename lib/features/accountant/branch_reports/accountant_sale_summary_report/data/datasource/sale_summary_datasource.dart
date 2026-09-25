@@ -31,6 +31,45 @@ class SaleSummaryDatasource {
     String?           customerId,
   }) async {
     final (start, end) = BranchReportPagination.range(page);
+    final invoices = await _fetchInvoices(
+      fromDate: fromDate, toDate: toDate, start: start, end: end,
+      customerId: customerId,
+    );
+    return PagedSummaryInvoices(
+      invoices:    invoices,
+      hasNextPage: BranchReportPagination.hasNextPage(invoices.length),
+    );
+  }
+
+  /// Every invoice in the range, for export. Fetched in chunks of 500 because
+  /// each row carries its items.
+  Future<List<SummaryInvoice>> getAllInvoices({
+    required DateTime fromDate,
+    required DateTime toDate,
+    String?           customerId,
+  }) async {
+    const chunk = 500;
+    final all = <SummaryInvoice>[];
+    var from = 0;
+    while (true) {
+      final rows = await _fetchInvoices(
+        fromDate: fromDate, toDate: toDate, start: from,
+        end: from + chunk - 1, customerId: customerId,
+      );
+      all.addAll(rows);
+      if (rows.length < chunk) break;
+      from += chunk;
+    }
+    return all;
+  }
+
+  Future<List<SummaryInvoice>> _fetchInvoices({
+    required DateTime fromDate,
+    required DateTime toDate,
+    required int      start,
+    required int      end,
+    String?           customerId,
+  }) async {
     var query = _client
         .from('sale_invoices')
         .select('''
@@ -82,10 +121,7 @@ class SaleSummaryDatasource {
       );
     }).toList();
 
-    return PagedSummaryInvoices(
-      invoices:    invoices,
-      hasNextPage: BranchReportPagination.hasNextPage(rows.length),
-    );
+    return invoices;
   }
 
   Future<SaleSummary> getSummary({

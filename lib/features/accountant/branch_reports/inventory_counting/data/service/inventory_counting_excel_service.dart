@@ -17,6 +17,26 @@ class InventoryCountingExcelService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
+    await ReportExcelExport.save(
+      fileNamePrefix: 'stock_counting_report',
+      sheets: exportSheets(
+        records:     records,
+        branchName:  branchName,
+        searchQuery: searchQuery,
+        startDate:   startDate,
+        endDate:     endDate,
+      ),
+    );
+  }
+
+  /// Sheets for any export format (Excel / PDF / CSV).
+  static List<ExcelSheetData> exportSheets({
+    required List<InventoryCountingRecord> records,
+    required String branchName,
+    String searchQuery = '',
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
     final subtitle = [
       if (startDate != null || endDate != null)
         'Counted: ${startDate == null ? 'start' : _dateFmt.format(startDate)}'
@@ -25,14 +45,10 @@ class InventoryCountingExcelService {
         'Counted: All dates',
       if (searchQuery.isNotEmpty) 'Search: "$searchQuery"',
     ].join('   •   ');
-
-    await ReportExcelExport.save(
-      fileNamePrefix: 'stock_counting_report',
-      sheets: buildSheets(
-        records:    records,
-        branchName: branchName,
-        subtitle:   subtitle,
-      ),
+    return buildSheets(
+      records:    records,
+      branchName: branchName,
+      subtitle:   subtitle,
     );
   }
 

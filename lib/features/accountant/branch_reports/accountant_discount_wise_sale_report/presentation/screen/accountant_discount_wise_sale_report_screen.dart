@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../data/service/discount_sale_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
@@ -301,6 +303,25 @@ class _DesktopLayout extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
+              ReportExportButton(
+                fileNamePrefix: 'discount_sale_report',
+                filled: true,
+                enabled: state.products.isNotEmpty,
+                loadSheets: () async {
+                  String? customerName;
+                  if (state.selectedCustomerId != null) {
+                    final m = state.customers.where((c) => c.id == state.selectedCustomerId);
+                    customerName = m.isNotEmpty ? m.first.name : null;
+                  }
+                  return DiscountSaleExportSheets.build(
+                    products: state.products,
+                    fromDate: state.fromDate,
+                    toDate: state.toDate,
+                    customerName: customerName,
+                  );
+                },
+              ),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 120,
                 child: OutlinedButton.icon(
@@ -495,6 +516,23 @@ class _MobileLayout extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+          ReportExportButton(
+            fileNamePrefix: 'discount_sale_report',
+            enabled: state.products.isNotEmpty,
+            loadSheets: () async {
+              String? customerName;
+              if (state.selectedCustomerId != null) {
+                final m = state.customers.where((c) => c.id == state.selectedCustomerId);
+                customerName = m.isNotEmpty ? m.first.name : null;
+              }
+              return DiscountSaleExportSheets.build(
+                products: state.products,
+                fromDate: state.fromDate,
+                toDate: state.toDate,
+                customerName: customerName,
+              );
+            },
           ),
           IconButton(
             onPressed: notifier.load,

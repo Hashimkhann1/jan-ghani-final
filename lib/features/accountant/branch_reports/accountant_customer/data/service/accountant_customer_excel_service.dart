@@ -13,18 +13,32 @@ class AccountantCustomerExcelService {
     String? filterType,
     String searchQuery = '',
   }) async {
+    await ReportExcelExport.save(
+      fileNamePrefix: 'customer_report',
+      sheets: exportSheets(
+        items:       items,
+        branchName:  branchName,
+        filterType:  filterType,
+        searchQuery: searchQuery,
+      ),
+    );
+  }
+
+  /// Sheets for any export format (Excel / PDF / CSV).
+  static List<ExcelSheetData> exportSheets({
+    required List<AccountantCustomerReportModel> items,
+    required String branchName,
+    String? filterType,
+    String searchQuery = '',
+  }) {
     final subtitle = [
       'Filter: ${_filterLabel(filterType)}',
       if (searchQuery.isNotEmpty) 'Search: "$searchQuery"',
     ].join('   •   ');
-
-    await ReportExcelExport.save(
-      fileNamePrefix: 'customer_report',
-      sheets: buildSheets(
-        items:      items,
-        branchName: branchName,
-        subtitle:   subtitle,
-      ),
+    return buildSheets(
+      items:      items,
+      branchName: branchName,
+      subtitle:   subtitle,
     );
   }
 

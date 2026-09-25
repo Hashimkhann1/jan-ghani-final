@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/export/report_export_button.dart';
+import '../../../common/export/report_excel_export.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../../core/color/app_color.dart';
 import '../../../../../../../core/widget/app_icon.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_stock_damage_model.dart';
 import '../../data/service/accountant_branch_stock_damage_pdf_service.dart';
+import '../../data/service/accountant_branch_stock_damage_export_sheets.dart';
 import '../provider/accountant_branch_stock_damage_provider.dart';
 
 class AccountantBranchStockDamageReportScreen extends ConsumerStatefulWidget {
@@ -211,6 +214,21 @@ Future<void> _exportPdf(BuildContext context, AccountantBranchStockDamageState s
   }
 }
 
+Widget _exportButton(BuildContext context, AccountantBranchStockDamageState state,
+        {bool filled = false}) =>
+    ReportExportButton(
+      fileNamePrefix: 'stock_damage_report',
+      filled: filled,
+      enabled: state.filtered.isNotEmpty,
+      loadSheets: () async => AccountantBranchStockDamageExportSheets.build(
+        items: state.filtered,
+        searchQuery: state.searchQuery,
+        startDate: state.startDate,
+        endDate: state.endDate,
+      ),
+      customPdf: () => _exportPdf(context, state),
+    );
+
 // ══════════════════════════════════════════════════════════════════════════════
 // DATE FILTER ROW (shared)
 // ══════════════════════════════════════════════════════════════════════════════
@@ -372,21 +390,7 @@ class _DesktopLayout extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              SizedBox(
-                width: 130,
-                child: ElevatedButton.icon(
-                  onPressed: () => _exportPdf(context, state),
-                  icon: const AppIcon('ic_print', size: 18, color: Colors.white),
-                  label: const Text('Export'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              _exportButton(context, state, filled: true),
               const SizedBox(width: 10),
               SizedBox(
                 width: 120,
@@ -698,11 +702,7 @@ class _MobileLayout extends StatelessWidget {
             onPressed:   onFilters,
             activeCount: _activeCount(state),
           ),
-          IconButton(
-            onPressed: () => _exportPdf(context, state),
-            icon: const AppIcon('ic_print', size: 22, color: AppColor.primary),
-            tooltip: 'Export PDF',
-          ),
+          _exportButton(context, state),
           IconButton(
             onPressed: notifier.load,
             icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),

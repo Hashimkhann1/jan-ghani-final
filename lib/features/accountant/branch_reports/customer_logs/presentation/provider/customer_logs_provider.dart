@@ -76,6 +76,13 @@ class CustomerLogsNotifier extends StateNotifier<CustomerLogsState> {
     load();
   }
 
+  /// Every row matching the current date filter — for export, not paging.
+  Future<List<CustomerLogEntry>> fetchAllForExport() => _datasource.fetchAllLogs(
+        branchId:  _branchId,
+        startDate: state.startDate,
+        endDate:   state.endDate,
+      );
+
   // ── Load — resets to page 0 and refreshes the totals ───────────────────
   Future<void> load() async {
     state = state.copyWith(

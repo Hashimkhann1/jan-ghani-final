@@ -92,6 +92,13 @@ class BranchTransactionNotifier
     }
   }
 
+  /// Every row matching the current date filter — for export, not paging.
+  Future<List<BranchTransactionModel>> fetchAllForExport() => _datasource.fetchAllTransactions(
+        branchId:  _branchId,
+        startDate: state.startDate,
+        endDate:   state.endDate,
+      );
+
   // ── Load — resets to page 0 and refreshes the cash-out total ───────────
   Future<void> load() async {
     state = state.copyWith(
