@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/accountant_dashboard_model.dart';
 import '../provider/accountant_dashboard_provider.dart';
 
@@ -121,6 +122,54 @@ class _AccountantBranchDashboardScreenState
     _toTimeCtrl.text   = _timeFmt.format(endOfDay);
   }
 
+  void _openFilters() {
+    showReportFilterDialog(
+      context: context,
+      onReset: () => _setToday(
+          ref.read(accountantBranchDashboardProvider(widget.branchId).notifier)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(children: [
+            Expanded(
+              child: _DateField(
+                label: 'Start Date',
+                controller: _fromCtrl,
+                onTap: () => _pickDate(context, true),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _TimeField(
+                label: 'Start Time',
+                controller: _fromTimeCtrl,
+                onTap: () => _pickTime(context, true),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: _DateField(
+                label: 'End Date',
+                controller: _toCtrl,
+                onTap: () => _pickDate(context, false),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _TimeField(
+                label: 'End Time',
+                controller: _toTimeCtrl,
+                onTap: () => _pickTime(context, false),
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(
@@ -156,29 +205,15 @@ class _AccountantBranchDashboardScreenState
         state:       state,
         notifier:    notifier,
         fmtAmt:      _fmt,
-        fromCtrl:    _fromCtrl,
-        toCtrl:      _toCtrl,
-        fromTimeCtrl: _fromTimeCtrl,
-        toTimeCtrl:   _toTimeCtrl,
-        onPickFrom:     () => _pickDate(context, true),
-        onPickTo:       () => _pickDate(context, false),
-        onPickFromTime: () => _pickTime(context, true),
-        onPickToTime:   () => _pickTime(context, false),
-        onToday:        () => _setToday(notifier),
+        onFilters:   _openFilters,
+        onToday:     () => _setToday(notifier),
       )
           : _MobileScaffold(
         state:       state,
         notifier:    notifier,
         fmtAmt:      _fmt,
-        fromCtrl:    _fromCtrl,
-        toCtrl:      _toCtrl,
-        fromTimeCtrl: _fromTimeCtrl,
-        toTimeCtrl:   _toTimeCtrl,
-        onPickFrom:     () => _pickDate(context, true),
-        onPickTo:       () => _pickDate(context, false),
-        onPickFromTime: () => _pickTime(context, true),
-        onPickToTime:   () => _pickTime(context, false),
-        onToday:        () => _setToday(notifier),
+        onFilters:   _openFilters,
+        onToday:     () => _setToday(notifier),
       ),
     );
   }
@@ -189,28 +224,14 @@ class _DesktopScaffold extends StatelessWidget {
   final AccountantBranchDashboardState state;
   final dynamic notifier;
   final String Function(double) fmtAmt;
-  final TextEditingController fromCtrl;
-  final TextEditingController toCtrl;
-  final TextEditingController fromTimeCtrl;
-  final TextEditingController toTimeCtrl;
-  final VoidCallback onPickFrom;
-  final VoidCallback onPickTo;
-  final VoidCallback onPickFromTime;
-  final VoidCallback onPickToTime;
+  final VoidCallback onFilters;
   final VoidCallback onToday;
 
   const _DesktopScaffold({
     required this.state,
     required this.notifier,
     required this.fmtAmt,
-    required this.fromCtrl,
-    required this.toCtrl,
-    required this.fromTimeCtrl,
-    required this.toTimeCtrl,
-    required this.onPickFrom,
-    required this.onPickTo,
-    required this.onPickFromTime,
-    required this.onPickToTime,
+    required this.onFilters,
     required this.onToday,
   });
 
@@ -259,6 +280,22 @@ class _DesktopScaffold extends StatelessWidget {
               ),
               const Spacer(),
               SizedBox(
+                width: 110,
+                child: OutlinedButton.icon(
+                  onPressed: onFilters,
+                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
+                  label: const Text('Filters'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColor.primary,
+                    side: const BorderSide(color: AppColor.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
                 width: 90,
                 child: OutlinedButton(
                   onPressed: onToday,
@@ -296,49 +333,6 @@ class _DesktopScaffold extends StatelessWidget {
 
         const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
-        // ── Date/Time filter row ─────────────────────────────
-        Container(
-          color:   Colors.white,
-          padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: _DateField(
-                  label:      'Start Date',
-                  controller: fromCtrl,
-                  onTap:      onPickFrom,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _TimeField(
-                  label:      'Start Time',
-                  controller: fromTimeCtrl,
-                  onTap:      onPickFromTime,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _DateField(
-                  label:      'End Date',
-                  controller: toCtrl,
-                  onTap:      onPickTo,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _TimeField(
-                  label:      'End Time',
-                  controller: toTimeCtrl,
-                  onTap:      onPickToTime,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
         // ── Content ────────────────────────────────────────
         Expanded(
           child: state.isLoading
@@ -360,152 +354,16 @@ class _MobileScaffold extends StatelessWidget {
   final AccountantBranchDashboardState state;
   final dynamic notifier;
   final String Function(double) fmtAmt;
-  final TextEditingController fromCtrl;
-  final TextEditingController toCtrl;
-  final TextEditingController fromTimeCtrl;
-  final TextEditingController toTimeCtrl;
-  final VoidCallback onPickFrom;
-  final VoidCallback onPickTo;
-  final VoidCallback onPickFromTime;
-  final VoidCallback onPickToTime;
+  final VoidCallback onFilters;
   final VoidCallback onToday;
 
   const _MobileScaffold({
     required this.state,
     required this.notifier,
     required this.fmtAmt,
-    required this.fromCtrl,
-    required this.toCtrl,
-    required this.fromTimeCtrl,
-    required this.toTimeCtrl,
-    required this.onPickFrom,
-    required this.onPickTo,
-    required this.onPickFromTime,
-    required this.onPickToTime,
+    required this.onFilters,
     required this.onToday,
   });
-
-  void _showFilterSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: AppColor.grey200,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Date & Time Filter',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1D23),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        onToday();
-                        setSheetState(() {});
-                      },
-                      child: const Text('Today'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(
-                    child: _DateField(
-                      label: 'Start Date',
-                      controller: fromCtrl,
-                      onTap: () async {
-                        onPickFrom();
-                        setSheetState(() {});
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _TimeField(
-                      label: 'Start Time',
-                      controller: fromTimeCtrl,
-                      onTap: () async {
-                        onPickFromTime();
-                        setSheetState(() {});
-                      },
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: _DateField(
-                      label: 'End Date',
-                      controller: toCtrl,
-                      onTap: () async {
-                        onPickTo();
-                        setSheetState(() {});
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _TimeField(
-                      label: 'End Time',
-                      controller: toTimeCtrl,
-                      onTap: () async {
-                        onPickToTime();
-                        setSheetState(() {});
-                      },
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Apply'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -524,7 +382,7 @@ class _MobileScaffold extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () => _showFilterSheet(context),
+            onPressed: onFilters,
             icon: const AppIcon('ic_filter',
                 size: 22, color: AppColor.textSecondary),
             tooltip: 'Filters',
@@ -603,7 +461,6 @@ List<_StatSpec> _dashboardSpecs(
       _StatSpec('Card Sale', fmtAmt(data.cardSale)),
       _StatSpec('Credit Sale', fmtAmt(data.creditSale)),
       _StatSpec('Installment Sale', fmtAmt(data.installmentSale)),
-      _StatSpec('Sale Returns', fmtAmt(data.totalSaleReturn)),
       _StatSpec('Gross Profit', fmtAmt(data.grossProfit)),
       _StatSpec('Cash In', fmtAmt(data.cashIn)),
       _StatSpec('Cash Out', fmtAmt(data.cashOut)),

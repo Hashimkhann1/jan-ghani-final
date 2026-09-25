@@ -4,12 +4,10 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/datasource/category_sale_report_datasource.dart';
 import '../../data/model/category_sale_report_model.dart';
 import '../provider/category_sale_report_provider.dart';
-
-/// ── Responsive breakpoint ──
-const double _kWideBreakpoint = 900;
 
 class CategorySaleReportScreen extends ConsumerStatefulWidget {
   const CategorySaleReportScreen({super.key, required this.branchId});
@@ -74,6 +72,70 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
     }
   }
 
+  void _openFilters() {
+    final provider = categorySaleReportProvider(widget.branchId);
+    showReportFilterDialog(
+      context: context,
+      onReset: () {
+        final n = ref.read(provider.notifier);
+        n.setToday();
+        n.setCategory(null);
+        final t = DateTime.now();
+        final c = DateTime(t.year, t.month, t.day);
+        _fromCtrl.text = _dateFmt.format(c);
+        _toCtrl.text   = _dateFmt.format(c);
+      },
+      content: Consumer(builder: (ctx, ref, _) {
+        final state    = ref.watch(provider);
+        final notifier = ref.read(provider.notifier);
+        final categoryItems = [
+          DropdownItem<String?>(
+            value: null,
+            label: 'All Categories',
+            icon:  Icons.category_outlined,
+          ),
+          ...state.categories.map((c) => DropdownItem<String?>(
+                value: c.id,
+                label: c.name,
+                icon:  Icons.label_outline_rounded,
+              )),
+        ];
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              Expanded(
+                child: _DateField(
+                  label:      'Start Date',
+                  controller: _fromCtrl,
+                  onTap:      () => _pickDate(context, true),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _DateField(
+                  label:      'End Date',
+                  controller: _toCtrl,
+                  onTap:      () => _pickDate(context, false),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            AppSearchableDropdown<String?>(
+              items:      categoryItems,
+              value:      state.selectedCategoryId,
+              hint:       'All Categories',
+              fullWidth:  true,
+              prefixIcon: Icons.category_outlined,
+              onChanged:  (v) => notifier.setCategory(v),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(categorySaleReportProvider(widget.branchId));
@@ -99,20 +161,6 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
       }
     });
 
-    // Category dropdown items
-    final categoryItems = [
-      DropdownItem<String?>(
-        value: null,
-        label: 'All Categories',
-        icon:  Icons.category_outlined,
-      ),
-      ...state.categories.map((c) => DropdownItem<String?>(
-        value: c.id,
-        label: c.name,
-        icon:  Icons.label_outline_rounded,
-      )),
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
@@ -128,6 +176,10 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
           ),
         ),
         actions: [
+          ReportFilterButton(
+            onPressed:   _openFilters,
+            activeCount: state.selectedCategoryId != null ? 1 : 0,
+          ),
           IconButton(
             onPressed: notifier.load,
             icon:    const AppIcon('ic_refresh',
@@ -153,86 +205,8 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= _kWideBreakpoint;
-
           return Column(
             children: [
-
-              // ── Filters ───────────────────────────────────────
-              Container(
-                width:   double.infinity,
-                color:   Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1200),
-                    child: isWide
-                        ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        SizedBox(
-                          width: 240,
-                          child: _DateField(
-                            label:      'Start Date',
-                            controller: _fromCtrl,
-                            onTap:      () => _pickDate(context, true),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 240,
-                          child: _DateField(
-                            label:      'End Date',
-                            controller: _toCtrl,
-                            onTap:      () => _pickDate(context, false),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AppSearchableDropdown<String?>(
-                            items:      categoryItems,
-                            value:      state.selectedCategoryId,
-                            hint:       'All Categories',
-                            fullWidth:  true,
-                            prefixIcon: Icons.category_outlined,
-                            onChanged:  (v) => notifier.setCategory(v),
-                          ),
-                        ),
-                      ],
-                    )
-                        : Column(
-                      children: [
-                        Row(children: [
-                          Expanded(
-                            child: _DateField(
-                              label:      'Start Date',
-                              controller: _fromCtrl,
-                              onTap:      () => _pickDate(context, true),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _DateField(
-                              label:      'End Date',
-                              controller: _toCtrl,
-                              onTap:      () => _pickDate(context, false),
-                            ),
-                          ),
-                        ]),
-                        const SizedBox(height: 10),
-                        AppSearchableDropdown<String?>(
-                          items:      categoryItems,
-                          value:      state.selectedCategoryId,
-                          hint:       'All Categories',
-                          fullWidth:  true,
-                          prefixIcon: Icons.category_outlined,
-                          onChanged:  (v) => notifier.setCategory(v),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
 
               // ── Summary Cards ─────────────────────────────────
               Container(

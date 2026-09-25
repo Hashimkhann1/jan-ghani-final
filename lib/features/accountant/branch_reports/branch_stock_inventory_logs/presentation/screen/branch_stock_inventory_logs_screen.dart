@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
@@ -90,6 +91,57 @@ class _BranchStockInventoryLogsScreenState
         .clearFilter();
   }
 
+  void _openFilters() {
+    final provider = branchStockInventoryLogsProvider(widget.branchId);
+    showReportFilterDialog(
+      context: context,
+      onReset: _clearFilter,
+      content: Consumer(builder: (ctx, ref, _) {
+        final state = ref.watch(provider);
+        final n     = ref.read(provider.notifier);
+        return Row(
+          children: [
+            Expanded(
+              child: _DateField(
+                controller: _startCtrl,
+                hint:       'Start Date',
+                icon:       'ic_calendar',
+                onTap:      _pickStartDate,
+                onClear:    _startCtrl.text.isNotEmpty
+                    ? () {
+                        _startCtrl.clear();
+                        n.applyDateFilter(null, state.endDate);
+                      }
+                    : null,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text('—',
+                  style: TextStyle(
+                      color:      Colors.grey.shade400,
+                      fontWeight: FontWeight.w600)),
+            ),
+            Expanded(
+              child: _DateField(
+                controller: _endCtrl,
+                hint:       'End Date',
+                icon:       'ic_calendar',
+                onTap:      _pickEndDate,
+                onClear:    _endCtrl.text.isNotEmpty
+                    ? () {
+                        _endCtrl.clear();
+                        n.applyDateFilter(state.startDate, null);
+                      }
+                    : null,
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(
@@ -126,51 +178,15 @@ class _BranchStockInventoryLogsScreenState
         desktop:    true,
         state:      state,
         notifier:   notifier,
-        startCtrl:  _startCtrl,
-        endCtrl:    _endCtrl,
         hasFilter:  hasFilter,
-        onPickStart: _pickStartDate,
-        onPickEnd:   _pickEndDate,
-        onClear:     _clearFilter,
-        onClearStart: () {
-          _startCtrl.clear();
-          ref
-              .read(branchStockInventoryLogsProvider(
-              widget.branchId).notifier)
-              .applyDateFilter(null, state.endDate);
-        },
-        onClearEnd: () {
-          _endCtrl.clear();
-          ref
-              .read(branchStockInventoryLogsProvider(
-              widget.branchId).notifier)
-              .applyDateFilter(state.startDate, null);
-        },
+        onFilters:  _openFilters,
       )
           : _Layout(
         desktop:    false,
         state:      state,
         notifier:   notifier,
-        startCtrl:  _startCtrl,
-        endCtrl:    _endCtrl,
         hasFilter:  hasFilter,
-        onPickStart: _pickStartDate,
-        onPickEnd:   _pickEndDate,
-        onClear:     _clearFilter,
-        onClearStart: () {
-          _startCtrl.clear();
-          ref
-              .read(branchStockInventoryLogsProvider(
-              widget.branchId).notifier)
-              .applyDateFilter(null, state.endDate);
-        },
-        onClearEnd: () {
-          _endCtrl.clear();
-          ref
-              .read(branchStockInventoryLogsProvider(
-              widget.branchId).notifier)
-              .applyDateFilter(state.startDate, null);
-        },
+        onFilters:  _openFilters,
       ),
     );
   }
@@ -186,27 +202,15 @@ class _Layout extends StatelessWidget {
   final bool                   desktop;
   final BranchStockInventoryLogsState state;
   final dynamic                notifier;
-  final TextEditingController  startCtrl;
-  final TextEditingController  endCtrl;
   final bool                   hasFilter;
-  final VoidCallback           onPickStart;
-  final VoidCallback           onPickEnd;
-  final VoidCallback           onClear;
-  final VoidCallback           onClearStart;
-  final VoidCallback           onClearEnd;
+  final VoidCallback onFilters;
 
   const _Layout({
     required this.desktop,
     required this.state,
     required this.notifier,
-    required this.startCtrl,
-    required this.endCtrl,
     required this.hasFilter,
-    required this.onPickStart,
-    required this.onPickEnd,
-    required this.onClear,
-    required this.onClearStart,
-    required this.onClearEnd,
+    required this.onFilters,
   });
 
   @override
@@ -239,6 +243,11 @@ class _Layout extends StatelessWidget {
                     color:      Color(0xFF1A1D23),
                   )),
               const Spacer(),
+              ReportFilterButton(
+                onPressed:   onFilters,
+                activeCount: hasFilter ? 1 : 0,
+              ),
+              const SizedBox(width: 6),
               SizedBox(
                 width: 44,
                 height: 44,
@@ -267,46 +276,6 @@ class _Layout extends StatelessWidget {
             spacing: 8,
             runSpacing: 10,
             children: [
-              SizedBox(
-                width: desktop ? 180 : 150,
-                child: _DateField(
-                  controller: startCtrl,
-                  hint:       'Start Date',
-                  icon:       'ic_calendar',
-                  onTap:      onPickStart,
-                  onClear:    startCtrl.text.isNotEmpty
-                      ? onClearStart
-                      : null,
-                ),
-              ),
-              SizedBox(
-                width: desktop ? 180 : 150,
-                child: _DateField(
-                  controller: endCtrl,
-                  hint:       'End Date',
-                  icon:       'ic_calendar',
-                  onTap:      onPickEnd,
-                  onClear:    endCtrl.text.isNotEmpty
-                      ? onClearEnd
-                      : null,
-                ),
-              ),
-              if (hasFilter)
-                GestureDetector(
-                  onTap: onClear,
-                  child: Container(
-                    width:  36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color:        AppColor.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const AppIcon(
-                        'ic_filter',
-                        size:  16,
-                        color: AppColor.error),
-                  ),
-                ),
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 10),

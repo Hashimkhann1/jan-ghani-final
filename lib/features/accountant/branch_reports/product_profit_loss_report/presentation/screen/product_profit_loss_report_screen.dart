@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/product_profit_loss_model.dart';
 import '../../data/service/product_profit_loss_excel_service.dart';
 import '../../data/service/product_profit_loss_pdf_service.dart';
@@ -122,6 +123,23 @@ class _ProductProfitLossReportScreenState
     }
   }
 
+  void _openFilters() {
+    final provider = widget.provider ?? productProfitLossProvider;
+    showReportFilterDialog(
+      context: context,
+      content: Consumer(builder: (ctx, ref, _) {
+        final state    = ref.watch(provider(widget.branchId));
+        final notifier = ref.read(provider(widget.branchId).notifier);
+        return _Filters(
+          state: state,
+          notifier: notifier,
+          searchCtrl: _searchCtrl,
+          desktop: false,
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = widget.provider ?? productProfitLossProvider;
@@ -155,13 +173,6 @@ class _ProductProfitLossReportScreenState
 
     final body = Column(
       children: [
-        _Filters(
-          state: state,
-          notifier: notifier,
-          searchCtrl: _searchCtrl,
-          desktop: desktop,
-        ),
-        const Divider(height: 1, color: _kBorder),
         _SummaryRow(items: state.exportItems, isSelection: selCount > 0),
         const Divider(height: 1, color: _kBorder),
         Expanded(
@@ -221,6 +232,12 @@ class _ProductProfitLossReportScreenState
                     ),
                     const SizedBox(width: 8),
                   ],
+                  ReportFilterButton(
+                    onPressed:   _openFilters,
+                    activeCount: (state.searchQuery.isNotEmpty ? 1 : 0) +
+                        (state.categoryFilter != null ? 1 : 0),
+                  ),
+                  const SizedBox(width: 6),
                   OutlinedButton.icon(
                     onPressed:
                         state.filtered.isEmpty ? null : () => _exportExcel(state),
@@ -291,6 +308,11 @@ class _ProductProfitLossReportScreenState
             style: TextStyle(
                 fontSize: 17, fontWeight: FontWeight.w700, color: _kInk)),
         actions: [
+          ReportFilterButton(
+            onPressed:   _openFilters,
+            activeCount: (state.searchQuery.isNotEmpty ? 1 : 0) +
+                (state.categoryFilter != null ? 1 : 0),
+          ),
           IconButton(
             onPressed: state.filtered.isEmpty ? null : () => _export(state),
             icon: Badge(

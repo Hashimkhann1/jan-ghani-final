@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_branch_stock_inventory_model.dart';
 import '../../data/service/accountant_branch_inventory_excel_service.dart';
@@ -32,6 +33,102 @@ class _AccountantBranchInventoryReportScreenState
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _openFilters() {
+    final provider = accountantBranchInventoryProvider(widget.branchId);
+    showReportFilterDialog(
+      context: context,
+      onReset: () {
+        final n = ref.read(provider.notifier);
+        _searchCtrl.clear();
+        n.search('');
+        n.setCategoryFilter(null);
+        n.setStockFilter(null);
+        if (ref.read(provider).deadStockOnly) n.toggleDeadStockOnly();
+      },
+      content: Consumer(builder: (ctx, ref, _) {
+        final state    = ref.watch(provider);
+        final notifier = ref.read(provider.notifier);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _searchCtrl,
+              onChanged: notifier.search,
+              style: const TextStyle(fontSize: 14),
+              cursorHeight: 16,
+              decoration: InputDecoration(
+                hintText: 'Product name, SKU or barcode...',
+                hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
+                prefixIcon: const AppIcon('ic_search', size: 20, color: AppColor.primary),
+                suffixIcon: state.searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const AppIcon('ic_clear', size: 18, color: AppColor.textHint),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          notifier.search('');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColor.grey100,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColor.grey200)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            AppSearchableDropdown<String?>(
+              items: _categoryDropdownItems(state.categories),
+              value: state.categoryFilter,
+              hint: 'Category',
+              prefixIcon: Icons.category_outlined,
+              fullWidth: true,
+              onChanged: notifier.setCategoryFilter,
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _FilterChip(label: 'All', selected: state.stockFilter == null, color: AppColor.primary, onTap: () => notifier.setStockFilter(null)),
+                _FilterChip(
+                  label: 'In Stock',
+                  selected: state.stockFilter == StockStatus.inStock,
+                  color: AppColor.success,
+                  onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.inStock ? null : StockStatus.inStock),
+                ),
+                _FilterChip(
+                  label: 'Low Stock',
+                  selected: state.stockFilter == StockStatus.lowStock,
+                  color: AppColor.warning,
+                  onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.lowStock ? null : StockStatus.lowStock),
+                ),
+                _FilterChip(
+                  label: 'Out of Stock',
+                  selected: state.stockFilter == StockStatus.outOfStock,
+                  color: AppColor.error,
+                  onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.outOfStock ? null : StockStatus.outOfStock),
+                ),
+                _FilterChip(
+                  label: 'Diet Product',
+                  selected: state.deadStockOnly,
+                  color: const Color(0xFF8B5CF6),
+                  onTap: notifier.toggleDeadStockOnly,
+                ),
+              ],
+            ),
+          ],
+        );
+      }),
+    );
   }
 
   @override
@@ -67,14 +164,14 @@ class _AccountantBranchInventoryReportScreenState
         notifier: notifier,
         fmtAmt: _fmtAmt,
         fmtQty: _fmtQty,
-        searchCtrl: _searchCtrl,
+        onFilters: _openFilters,
       )
           : _MobileLayout(
         state: state,
         notifier: notifier,
         fmtAmt: _fmtAmt,
         fmtQty: _fmtQty,
-        searchCtrl: _searchCtrl,
+        onFilters: _openFilters,
       ),
     );
   }
@@ -178,14 +275,14 @@ class _DesktopLayout extends StatelessWidget {
   final dynamic notifier;
   final String Function(double) fmtAmt;
   final String Function(double) fmtQty;
-  final TextEditingController searchCtrl;
+  final VoidCallback onFilters;
 
   const _DesktopLayout({
     required this.state,
     required this.notifier,
     required this.fmtAmt,
     required this.fmtQty,
-    required this.searchCtrl,
+    required this.onFilters,
   });
 
   @override
@@ -220,6 +317,21 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              SizedBox(
+                width: 130,
+                child: OutlinedButton.icon(
+                  onPressed: onFilters,
+                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
+                  label: Text(_activeFilterCount(state) > 0 ? 'Filters (${_activeFilterCount(state)})' : 'Filters'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColor.primary,
+                    side: const BorderSide(color: AppColor.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 130,
                 child: ElevatedButton.icon(
@@ -322,53 +434,6 @@ class _DesktopLayout extends StatelessWidget {
                 color: const Color(0xFF8B5CF6),
                 selected: state.deadStockOnly,
                 onTap: notifier.toggleDeadStockOnly,
-              ),
-              const SizedBox(width: 16),
-              const SizedBox(height: 48, width: 1, child: VerticalDivider(width: 1, color: Color(0xFFEEEEEE))),
-              const SizedBox(width: 16),
-              Expanded(
-                child: SizedBox(
-                  height: 42,
-                  child: TextField(
-                    controller: searchCtrl,
-                    onChanged: notifier.search,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Product name, SKU or barcode...',
-                      hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                      prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.primary),
-  suffixIcon: state.searchQuery.isNotEmpty
-                          ? IconButton(
-                        icon: const AppIcon('ic_clear', size: 16, color: AppColor.textHint),
-                        onPressed: () {
-                          searchCtrl.clear();
-                          notifier.search('');
-                        },
-                      )
-                          : null,
-                      filled: true,
-                      fillColor: AppColor.grey100,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColor.grey200)),
-                      focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Category dropdown
-              AppSearchableDropdown<String?>(
-                items: _categoryDropdownItems(state.categories),
-                value: state.categoryFilter,
-                hint: 'Category',
-                prefixIcon: Icons.category_outlined,
-                desktopWidth: 220,
-                onChanged: notifier.setCategoryFilter,
               ),
             ],
           ),
@@ -653,19 +718,25 @@ class _TableRow extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 // MOBILE LAYOUT
 // ══════════════════════════════════════════════════════════════════════════════
+int _activeFilterCount(AccountantBranchInventoryState s) =>
+    (s.searchQuery.isNotEmpty ? 1 : 0) +
+    (s.categoryFilter != null ? 1 : 0) +
+    (s.stockFilter != null ? 1 : 0) +
+    (s.deadStockOnly ? 1 : 0);
+
 class _MobileLayout extends StatelessWidget {
   final AccountantBranchInventoryState state;
   final dynamic notifier;
   final String Function(double) fmtAmt;
   final String Function(double) fmtQty;
-  final TextEditingController searchCtrl;
+  final VoidCallback onFilters;
 
   const _MobileLayout({
     required this.state,
     required this.notifier,
     required this.fmtAmt,
     required this.fmtQty,
-    required this.searchCtrl,
+    required this.onFilters,
   });
 
   @override
@@ -679,6 +750,10 @@ class _MobileLayout extends StatelessWidget {
         title: const Text('Inventory Report',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF1A1D23))),
         actions: [
+          ReportFilterButton(
+            onPressed:   onFilters,
+            activeCount: _activeFilterCount(state),
+          ),
           IconButton(
             onPressed: () => _exportPdf(context, state),
             icon: const AppIcon('ic_print', size: 22, color: AppColor.primary),
@@ -703,98 +778,6 @@ class _MobileLayout extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Search
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              controller: searchCtrl,
-              onChanged: notifier.search,
-              style: const TextStyle(fontSize: 14),
-              cursorHeight: 16,
-              decoration: InputDecoration(
-                hintText: 'Product name, SKU or barcode...',
-                hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                prefixIcon: const AppIcon('ic_search', size: 20, color: AppColor.primary),
-                suffixIcon: state.searchQuery.isNotEmpty
-                    ? IconButton(
-                  icon: const AppIcon('ic_clear', size: 18, color: AppColor.textHint),
-                  onPressed: () {
-                    searchCtrl.clear();
-                    notifier.search('');
-                  },
-                )
-                    : null,
-                filled: true,
-                fillColor: AppColor.grey100,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColor.grey200)),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
-              ),
-            ),
-          ),
-
-          // Category dropdown
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-            child: AppSearchableDropdown<String?>(
-              items: _categoryDropdownItems(state.categories),
-              value: state.categoryFilter,
-              hint: 'Category',
-              prefixIcon: Icons.category_outlined,
-              fullWidth: true,
-              onChanged: notifier.setCategoryFilter,
-            ),
-          ),
-
-          // Filter Chips (Stock status)
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: SizedBox(
-              height: 34,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _FilterChip(label: 'All', selected: state.stockFilter == null, color: AppColor.primary, onTap: () => notifier.setStockFilter(null)),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'In Stock',
-                    selected: state.stockFilter == StockStatus.inStock,
-                    color: AppColor.success,
-                    onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.inStock ? null : StockStatus.inStock),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Low Stock',
-                    selected: state.stockFilter == StockStatus.lowStock,
-                    color: AppColor.warning,
-                    onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.lowStock ? null : StockStatus.lowStock),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Out of Stock',
-                    selected: state.stockFilter == StockStatus.outOfStock,
-                    color: AppColor.error,
-                    onTap: () => notifier.setStockFilter(state.stockFilter == StockStatus.outOfStock ? null : StockStatus.outOfStock),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Diet Product',
-                    selected: state.deadStockOnly,
-                    color: const Color(0xFF8B5CF6),
-                    onTap: notifier.toggleDeadStockOnly,
-                  ),
-                ],
-              ),
-            ),
-          ),
           Container(height: 1, color: const Color(0xFFE5E7EB)),
 
           // Summary Cards

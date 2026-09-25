@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/inventory_counting_report_model.dart';
 import '../../../common/export/branch_export_lookups.dart';
 import '../../data/service/inventory_counting_excel_service.dart';
@@ -152,6 +153,30 @@ class _InventoryCountingReportScreenState
     }
   }
 
+  void _openFilters() {
+    final provider = inventoryCountingReportProvider(widget.storeId);
+    showReportFilterDialog(
+      context: context,
+      onReset: () {
+        final n = ref.read(provider.notifier);
+        _searchController.clear();
+        n.search('');
+        _clearDates(n);
+      },
+      content: Consumer(builder: (ctx, ref, _) {
+        final state    = ref.watch(provider);
+        final notifier = ref.read(provider.notifier);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSearchBar(ctx, notifier),
+            _buildDateFilterRow(ctx, notifier, state),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryCountingReportProvider(widget.storeId));
@@ -175,6 +200,12 @@ class _InventoryCountingReportScreenState
       appBar: AppBar(
         title: const Text("Inventory Counting Report"),
         actions: [
+          ReportFilterButton(
+            onPressed:   _openFilters,
+            activeCount: (state.searchQuery.isNotEmpty ? 1 : 0) +
+                (state.startDate != null || state.endDate != null ? 1 : 0),
+          ),
+          const SizedBox(width: 4),
           SizedBox(
             width: 130,
             child: ElevatedButton.icon(
@@ -220,8 +251,6 @@ class _InventoryCountingReportScreenState
           children: [
             if (!state.isLoading && state.errorMessage == null && state.records.isNotEmpty) ...[
               _buildSummaryCards(context, visible),
-              _buildSearchBar(context, notifier),
-              _buildDateFilterRow(context, notifier, state),
             ],
             Expanded(child: _buildBody(context, pageItems, visible, state, notifier)),
             if (!state.isLoading && state.errorMessage == null && visible.isNotEmpty)

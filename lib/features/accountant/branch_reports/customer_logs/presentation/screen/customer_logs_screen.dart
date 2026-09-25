@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../common/pagination/branch_report_infinite_scroll.dart';
@@ -86,6 +87,57 @@ class _CustomerLogsScreenState extends ConsumerState<CustomerLogsScreen> {
     ref.read(customerLogsProvider(widget.branchId).notifier).clearFilter();
   }
 
+  void _openFilters() {
+    final provider = customerLogsProvider(widget.branchId);
+    showReportFilterDialog(
+      context: context,
+      onReset: _clearFilter,
+      content: Consumer(builder: (ctx, ref, _) {
+        final state = ref.watch(provider);
+        final n     = ref.read(provider.notifier);
+        return Row(
+          children: [
+            Expanded(
+              child: _DateField(
+                controller: _startCtrl,
+                hint:       'Start Date',
+                icon:       'ic_calendar',
+                onTap:      _pickStartDate,
+                onClear:    _startCtrl.text.isNotEmpty
+                    ? () {
+                        _startCtrl.clear();
+                        n.applyDateFilter(null, state.endDate);
+                      }
+                    : null,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text('—',
+                  style: TextStyle(
+                      color:      Colors.grey.shade400,
+                      fontWeight: FontWeight.w600)),
+            ),
+            Expanded(
+              child: _DateField(
+                controller: _endCtrl,
+                hint:       'End Date',
+                icon:       'ic_calendar',
+                onTap:      _pickEndDate,
+                onClear:    _endCtrl.text.isNotEmpty
+                    ? () {
+                        _endCtrl.clear();
+                        n.applyDateFilter(state.startDate, null);
+                      }
+                    : null,
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(customerLogsProvider(widget.branchId));
@@ -120,47 +172,15 @@ class _CustomerLogsScreenState extends ConsumerState<CustomerLogsScreen> {
         state:      state,
         notifier:   notifier,
         amtFmt:     _amtFmt,
-        startCtrl:  _startCtrl,
-        endCtrl:    _endCtrl,
         hasFilter:  hasFilter,
-        onPickStart: _pickStartDate,
-        onPickEnd:   _pickEndDate,
-        onClear:     _clearFilter,
-        onClearStart: () {
-          _startCtrl.clear();
-          ref
-              .read(customerLogsProvider(widget.branchId).notifier)
-              .applyDateFilter(null, state.endDate);
-        },
-        onClearEnd: () {
-          _endCtrl.clear();
-          ref
-              .read(customerLogsProvider(widget.branchId).notifier)
-              .applyDateFilter(state.startDate, null);
-        },
+        onFilters:  _openFilters,
       )
           : _MobileLayout(
         state:      state,
         notifier:   notifier,
         amtFmt:     _amtFmt,
-        startCtrl:  _startCtrl,
-        endCtrl:    _endCtrl,
         hasFilter:  hasFilter,
-        onPickStart: _pickStartDate,
-        onPickEnd:   _pickEndDate,
-        onClear:     _clearFilter,
-        onClearStart: () {
-          _startCtrl.clear();
-          ref
-              .read(customerLogsProvider(widget.branchId).notifier)
-              .applyDateFilter(null, state.endDate);
-        },
-        onClearEnd: () {
-          _endCtrl.clear();
-          ref
-              .read(customerLogsProvider(widget.branchId).notifier)
-              .applyDateFilter(state.startDate, null);
-        },
+        onFilters:  _openFilters,
       ),
     );
   }
@@ -173,27 +193,15 @@ class _DesktopLayout extends StatelessWidget {
   final CustomerLogsState     state;
   final dynamic               notifier;
   final NumberFormat          amtFmt;
-  final TextEditingController startCtrl;
-  final TextEditingController endCtrl;
   final bool                  hasFilter;
-  final VoidCallback          onPickStart;
-  final VoidCallback          onPickEnd;
-  final VoidCallback          onClear;
-  final VoidCallback          onClearStart;
-  final VoidCallback          onClearEnd;
+  final VoidCallback onFilters;
 
   const _DesktopLayout({
     required this.state,
     required this.notifier,
     required this.amtFmt,
-    required this.startCtrl,
-    required this.endCtrl,
     required this.hasFilter,
-    required this.onPickStart,
-    required this.onPickEnd,
-    required this.onClear,
-    required this.onClearStart,
-    required this.onClearEnd,
+    required this.onFilters,
   });
 
   @override
@@ -225,6 +233,21 @@ class _DesktopLayout extends StatelessWidget {
                   )),
               const Spacer(),
               SizedBox(
+                width: 130,
+                child: OutlinedButton.icon(
+                  onPressed: onFilters,
+                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
+                  label: Text(hasFilter ? 'Filters (1)' : 'Filters'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColor.primary,
+                    side: const BorderSide(color: AppColor.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
                 width: 120,
                 child: OutlinedButton.icon(
                   onPressed: notifier.load,
@@ -251,55 +274,6 @@ class _DesktopLayout extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(
-                width: 180,
-                child: _DateField(
-                  controller: startCtrl,
-                  hint:       'Start Date',
-                  icon:       'ic_calendar',
-                  onTap:      onPickStart,
-                  onClear:    startCtrl.text.isNotEmpty
-                      ? onClearStart
-                      : null,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text('—',
-                    style: TextStyle(
-                        color:      Colors.grey.shade400,
-                        fontWeight: FontWeight.w600)),
-              ),
-              SizedBox(
-                width: 180,
-                child: _DateField(
-                  controller: endCtrl,
-                  hint:       'End Date',
-                  icon:       'ic_calendar',
-                  onTap:      onPickEnd,
-                  onClear:    endCtrl.text.isNotEmpty
-                      ? onClearEnd
-                      : null,
-                ),
-              ),
-              if (hasFilter) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: onClear,
-                  child: Container(
-                    width:  36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color:        AppColor.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const AppIcon(
-                        'ic_filter',
-                        size:  16,
-                        color: AppColor.error),
-                  ),
-                ),
-              ],
               const SizedBox(width: 24),
               const SizedBox(
                   height: 48,
@@ -614,27 +588,15 @@ class _MobileLayout extends StatelessWidget {
   final CustomerLogsState     state;
   final dynamic               notifier;
   final NumberFormat          amtFmt;
-  final TextEditingController startCtrl;
-  final TextEditingController endCtrl;
   final bool                  hasFilter;
-  final VoidCallback          onPickStart;
-  final VoidCallback          onPickEnd;
-  final VoidCallback          onClear;
-  final VoidCallback          onClearStart;
-  final VoidCallback          onClearEnd;
+  final VoidCallback onFilters;
 
   const _MobileLayout({
     required this.state,
     required this.notifier,
     required this.amtFmt,
-    required this.startCtrl,
-    required this.endCtrl,
     required this.hasFilter,
-    required this.onPickStart,
-    required this.onPickEnd,
-    required this.onClear,
-    required this.onClearStart,
-    required this.onClearEnd,
+    required this.onFilters,
   });
 
   @override
@@ -652,6 +614,10 @@ class _MobileLayout extends StatelessWidget {
               color:      Color(0xFF1A1D23),
             )),
         actions: [
+          ReportFilterButton(
+            onPressed:   onFilters,
+            activeCount: hasFilter ? 1 : 0,
+          ),
           IconButton(
             onPressed: notifier.load,
             icon: const AppIcon('ic_refresh',
@@ -660,62 +626,8 @@ class _MobileLayout extends StatelessWidget {
           const SizedBox(width: 4),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(62),
-          child: Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _DateField(
-                    controller: startCtrl,
-                    hint:       'Start Date',
-                    icon:       'ic_calendar',
-                    onTap:      onPickStart,
-                    onClear:    startCtrl.text.isNotEmpty
-                        ? onClearStart
-                        : null,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('—',
-                      style: TextStyle(
-                          color:      Colors.grey.shade400,
-                          fontWeight: FontWeight.w600)),
-                ),
-                Expanded(
-                  child: _DateField(
-                    controller: endCtrl,
-                    hint:       'End Date',
-                    icon:       'ic_calendar',
-                    onTap:      onPickEnd,
-                    onClear:    endCtrl.text.isNotEmpty
-                        ? onClearEnd
-                        : null,
-                  ),
-                ),
-                if (hasFilter) ...[
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: onClear,
-                    child: Container(
-                      width:  34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color:        AppColor.error.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const AppIcon(
-                          'ic_filter',
-                          size:  16,
-                          color: AppColor.error),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: const Color(0xFFE5E7EB)),
         ),
       ),
       body: Column(

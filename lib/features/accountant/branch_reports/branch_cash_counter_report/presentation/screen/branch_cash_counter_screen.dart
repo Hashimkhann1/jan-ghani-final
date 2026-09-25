@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/branch_cash_counter_model.dart';
 import '../../data/service/branch_cash_counter_excel_service.dart';
 import '../provider/branch_cash_counter_provider.dart';
@@ -115,6 +116,36 @@ class _BranchCashCounterReportScreenState
     }
   }
 
+  void _openFilters() {
+    showReportFilterDialog(
+      context: context,
+      onReset: () {
+        ref.read(branchCashCounterProvider(widget.branchId).notifier)
+            .setThisMonth();
+        final n = DateTime.now();
+        _fromCtrl.text = _dateFmt.format(DateTime(n.year, n.month, 1));
+        _toCtrl.text   = _dateFmt.format(DateTime(n.year, n.month, n.day));
+      },
+      content: Row(children: [
+        Expanded(
+          child: _DateField(
+            label:      'Start Date',
+            controller: _fromCtrl,
+            onTap:      () => _pickDate(context, true),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _DateField(
+            label:      'End Date',
+            controller: _toCtrl,
+            onTap:      () => _pickDate(context, false),
+          ),
+        ),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(branchCashCounterProvider(widget.branchId));
@@ -158,6 +189,7 @@ class _BranchCashCounterReportScreenState
           ),
         ),
         actions: [
+          ReportFilterButton(onPressed: _openFilters),
           IconButton(
             onPressed: _exporting ? null : _exportExcel,
             icon: _exporting
@@ -204,30 +236,6 @@ class _BranchCashCounterReportScreenState
       ),
       body: Column(
         children: [
-
-          // ── Date Filters ─────────────────────────────────────────────
-          Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Row(children: [
-              Expanded(
-                child: _DateField(
-                  label:      'Start Date',
-                  controller: _fromCtrl,
-                  onTap:      () => _pickDate(context, true),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _DateField(
-                  label:      'End Date',
-                  controller: _toCtrl,
-                  onTap:      () => _pickDate(context, false),
-                ),
-              ),
-            ]),
-          ),
-          Container(height: 1, color: const Color(0xFFE5E7EB)),
 
           // ── Body ─────────────────────────────────────────────────────
           Expanded(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/accountant_profit_loss_model.dart';
 import '../provider/accountant_profit_loss_provider.dart';
@@ -84,6 +85,35 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
     }
   }
 
+  void _openFilters() {
+    showReportFilterDialog(
+      context: context,
+      onReset: () {
+        ref.read(_provider(widget.branchId).notifier).setThisMonth();
+        final n = DateTime.now();
+        _fromCtrl.text = _dateFmt.format(DateTime(n.year, n.month, 1));
+        _toCtrl.text   = _dateFmt.format(DateTime(n.year, n.month, n.day));
+      },
+      content: Row(children: [
+        Expanded(
+          child: _DateField(
+            label:      'Start Date',
+            controller: _fromCtrl,
+            onTap:      () => _pickDate(context, true),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _DateField(
+            label:      'End Date',
+            controller: _toCtrl,
+            onTap:      () => _pickDate(context, false),
+          ),
+        ),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(_provider(widget.branchId));
@@ -122,6 +152,7 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
                 fontWeight: FontWeight.w700,
                 color:      Color(0xFF1A1D23))),
         actions: [
+          ReportFilterButton(onPressed: _openFilters),
           IconButton(
             onPressed: notifier.load,
             icon: const AppIcon('ic_refresh',
@@ -160,56 +191,6 @@ class _PnlReportScreenState extends ConsumerState<PnlReportScreen>
           final isWide = constraints.maxWidth >= _kWideBreakpoint;
 
           return Column(children: [
-
-            // ── Date Filters ──────────────────────────────────
-            Container(
-              width:   double.infinity,
-              color:   Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: isWide
-                      ? Row(children: [
-                    SizedBox(
-                      width: 240,
-                      child: _DateField(
-                        label:      'Start Date',
-                        controller: _fromCtrl,
-                        onTap:      () => _pickDate(context, true),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 240,
-                      child: _DateField(
-                        label:      'End Date',
-                        controller: _toCtrl,
-                        onTap:      () => _pickDate(context, false),
-                      ),
-                    ),
-                    const Spacer(),
-                  ])
-                      : Row(children: [
-                    Expanded(
-                      child: _DateField(
-                        label:      'Start Date',
-                        controller: _fromCtrl,
-                        onTap:      () => _pickDate(context, true),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _DateField(
-                        label:      'End Date',
-                        controller: _toCtrl,
-                        onTap:      () => _pickDate(context, false),
-                      ),
-                    ),
-                  ]),
-                ),
-              ),
-            ),
 
             // ── Body ──────────────────────────────────────────
             Expanded(

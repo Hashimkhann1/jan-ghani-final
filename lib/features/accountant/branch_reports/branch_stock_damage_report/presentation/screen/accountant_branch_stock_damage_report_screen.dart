@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../../core/color/app_color.dart';
 import '../../../../../../../core/widget/app_icon.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
@@ -74,6 +75,68 @@ class _AccountantBranchStockDamageReportScreenState
     notifier.clearDateFilter();
   }
 
+  void _openFilters() {
+    final provider = accountantBranchStockDamageProvider(widget.branchId);
+    showReportFilterDialog(
+      context: context,
+      onReset: () {
+        final n = ref.read(provider.notifier);
+        _searchCtrl.clear();
+        n.search('');
+        _clearDates(n);
+      },
+      content: Consumer(builder: (ctx, ref, _) {
+        final state    = ref.watch(provider);
+        final notifier = ref.read(provider.notifier);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _searchCtrl,
+              onChanged: notifier.search,
+              style: const TextStyle(fontSize: 14),
+              cursorHeight: 16,
+              decoration: InputDecoration(
+                hintText: 'Search product name...',
+                hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
+                prefixIcon: const AppIcon('ic_search', size: 20, color: AppColor.primary),
+                suffixIcon: state.searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const AppIcon('ic_clear', size: 18, color: AppColor.textHint),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          notifier.search('');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColor.grey100,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColor.grey200)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _DateFilterRow(
+              startCtrl: _startCtrl,
+              endCtrl: _endCtrl,
+              onPickStart: () => _pickStartDate(context, notifier, state),
+              onPickEnd: () => _pickEndDate(context, notifier, state),
+              onClearDates: () => _clearDates(notifier),
+              hasFilter: state.startDate != null || state.endDate != null,
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(accountantBranchStockDamageProvider(widget.branchId));
@@ -108,12 +171,7 @@ class _AccountantBranchStockDamageReportScreenState
         fmtAmt: _fmtAmt,
         fmtQty: _fmtQty,
         fmtDate: _fmtDate,
-        searchCtrl: _searchCtrl,
-        startCtrl: _startCtrl,
-        endCtrl: _endCtrl,
-        onPickStart: () => _pickStartDate(context, notifier, state),
-        onPickEnd: () => _pickEndDate(context, notifier, state),
-        onClearDates: () => _clearDates(notifier),
+        onFilters: _openFilters,
       )
           : _MobileLayout(
         state: state,
@@ -121,12 +179,7 @@ class _AccountantBranchStockDamageReportScreenState
         fmtAmt: _fmtAmt,
         fmtQty: _fmtQty,
         fmtDate: _fmtDate,
-        searchCtrl: _searchCtrl,
-        startCtrl: _startCtrl,
-        endCtrl: _endCtrl,
-        onPickStart: () => _pickStartDate(context, notifier, state),
-        onPickEnd: () => _pickEndDate(context, notifier, state),
-        onClearDates: () => _clearDates(notifier),
+        onFilters: _openFilters,
       ),
     );
   }
@@ -251,18 +304,17 @@ class _DateFilterRow extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 // DESKTOP LAYOUT
 // ══════════════════════════════════════════════════════════════════════════════
+int _activeCount(AccountantBranchStockDamageState s) =>
+    (s.searchQuery.isNotEmpty ? 1 : 0) +
+    (s.startDate != null || s.endDate != null ? 1 : 0);
+
 class _DesktopLayout extends StatelessWidget {
   final AccountantBranchStockDamageState state;
   final dynamic notifier;
   final String Function(double) fmtAmt;
   final String Function(double) fmtQty;
   final String Function(DateTime) fmtDate;
-  final TextEditingController searchCtrl;
-  final TextEditingController startCtrl;
-  final TextEditingController endCtrl;
-  final VoidCallback onPickStart;
-  final VoidCallback onPickEnd;
-  final VoidCallback onClearDates;
+  final VoidCallback onFilters;
 
   const _DesktopLayout({
     required this.state,
@@ -270,18 +322,11 @@ class _DesktopLayout extends StatelessWidget {
     required this.fmtAmt,
     required this.fmtQty,
     required this.fmtDate,
-    required this.searchCtrl,
-    required this.startCtrl,
-    required this.endCtrl,
-    required this.onPickStart,
-    required this.onPickEnd,
-    required this.onClearDates,
+    required this.onFilters,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasDateFilter = state.startDate != null || state.endDate != null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -312,6 +357,21 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              SizedBox(
+                width: 130,
+                child: OutlinedButton.icon(
+                  onPressed: onFilters,
+                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
+                  label: Text(_activeCount(state) > 0 ? 'Filters (${_activeCount(state)})' : 'Filters'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColor.primary,
+                    side: const BorderSide(color: AppColor.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 130,
                 child: ElevatedButton.icon(
@@ -384,57 +444,7 @@ class _DesktopLayout extends StatelessWidget {
                     icon: 'ic_sale_price_trend',
                     color: AppColor.warning,
                   ),
-                  const SizedBox(width: 16),
-                  const SizedBox(height: 48, width: 1, child: VerticalDivider(width: 1, color: Color(0xFFEEEEEE))),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SizedBox(
-                      height: 42,
-                      child: TextField(
-                        controller: searchCtrl,
-                        onChanged: notifier.search,
-                        style: const TextStyle(fontSize: 13),
-                        decoration: InputDecoration(
-                          hintText: 'Search product name...',
-                          hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                          prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.primary),
-                          suffixIcon: state.searchQuery.isNotEmpty
-                              ? IconButton(
-                            icon: const AppIcon('ic_clear', size: 16, color: AppColor.textHint),
-                            onPressed: () {
-                              searchCtrl.clear();
-                              notifier.search('');
-                            },
-                          )
-                              : null,
-                          filled: true,
-                          fillColor: AppColor.grey100,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                          enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: AppColor.grey200)),
-                          focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
-              ),
-              const SizedBox(height: 14),
-              // Date filter row (start / end)
-              SizedBox(
-                width: 520,
-                child: _DateFilterRow(
-                  startCtrl: startCtrl,
-                  endCtrl: endCtrl,
-                  onPickStart: onPickStart,
-                  onPickEnd: onPickEnd,
-                  onClearDates: onClearDates,
-                  hasFilter: hasDateFilter,
-                ),
               ),
             ],
           ),
@@ -662,12 +672,7 @@ class _MobileLayout extends StatelessWidget {
   final String Function(double) fmtAmt;
   final String Function(double) fmtQty;
   final String Function(DateTime) fmtDate;
-  final TextEditingController searchCtrl;
-  final TextEditingController startCtrl;
-  final TextEditingController endCtrl;
-  final VoidCallback onPickStart;
-  final VoidCallback onPickEnd;
-  final VoidCallback onClearDates;
+  final VoidCallback onFilters;
 
   const _MobileLayout({
     required this.state,
@@ -675,18 +680,11 @@ class _MobileLayout extends StatelessWidget {
     required this.fmtAmt,
     required this.fmtQty,
     required this.fmtDate,
-    required this.searchCtrl,
-    required this.startCtrl,
-    required this.endCtrl,
-    required this.onPickStart,
-    required this.onPickEnd,
-    required this.onClearDates,
+    required this.onFilters,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasDateFilter = state.startDate != null || state.endDate != null;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
@@ -696,6 +694,10 @@ class _MobileLayout extends StatelessWidget {
         title: const Text('Stock Damage Report',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF1A1D23))),
         actions: [
+          ReportFilterButton(
+            onPressed:   onFilters,
+            activeCount: _activeCount(state),
+          ),
           IconButton(
             onPressed: () => _exportPdf(context, state),
             icon: const AppIcon('ic_print', size: 22, color: AppColor.primary),
@@ -715,56 +717,6 @@ class _MobileLayout extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Search
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              controller: searchCtrl,
-              onChanged: notifier.search,
-              style: const TextStyle(fontSize: 14),
-              cursorHeight: 16,
-              decoration: InputDecoration(
-                hintText: 'Search product name...',
-                hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                prefixIcon: const AppIcon('ic_search', size: 20, color: AppColor.primary),
-                suffixIcon: state.searchQuery.isNotEmpty
-                    ? IconButton(
-                  icon: const AppIcon('ic_clear', size: 18, color: AppColor.textHint),
-                  onPressed: () {
-                    searchCtrl.clear();
-                    notifier.search('');
-                  },
-                )
-                    : null,
-                filled: true,
-                fillColor: AppColor.grey100,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColor.grey200)),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
-              ),
-            ),
-          ),
-
-          // Date filter
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: _DateFilterRow(
-              startCtrl: startCtrl,
-              endCtrl: endCtrl,
-              onPickStart: onPickStart,
-              onPickEnd: onPickEnd,
-              onClearDates: onClearDates,
-              hasFilter: hasDateFilter,
-            ),
-          ),
-
           // Summary Cards
           Container(
             color: Colors.white,

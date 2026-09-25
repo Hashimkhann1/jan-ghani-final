@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/stock_movement_model.dart';
@@ -89,6 +90,63 @@ class _StockMovementScreenState extends ConsumerState<StockMovementScreen> {
     }
   }
 
+  void _openFilters() {
+    final provider = stockMovementProvider(widget.branchId);
+    showReportFilterDialog(
+      context: context,
+      onReset: () {
+        final n = ref.read(provider.notifier);
+        n.setToday();
+        n.setType(null);
+      },
+      content: Consumer(builder: (ctx, ref, _) {
+        final state    = ref.watch(provider);
+        final notifier = ref.read(provider.notifier);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing:    8,
+              runSpacing: 8,
+              children: [
+                _DateButton(
+                  label: 'From',
+                  value: _dateFmt.format(state.fromDate),
+                  onTap: () => _pickDate(isFrom: true),
+                ),
+                _DateButton(
+                  label: 'To',
+                  value: _dateFmt.format(state.toDate),
+                  onTap: () => _pickDate(isFrom: false),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing:    8,
+              runSpacing: 6,
+              children: [
+                _TypeChip(
+                  label:    'All',
+                  selected: state.selectedType == null,
+                  onTap:    () => notifier.setType(null),
+                ),
+                for (final t in StockMovementType.values)
+                  _TypeChip(
+                    label:    t.label,
+                    selected: state.selectedType == t,
+                    color:    _typeColor(t),
+                    onTap:    () => notifier.setType(t),
+                  ),
+              ],
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = stockMovementProvider(widget.branchId);
@@ -127,6 +185,10 @@ class _StockMovementScreenState extends ConsumerState<StockMovementScreen> {
           ),
         ),
         actions: [
+          ReportFilterButton(
+            onPressed:   _openFilters,
+            activeCount: state.selectedType != null ? 1 : 0,
+          ),
           IconButton(
             onPressed: _exporting ? null : _exportExcel,
             icon: _exporting
@@ -168,16 +230,6 @@ class _StockMovementScreenState extends ConsumerState<StockMovementScreen> {
                     runSpacing: 8,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      _DateButton(
-                        label:   'From',
-                        value:   _dateFmt.format(state.fromDate),
-                        onTap:   () => _pickDate(isFrom: true),
-                      ),
-                      _DateButton(
-                        label:   'To',
-                        value:   _dateFmt.format(state.toDate),
-                        onTap:   () => _pickDate(isFrom: false),
-                      ),
                       _StatPill(
                         label: 'Events',
                         value: '${state.filteredRows.length}',
@@ -193,25 +245,6 @@ class _StockMovementScreenState extends ConsumerState<StockMovementScreen> {
                         value: '-${_fmtQty(_sum(state.filteredRows, positive: false))}',
                         color: AppColor.error,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing:    8,
-                    runSpacing: 6,
-                    children: [
-                      _TypeChip(
-                        label:    'All',
-                        selected: state.selectedType == null,
-                        onTap:    () => notifier.setType(null),
-                      ),
-                      for (final t in StockMovementType.values)
-                        _TypeChip(
-                          label:    t.label,
-                          selected: state.selectedType == t,
-                          color:    _typeColor(t),
-                          onTap:    () => notifier.setType(t),
-                        ),
                     ],
                   ),
                 ],

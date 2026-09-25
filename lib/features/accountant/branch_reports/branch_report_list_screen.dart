@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/account_branch_stock_inventory_report/presentation/screen/accountant_branch_stock_inventory_report_screen.dart';
-import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_customer_ledger/presentation/screen/accountant_customer_ledger_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/screen/accountant_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_discount_wise_sale_report/presentation/screen/accountant_discount_wise_sale_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/pareto_report/presentation/screen/pareto_report_screen.dart';
@@ -10,8 +9,7 @@ import 'accountant_branch_transaction/presentation/screen/accountant_branch_tran
 import 'accountant_category_wise_sale_report/presentaion/screen/category_sale_report_screen.dart';
 import 'accountant_customer/presentation/screen/accountant_customer_report_screen.dart';
 import 'accountant_profit_loss_report/presentation/screen/accountant_profit_loss_report_screen.dart';
-import 'accountant_sale_report/presentation/screen/accountant_sale_report_screen.dart';
-import 'accountant_sale_return_report/presentation/screen/sale_return_report_screen.dart';
+import 'accountant_sale_summary_report/presentation/screen/sale_summary_screen.dart';
 import 'ai_chatbot_screen.dart';
 import 'branch_cash_counter_report/presentation/screen/branch_cash_counter_screen.dart';
 import 'branch_cash_difference/presentation/screen/branch_cash_difference_screen.dart';
@@ -46,15 +44,9 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
     ),
     _ReportItem(
       iconAsset: 'sidebar_icons/sale_invoice_report',
-      label:    'Sale Invoice Report',
-      subtitle: 'All sale invoices record',
+      label:    'Sale Summary',
+      subtitle: 'Sale, return, net sale and customer collection',
       color:    Color(0xFF10B981),
-    ),
-    _ReportItem(
-      iconAsset: 'sidebar_icons/sale_return_report',
-      label:    'Sale Return Report',
-      subtitle: 'Details of returned items',
-      color:    Color(0xFFF59E0B),
     ),
     _ReportItem(
       iconAsset: 'sidebar_icons/branch_stock',
@@ -85,12 +77,6 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       label:    'Customer Report',
       subtitle: 'Complete customers list',
       color:    Color(0xFF14B8A6),
-    ),
-    _ReportItem(
-      iconAsset: 'sidebar_icons/customer_ledger',
-      label:    'Customer Ledger Report',
-      subtitle: 'Customer account details',
-      color:    Color(0xFF6366F1),
     ),
     _ReportItem(
       iconAsset: 'ic_sale_price_trend',
@@ -161,24 +147,22 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
   Widget _screenForIndex(int index, String branchId) {
     switch (index) {
       case 0:  return AccountantBranchDashboardScreen(branchId: branchId);
-      case 1:  return AccountantSaleReportScreen(branchId: branchId);
-      case 2:  return AccountantSaleReturnReportScreen(branchId: branchId);
-      case 3:  return AccountantBranchInventoryReportScreen(branchId: branchId);
-      case 4:  return BranchCashCounterReportScreen(branchId: branchId);
-      case 5:  return InventoryCountingReportScreen(storeId: branchId);
-      case 6:  return AccountantBranchTransactionScreen(branchId: branchId);
-      case 7:  return AccountantCustomerReportScreen(branchId: branchId);
-      case 8:  return AccountantCustomerLedgerScreen(branchId: branchId);
-      case 9:  return PnlReportScreen(branchId: branchId);
-      case 10: return CategorySaleReportScreen(branchId: branchId);
-      case 11: return DiscountWiseSaleReportScreen(branchId: branchId);
-      case 12: return AccountantBranchStockDamageReportScreen(branchId: branchId);
-      case 13: return ParetoReportScreen(branchId: branchId);
-      case 14: return BranchCashDifferenceScreen(branchId: branchId);
-      case 15: return CustomerLogsScreen(branchId: branchId);
-      case 16: return BranchStockInventoryLogsScreen(branchId: branchId);
-      case 17: return ProductProfitLossReportScreen(branchId: branchId);
-      case 18: return StockMovementScreen(branchId: branchId);
+      case 1:  return SaleSummaryScreen(branchId: branchId);
+      case 2:  return AccountantBranchInventoryReportScreen(branchId: branchId);
+      case 3:  return BranchCashCounterReportScreen(branchId: branchId);
+      case 4:  return InventoryCountingReportScreen(storeId: branchId);
+      case 5:  return AccountantBranchTransactionScreen(branchId: branchId);
+      case 6:  return AccountantCustomerReportScreen(branchId: branchId);
+      case 7:  return PnlReportScreen(branchId: branchId);
+      case 8:  return CategorySaleReportScreen(branchId: branchId);
+      case 9:  return DiscountWiseSaleReportScreen(branchId: branchId);
+      case 10: return AccountantBranchStockDamageReportScreen(branchId: branchId);
+      case 11: return ParetoReportScreen(branchId: branchId);
+      case 12: return BranchCashDifferenceScreen(branchId: branchId);
+      case 13: return CustomerLogsScreen(branchId: branchId);
+      case 14: return BranchStockInventoryLogsScreen(branchId: branchId);
+      case 15: return ProductProfitLossReportScreen(branchId: branchId);
+      case 16: return StockMovementScreen(branchId: branchId);
       default: return const SizedBox.shrink();
     }
   }

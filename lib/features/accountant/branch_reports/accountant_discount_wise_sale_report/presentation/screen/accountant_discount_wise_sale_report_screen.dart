@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
@@ -84,110 +85,64 @@ class _DiscountWiseSaleReportScreenState
     _toCtrl.text     = _dateFmt.format(todayClean);
   }
 
-  // ── Filter bottom sheet (mobile) ────────────────────────────────────────
-  void _showFilterSheet({
-    required DiscountWiseSaleReportState state,
-    required dynamic notifier,
-    required List<DropdownItem<String?>> customerItems,
-  }) {
-    showModalBottomSheet(
+  // ── Filters dialog ──────────────────────────────────────────────────────
+  void _openFilters() {
+    final provider = discountWiseSaleReportProvider(widget.branchId);
+    showReportFilterDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      onReset: () {
+        final n = ref.read(provider.notifier);
+        _setToday(n);
+        n.setCustomer(null);
+      },
+      content: Consumer(builder: (ctx, ref, _) {
+        final state    = ref.watch(provider);
+        final notifier = ref.read(provider.notifier);
+        final customerItems = [
+          DropdownItem<String?>(
+            value: null,
+            label: 'All Customers',
+            icon:  Icons.people_outline_rounded,
           ),
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColor.grey200,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+          ...state.customers.map((c) => DropdownItem<String?>(
+                value: c.id,
+                label: c.label,
+                icon:  Icons.person_outline_rounded,
+              )),
+        ];
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              Expanded(
+                child: _DateField(
+                  label:      'Start Date',
+                  controller: _fromCtrl,
+                  onTap:      () => _pickDate(context, true),
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Filters',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1D23),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      _setToday(notifier);
-                      notifier.setCustomer(null);
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Reset'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _DateField(
-                      label: 'Start Date',
-                      controller: _fromCtrl,
-                      onTap: () => _pickDate(ctx, true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _DateField(
-                      label: 'End Date',
-                      controller: _toCtrl,
-                      onTap: () => _pickDate(ctx, false),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              AppSearchableDropdown<String?>(
-                items:      customerItems,
-                value:      state.selectedCustomerId,
-                hint:       'All Customers',
-                fullWidth:  true,
-                prefixIcon: Icons.person_outline_rounded,
-                onChanged:  (v) => notifier.setCustomer(v),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Apply Filters'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _DateField(
+                  label:      'End Date',
+                  controller: _toCtrl,
+                  onTap:      () => _pickDate(context, false),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ]),
+            const SizedBox(height: 12),
+            AppSearchableDropdown<String?>(
+              items:      customerItems,
+              value:      state.selectedCustomerId,
+              hint:       'All Customers',
+              fullWidth:  true,
+              prefixIcon: Icons.person_outline_rounded,
+              onChanged:  (v) => notifier.setCustomer(v),
+            ),
+          ],
+        );
+      }),
     );
   }
 
@@ -216,19 +171,6 @@ class _DiscountWiseSaleReportScreenState
       }
     });
 
-    final customerItems = [
-      DropdownItem<String?>(
-        value: null,
-        label: 'All Customers',
-        icon:  Icons.people_outline_rounded,
-      ),
-      ...state.customers.map((c) => DropdownItem<String?>(
-        value: c.id,
-        label: c.label,
-        icon:  Icons.person_outline_rounded,
-      )),
-    ];
-
     final activeFilterCount = state.selectedCustomerId != null ? 1 : 0;
 
     return Scaffold(
@@ -238,14 +180,11 @@ class _DiscountWiseSaleReportScreenState
         state:         state,
         notifier:      notifier,
         summary:       summary,
-        fromCtrl:      _fromCtrl,
-        toCtrl:        _toCtrl,
-        customerItems: customerItems,
         dateFmt:       _dateFmt,
         fmtQty:        _fmtQty,
         fmtAmt:        _fmtAmt,
-        onPickFrom:    () => _pickDate(context, true),
-        onPickTo:      () => _pickDate(context, false),
+        onFilters:     _openFilters,
+        activeFilterCount: activeFilterCount,
         onToday:       () => _setToday(notifier),
       )
           : _MobileLayout(
@@ -257,11 +196,7 @@ class _DiscountWiseSaleReportScreenState
         fmtAmt:             _fmtAmt,
         onToday:            () => _setToday(notifier),
         activeFilterCount:  activeFilterCount,
-        onOpenFilters: () => _showFilterSheet(
-          state:         state,
-          notifier:      notifier,
-          customerItems: customerItems,
-        ),
+        onOpenFilters: _openFilters,
       ),
     );
   }
@@ -274,28 +209,22 @@ class _DesktopLayout extends StatelessWidget {
   final DiscountWiseSaleReportState state;
   final dynamic                     notifier;
   final DiscountReportSummary       summary;
-  final TextEditingController       fromCtrl;
-  final TextEditingController       toCtrl;
-  final List<DropdownItem<String?>> customerItems;
   final DateFormat                  dateFmt;
   final String Function(double)     fmtQty;
   final String Function(double)     fmtAmt;
-  final VoidCallback                onPickFrom;
-  final VoidCallback                onPickTo;
+  final VoidCallback                onFilters;
+  final int                         activeFilterCount;
   final VoidCallback                onToday;
 
   const _DesktopLayout({
     required this.state,
     required this.notifier,
     required this.summary,
-    required this.fromCtrl,
-    required this.toCtrl,
-    required this.customerItems,
     required this.dateFmt,
     required this.fmtQty,
     required this.fmtAmt,
-    required this.onPickFrom,
-    required this.onPickTo,
+    required this.onFilters,
+    required this.activeFilterCount,
     required this.onToday,
   });
 
@@ -342,6 +271,21 @@ class _DesktopLayout extends StatelessWidget {
               ),
               const Spacer(),
               SizedBox(
+                width: 130,
+                child: OutlinedButton.icon(
+                  onPressed: onFilters,
+                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
+                  label: Text(activeFilterCount > 0 ? 'Filters ($activeFilterCount)' : 'Filters'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColor.primary,
+                    side: const BorderSide(color: AppColor.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
                 width: 90,
                 child: OutlinedButton(
                   onPressed: onToday,
@@ -373,42 +317,6 @@ class _DesktopLayout extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-        const Divider(height: 1, color: Color(0xFFEEEEEE)),
-        Container(
-          color:   Colors.white,
-          padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: _DateField(
-                  label:      'Start Date',
-                  controller: fromCtrl,
-                  onTap:      onPickFrom,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _DateField(
-                  label:      'End Date',
-                  controller: toCtrl,
-                  onTap:      onPickTo,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: AppSearchableDropdown<String?>(
-                  items:      customerItems,
-                  value:      state.selectedCustomerId,
-                  hint:       'All Customers',
-                  fullWidth:  true,
-                  prefixIcon: Icons.person_outline_rounded,
-                  onChanged:  (v) => notifier.setCustomer(v),
-                ),
-              ),
-              const Expanded(child: SizedBox()),
             ],
           ),
         ),

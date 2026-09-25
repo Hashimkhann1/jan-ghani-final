@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
 import '../../data/model/accountant_customer_model.dart';
@@ -102,6 +103,90 @@ class _AccountantCustomerReportScreenState
     }
   }
 
+  void _openFilters() {
+    final provider = accountantCustomerReportProvider(_branchId);
+    showReportFilterDialog(
+      context: context,
+      onReset: () {
+        final n = ref.read(provider.notifier);
+        _searchCtrl.clear();
+        n.search('');
+        n.setFilter(null);
+      },
+      content: Consumer(builder: (ctx, ref, _) {
+        final state    = ref.watch(provider);
+        final notifier = ref.read(provider.notifier);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _searchCtrl,
+              onChanged:  notifier.search,
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Name, phone ya code se search karein...',
+                hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
+                prefixIcon: const AppIcon('ic_search', size: 20, color: AppColor.primary),
+                suffixIcon: state.searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const AppIcon('ic_clear', size: 18, color: AppColor.textHint),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          notifier.search('');
+                        },
+                      )
+                    : null,
+                filled:    true,
+                fillColor: AppColor.grey100,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:   BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColor.grey200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _FilterChip(
+                    label:    'All',
+                    selected: state.filterType == null,
+                    color:    AppColor.primary,
+                    onTap:    () => notifier.setFilter(null)),
+                _FilterChip(
+                    label:    'Credit',
+                    selected: state.filterType == 'credit',
+                    color:    const Color(0xFFF59E0B),
+                    onTap:    () => notifier.setFilter('credit')),
+                _FilterChip(
+                    label:    'Petrol',
+                    selected: state.filterType == 'petrol',
+                    color:    const Color(0xFF8B5CF6),
+                    onTap:    () => notifier.setFilter('petrol')),
+                _ExceededChip(
+                  selected: state.filterType == 'exceeded',
+                  count:    state.summary.limitExceededCount,
+                  onTap:    () => notifier.setFilter('exceeded'),
+                ),
+              ],
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state    = ref.watch(
@@ -137,7 +222,7 @@ class _AccountantCustomerReportScreenState
         state:      state,
         notifier:   notifier,
         fmtAmt:     _fmt,
-        searchCtrl: _searchCtrl,
+        onFilters:  _openFilters,
         onExportPdf: () => _exportPdf(context, state),
         onExportExcel: () => _exportExcel(context, state),
       )
@@ -145,7 +230,7 @@ class _AccountantCustomerReportScreenState
         state:      state,
         notifier:   notifier,
         fmtAmt:     _fmt,
-        searchCtrl: _searchCtrl,
+        onFilters:  _openFilters,
         onExportPdf: () => _exportPdf(context, state),
         onExportExcel: () => _exportExcel(context, state),
       ),
@@ -160,7 +245,7 @@ class _DesktopLayout extends StatelessWidget {
   final AccountantCustomerReportState state;
   final dynamic                       notifier;
   final String Function(double)       fmtAmt;
-  final TextEditingController         searchCtrl;
+  final VoidCallback                  onFilters;
   final VoidCallback                  onExportPdf;
   final VoidCallback                  onExportExcel;
 
@@ -168,7 +253,7 @@ class _DesktopLayout extends StatelessWidget {
     required this.state,
     required this.notifier,
     required this.fmtAmt,
-    required this.searchCtrl,
+    required this.onFilters,
     required this.onExportPdf,
     required this.onExportExcel,
   });
@@ -214,6 +299,21 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              SizedBox(
+                width: 130,
+                child: OutlinedButton.icon(
+                  onPressed: onFilters,
+                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
+                  label: Text(_activeFilterCount(state) > 0 ? 'Filters (${_activeFilterCount(state)})' : 'Filters'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColor.primary,
+                    side: const BorderSide(color: AppColor.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 130,
                 child: ElevatedButton.icon(
@@ -311,91 +411,6 @@ class _DesktopLayout extends StatelessWidget {
                         ? null
                         : 'exceeded'),
               ),
-              const SizedBox(width: 16),
-              const SizedBox(
-                  height: 48,
-                  child: VerticalDivider(
-                      width: 1, color: Color(0xFFEEEEEE))),
-              const SizedBox(width: 16),
-
-              // Filter chips
-              _DeskFilterChip(
-                label:    'All',
-                selected: state.filterType == null,
-                color:    AppColor.primary,
-                onTap:    () => notifier.setFilter(null),
-              ),
-              const SizedBox(width: 8),
-              _DeskFilterChip(
-                label:    'Credit',
-                selected: state.filterType == 'credit',
-                color:    const Color(0xFFF59E0B),
-                onTap:    () => notifier.setFilter('credit'),
-              ),
-              const SizedBox(width: 8),
-              _DeskFilterChip(
-                label:    'Petrol',
-                selected: state.filterType == 'petrol',
-                color:    const Color(0xFF8B5CF6),
-                onTap:    () => notifier.setFilter('petrol'),
-              ),
-
-              const SizedBox(width: 16),
-              const SizedBox(
-                  height: 48,
-                  child: VerticalDivider(
-                      width: 1, color: Color(0xFFEEEEEE))),
-              const SizedBox(width: 16),
-
-              // Search
-              Expanded(
-                child: SizedBox(
-                  height: 42,
-                  child: TextField(
-                    controller: searchCtrl,
-                    onChanged:  notifier.search,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Name, phone ya code...',
-                      hintStyle: const TextStyle(
-                          fontSize: 13,
-                          color:    AppColor.textHint),
-                      prefixIcon: const AppIcon('ic_search',
-                          size: 18, color: AppColor.primary),
-                      suffixIcon: state.searchQuery.isNotEmpty
-                          ? IconButton(
-                        icon: const AppIcon('ic_clear',
-                            size: 16,
-                            color: AppColor.textHint),
-                        onPressed: () {
-                          searchCtrl.clear();
-                          notifier.search('');
-                        },
-                      )
-                          : null,
-                      filled:    true,
-                      fillColor: AppColor.grey100,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:   BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color:  AppColor.primary,
-                            width: 1.5),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -482,48 +497,6 @@ class _DeskSummaryCard extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    ),
-  );
-}
-
-// ── Desktop Filter Chip ────────────────────────────────────────────────────
-class _DeskFilterChip extends StatelessWidget {
-  final String       label;
-  final bool         selected;
-  final Color        color;
-  final VoidCallback onTap;
-
-  const _DeskFilterChip({
-    required this.label,
-    required this.selected,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(
-          horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color:        selected ? color : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: selected ? color : AppColor.grey200,
-          width: 1.5,
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize:   12,
-          fontWeight: FontWeight.w600,
-          color:
-          selected ? Colors.white : AppColor.textSecondary,
-        ),
       ),
     ),
   );
@@ -961,11 +934,14 @@ class _CustomerTableRow extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 // MOBILE LAYOUT
 // ══════════════════════════════════════════════════════════════════════════════
+int _activeFilterCount(AccountantCustomerReportState s) =>
+    (s.searchQuery.isNotEmpty ? 1 : 0) + (s.filterType != null ? 1 : 0);
+
 class _MobileLayout extends StatelessWidget {
   final AccountantCustomerReportState state;
   final dynamic                       notifier;
   final String Function(double)       fmtAmt;
-  final TextEditingController         searchCtrl;
+  final VoidCallback                  onFilters;
   final VoidCallback                  onExportPdf;
   final VoidCallback                  onExportExcel;
 
@@ -973,7 +949,7 @@ class _MobileLayout extends StatelessWidget {
     required this.state,
     required this.notifier,
     required this.fmtAmt,
-    required this.searchCtrl,
+    required this.onFilters,
     required this.onExportPdf,
     required this.onExportExcel,
   });
@@ -992,6 +968,10 @@ class _MobileLayout extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color:      Color(0xFF1A1D23))),
         actions: [
+          ReportFilterButton(
+            onPressed:   onFilters,
+            activeCount: _activeFilterCount(state),
+          ),
           IconButton(
             onPressed: onExportPdf,
             icon: const AppIcon('ic_print',
@@ -1020,88 +1000,6 @@ class _MobileLayout extends StatelessWidget {
       body: Column(
         children: [
 
-          // ── Search ───────────────────────────────────────────────────
-          Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              controller: searchCtrl,
-              onChanged:  notifier.search,
-              style: const TextStyle(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'Name, phone ya code se search karein...',
-                hintStyle: const TextStyle(
-                    fontSize: 13, color: AppColor.textHint),
-                prefixIcon: const AppIcon('ic_search',
-                    size: 20, color: AppColor.primary),
-                suffixIcon: state.searchQuery.isNotEmpty
-                    ? IconButton(
-                  icon: const AppIcon('ic_clear',
-                      size: 18, color: AppColor.textHint),
-                  onPressed: () {
-                    searchCtrl.clear();
-                    notifier.search('');
-                  },
-                )
-                    : null,
-                filled:    true,
-                fillColor: AppColor.grey100,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide:   BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                  const BorderSide(color: AppColor.grey200),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(
-                      color: AppColor.primary, width: 1.5),
-                ),
-              ),
-            ),
-          ),
-
-          // ── Filter Chips ─────────────────────────────────────────────
-          Container(
-            color:   Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            child: SizedBox(
-              height: 34,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _FilterChip(
-                      label:    'All',
-                      selected: state.filterType == null,
-                      color:    AppColor.primary,
-                      onTap:    () => notifier.setFilter(null)),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                      label:    'Credit',
-                      selected: state.filterType == 'credit',
-                      color:    const Color(0xFFF59E0B),
-                      onTap:    () => notifier.setFilter('credit')),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                      label:    'Petrol',
-                      selected: state.filterType == 'petrol',
-                      color:    const Color(0xFF8B5CF6),
-                      onTap:    () => notifier.setFilter('petrol')),
-                  const SizedBox(width: 8),
-                  _ExceededChip(
-                    selected: state.filterType == 'exceeded',
-                    count:    state.summary.limitExceededCount,
-                    onTap:    () => notifier.setFilter('exceeded'),
-                  ),
-                ],
-              ),
-            ),
-          ),
           const Divider(height: 1, color: Color(0xFFE5E7EB)),
 
           // ── Summary Cards ────────────────────────────────────────────

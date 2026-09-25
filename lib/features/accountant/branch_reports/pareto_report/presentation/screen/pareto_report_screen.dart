@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_icon.dart';
+import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/pareto_report_model.dart';
 import '../provider/pareto_report_provider.dart';
 
@@ -44,6 +45,20 @@ class ParetoReportScreen extends ConsumerWidget {
             ),
           ),
           actions: [
+            ReportFilterButton(
+              onPressed: () => showReportFilterDialog(
+                context: context,
+                content: Consumer(builder: (ctx, ref, _) {
+                  final st = ref.watch(paretoReportProvider(branchId));
+                  return _DateFilterBar(
+                    startDate: st.startDate,
+                    endDate:   st.endDate,
+                    onChanged: notifier.setDateRange,
+                    compact:   true,
+                  );
+                }),
+              ),
+            ),
             IconButton(
               icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
               tooltip: 'Refresh',
@@ -55,14 +70,6 @@ class ParetoReportScreen extends ConsumerWidget {
         ),
         body: Column(
           children: [
-            // ── Date Filter Bar ──────────────────────────
-            _DateFilterBar(
-              startDate: state.startDate,
-              endDate:   state.endDate,
-              onChanged: notifier.setDateRange,
-            ),
-            const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
             // ── Content ──────────────────────────────────
             Expanded(
               child: state.isLoading
@@ -232,11 +239,13 @@ class _DateFilterBar extends StatelessWidget {
   final DateTime startDate;
   final DateTime endDate;
   final void Function(DateTime, DateTime) onChanged;
+  final bool compact;
 
   const _DateFilterBar({
     required this.startDate,
     required this.endDate,
     required this.onChanged,
+    this.compact = false,
   });
 
   Future<void> _pick(BuildContext context, bool isStart) async {
@@ -291,7 +300,8 @@ class _DateFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= _kWideBreakpoint;
+    final isWide =
+        !compact && MediaQuery.of(context).size.width >= _kWideBreakpoint;
 
     return Container(
       color: Colors.white,
