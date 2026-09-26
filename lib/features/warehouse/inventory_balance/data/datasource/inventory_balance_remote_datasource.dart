@@ -1,4 +1,4 @@
-// Updated on 2026-09-12 12:50 PM
+// Updated on 2026-09-26 11:40 AM
 // =============================================================
 // inventory_balance_remote_datasource.dart
 // Warehouse app ka Supabase-side READ layer.
@@ -69,14 +69,24 @@ class InventoryBalanceRemoteDatasource {
 
     if (list.isEmpty) return const [];
 
-    // Product IDs unique — ek shot mein warehouse_products se laa lo.
+    // Product IDs unique — warehouse_products se laa lo.
+    // ⚠️ .inFilter() saare IDs ko URL query string mein bhejta hai
+    // (?id=in.(uuid1,uuid2,...)). Supabase gateway (Kong) ka URL length
+    // limit ~8KB hai; 200+ UUIDs par 400 Bad Request return karta.
+    // Fix: chunks (200 IDs ≈ 7.4KB URL — safe headroom ke saath).
     final pids = list.map((r) => r['product_id'].toString()).toSet().toList();
-    List products;
+    const chunkSize = 200;
+    final products = <Map<String, dynamic>>[];
     try {
-      products = await _client
-          .from('warehouse_products')
-          .select('id, name, sku, selling_price')
-          .inFilter('id', pids);
+      for (var i = 0; i < pids.length; i += chunkSize) {
+        final end   = (i + chunkSize < pids.length) ? i + chunkSize : pids.length;
+        final chunk = pids.sublist(i, end);
+        final res = await _client
+            .from('warehouse_products')
+            .select('id, name, sku, selling_price')
+            .inFilter('id', chunk);
+        products.addAll((res as List).cast<Map<String, dynamic>>());
+      }
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST205') return const [];
       rethrow;
@@ -84,8 +94,7 @@ class InventoryBalanceRemoteDatasource {
 
     final byId = <String, Map<String, dynamic>>{};
     for (final p in products) {
-      final m = p as Map<String, dynamic>;
-      byId[m['id'].toString()] = m;
+      byId[p['id'].toString()] = p;
     }
 
     final result = <PendingCountRow>[];
