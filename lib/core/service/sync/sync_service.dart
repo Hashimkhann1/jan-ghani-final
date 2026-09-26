@@ -659,6 +659,15 @@ class SyncConfig {
   // ── Sync interval — 10 minutes ────────────────────────────
   static const int syncIntervalSeconds = 500;
 
+  // ── Watermark lookback: slow/no internet ke waqt kuch rows fail ho
+  // sakti hain jabke naye rows pass ho jayen — watermark unse aage nikal
+  // jata hai aur woh rows kabhi dobara nahi bhejti thin. Har cycle mein
+  // itne din peeche se dobara bhejo (upsert idempotent hai).
+  static const int lookbackDays = 7;
+
+  // ── Ek sync cycle ki max muddat — slow internet par hang na ho
+  static const int syncTimeoutMinutes = 15;
+
   // ── Tables — dependency order mein (parent pehle) ────────
   static const List<String> tables = [
     'branch',
@@ -945,12 +954,15 @@ class SyncService {
         errorsAreFatal: false,
         debugName: 'SyncIsolate',
       );
-      await for (final msg in _receivePort!) {
-        if (msg is _IsolateMsg) _handleMsg(msg);
-        if (msg == 'DONE') break;
-      }
+      await () async {
+        await for (final msg in _receivePort!) {
+          if (msg is _IsolateMsg) _handleMsg(msg);
+          if (msg == 'DONE') break;
+        }
+      }().timeout(Duration(minutes: SyncConfig.syncTimeoutMinutes));
     } catch (e) {
       _log('❌ Isolate error: $e');
+      _killIsolate();
       _emit(_status.copyWith(isSyncing: false, lastError: e.toString()));
     } finally {
       _receivePort?.close();
@@ -1284,7 +1296,7 @@ class SyncService {
             Sql.named(
               'SELECT * FROM "$table" '
                   'WHERE "$filterCol" = @sid '
-                  '  AND "$tsCol" > @ts::timestamptz '
+                  '  AND "$tsCol" > (@ts::timestamptz - interval \'${SyncConfig.lookbackDays} days\') '
                   'ORDER BY "$tsCol" ASC',
             ),
             parameters: {'sid': storeId, 'ts': lastSyncedAt},
@@ -1294,7 +1306,7 @@ class SyncService {
           final result = await db.execute(
             Sql.named(
               'SELECT * FROM "$table" '
-                  'WHERE "$tsCol" > @ts::timestamptz '
+                  'WHERE "$tsCol" > (@ts::timestamptz - interval \'${SyncConfig.lookbackDays} days\') '
                   'ORDER BY "$tsCol" ASC',
             ),
             parameters: {'ts': lastSyncedAt},
@@ -1360,7 +1372,31 @@ class SyncService {
       // ── Upsert Supabase mein ─────────────────────────────
       const batchSize = 50;
       int totalSynced = 0;
+      int failedRows  = 0;
+      String? lastRowErr;
       final List<String> syncedIds = [];
+
+      // Slow internet: har request par timeout + retry (backoff ke sath)
+      Future<void> upsertRetry(Object payload) async {
+        const maxAttempts = 3;
+        for (int attempt = 1; ; attempt++) {
+          try {
+            await supabase
+                .from(table)
+                .upsert(payload, onConflict: conflictCol)
+                .timeout(const Duration(seconds: 60));
+            return;
+          } catch (e) {
+            // Schema/constraint errors (PostgrestException) retry se theek
+            // nahi hote — sirf network/timeout errors retry karo.
+            final isNetwork = e is TimeoutException || e is SocketException ||
+                e is HttpException || e is IOException;
+            if (!isNetwork || attempt >= maxAttempts) rethrow;
+            _log('  ⏳ $table retry $attempt/$maxAttempts: $e');
+            await Future.delayed(Duration(seconds: 2 * attempt));
+          }
+        }
+      }
 
       for (int i = 0; i < supaRows.length; i += batchSize) {
         final batch = supaRows.sublist(
@@ -1368,7 +1404,7 @@ class SyncService {
           (i + batchSize).clamp(0, supaRows.length),
         );
         try {
-          await supabase.from(table).upsert(batch, onConflict: conflictCol);
+          await upsertRetry(batch);
           totalSynced += batch.length;
           if (table == 'accountant_transactions') {
             syncedIds.addAll(batch.map((r) => r['id'].toString()));
@@ -1377,16 +1413,23 @@ class SyncService {
           _log('  ⚠️  $table batch fail — row-by-row: $batchErr');
           for (final row in batch) {
             try {
-              await supabase.from(table).upsert(row, onConflict: conflictCol);
+              await upsertRetry(row);
               totalSynced++;
               if (table == 'accountant_transactions') {
                 syncedIds.add(row['id'].toString());
               }
             } catch (rowErr) {
+              failedRows++;
+              lastRowErr = rowErr.toString();
               _log('  ❌ $table row skip: $rowErr\n     Row: $row');
             }
           }
         }
+      }
+
+      if (failedRows > 0) {
+        send.send(_TableError(
+            table, '$failedRows row(s) sync nahi hui: $lastRowErr'));
       }
 
       // ── accountant_transactions is_synced ────────────────
@@ -1399,7 +1442,7 @@ class SyncService {
         _log('  ✅ accountant_transactions: ${syncedIds.length} is_synced=true');
       }
 
-      send.send(_TableSuccess(table, totalSynced));
+      if (failedRows == 0) send.send(_TableSuccess(table, totalSynced));
       return totalSynced;
 
     } catch (e, st) {
