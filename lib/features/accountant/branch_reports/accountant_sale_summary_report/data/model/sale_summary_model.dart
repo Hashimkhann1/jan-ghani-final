@@ -78,3 +78,27 @@ class PagedSummaryInvoices {
   final bool hasNextPage;
   const PagedSummaryInvoices({required this.invoices, required this.hasNextPage});
 }
+
+class SummaryReturn {
+  final String   id;
+  final String   returnNo;
+  final DateTime returnDate;
+  final String?  customerName;
+  final double   totalDiscount;
+  final double   grandTotal;
+  final String?  refundType;
+  final List<SummaryInvoiceItem> items;
+
+  const SummaryReturn({
+    required this.id,
+    required this.returnNo,
+    required this.returnDate,
+    this.customerName,
+    required this.totalDiscount,
+    required this.grandTotal,
+    this.refundType,
+    required this.items,
+  });
+
+  String get customerLabel => customerName ?? 'Walk In';
+}

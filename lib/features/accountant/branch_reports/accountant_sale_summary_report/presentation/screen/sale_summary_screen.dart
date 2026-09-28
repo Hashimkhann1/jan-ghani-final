@@ -221,9 +221,14 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
                     .where((c) => c.id == state.selectedCustomerId);
                 customerName = m.isNotEmpty ? m.first.name : null;
               }
+              final results = await Future.wait([
+                notifier.fetchAllForExport(),
+                notifier.fetchAllReturnsForExport(),
+              ]);
               return SaleSummaryExportSheets.build(
                 summary: state.summary,
-                invoices: await notifier.fetchAllForExport(),
+                invoices: results[0] as List<SummaryInvoice>,
+                returns: results[1] as List<SummaryReturn>,
                 fromDate: state.fromDate,
                 toDate: state.toDate,
                 customerName: customerName,

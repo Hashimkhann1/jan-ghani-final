@@ -87,6 +87,13 @@ class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
         customerId: state.selectedCustomerId,
       );
 
+  /// Every return for the current date range / customer — for export.
+  Future<List<SummaryReturn>> fetchAllReturnsForExport() => _ds.getAllReturns(
+        fromDate:   state.fromDate,
+        toDate:     state.toDate,
+        customerId: state.selectedCustomerId,
+      );
+
 
   Future<void> load() async {
     state = state.copyWith(

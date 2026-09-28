@@ -124,6 +124,79 @@ class SaleSummaryDatasource {
     return invoices;
   }
 
+  /// Every return in the range, for export. Fetched in chunks of 500 because
+  /// each row carries its items.
+  Future<List<SummaryReturn>> getAllReturns({
+    required DateTime fromDate,
+    required DateTime toDate,
+    String?           customerId,
+  }) async {
+    const chunk = 500;
+    final all = <SummaryReturn>[];
+    var from = 0;
+    while (true) {
+      final rows = await _fetchReturns(
+        fromDate: fromDate, toDate: toDate, start: from,
+        end: from + chunk - 1, customerId: customerId,
+      );
+      all.addAll(rows);
+      if (rows.length < chunk) break;
+      from += chunk;
+    }
+    return all;
+  }
+
+  Future<List<SummaryReturn>> _fetchReturns({
+    required DateTime fromDate,
+    required DateTime toDate,
+    required int      start,
+    required int      end,
+    String?           customerId,
+  }) async {
+    var query = _client
+        .from('sale_returns')
+        .select('''
+          id, return_no, return_date, total_discount, grand_total,
+          refund_type, deleted_at,
+          customer (name),
+          sale_return_items (product_name, sale_price, quantity, total_amount)
+        ''')
+        .eq('store_id', branchId)
+        .eq('status', 'completed')
+        .isFilter('deleted_at', null)
+        .gte('return_date', fromDate.toIso8601String())
+        .lte('return_date', toDate.toIso8601String());
+
+    if (customerId != null && customerId.isNotEmpty) {
+      query = query.eq('customer_id', customerId);
+    }
+
+    final rows = await query
+        .order('return_date', ascending: false)
+        .range(start, end) as List;
+
+    return rows.map((r) {
+      final items = (r['sale_return_items'] as List? ?? [])
+          .map((i) => SummaryInvoiceItem(
+                productName: i['product_name']?.toString() ?? '',
+                quantity:    _dbl(i['quantity']),
+                salePrice:   _dbl(i['sale_price']),
+                totalAmount: _dbl(i['total_amount']),
+              ))
+          .toList();
+      return SummaryReturn(
+        id:            r['id'].toString(),
+        returnNo:      r['return_no']?.toString() ?? '',
+        returnDate:    DateTime.parse(r['return_date'].toString()).toLocal(),
+        customerName:  (r['customer'] as Map?)?['name']?.toString(),
+        totalDiscount: _dbl(r['total_discount']),
+        grandTotal:    _dbl(r['grand_total']),
+        refundType:    r['refund_type']?.toString(),
+        items:         items,
+      );
+    }).toList();
+  }
+
   Future<SaleSummary> getSummary({
     required DateTime fromDate,
     required DateTime toDate,
