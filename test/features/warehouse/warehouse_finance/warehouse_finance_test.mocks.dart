@@ -10,6 +10,7 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_finance/data/wareho
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/domain/warehouse_finance_model.dart'
     as _i2;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:postgres/postgres.dart' as _i5;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -69,10 +70,12 @@ class MockWarehouseFinanceRepository extends _i1.Mock
   }
 
   @override
-  _i4.Future<_i2.WarehouseFinanceModel> getOrCreate() => (super.noSuchMethod(
+  _i4.Future<_i2.WarehouseFinanceModel> getOrCreate({_i5.Session? session}) =>
+      (super.noSuchMethod(
         Invocation.method(
           #getOrCreate,
           [],
+          {#session: session},
         ),
         returnValue: _i4.Future<_i2.WarehouseFinanceModel>.value(
             _FakeWarehouseFinanceModel_0(
@@ -80,27 +83,32 @@ class MockWarehouseFinanceRepository extends _i1.Mock
           Invocation.method(
             #getOrCreate,
             [],
+            {#session: session},
           ),
         )),
       ) as _i4.Future<_i2.WarehouseFinanceModel>);
 
-  // @override
-  // _i4.Future<List<_i2.CashTransactionModel>> getTransactions({
-  //   String? entryType,
-  //   int? limit = 50,
-  // }) =>
-  //     (super.noSuchMethod(
-  //       Invocation.method(
-  //         #getTransactions,
-  //         [],
-  //         {
-  //           #entryType: entryType,
-  //           #limit: limit,
-  //         },
-  //       ),
-  //       returnValue: _i4.Future<List<_i2.CashTransactionModel>>.value(
-  //           <_i2.CashTransactionModel>[]),
-  //     ) as _i4.Future<List<_i2.CashTransactionModel>>);
+  @override
+  _i4.Future<List<_i2.CashTransactionModel>> getTransactions({
+    String? entryType,
+    int? limit = 50,
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getTransactions,
+          [],
+          {
+            #entryType: entryType,
+            #limit: limit,
+            #fromDate: fromDate,
+            #toDate: toDate,
+          },
+        ),
+        returnValue: _i4.Future<List<_i2.CashTransactionModel>>.value(
+            <_i2.CashTransactionModel>[]),
+      ) as _i4.Future<List<_i2.CashTransactionModel>>);
 
   @override
   _i4.Future<_i2.CashTransactionModel> addCashIn({
@@ -180,6 +188,7 @@ class MockWarehouseFinanceRepository extends _i1.Mock
     String? notes,
     String? createdBy,
     String? createdByName,
+    _i5.Session? session,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -191,6 +200,7 @@ class MockWarehouseFinanceRepository extends _i1.Mock
             #notes: notes,
             #createdBy: createdBy,
             #createdByName: createdByName,
+            #session: session,
           },
         ),
         returnValue: _i4.Future<_i2.CashTransactionModel>.value(
@@ -205,10 +215,75 @@ class MockWarehouseFinanceRepository extends _i1.Mock
               #notes: notes,
               #createdBy: createdBy,
               #createdByName: createdByName,
+              #session: session,
             },
           ),
         )),
       ) as _i4.Future<_i2.CashTransactionModel>);
+
+  @override
+  _i4.Future<_i2.CashTransactionModel> addSupplierPaymentReversal({
+    required double? amount,
+    required String? supplierId,
+    required _i5.Session? session,
+    String? notes,
+    String? createdBy,
+    String? createdByName,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addSupplierPaymentReversal,
+          [],
+          {
+            #amount: amount,
+            #supplierId: supplierId,
+            #session: session,
+            #notes: notes,
+            #createdBy: createdBy,
+            #createdByName: createdByName,
+          },
+        ),
+        returnValue: _i4.Future<_i2.CashTransactionModel>.value(
+            _FakeCashTransactionModel_1(
+          this,
+          Invocation.method(
+            #addSupplierPaymentReversal,
+            [],
+            {
+              #amount: amount,
+              #supplierId: supplierId,
+              #session: session,
+              #notes: notes,
+              #createdBy: createdBy,
+              #createdByName: createdByName,
+            },
+          ),
+        )),
+      ) as _i4.Future<_i2.CashTransactionModel>);
+
+  @override
+  _i4.Future<void> reverseSupplierPayment({
+    required double? amount,
+    required String? supplierId,
+    String? notes,
+    String? createdBy,
+    String? createdByName,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #reverseSupplierPayment,
+          [],
+          {
+            #amount: amount,
+            #supplierId: supplierId,
+            #notes: notes,
+            #createdBy: createdBy,
+            #createdByName: createdByName,
+          },
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
   _i4.Future<_i2.CashTransactionModel> addExpenseEntry({
@@ -239,6 +314,43 @@ class MockWarehouseFinanceRepository extends _i1.Mock
             {
               #amount: amount,
               #expenseId: expenseId,
+              #notes: notes,
+              #createdBy: createdBy,
+              #createdByName: createdByName,
+            },
+          ),
+        )),
+      ) as _i4.Future<_i2.CashTransactionModel>);
+
+  @override
+  _i4.Future<_i2.CashTransactionModel> addSalaryEntry({
+    required double? amount,
+    required String? salaryPaymentId,
+    String? notes,
+    String? createdBy,
+    String? createdByName,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addSalaryEntry,
+          [],
+          {
+            #amount: amount,
+            #salaryPaymentId: salaryPaymentId,
+            #notes: notes,
+            #createdBy: createdBy,
+            #createdByName: createdByName,
+          },
+        ),
+        returnValue: _i4.Future<_i2.CashTransactionModel>.value(
+            _FakeCashTransactionModel_1(
+          this,
+          Invocation.method(
+            #addSalaryEntry,
+            [],
+            {
+              #amount: amount,
+              #salaryPaymentId: salaryPaymentId,
               #notes: notes,
               #createdBy: createdBy,
               #createdByName: createdByName,
