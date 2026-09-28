@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // supplier_report_local_datasource.dart
 // Supplier Report ke liye LOCAL postgres queries (Windows/Mac/mobile).
@@ -91,12 +92,16 @@ class SupplierReportLocalDatasource implements SupplierReportSource {
 
     // Payments: supplier_ledger mein 'payment' rows negative amount se store
     // hoti hain (payToSupplier → amount = -paid) → |amount| ka sum.
+    // 'payment_reversal' (galat payment ki ulti entry) is sum se MINUS.
     final payDateCond = _dateWhere('created_at', from, to);
     final payResult = await conn.execute(
       Sql.named('''
-        SELECT COALESCE(SUM(ABS(amount)), 0) AS total_paid
+        SELECT COALESCE(SUM(CASE
+                 WHEN entry_type = 'payment_reversal' THEN -ABS(amount)
+                 ELSE ABS(amount) END), 0) AS total_paid
         FROM supplier_ledger
-        WHERE warehouse_id = @wid AND entry_type = 'payment'
+        WHERE warehouse_id = @wid
+          AND entry_type IN ('payment', 'payment_reversal')
         $payDateCond
       '''),
       parameters: _withDateParams({'wid': _wid}, from, to),

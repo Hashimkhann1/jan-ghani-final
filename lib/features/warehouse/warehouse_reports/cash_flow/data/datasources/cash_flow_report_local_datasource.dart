@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // cash_flow_report_local_datasource.dart
 // Cash Flow Report ke liye LOCAL postgres queries (Windows/Mac/mobile).
@@ -24,6 +25,12 @@ class CashFlowReportLocalDatasource implements CashFlowReportSource {
 
   Future<Connection> get _db  => DatabaseService.getConnection();
   String             get _wid => AppConfig.warehouseId;
+
+  // Cash OUT ka signed amount: supplier_payment_reversal (galat payment ki
+  // correction) out ko KAM karta hai — asal cash in nahi hai
+  static const _signedOut =
+      "CASE WHEN entry_type = 'supplier_payment_reversal' "
+      "THEN -ABS(amount) ELSE ABS(amount) END";
 
   // ── Date filter helpers ───────────────────────────────────
   static String _dateWhere(String field, DateTime? from, DateTime? to) {
@@ -82,9 +89,9 @@ class CashFlowReportLocalDatasource implements CashFlowReportSource {
       Sql.named('''
         SELECT
           COALESCE(SUM(ABS(amount)) FILTER (WHERE entry_type =  'cash_in' $periodCond), 0) AS period_in,
-          COALESCE(SUM(ABS(amount)) FILTER (WHERE entry_type <> 'cash_in' $periodCond), 0) AS period_out,
+          COALESCE(SUM($_signedOut) FILTER (WHERE entry_type <> 'cash_in' $periodCond), 0) AS period_out,
           COALESCE(SUM(ABS(amount)) FILTER (WHERE entry_type =  'cash_in' $prevCond),   0) AS prev_in,
-          COALESCE(SUM(ABS(amount)) FILTER (WHERE entry_type <> 'cash_in' $prevCond),   0) AS prev_out
+          COALESCE(SUM($_signedOut) FILTER (WHERE entry_type <> 'cash_in' $prevCond),   0) AS prev_out
         FROM warehouse_cash_transactions
         WHERE warehouse_id = @wid
       '''),
@@ -119,7 +126,7 @@ class CashFlowReportLocalDatasource implements CashFlowReportSource {
           SELECT
             DATE_TRUNC('month', created_at)::date                                  AS month,
             COALESCE(SUM(ABS(amount)) FILTER (WHERE entry_type = 'cash_in'),  0)  AS cash_in,
-            COALESCE(SUM(ABS(amount)) FILTER (WHERE entry_type != 'cash_in'), 0)  AS cash_out
+            COALESCE(SUM($_signedOut) FILTER (WHERE entry_type != 'cash_in'), 0)  AS cash_out
           FROM warehouse_cash_transactions
           WHERE warehouse_id = @wid
             AND created_at >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'
@@ -200,15 +207,18 @@ class CashFlowReportLocalDatasource implements CashFlowReportSource {
   }) async {
     final conn     = await _db;
     final dateCond = _dateWhere('created_at', from, to);
+    // Reversal ko 'supplier_payment' mein NET (minus) karte hain — taake
+    // "Paid to Supplier" (screen + overview) galat payment ko na gine
     final result   = await conn.execute(
       Sql.named('''
         SELECT
-          entry_type,
-          COALESCE(SUM(ABS(amount)), 0) AS amount
+          CASE WHEN entry_type = 'supplier_payment_reversal'
+               THEN 'supplier_payment' ELSE entry_type END AS entry_type,
+          COALESCE(SUM($_signedOut), 0) AS amount
         FROM warehouse_cash_transactions
         WHERE warehouse_id = @wid
           $dateCond
-        GROUP BY entry_type
+        GROUP BY 1
         ORDER BY amount DESC
       '''),
       parameters: _withDateParams({'wid': _wid}, from, to),

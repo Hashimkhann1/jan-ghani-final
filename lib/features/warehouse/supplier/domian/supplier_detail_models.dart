@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // supplier_detail_models.dart
 // Supplier detail screen ke liye 3 models:
@@ -14,13 +15,15 @@ class SupplierLedgerEntry {
   final String   id;
   final String   supplierId;
   final String?  poId;            // linked PO (nullable)
-  final String   entryType;       // 'purchase' | 'payment' | 'return' | 'adjustment'
+  final String   entryType;       // 'opening' | 'purchase' | 'payment' | 'payment_reversal' | 'return' | 'adjustment'
   final double   amount;          // positive = hum detay hain | negative = payment
   final double   balanceBefore;   // entry se pehle ka balance
   final double   balanceAfter;    // us entry ke baad running balance
   final String?  notes;
   final String?  createdByName;   // user ka naam
   final DateTime createdAt;
+  final String?  reversalOf;      // 'payment_reversal' row → original payment id
+  final bool     isReversed;      // is payment ki reversal row mojood hai (provider compute)
 
   const SupplierLedgerEntry({
     required this.id,
@@ -33,22 +36,30 @@ class SupplierLedgerEntry {
     this.notes,
     this.createdByName,
     required this.createdAt,
+    this.reversalOf,
+    this.isReversed = false,
   });
 
   // ── Helpers ───────────────────────────────────────────────
 
   String get entryTypeLabel {
     switch (entryType) {
-      case 'purchase':   return 'Purchase';
-      case 'payment':    return 'Payment';
-      case 'return':     return 'Return';
-      case 'adjustment': return 'Adjustment';
-      default:           return entryType;
+      case 'opening':          return 'Opening';
+      case 'purchase':         return 'Purchase';
+      case 'payment':          return 'Payment';
+      case 'payment_reversal': return 'Payment Reversal';
+      case 'return':           return 'Return';
+      case 'adjustment':       return 'Adjustment';
+      default:                 return entryType;
     }
   }
 
   bool get isCredit => amount < 0; // payment ya return
   bool get isDebit  => amount > 0; // purchase
+
+  // Sirf MANUAL payment (PO wali nahi) jo abhi tak reverse nahi hui
+  bool get canReverse =>
+      entryType == 'payment' && poId == null && !isReversed;
 
   factory SupplierLedgerEntry.fromMap(Map<String, dynamic> map) {
     return SupplierLedgerEntry(
@@ -62,6 +73,7 @@ class SupplierLedgerEntry {
       notes:         map['notes']           as String?,
       createdByName: map['created_by_name'] as String?,
       createdAt:     DateTime.parse(map['created_at'] as String),
+      reversalOf:    map['reversal_of']     as String?,
     );
   }
 }

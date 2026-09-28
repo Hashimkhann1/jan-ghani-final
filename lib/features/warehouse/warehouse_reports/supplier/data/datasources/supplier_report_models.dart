@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // supplier_report_models.dart
 //
@@ -97,6 +98,7 @@ class RecentLedgerEntry {
     switch (entryType) {
       case 'purchase':   return 'Purchase';
       case 'payment':    return 'Payment';
+      case 'payment_reversal': return 'Payment Reversal';
       case 'return':     return 'Return';
       case 'opening':    return 'Opening';
       case 'adjustment': return 'Adjustment';

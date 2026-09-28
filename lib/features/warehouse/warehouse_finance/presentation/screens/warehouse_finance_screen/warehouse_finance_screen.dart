@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:46 AM
 // =============================================================
 // warehouse_finance_screen.dart
 // Warehouse Finance — redesigned to match app UI style
@@ -629,6 +630,7 @@ class _TRow extends StatelessWidget {
       case 'cash_in':          return AppColor.success;
       case 'purchase':         return AppColor.primary;
       case 'supplier_payment': return AppColor.warningDark;
+      case 'supplier_payment_reversal': return AppColor.success;
       case 'expense':          return AppColor.error;
       default:                 return AppColor.info;
     }
@@ -639,6 +641,7 @@ class _TRow extends StatelessWidget {
       case 'cash_in':          return Icons.arrow_downward_rounded;
       case 'purchase':         return Icons.shopping_cart_outlined;
       case 'supplier_payment': return Icons.people_outline_rounded;
+      case 'supplier_payment_reversal': return Icons.undo_rounded;
       case 'expense':          return Icons.receipt_outlined;
       default:                 return Icons.swap_horiz_rounded;
     }
@@ -650,7 +653,9 @@ class _TRow extends StatelessWidget {
   static String _notesDisplay(CashTransactionModel tx) {
     final note = tx.notes?.trim() ?? '';
     final sup  = tx.supplierName?.trim();
-    if (tx.entryType == 'supplier_payment' && sup != null && sup.isNotEmpty) {
+    final isSupplierTx = tx.entryType == 'supplier_payment' ||
+        tx.entryType == 'supplier_payment_reversal';
+    if (isSupplierTx && sup != null && sup.isNotEmpty) {
       if (note.isEmpty) return sup;
       if (note.toLowerCase().contains(sup.toLowerCase())) return note;
       return '$note — $sup';

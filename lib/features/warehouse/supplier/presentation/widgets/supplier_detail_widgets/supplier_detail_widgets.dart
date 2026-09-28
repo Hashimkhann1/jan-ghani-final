@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // supplier_detail_widgets.dart
 // Detail screen ke reusable widgets:
@@ -152,8 +153,13 @@ class DetailTabButton extends StatelessWidget {
 
 class LedgerEntryRow extends StatefulWidget {
   final SupplierLedgerEntry entry;
+  final VoidCallback?       onReverse; // sirf reversible payment par button
 
-  const LedgerEntryRow({required super.key, required this.entry});
+  const LedgerEntryRow({
+    required super.key,
+    required this.entry,
+    this.onReverse,
+  });
 
   @override
   State<LedgerEntryRow> createState() => _LedgerEntryRowState();
@@ -188,7 +194,11 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
         typeColor = AppColor.info;
         typeIcon  = Icons.keyboard_return_rounded;
         break;
-      default: // adjustment
+      case 'payment_reversal':
+        typeColor = AppColor.info;
+        typeIcon  = Icons.undo_rounded;
+        break;
+      default: // adjustment / opening
         typeColor = AppColor.warning;
         typeIcon  = Icons.tune_rounded;
     }
@@ -199,7 +209,10 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
         : '+ Rs ${e.amount.pkrFormat}';
     final Color  amountColor = isCredit ? AppColor.success : AppColor.error;
 
-    return MouseRegion(
+    // Reversed payment — row halki + amount par line-through (history mehfooz)
+    return Opacity(
+      opacity: e.isReversed ? 0.55 : 1,
+      child: MouseRegion(
       hitTestBehavior: HitTestBehavior.opaque,
       onEnter: (_) { if (mounted) setState(() => _isHovered = true);  },
       onExit:  (_) { if (mounted) setState(() => _isHovered = false); },
@@ -228,16 +241,35 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color:        typeColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Text(e.entryTypeLabel,
-                        style: TextStyle(fontSize: 11,
-                            fontWeight: FontWeight.w600, color: typeColor)),
+                  Wrap(
+                    spacing:    4,
+                    runSpacing: 4,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color:        typeColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(e.entryTypeLabel,
+                            style: TextStyle(fontSize: 11,
+                                fontWeight: FontWeight.w600, color: typeColor)),
+                      ),
+                      if (e.isReversed)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color:        AppColor.grey200,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text('REVERSED',
+                              style: TextStyle(fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColor.grey600)),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Text(_fmtDate(e.createdAt),
@@ -261,7 +293,9 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
               flex: 2,
               child: Text(amountStr,
                   style: TextStyle(fontSize: 13,
-                      fontWeight: FontWeight.w700, color: amountColor)),
+                      fontWeight: FontWeight.w700, color: amountColor,
+                      decoration: e.isReversed
+                          ? TextDecoration.lineThrough : null)),
             ),
 
             // Balance after
@@ -282,8 +316,47 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
                       color: AppColor.textSecondary),
                   overflow: TextOverflow.ellipsis),
             ),
+
+            // Action — sirf reversible manual payment par
+            Expanded(
+              flex: 1,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: (e.canReverse && widget.onReverse != null)
+                    ? Tooltip(
+                        message: 'Galat payment reverse karein',
+                        child: InkWell(
+                          onTap:        widget.onReverse,
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 5),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                  color: AppColor.error.withOpacity(0.35)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.undo_rounded,
+                                    size: 13, color: AppColor.error),
+                                const SizedBox(width: 4),
+                                Text('Reverse',
+                                    style: TextStyle(fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColor.error)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -505,6 +578,7 @@ const kLedgerHeaders = [
   TableHeaderCell('Amount',        2),
   TableHeaderCell('Balance After', 2),
   TableHeaderCell('By',            2),
+  TableHeaderCell('Action',        1),
 ];
 
 // Purchase orders table headers

@@ -1,4 +1,4 @@
-<!-- Updated on 2026-09-25 04:51 PM -->
+<!-- Updated on 2026-09-28 01:10 PM -->
 
 # Jan Ghani POS — Project Context
 
@@ -35,7 +35,7 @@ AppConfig.appMode       // 'warehouse' ya 'store'
 ## Database
 - **Local**: PostgreSQL (direct connection via `postgres` package, `DatabaseService.getConnection()` — async)
 - **Remote**: Supabase (sync service chalti hai background mein)
-- **Schema location**: `/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.8.sql`
+- **Schema location**: `/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.11.sql` (v3.11 = Session 15)
 
 ### Key Tables (Warehouse)
 | Table | Description |
@@ -47,11 +47,11 @@ AppConfig.appMode       // 'warehouse' ya 'store'
 | `purchase_orders` | POs (status: draft/ordered/partial/received/cancelled; **`po_type`: purchase/return**) |
 | `purchase_order_items` | PO line items |
 | `suppliers` | Suppliers (outstanding_balance auto-updated via trigger) |
-| `supplier_ledger` | Supplier payment ledger |
+| `supplier_ledger` | Supplier payment ledger (entry_type: opening/purchase/payment/return/adjustment/**payment_reversal** ← S15; `reversal_of` → reversed payment id) |
 | `stock_transfers` | Stock sent to stores (status: pending/accepted) |
 | `stock_transfer_items` | Transfer line items |
 | `linked_stores` | Stores linked to this warehouse |
-| `warehouse_cash_transactions` | Cash entries (cash_in, purchase, supplier_payment, expense, **salary** ← Session 7) |
+| `warehouse_cash_transactions` | Cash entries (cash_in, purchase, supplier_payment, expense, **salary** ← Session 7, **supplier_payment_reversal** ← S15 = cash wapas) |
 | `warehouse_companies` | ⭐ Session 7 — Product companies (name-only master); `warehouse_products.company_id` FK |
 | `warehouse_employees` | ⭐ Session 7 — Employees (name, phone, address, monthly_salary, max_advance_percent) |
 | `warehouse_salary_payments` | ⭐ Session 7 — Salary/advance payments (payment_type salary/advance, salary_month, cash_transaction_id link) |
@@ -1163,6 +1163,165 @@ _type = (s.month.isBefore(currentMonth) || currentUnlocked)
 
 ---
 
+## Session 14 — Inventory Balance URL-length gateway 400 fix ⭐
+
+> **Bug:** Warehouse app par production computer par, Store 1 (empty counting) → sahi "koi pending count nahi" message dikha. **Store 2 (641 distinct products in last 7 days)** → error: `Load nahi hui: PostgrestException (message: Bad Request, code 400, details: Bad Request, hint: null)`.
+>
+> Internet ka masla NAHI — `PostgrestException` guarantee karta ki HTTP request server tak pohanchi aur server ne response bheji (agar network fail hoti to `SocketException`, `TimeoutException`, `HandshakeException` aati).
+
+### Root cause
+[`inventory_balance_remote_datasource.dart`](lib/features/warehouse/inventory_balance/data/datasource/inventory_balance_remote_datasource.dart) — `fetchPendingCounts()` mein doosri Supabase call:
+```dart
+.from('warehouse_products')
+    .select('id, name, sku, selling_price')
+    .inFilter('id', pids);   // ← saare product IDs URL mein
+```
+`.inFilter()` sab UUIDs ko URL query string mein daalta hai:
+```
+?id=in.(uuid1,uuid2,...,uuid641)&select=...
+```
+Har UUID 36 chars + comma = ~37 chars. **641 × 37 ≈ 23,700 chars**. Plus base URL, headers.
+
+**Supabase gateway (Kong)** ka URL length limit ~8KB. 23KB URL par gateway 400 return karta (generic "Bad Request" — PostgREST ka structured error nahi, isliye code = "400" HTTP status jaisa, aur hint null).
+
+### Diagnosis approach (yaad rakho)
+1. Empty state kaam kare, data state fail kare → **kisi second-step query** ka issue
+2. `PostgrestException` prefix + generic "Bad Request" body → **gateway rejection** (PostgREST/Postgres se pehle Kong ne rok liya)
+3. Supabase par SQL-level query manually run karke check karo — agar wo work karti hai lekin app fail → HTTP/URL layer ka masla, SQL ka nahi
+
+### Fix — Option A (chunk pattern)
+
+[`inventory_balance_remote_datasource.dart:70-96`](lib/features/warehouse/inventory_balance/data/datasource/inventory_balance_remote_datasource.dart:70)
+
+```dart
+const chunkSize = 200;  // ~200 UUIDs × 37 = ~7.4KB URL (safe headroom vs 8KB limit)
+final products = <Map<String, dynamic>>[];
+try {
+  for (var i = 0; i < pids.length; i += chunkSize) {
+    final end   = (i + chunkSize < pids.length) ? i + chunkSize : pids.length;
+    final chunk = pids.sublist(i, end);
+    final res = await _client
+        .from('warehouse_products')
+        .select('id, name, sku, selling_price')
+        .inFilter('id', chunk);
+    products.addAll((res as List).cast<Map<String, dynamic>>());
+  }
+} on PostgrestException catch (e) {
+  if (e.code == 'PGRST205') return const [];
+  rethrow;
+}
+```
+
+### Options considered
+| Option | Trade-off | Verdict |
+|---|---|---|
+| **A. Chunk in Dart** | 4-5 requests instead of 1, +150ms latency; no DB change; instant ship | ✅ Chosen |
+| **B. Server-side VIEW/RPC** | 1 request, faster; Supabase migration + local schema sync; deployment ceremony | Overkill for 2-table lookup |
+
+**Reasoning:** Urgent shipment needed (warehouse broken), Session 3 mein already `.range()` paginated pattern precedent hai, minimal Dart-only change, easy rollback, latency negligible for report screens.
+
+### Scaling notes
+- 10K products bhi handle: 50 chunks × ~50ms = ~2.5 sec total (still acceptable for weekly review)
+- `chunkSize = 300` bhi safe hai (~11KB URL — most gateways up to 10-12KB allow), lekin 200 par comfortable headroom
+- Same pattern doosri jagah bhi apply kar sakte hain agar kabhi `.inFilter()` par 200+ IDs bhejni hon (`fetchBatchesByIds` par abhi bhi risk hai — 500+ batches ho jayen to)
+
+### ⚠️ Session 14 lessons
+1. **`.inFilter()` par item count par nazar rakho** — 100 tak safe, 200 borderline, 500+ crash. Chunk banake bhejo agar count dynamic ho.
+2. **PostgrestException != internet issue** — network failures Flutter mein alag exception classes throw karti hain. `PostgrestException` = HTTP round trip successful, server-side rejection.
+3. **Test with realistic data volumes** — testing DB mein 250 rows use kar rahe the, but production mein 641+ products per store aa gaye. Bug tab tak nahi mila jab tak scale par nahi chalaya.
+
+**File touched:** [`inventory_balance_remote_datasource.dart`](lib/features/warehouse/inventory_balance/data/datasource/inventory_balance_remote_datasource.dart) (1 file, ~15 lines)
+
+---
+
+## Session 15 — Supplier bug fixes · Supplier Payment REVERSE · Schema v3.11 ⭐⭐
+
+> **Maqsad:** Supplier feature ke 4 asli bugs theek kiye, phir ledger mein galat **manual payment ko reverse** karne ka feature banaya (edit ki jagah ULTI entry — purani rows kabhi update nahi hoti). Edit Supplier mein balance edit band kiya. Schema **v3.10 → v3.11** (charon DB par migration verified).
+
+### 1. Supplier bug fixes (4)
+| # | Bug | Fix | File |
+|---|---|---|---|
+| 1 | `errorMessage` kabhi clear nahi hota tha (`errorMessage ?? this.errorMessage` → `null` pass karna bekaar) → ek error ke baad Edit dialog hamesha error dikhata, band nahi hota | `SupplierState` + `SupplierDetailState` `copyWith` mein **`clearError: bool`** flag; har action shuru par `clearError: true` | `supplier_provider.dart`, `supplier_detail_provider.dart` |
+| 2 | **Purchase Return POs** list ke "Total Purchase" + Orders count mein gin rahe the (return bhi `status='received'` se save hota hai) | `po_agg` mein `AND po_type = 'purchase'` | `supplier_repository.dart` `_selectQuery` |
+| 3 | Payment ke baad detail screen **stale** `widget.supplier` use karti thi → top bar purana + agle Pay dialog ka overpay check purane balance par | Detail screen supplier **`supplierProvider` se** `select` karti hai (`widget.supplier` sirf fallback); naya **`SupplierNotifier.refreshSupplier(id)`** (sirf ek supplier `getById`, `isLoading` set nahi) — Pay/Reverse dialog success par call | `specific_supplier_detail_screen.dart`, `supplier_provider.dart`, `pay_outstanding_dialog.dart` |
+| 4 | Payment **atomic nahi** tha (ledger insert + cash entry alag) + detail provider mein **duplicate** payment SQL + provider error **nigal** leta tha (fail par bhi green snackbar) | `payToSupplier` ab **`runTx`**: supplier `FOR UPDATE` lock + **fresh-balance overpay guard** + ledger + cash (SAME tx). Detail provider ka duplicate code hata ke repo call; error **rethrow** | `supplier_repository.dart`, `supplier_detail_provider.dart`, `warehouse_finance_repository.dart` |
+
+- **Finance repo `Session? session` param:** `getOrCreate`, `_insertTransaction`, `addSupplierPayment` ab optional caller-transaction lete hain (baaki callers unchanged). ⚠️ `runTx` ke andar `conn.execute` (tx nahi) mat chalao — single connection par deadlock.
+
+### 2. Supplier Payment REVERSE (naya feature) ⭐
+**Kyun edit nahi, reverse:** purani cash row ki amount badalne se `cash_in_hand_before/after` chain toot jati (Known Issue A wala bug) + history mit jati + sync risk. Isliye **reversal-entry pattern** — purani rows untouched, nayi ULTI entry.
+
+**User flow:** Supplier → Ledger History → manual payment row par **↺ Reverse** → `ReversePaymentDialog`:
+- Galat payment info (amount, date, note)
+- **Sahi amount (optional)** — diya to usi transaction mein nayi sahi payment bhi (user ko "edit" jaisa lagta hai); khali = sirf reverse
+- **Wajah*** (required, min 5 chars) → ledger notes `Reversal: <wajah>`
+- **Preview:** supplier balance + cash in hand `pehle → baad`
+
+**Example:** galti se 50,000 (5,000 ki jagah) → Reverse + sahi amount 5,000 → balance/cash aise jaise sirf 5,000 diya ho. Ledger: `Payment −50,000 [REVERSED]` · `Payment Reversal +50,000` · `Payment −5,000`.
+
+**`SupplierRepository.reversePayment({ledgerId, reason, correctAmount, userId, userName})` — ek `runTx`:**
+1. Original ledger row `FOR UPDATE` + validate: `entry_type='payment'`, **`po_id IS NULL`** (PO wali payment ka `paid_amount` PO par hai → Purchase Invoice edit se theek hoti hai), pehle se reversed nahi
+2. Supplier lock → ledger **`payment_reversal`** (+amount, `reversal_of = original id`) → trigger balance wapas barhata
+3. Cash **`supplier_payment_reversal`** (+amount) via naya `WarehouseFinanceRepository.addSupplierPaymentReversal(session: tx)` → trigger cash wapas
+4. `correctAmount > 0` → shared private **`_insertPaymentTx`** (payment + supplier_payment, overpay guard) — `payToSupplier` bhi yahi helper use karta hai
+- Private helpers: `_lockSupplier(tx, id)` → `({name, balance})` record; `_insertPaymentTx(tx, ...)`
+
+**UI:**
+- `LedgerEntryRow`: naya `onReverse` callback + **Action** column (`kLedgerHeaders`); Reverse button sirf `entry.canReverse` par; reversed payment → opacity 0.55 + **REVERSED** badge + amount line-through; `payment_reversal` row info color + undo icon
+- `SupplierLedgerEntry`: `reversalOf`, `isReversed` (provider `reversal_of` set se compute), `canReverse`, labels `opening`/`payment_reversal`
+- Detail "Total Paid" query `IN ('payment','return','payment_reversal')` (SUM net)
+
+**Finance + Reports (reversal = cash OUT se MINUS, cash in NAHI):**
+- `CashTransactionModel.isInflowType(type)` (cash_in + reversal) → `_insertTransaction` balanceAfter + `isCashIn` display (+ hara); label "Payment Reversal"
+- Finance `getSummary` today/month out: reversal `-amount`; `getTransactions` supplier-name JOIN reversal bhi; "Supplier Pay" filter tab reversals bhi dikhata
+- Cash Flow report local (`_signedOut` SQL) + remote (`_signedOut()` Dart mirror): summary/monthly out net; **typeBreakdown mein reversal → `supplier_payment` NET** (isse Cash Flow "Paid to Supplier" + Overview dono khud sahi)
+- Supplier report local + remote "Total Paid": `payment − payment_reversal`
+- **`created_at = clock_timestamp()`** — har cash insert (`_insertTransaction`) + reversal/payment ledger inserts. Wajah: ek transaction mein `now()` sab rows ko SAME time deta → reversal aur sahi payment ka order ulta dikh sakta tha
+
+### 3. Edit Supplier — balance edit BAND
+- `edit_supplier_dialog.dart`: Outstanding Balance field **`enabled: false`** (sirf show) + helper "Balance yahan edit nahi hota — ledger se payment / reverse karein"
+- Save par `updateSupplier(updated)` — **newBalance pass NAHI** → koi `adjustment` ledger entry nahi. Balance ab sirf ledger se badalta (Pay / Reverse / PO)
+- `SupplierNotifier.updateSupplier` ka `newBalance`/`adjustBalance` path code mein hai lekin ab kahin se call nahi hota
+
+### 4. Schema v3.11 — migration (charon DB par run + verified ✅)
+**File:** `…/zero_start_schema/supplier_payment_reversal_migration.sql` (idempotent)
+1. `supplier_ledger.reversal_of uuid` + **`uq_sup_ledger_reversal_of`** UNIQUE partial index (`WHERE reversal_of IS NOT NULL`) → double-reverse DB level par block. FK jaan-bujh kar NAHI (sync row-order)
+2. `supplier_ledger_entry_type_check` + `'payment_reversal'`
+3. `cash_transactions_entry_type_check` + `'supplier_payment_reversal'` (`amount > 0` CHECK untouched → isliye alag type chahiye tha)
+4. `fn_update_cash_in_hand()`: `supplier_payment_reversal → +amount`
+- CHECK names DB-to-DB alag ho sakte → DO-block `entry_type` wala koi bhi CHECK drop karke naya add. Production par **`BEGIN … COMMIT`** mein chalaya
+
+| DB | Status |
+|---|---|
+| Local testing | ✅ cash 17,444.61 = recomputed |
+| Supabase testing | ✅ |
+| Production local | ✅ cash 101,689.44 = recomputed (`postgres` user se — `supplier_ledger` owner postgres) |
+| Supabase production | ✅ (Supabase par cash trigger nahi — `cash_in_hand` local se sync) |
+
+- **v3.11 zero-start schema** export (schema-only) — v3.10 se farq: migration + 3 `inventory_balance_*` tables (jo v3.10 file mein MISS thin). Production schema v3.11 se line-by-line match ✅ (sirf owner/ACL metadata farq)
+
+### ⚠️ Session 15 lessons (yaad rakho)
+1. **Naya column query mein = migration PEHLE.** Local DB par migration ke baghair ledger query (`sl.reversal_of`) fail → `Future.wait` ki wajah se ledger + POs + summary **teeno khali** ("Koi ledger entry nahi"). Screen `errorMessage` nahi dikhati → masla chhup gaya.
+2. **Order:** Supabase migration → local migration → naya build. Supabase par column/type na ho to sync upsert fail.
+3. **pgAdmin backup = "Only schema"** — warna zero-start file mein saara data (users ke password hashes bhi) aa jata (v3.11 pehli export 931 KB thi).
+4. **Duplicate trigger `trg_update_outstanding`** (`supplier_ledger`) — `trg_supplier_balance` jaisa hi kaam; data par koi asar nahi (sirf extra UPDATE). Hatana optional.
+5. **Accountant side untouched:** accountant screens `payment_reversal` raw text dikha sakti hain; `accountant_warehouse_finance_summary` RPC reversal ko cash out gin sakta hai. `v_daily_summary` view update nahi kiya (app mein use nahi).
+
+### Files (Session 15)
+**Supplier:** `supplier_repository.dart` · `supplier_provider.dart` · `supplier_detail_provider.dart` · `supplier_detail_models.dart` · `supplier_detail_widgets.dart` · `specific_supplier_detail_screen.dart` · `pay_outstanding_dialog.dart` · `edit_supplier_dialog.dart` · **naya** `reverse_payment_dialog/reverse_payment_dialog.dart`
+**Finance:** `warehouse_finance_repository.dart` · `warehouse_finance_model.dart` · `warehouse_finance_provider.dart` · `warehouse_finance_screen.dart`
+**Reports:** `cash_flow_report_local_datasource.dart` · `cash_flow_report_remote_datasource.dart` · `cash_flow_report_models.dart` · `supplier_report_local_datasource.dart` · `supplier_report_remote_datasource.dart` · `supplier_report_models.dart`
+**DB:** `supplier_payment_reversal_migration.sql` · `warehouse_zero_start_schema_v3.11.sql`
+
+### Baaqi (supplier feature — nahi kiye)
+- `softDelete` / `toggleStatus` `is_synced = false` set nahi karte (verify: trigger karta hai ya nahi)
+- Supplier list vs detail "Total Purchase" alag formulas (list = received purchase POs; detail = saare POs)
+- Dead code: `supplier_dummy_data.dart`, `supplier_detail_dummy_data.dart`, `supplierProvider.payOutstanding`, unused `fromMap`s
+- PO detail dialog raw `toString()` amounts (`pkrFormat` nahi)
+- Detail screen par `errorMessage` display (fail hone par khali list ki jagah error dikhe)
+
+---
+
 ## ⚠️ Known Open Issues (pending fixes)
 
 ### A. Cash chain drift — `cash_in_hand_before/after` snapshots
@@ -1199,5 +1358,5 @@ _type = (s.month.isBefore(currentMonth) || currentUnlocked)
 
 ## Schema Path
 ```
-/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.10.sql
+/Users/hashimkhan/Desktop/janghani pos resourses/db releated/schema v3/zero_start_schema/warehouse_zero_start_schema_v3.11.sql
 ```

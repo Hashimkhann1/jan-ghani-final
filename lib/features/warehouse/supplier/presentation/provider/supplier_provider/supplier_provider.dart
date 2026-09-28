@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:15 AM
 // =============================================================
 // supplier_provider.dart
 // =============================================================
@@ -49,13 +50,14 @@ class SupplierState {
     String?              filterStatus,
     bool?                isLoading,
     String?              errorMessage,
+    bool                 clearError = false, // true → errorMessage null (?? se null set nahi hota)
   }) {
     return SupplierState(
       allSuppliers: allSuppliers ?? this.allSuppliers,
       searchQuery:  searchQuery  ?? this.searchQuery,
       filterStatus: filterStatus ?? this.filterStatus,
       isLoading:    isLoading    ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
@@ -67,7 +69,7 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
   }
 
   Future<void> loadSuppliers() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final suppliers = await _repo.getAll();
       state = state.copyWith(allSuppliers: suppliers, isLoading: false);
@@ -80,7 +82,7 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
   void onFilterChanged(String filter) => state = state.copyWith(filterStatus: filter);
 
   Future<void> addSupplier(SupplierModel supplier, {double openingBalance = 0}) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final saved = await _repo.insert(supplier, openingBalance: openingBalance);
       state = state.copyWith(allSuppliers: [...state.allSuppliers, saved], isLoading: false);
@@ -94,7 +96,7 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
         double? newBalance,   // ← yeh add karo
         String? userId,       // ← yeh add karo
       }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       // Step 1: Basic info update karo
       var saved = await _repo.update(updated);
@@ -120,7 +122,7 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
   }
 
   // Future<void> updateSupplier(SupplierModel updated) async {
-  //   state = state.copyWith(isLoading: true, errorMessage: null);
+  //   state = state.copyWith(isLoading: true, clearError: true);
   //   try {
   //     final saved = await _repo.update(updated);
   //     final list = state.allSuppliers.map((s) => s.id == saved.id ? saved : s).toList();
@@ -131,7 +133,7 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
   // }
 
   Future<void> deleteSupplier(String id) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repo.softDelete(id);
       final updated = state.allSuppliers.map((s) => s.id == id ? s.copyWith(deletedAt: DateTime.now()) : s).toList();
@@ -145,9 +147,24 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
     try {
       await _repo.toggleStatus(id, isActive);
       final updated = state.allSuppliers.map((s) => s.id == id ? s.copyWith(isActive: isActive) : s).toList();
-      state = state.copyWith(allSuppliers: updated);
+      state = state.copyWith(allSuppliers: updated, clearError: true);
     } catch (e) {
       state = state.copyWith(errorMessage: 'Status update karne mein masla: $e');
+    }
+  }
+
+  // ── Ek supplier DB se fresh lao (payment ke baad) ─────────
+  // isLoading set NAHI karta — list screen spinner mein na jaye
+  Future<void> refreshSupplier(String id) async {
+    try {
+      final fresh = await _repo.getById(id);
+      if (fresh == null) return;
+      final list = state.allSuppliers
+          .map((s) => s.id == id ? fresh : s)
+          .toList();
+      state = state.copyWith(allSuppliers: list);
+    } catch (_) {
+      // Silent — list screen wapsi par loadSuppliers() karti hai
     }
   }
 
@@ -158,13 +175,14 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
     String?         userId,
     String?         userName,
   }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final updated = await _repo.payToSupplier(
         supplierId: supplierId,
         amount:     amount,
         notes:      notes,
         userId:     userId,
+        userName:   userName,
       );
       // State mein updated supplier replace karo
       final list = state.allSuppliers
