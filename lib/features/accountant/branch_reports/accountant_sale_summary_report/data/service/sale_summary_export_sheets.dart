@@ -47,6 +47,7 @@ class SaleSummaryExportSheets {
           it.productName,
           it.quantity,
           it.salePrice,
+          it.purchasePrice,
           it.totalAmount,
         ]);
       }
@@ -74,6 +75,7 @@ class SaleSummaryExportSheets {
           it.productName,
           it.quantity,
           it.salePrice,
+          it.purchasePrice,
           it.totalAmount,
         ]);
       }
@@ -124,6 +126,7 @@ class SaleSummaryExportSheets {
           ExcelColumn('Product',     width: 34),
           ExcelColumn('Quantity',    width: 12, type: ExcelColType.quantity),
           ExcelColumn('Sale Price',  width: 14, type: ExcelColType.amount),
+          ExcelColumn('Purchase Price', width: 16, type: ExcelColType.amount),
           ExcelColumn('Line Total',  width: 16, type: ExcelColType.amount),
         ],
         rows: itemRows,
@@ -154,6 +157,7 @@ class SaleSummaryExportSheets {
           ExcelColumn('Product',     width: 34),
           ExcelColumn('Quantity',    width: 12, type: ExcelColType.quantity),
           ExcelColumn('Sale Price',  width: 14, type: ExcelColType.amount),
+          ExcelColumn('Purchase Price', width: 16, type: ExcelColType.amount),
           ExcelColumn('Line Total',  width: 16, type: ExcelColType.amount),
         ],
         rows: returnItemRows,

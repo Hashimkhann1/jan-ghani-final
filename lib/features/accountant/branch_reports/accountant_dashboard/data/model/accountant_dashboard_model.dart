@@ -71,3 +71,32 @@ class AccountantBranchDashboardModel {
         outstandingReceivable: 0,
       );
 }
+
+// ═══════════════════════════════════════════════════════════
+//  TREND (charts) — ek bucket (din ya mahina) ka sale/profit
+// ═══════════════════════════════════════════════════════════
+
+enum DashboardTrendPeriod { weekly, monthly }
+
+/// Dashboard ke graphs — har ek ka apna Weekly/Monthly period.
+enum DashboardChart { sales, profit, credit, installment }
+
+class DashboardTrendPoint {
+  final String label;       // 'Mon' / 'Jan'
+  final double sale;        // sale_invoices grand_total
+  final double saleReturn;  // sale_returns grand_total
+  final double profit;      // gross profit (returns minus)
+  final double creditSale;  // sale_invoice_payments → payment_method='credit'
+  final double installment; // customer_ledger → sum(pay_amount)
+
+  const DashboardTrendPoint({
+    required this.label,
+    required this.sale,
+    required this.saleReturn,
+    required this.profit,
+    required this.creditSale,
+    required this.installment,
+  });
+
+  double get netSale => sale - saleReturn;
+}

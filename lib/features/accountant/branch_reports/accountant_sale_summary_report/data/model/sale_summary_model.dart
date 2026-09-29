@@ -26,12 +26,14 @@ class SummaryInvoiceItem {
   final String productName;
   final double quantity;
   final double salePrice;
+  final double purchasePrice;
   final double totalAmount;
 
   const SummaryInvoiceItem({
     required this.productName,
     required this.quantity,
     required this.salePrice,
+    required this.purchasePrice,
     required this.totalAmount,
   });
 }
@@ -101,4 +103,19 @@ class SummaryReturn {
   });
 
   String get customerLabel => customerName ?? 'Walk In';
+}
+
+/// Graph ka ek bucket (ghanta / din / mahina).
+class SaleTrendPoint {
+  final String label;
+  final double sale;
+  final double saleReturn;
+  final double collection;
+
+  const SaleTrendPoint({
+    required this.label,
+    required this.sale,
+    required this.saleReturn,
+    required this.collection,
+  });
 }

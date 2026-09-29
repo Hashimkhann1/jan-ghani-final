@@ -10,6 +10,7 @@ import '../../../common/filter/report_filter_dialog.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/sale_summary_model.dart';
 import '../provider/sale_summary_provider.dart';
+import '../widget/sale_summary_trend_dialog.dart';
 
 class SaleSummaryScreen extends ConsumerStatefulWidget {
   const SaleSummaryScreen({super.key, required this.branchId});
@@ -210,6 +211,26 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
           ReportFilterButton(
             onPressed:   _openFilters,
             activeCount: state.selectedCustomerId != null ? 1 : 0,
+          ),
+          IconButton(
+            onPressed: () {
+              String customer = 'All Customers';
+              if (state.selectedCustomerId != null) {
+                final m = state.customers
+                    .where((c) => c.id == state.selectedCustomerId);
+                if (m.isNotEmpty) customer = m.first.name;
+              }
+              final rangeFmt = DateFormat('dd MMM yyyy, hh:mm a');
+              showSaleSummaryTrendDialog(
+                context:  context,
+                load:     notifier.fetchTrend,
+                subtitle: '${rangeFmt.format(state.fromDate)}  →  '
+                    '${rangeFmt.format(state.toDate)}   •   $customer',
+              );
+            },
+            icon: const Icon(Icons.show_chart_rounded,
+                size: 22, color: AppColor.textSecondary),
+            tooltip: 'Graph',
           ),
           ReportExportButton(
             fileNamePrefix: 'sale_summary',

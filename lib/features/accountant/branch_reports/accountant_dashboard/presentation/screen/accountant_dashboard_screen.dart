@@ -8,6 +8,8 @@ import '../../data/service/dashboard_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../data/model/accountant_dashboard_model.dart';
 import '../provider/accountant_dashboard_provider.dart';
+import '../widget/dashboard_stat_card.dart';
+import '../widget/dashboard_trend_charts.dart';
 
 class AccountantBranchDashboardScreen extends ConsumerStatefulWidget {
   const AccountantBranchDashboardScreen(
@@ -200,205 +202,53 @@ class _AccountantBranchDashboardScreenState
       },
     );
 
+    final rangeFmt = DateFormat('dd MMM yyyy, hh:mm a');
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      body: desktop
-          ? _DesktopScaffold(
-        state:       state,
-        notifier:    notifier,
-        fmtAmt:      _fmt,
-        onFilters:   _openFilters,
-        onToday:     () => _setToday(notifier),
-      )
-          : _MobileScaffold(
-        state:       state,
-        notifier:    notifier,
-        fmtAmt:      _fmt,
-        onFilters:   _openFilters,
-        onToday:     () => _setToday(notifier),
-      ),
-    );
-  }
-}
-
-// ── Desktop Scaffold ──────────────────────────────────────────────────────────
-class _DesktopScaffold extends StatelessWidget {
-  final AccountantBranchDashboardState state;
-  final dynamic notifier;
-  final String Function(double) fmtAmt;
-  final VoidCallback onFilters;
-  final VoidCallback onToday;
-
-  const _DesktopScaffold({
-    required this.state,
-    required this.notifier,
-    required this.fmtAmt,
-    required this.onFilters,
-    required this.onToday,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Top bar ────────────────────────────────────────
-        Container(
-          color:   Colors.white,
-          padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_rounded,
-                    color: Color(0xFF1A1D23)),
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFFF5F6FA),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize:       MainAxisSize.min,
-                children: [
-                  Text(
-                    'Branch Dashboard',
-                    style: TextStyle(
-                      fontSize:   22,
-                      fontWeight: FontWeight.w700,
-                      color:      Color(0xFF1A1D23),
-                    ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Aaj ka branch overview',
-                    style: TextStyle(
-                        fontSize: 13, color: AppColor.textHint),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              SizedBox(
-                width: 110,
-                child: OutlinedButton.icon(
-                  onPressed: onFilters,
-                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
-                  label: const Text('Filters'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 90,
-                child: OutlinedButton(
-                  onPressed: onToday,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Today'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              ReportExportButton(
-                fileNamePrefix: 'branch_dashboard',
-                filled: true,
-                enabled: state.data != null,
-                loadSheets: () async => DashboardExportSheets.build(
-                  data: state.data!,
-                  fromDate: state.fromDate,
-                  toDate: state.toDate,
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 120,
-                child: OutlinedButton.icon(
-                  onPressed: notifier.load,
-                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
-                  label: const Text('Refresh'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
-        // ── Content ────────────────────────────────────────
-        Expanded(
-          child: state.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : state.data == null
-              ? const _EmptyState()
-              : _DesktopBody(
-            data:   state.data!,
-            fmtAmt: fmtAmt,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Mobile Scaffold ───────────────────────────────────────────────────────────
-class _MobileScaffold extends StatelessWidget {
-  final AccountantBranchDashboardState state;
-  final dynamic notifier;
-  final String Function(double) fmtAmt;
-  final VoidCallback onFilters;
-  final VoidCallback onToday;
-
-  const _MobileScaffold({
-    required this.state,
-    required this.notifier,
-    required this.fmtAmt,
-    required this.onFilters,
-    required this.onToday,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: const Color(0xFFF4F6FA),
       appBar: AppBar(
         backgroundColor:  Colors.white,
         elevation:        0,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
-          'Branch Dashboard',
-          style: TextStyle(
-              fontSize:   17,
-              fontWeight: FontWeight.w700,
-              color:      Color(0xFF1A1D23)),
+        iconTheme: const IconThemeData(color: Color(0xFF1A1D23)),
+        titleSpacing: desktop ? 8 : null,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize:       MainAxisSize.min,
+          children: [
+            const Text('Branch Dashboard',
+              style: TextStyle(
+                color:      Color(0xFF1A1D23),
+                fontSize:   17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${rangeFmt.format(state.fromDate)}  →  '
+                  '${rangeFmt.format(state.toDate)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize:   11,
+                color:      Color(0xFF9CA3AF),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
-            onPressed: onFilters,
             icon: const AppIcon('ic_filter',
-                size: 22, color: AppColor.textSecondary),
+                color: Color(0xFF6B7280), size: 20),
+            onPressed: _openFilters,
             tooltip: 'Filters',
+          ),
+          IconButton(
+            icon: const AppIcon('ic_calendar',
+                color: Color(0xFF6B7280), size: 20),
+            onPressed: () => _setToday(notifier),
+            tooltip: 'Today',
           ),
           ReportExportButton(
             fileNamePrefix: 'branch_dashboard',
@@ -410,162 +260,212 @@ class _MobileScaffold extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: notifier.load,
             icon: const AppIcon('ic_refresh',
-                size: 22, color: AppColor.textSecondary),
+                color: Color(0xFF6B7280), size: 20),
+            onPressed: notifier.load,
+            tooltip: 'Refresh',
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 8),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: const Color(0xFFE5E7EB)),
-        ),
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.data == null
           ? const _EmptyState()
-          : _MobileBody(data: state.data!, fmtAmt: fmtAmt),
+          : RefreshIndicator(
+        onRefresh: notifier.load,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Summary Cards (3 per row) ─────────────
+              _CardRows(cards: _dashboardCards(state.data!, _fmt)),
+              const SizedBox(height: 16),
+
+              // ── Charts ────────────────────────────────
+              _ChartsSection(
+                state:    state,
+                desktop:  desktop,
+                onPeriod: notifier.setChartPeriod,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
-// ── Desktop Body ──────────────────────────────────────────────────────────────
-class _DesktopBody extends StatelessWidget {
-  final AccountantBranchDashboardModel data;
-  final String Function(double)        fmtAmt;
-
-  const _DesktopBody({required this.data, required this.fmtAmt});
-
-  List<_StatSpec> _specs() => _dashboardSpecs(data, fmtAmt);
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: _StatCardsGrid(specs: _specs(), crossAxisCount: 4, childAspectRatio: 2.5),
-    );
-  }
-}
-
-// ── Mobile Body ───────────────────────────────────────────────────────────────
-class _MobileBody extends StatelessWidget {
-  final AccountantBranchDashboardModel data;
-  final String Function(double)        fmtAmt;
-
-  const _MobileBody({required this.data, required this.fmtAmt});
-
-  List<_StatSpec> _specs() => _dashboardSpecs(data, fmtAmt);
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      child: _StatCardsGrid(specs: _specs(), crossAxisCount: 2, childAspectRatio: 1.7),
-    );
-  }
-}
-
-// ── Stat spec list (shared desktop/mobile) ─────────────────────────────────────
-class _StatSpec {
-  final String label;
-  final String value;
-  const _StatSpec(this.label, this.value);
-}
-
-List<_StatSpec> _dashboardSpecs(
+// ── Summary cards ────────────────────────────────────────────────────────────
+List<Widget> _dashboardCards(
   AccountantBranchDashboardModel data,
   String Function(double) fmtAmt,
-) =>
-    [
-      _StatSpec('Total Sale', fmtAmt(data.totalSale)),
-      _StatSpec('Cash Sale', fmtAmt(data.cashSale)),
-      _StatSpec('Card Sale', fmtAmt(data.cardSale)),
-      _StatSpec('Credit Sale', fmtAmt(data.creditSale)),
-      _StatSpec('Installment Sale', fmtAmt(data.installmentSale)),
-      _StatSpec('Gross Profit', fmtAmt(data.grossProfit)),
-      _StatSpec('Cash In', fmtAmt(data.cashIn)),
-      _StatSpec('Cash Out', fmtAmt(data.cashOut)),
-      _StatSpec('Stock Sale Value', fmtAmt(data.stockSaleValue)),
-      _StatSpec('Stock Purchase Value', fmtAmt(data.inventoryValue)),
-      _StatSpec('Total Damage', fmtAmt(data.totalDamage)),
-      _StatSpec('Outstanding Receivable', fmtAmt(data.outstandingReceivable)),
-    ];
+) {
+  final isLoss = data.grossProfit < 0;
+  return [
+    DashboardStatCard(
+      title:     'Total Sale',
+      value:     fmtAmt(data.netSale),
+      subtitle:  '${fmtAmt(data.totalSale)} sale − '
+          '${fmtAmt(data.totalSaleReturn)} return',
+      icon:      Icons.bar_chart_rounded,
+      iconAsset: 'ic_total_sale',
+      color:     const Color(0xFF534AB7),
+      bgColor:   const Color(0xFFEEEDFE),
+    ),
+    DashboardStatCard(
+      title:     'Customer Collection',
+      value:     fmtAmt(data.installmentSale),
+      subtitle:  'Customers se wusooli',
+      icon:      Icons.calendar_month_outlined,
+      iconAsset: 'ic_installment',
+      color:     const Color(0xFF993556),
+      bgColor:   const Color(0xFFFBEAF0),
+    ),
+    DashboardStatCard(
+      title:      isLoss ? 'Loss' : 'Profit',
+      value:      fmtAmt(data.grossProfit.abs()),
+      subtitle:   'Profit & Loss (returns minus)',
+      icon:       isLoss ? Icons.trending_down_rounded : Icons.trending_up_rounded,
+      color:      isLoss ? const Color(0xFFDC2626) : const Color(0xFF0F6E56),
+      bgColor:    isLoss ? const Color(0xFFFEF2F2) : const Color(0xFFE1F5EE),
+      valueColor: isLoss ? const Color(0xFFDC2626) : const Color(0xFF0F6E56),
+    ),
+    DashboardStatCard(
+      title:     'Cash In',
+      value:     fmtAmt(data.cashIn),
+      icon:      Icons.south_west_rounded,
+      iconAsset: 'ic_cash_in',
+      color:     const Color(0xFF3B9A5E),
+      bgColor:   const Color(0xFFEAF3DE),
+    ),
+    DashboardStatCard(
+      title:     'Cash Out',
+      value:     fmtAmt(data.cashOut),
+      icon:      Icons.north_east_rounded,
+      iconAsset: 'ic_cash_out',
+      color:     const Color(0xFFDC2626),
+      bgColor:   const Color(0xFFFEF2F2),
+    ),
+    DashboardStatCard(
+      title:     'Total Customer Amount',
+      value:     fmtAmt(data.outstandingReceivable),
+      subtitle:  'Customers ka baqaya (receivable)',
+      icon:      Icons.account_balance_wallet_outlined,
+      color:     const Color(0xFF854F0B),
+      bgColor:   const Color(0xFFFAEEDA),
+    ),
+  ];
+}
 
-// ── Stat Cards Grid ──────────────────────────────────────────────────────────
-class _StatCardsGrid extends StatelessWidget {
-  final List<_StatSpec> specs;
-  final int             crossAxisCount;
-  final double          childAspectRatio;
+class _CardRows extends StatelessWidget {
+  final List<Widget> cards;
+  static const _perRow = 3;
 
-  const _StatCardsGrid({
-    required this.specs,
-    required this.crossAxisCount,
-    required this.childAspectRatio,
+  const _CardRows({required this.cards});
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[];
+    for (var i = 0; i < cards.length; i += _perRow) {
+      final chunk = cards.skip(i).take(_perRow).toList();
+      if (rows.isNotEmpty) rows.add(const SizedBox(height: 12));
+      rows.add(IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var j = 0; j < _perRow; j++) ...[
+              if (j > 0) const SizedBox(width: 12),
+              Expanded(child: j < chunk.length ? chunk[j] : const SizedBox()),
+            ],
+          ],
+        ),
+      ));
+    }
+    return Column(children: rows);
+  }
+}
+
+// ── Charts: Sales (bar) + Profit (line) ─────────────────────────────────────
+class _ChartsSection extends StatelessWidget {
+  final AccountantBranchDashboardState        state;
+  final bool                                  desktop;
+  final void Function(DashboardChart, DashboardTrendPeriod) onPeriod;
+
+  const _ChartsSection({
+    required this.state,
+    required this.desktop,
+    required this.onPeriod,
   });
 
   @override
-  Widget build(BuildContext context) => GridView.builder(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    itemCount: specs.length,
-    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: crossAxisCount,
-      mainAxisSpacing: 14,
-      crossAxisSpacing: 14,
-      childAspectRatio: childAspectRatio,
-    ),
-    itemBuilder: (_, i) =>
-        _FlatStatCard(label: specs[i].label, value: specs[i].value),
-  );
-}
+  Widget build(BuildContext context) {
+    // Har graph ka apna Weekly/Monthly — ek badalne se baqi nahi badalte.
+    Widget toggle(DashboardChart c) => TrendPeriodToggle(
+        value: state.periodOf(c), onChanged: (p) => onPeriod(c, p));
 
-// ── Flat Stat Card ───────────────────────────────────────────────────────────
-class _FlatStatCard extends StatelessWidget {
-  final String label;
-  final String value;
+    final sales = TrendBarChart(
+      title:     'Sales (Net)',
+      data:      state.trendOf(DashboardChart.sales),
+      valueOf:   (p) => p.netSale,
+      isLoading: state.isTrendLoading(DashboardChart.sales),
+      trailing:  toggle(DashboardChart.sales),
+    );
+    final profit = TrendLineChart(
+      title:     'Profit',
+      data:      state.trendOf(DashboardChart.profit),
+      valueOf:   (p) => p.profit,
+      trailing:  toggle(DashboardChart.profit),
+      isLoading: state.isTrendLoading(DashboardChart.profit),
+    );
+    final credit = TrendBarChart(
+      title:     'Credit Sale',
+      data:      state.trendOf(DashboardChart.credit),
+      valueOf:   (p) => p.creditSale,
+      trailing:  toggle(DashboardChart.credit),
+      isLoading: state.isTrendLoading(DashboardChart.credit),
+      gradient:  const [Color(0xFFB7791F), Color(0xFFF6D79B)],
+    );
+    final installment = TrendLineChart(
+      title:     'Installment Collection',
+      data:      state.trendOf(DashboardChart.installment),
+      valueOf:   (p) => p.installment,
+      trailing:  toggle(DashboardChart.installment),
+      isLoading: state.isTrendLoading(DashboardChart.installment),
+      color:     const Color(0xFF993556),
+    );
 
-  const _FlatStatCard({required this.label, required this.value});
+    if (!desktop) {
+      return Column(children: [
+        sales,
+        const SizedBox(height: 12),
+        profit,
+        const SizedBox(height: 12),
+        credit,
+        const SizedBox(height: 12),
+        installment,
+      ]);
+    }
 
-  static const _cardColor = Color(0xFF4B5563);
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-    decoration: BoxDecoration(
-      color:        _cardColor,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Column(
+    Widget pair(Widget a, Widget b) => Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize:   18,
-            fontWeight: FontWeight.w800,
-            color:      Colors.white,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize:   13,
-            fontWeight: FontWeight.w500,
-            color:      Colors.white.withOpacity(0.85),
-          ),
-        ),
+        Expanded(child: a),
+        const SizedBox(width: 12),
+        Expanded(child: b),
       ],
-    ),
-  );
+    );
+
+    return Column(children: [
+      pair(sales, profit),
+      const SizedBox(height: 12),
+      pair(credit, installment),
+    ]);
+  }
 }
-// ── Empty State ───────────────────────────────────────────────────────────────
+
 // ── Shared date/time filter fields ──────────────────────────────────────────
 class _DateField extends StatelessWidget {
   final String                label;

@@ -95,6 +95,13 @@ class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
       );
 
 
+  /// Graph data — current date range / customer.
+  Future<List<SaleTrendPoint>> fetchTrend() => _ds.getTrend(
+        fromDate:   state.fromDate,
+        toDate:     state.toDate,
+        customerId: state.selectedCustomerId,
+      );
+
   Future<void> load() async {
     state = state.copyWith(
       isLoading:  true,
