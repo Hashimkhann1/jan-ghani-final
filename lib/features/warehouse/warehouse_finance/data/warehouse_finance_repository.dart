@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:46 AM
 // =============================================================
 // warehouse_finance_repository.dart
 // Data layer — PostgreSQL queries
@@ -33,8 +34,9 @@ class WarehouseFinanceRepository {
   // ─────────────────────────────────────────────────────────
   // 1. warehouse_finance row lo (ya banao agar nahi hai)
   // ─────────────────────────────────────────────────────────
-  Future<WarehouseFinanceModel> getOrCreate() async {
-    final conn = await _db;
+  // [session] diya ho (runTx ka tx) to usi transaction mein chalega
+  Future<WarehouseFinanceModel> getOrCreate({Session? session}) async {
+    final conn = session ?? await _db;
 
     final result = await conn.execute(
       Sql.named('''
@@ -93,7 +95,7 @@ class WarehouseFinanceRepository {
           FROM warehouse_cash_transactions ct
           LEFT JOIN suppliers s
             ON s.id = ct.reference_id
-           AND ct.entry_type = 'supplier_payment'
+           AND ct.entry_type IN ('supplier_payment', 'supplier_payment_reversal')
           $where
           ORDER BY ct.created_at DESC
           LIMIT @limit
@@ -156,12 +158,14 @@ class WarehouseFinanceRepository {
   // ─────────────────────────────────────────────────────────
   // 5. Supplier payment entry karo
   // ─────────────────────────────────────────────────────────
+  // [session] → caller ke transaction mein insert (supplier ledger ke saath atomic)
   Future<CashTransactionModel> addSupplierPayment({
     required double amount,
     required String supplierId,
     String?         notes,
     String?         createdBy,
     String?         createdByName,
+    Session?        session,
   }) async {
     return _insertTransaction(
       entryType:     'supplier_payment',
@@ -170,6 +174,32 @@ class WarehouseFinanceRepository {
       notes:         notes ?? 'Supplier payment',
       createdBy:     createdBy,
       createdByName: createdByName,
+      session:       session,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // 5a. Galat supplier payment ka cash WAPAS (ledger Reverse se)
+  // entry_type = 'supplier_payment_reversal' → trigger +amount
+  // (cash_transactions ka amount > 0 CHECK hai, isliye alag type)
+  // Hamesha caller ke transaction [session] mein — ledger reversal ke saath
+  // ─────────────────────────────────────────────────────────
+  Future<CashTransactionModel> addSupplierPaymentReversal({
+    required double  amount,
+    required String  supplierId,
+    required Session session,
+    String?          notes,
+    String?          createdBy,
+    String?          createdByName,
+  }) async {
+    return _insertTransaction(
+      entryType:     'supplier_payment_reversal',
+      amount:        amount,
+      referenceId:   supplierId,
+      notes:         notes ?? 'Supplier payment reversal',
+      createdBy:     createdBy,
+      createdByName: createdByName,
+      session:       session,
     );
   }
 
@@ -288,11 +318,15 @@ class WarehouseFinanceRepository {
     final results = await Future.wait([
       getOrCreate(),
 
+      // Payment reversal = galat payment ki correction → cash OUT se minus
+      // (asal cash in nahi), isliye out mein negative ginte hain
       conn.execute(
         Sql.named('''
           SELECT
             COALESCE(SUM(amount) FILTER (WHERE entry_type = 'cash_in'),  0) AS today_in,
-            COALESCE(SUM(amount) FILTER (WHERE entry_type != 'cash_in'), 0) AS today_out
+            COALESCE(SUM(CASE
+              WHEN entry_type = 'supplier_payment_reversal' THEN -amount
+              ELSE amount END) FILTER (WHERE entry_type != 'cash_in'), 0)   AS today_out
           FROM warehouse_cash_transactions
           WHERE warehouse_id = @wid
             AND created_at  >= CURRENT_DATE
@@ -304,7 +338,9 @@ class WarehouseFinanceRepository {
         Sql.named('''
           SELECT
             COALESCE(SUM(amount) FILTER (WHERE entry_type = 'cash_in'),  0) AS month_in,
-            COALESCE(SUM(amount) FILTER (WHERE entry_type != 'cash_in'), 0) AS month_out
+            COALESCE(SUM(CASE
+              WHEN entry_type = 'supplier_payment_reversal' THEN -amount
+              ELSE amount END) FILTER (WHERE entry_type != 'cash_in'), 0)   AS month_out
           FROM warehouse_cash_transactions
           WHERE warehouse_id = @wid
             AND created_at  >= date_trunc('month', CURRENT_DATE)
@@ -349,16 +385,20 @@ class WarehouseFinanceRepository {
     String?         notes,
     String?         createdBy,
     String?         createdByName,
+    Session?        session,
   }) async {
-    final conn = await _db;
+    final conn = session ?? await _db;
 
-    final finance        = await getOrCreate();
+    final finance        = await getOrCreate(session: session);
     final balanceBefore  = finance.cashInHand;
 
-    final balanceAfter = entryType == 'cash_in'
+    // Cash andar aane wale types: cash_in + supplier_payment_reversal
+    final balanceAfter = CashTransactionModel.isInflowType(entryType)
         ? balanceBefore + amount
         : balanceBefore - amount;
 
+    // created_at = clock_timestamp() — ek hi transaction mein 2 rows
+    // (reversal + sahi payment) ka time alag rahe; now() dono ko same deta
     final result = await conn.execute(
       Sql.named('''
         INSERT INTO warehouse_cash_transactions (
@@ -366,13 +406,15 @@ class WarehouseFinanceRepository {
           entry_type,          amount,
           cash_in_hand_before, cash_in_hand_after,
           reference_id,        notes,
-          created_by,          created_by_name
+          created_by,          created_by_name,
+          created_at
         ) VALUES (
           @id,                 @wid,
           @entryType,          @amount,
           @balanceBefore,      @balanceAfter,
           @referenceId,        @notes,
-          @createdBy,          @createdByName
+          @createdBy,          @createdByName,
+          clock_timestamp()
         )
         RETURNING *
       '''),

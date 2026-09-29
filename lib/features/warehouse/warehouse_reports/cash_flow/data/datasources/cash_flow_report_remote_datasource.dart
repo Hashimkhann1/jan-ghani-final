@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // cash_flow_report_remote_datasource.dart
 //
@@ -61,7 +62,7 @@ class CashFlowReportRemoteDatasource implements CashFlowReportSource {
     for (final t in txns) {
       final dt      = _parseDate(t['created_at']);
       final isIn    = t['entry_type'] == 'cash_in';
-      final amt     = _dbl(t['amount']).abs();
+      final amt     = isIn ? _dbl(t['amount']).abs() : _signedOut(t);
 
       if (_inRange(dt, from, to)) {
         if (isIn) {
@@ -111,12 +112,11 @@ class CashFlowReportRemoteDatasource implements CashFlowReportSource {
     for (final t in txns) {
       final dt  = _parseDate(t['created_at']);
       final key = DateTime(dt.year, dt.month, 1);
-      final amt = _dbl(t['amount']).abs();
 
       if (t['entry_type'] == 'cash_in') {
-        cashIn[key] = (cashIn[key] ?? 0) + amt;
+        cashIn[key] = (cashIn[key] ?? 0) + _dbl(t['amount']).abs();
       } else {
-        cashOut[key] = (cashOut[key] ?? 0) + amt;
+        cashOut[key] = (cashOut[key] ?? 0) + _signedOut(t);
       }
 
       // sabse naya (max created_at) transaction is mahine ka — uska balance
@@ -181,10 +181,12 @@ class CashFlowReportRemoteDatasource implements CashFlowReportSource {
       to: to,
     );
 
+    // Reversal ko 'supplier_payment' mein NET (local SQL ka mirror)
     final byType = <String, double>{};
     for (final t in txns) {
-      final type = (t['entry_type'] ?? '').toString();
-      byType[type] = (byType[type] ?? 0) + _dbl(t['amount']).abs();
+      final raw  = (t['entry_type'] ?? '').toString();
+      final type = raw == 'supplier_payment_reversal' ? 'supplier_payment' : raw;
+      byType[type] = (byType[type] ?? 0) + _signedOut(t);
     }
 
     final list = byType.entries
@@ -304,6 +306,13 @@ class CashFlowReportRemoteDatasource implements CashFlowReportSource {
 
   static DateTime _parseDate(dynamic v) =>
       v is DateTime ? v : (DateTime.tryParse(v.toString()) ?? DateTime.now());
+
+  // Cash OUT ka signed amount: supplier_payment_reversal (galat payment ki
+  // correction) out ko KAM karta hai (local `_signedOut` SQL ka mirror)
+  static double _signedOut(Map<String, dynamic> t) {
+    final amt = _dbl(t['amount']).abs();
+    return t['entry_type'] == 'supplier_payment_reversal' ? -amt : amt;
+  }
 
   static double _dbl(dynamic v) {
     if (v == null) return 0.0;

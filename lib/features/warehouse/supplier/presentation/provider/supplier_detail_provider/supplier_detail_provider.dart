@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // supplier_detail_provider.dart
 // Supplier detail screen — real DB data
@@ -6,10 +7,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
+import 'package:jan_ghani_final/features/warehouse/supplier/data/supplier_repository.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_detail_models.dart';
-import 'package:jan_ghani_final/features/warehouse/warehouse_finance/data/warehouse_finance_repository.dart';
 import 'package:postgres/postgres.dart';
-import 'package:uuid/uuid.dart';
 
 // ─────────────────────────────────────────────────────────────
 // STATE
@@ -38,13 +38,14 @@ class SupplierDetailState {
     bool?                        isLoading,
     String?                      errorMessage,
     String?                      activeTab,
+    bool                         clearError = false, // true → errorMessage null
   }) {
     return SupplierDetailState(
       ledgerEntries:    ledgerEntries    ?? this.ledgerEntries,
       purchaseOrders:   purchaseOrders   ?? this.purchaseOrders,
       financialSummary: financialSummary ?? this.financialSummary,
       isLoading:        isLoading        ?? this.isLoading,
-      errorMessage:     errorMessage     ?? this.errorMessage,
+      errorMessage:     clearError ? null : (errorMessage ?? this.errorMessage),
       activeTab:        activeTab        ?? this.activeTab,
     );
   }
@@ -60,7 +61,7 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
   String get _wid => AppConfig.warehouseId;
 
   Future<void> loadData(String supplierId) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       // 3 queries parallel chalao
       final results = await Future.wait([
@@ -86,6 +87,9 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
   void switchTab(String tab) => state = state.copyWith(activeTab: tab);
 
   // ── Pay to supplier ───────────────────────────────────────
+  // Repository ka atomic payToSupplier (ledger + cash ek transaction mein,
+  // fresh-balance overpay guard). Error RETHROW hota hai taake dialog
+  // success snackbar na dikhaye.
   Future<void> payOutstanding({
     required String supplierId,
     required double amount,
@@ -93,67 +97,56 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
     String?         userId,
     String? userName
   }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final conn = await _db;
-
-      // 1. Current balance lo
-      final balResult = await conn.execute(
-        Sql.named('''
-        SELECT outstanding_balance FROM suppliers
-        WHERE id = @supplierId AND warehouse_id = @wid
-        LIMIT 1
-      '''),
-        parameters: {'supplierId': supplierId, 'wid': _wid},
+      await SupplierRepository.instance.payToSupplier(
+        supplierId: supplierId,
+        amount:     amount,
+        notes:      notes,
+        userId:     userId,
+        userName:   userName,
       );
-
-      final balanceBefore = balResult.isEmpty
-          ? 0.0
-          : _toDouble(balResult.first.toColumnMap()['outstanding_balance']);
-      final balanceAfter = balanceBefore - amount;
-
-      // 2. Supplier ledger mein payment entry karo
-      await conn.execute(
-        Sql.named('''
-        INSERT INTO supplier_ledger (
-          id,          warehouse_id, supplier_id,
-          entry_type,  amount,       balance_before,
-          balance_after, notes,      created_by
-        ) VALUES (
-          @id,         @wid,         @supplierId,
-          'payment',   @amount,      @balanceBefore,
-          @balanceAfter, @notes,     @userId
-        )
-      '''),
-        parameters: {
-          'id':            const Uuid().v4(),
-          'wid':           _wid,
-          'supplierId':    supplierId,
-          'amount':        -amount,
-          'balanceBefore': balanceBefore,
-          'balanceAfter':  balanceAfter,
-          'notes':         notes ?? 'Manual payment',
-          'userId':        userId,
-        },
-      );
-
-      // 3. Warehouse finance mein cash out entry karo
-      await WarehouseFinanceRepository.instance.addSupplierPayment(
-        amount:        amount,
-        supplierId:    supplierId,
-        notes:         notes ?? 'Supplier payment',
-        createdBy:     userId,
-        createdByName: userName,
-      );
-
-      // 4. Data reload karo
-      await loadData(supplierId);
     } catch (e) {
       state = state.copyWith(
         isLoading:    false,
         errorMessage: 'Payment mein masla: $e',
       );
+      rethrow;
     }
+
+    // Data reload karo (payment commit ho chuki)
+    await loadData(supplierId);
+  }
+
+  // ── Reverse payment (galat manual payment) ────────────────
+  // Repository ka atomic reversePayment (ledger + cash reversal + optional
+  // sahi payment, ek transaction). Error RETHROW — dialog mein dikhe.
+  Future<void> reversePayment({
+    required String supplierId,
+    required String ledgerId,
+    required String reason,
+    double          correctAmount = 0,
+    String?         userId,
+    String?         userName,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await SupplierRepository.instance.reversePayment(
+        ledgerId:      ledgerId,
+        reason:        reason,
+        correctAmount: correctAmount,
+        userId:        userId,
+        userName:      userName,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading:    false,
+        errorMessage: 'Reverse mein masla: $e',
+      );
+      rethrow;
+    }
+
+    await loadData(supplierId);
   }
 
   // ── 1. Ledger entries ─────────────────────────────────────
@@ -173,6 +166,7 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
           sl.balance_after,
           sl.notes,
           sl.created_at,
+          sl.reversal_of,
           u.full_name AS created_by_name
         FROM supplier_ledger sl
         LEFT JOIN warehouse_users u ON u.id = sl.created_by
@@ -186,8 +180,15 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
       },
     );
 
-    return result.map((row) {
-      final m = row.toColumnMap();
+    final rows = result.map((row) => row.toColumnMap()).toList();
+
+    // Jin payments ki reversal row mojood hai → "REVERSED"
+    final reversedIds = rows
+        .map((m) => m['reversal_of']?.toString())
+        .whereType<String>()
+        .toSet();
+
+    return rows.map((m) {
       return SupplierLedgerEntry(
         id:            m['id'].toString(),
         supplierId:    m['supplier_id'].toString(),
@@ -201,6 +202,8 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
         createdAt:     m['created_at'] is DateTime
             ? m['created_at'] as DateTime
             : DateTime.parse(m['created_at'].toString()),
+        reversalOf:    m['reversal_of']?.toString(),
+        isReversed:    reversedIds.contains(m['id'].toString()),
       );
     }).toList();
   }
@@ -309,13 +312,14 @@ class SupplierDetailNotifier extends StateNotifier<SupplierDetailState> {
           COUNT(po.id) FILTER (
             WHERE po.status IN ('draft','ordered','partial')
           )                                   AS pending_orders,
-          -- Ledger se total paid (payments + returns)
+          -- Ledger se total paid (payments + returns − reversals)
+          -- payment/return negative, payment_reversal positive → SUM net
           ABS(COALESCE((
             SELECT SUM(sl.amount)
             FROM supplier_ledger sl
             WHERE sl.supplier_id  = s.id
               AND sl.warehouse_id = @wid
-              AND sl.entry_type   IN ('payment','return')
+              AND sl.entry_type   IN ('payment','return','payment_reversal')
           ), 0))                              AS total_paid_ledger
         FROM suppliers s
         LEFT JOIN purchase_orders po

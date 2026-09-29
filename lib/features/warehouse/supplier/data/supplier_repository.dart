@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // supplier_repository.dart
 // =============================================================
@@ -52,6 +53,8 @@ class SupplierRepository {
       WHERE warehouse_id = @wid
         AND deleted_at   IS NULL
         AND status       = 'received'
+        -- Purchase Return bhi status='received' se save hota hai → exclude
+        AND po_type      = 'purchase'
       GROUP BY supplier_id
     ) po_agg ON po_agg.supplier_id = s.id
   ''';
@@ -287,8 +290,11 @@ class SupplierRepository {
 
   // ==========================================================
   // 7. PAY TO SUPPLIER — payment record karo
-  // supplier_ledger mein 'payment' entry insert hogi
-  // trigger automatically outstanding_balance update karega
+  // Ek hi DB transaction mein:
+  //   1. supplier row FOR UPDATE lock + fresh balance
+  //   2. supplier_ledger 'payment' entry (trigger balance update karega)
+  //   3. warehouse_cash_transactions 'supplier_payment' (cash out)
+  // Koi step fail ho to sab rollback — ledger aur cash hamesha saath
   // ==========================================================
   Future<SupplierModel> payToSupplier({
     required String supplierId,
@@ -297,50 +303,232 @@ class SupplierRepository {
     String?         userId,
     String?         userName,
   }) async {
+    if (amount <= 0) throw Exception('Amount 0 se zyada honi chahiye');
+
     final conn = await _db;
 
-    // Step 1: Current balance lo
-    final supplier = await getById(supplierId);
-    if (supplier == null) throw Exception('Supplier nahi mila');
+    await conn.runTx((tx) async {
+      // Step 1: Fresh balance lo — lock ke saath (UI ka balance stale ho sakta hai)
+      final sup = await _lockSupplier(tx, supplierId);
 
-    final newBalance = supplier.outstandingBalance - amount;
+      // Step 2 + 3: ledger payment + cash out (SAME transaction)
+      await _insertPaymentTx(
+        tx,
+        supplierId:    supplierId,
+        supplierName:  sup.name,
+        amount:        amount,
+        balanceBefore: sup.balance,
+        notes:         notes,
+        userId:        userId,
+        userName:      userName,
+      );
+    });
 
-    // Step 2: Supplier ledger mein payment entry karo
-    await conn.execute(
+    // Step 4: Fresh data wapas lo (commit ke baad)
+    return (await getById(supplierId))!;
+  }
+
+  // ==========================================================
+  // 7b. REVERSE PAYMENT — galat manual payment ki ULTI entry
+  //
+  // Purani payment rows (ledger + cash) KABHI update nahi hoti —
+  // before/after snapshot chain safe rehti hai. Ek hi transaction mein:
+  //   1. original ledger row lock + validate (sirf manual 'payment',
+  //      po_id NULL, pehle se reversed nahi)
+  //   2. supplier lock → ledger 'payment_reversal' (+amount, reversal_of)
+  //      → trigger se outstanding balance wapas barhega
+  //   3. cash 'supplier_payment_reversal' (+amount) → cash wapas
+  //   4. [correctAmount] > 0 ho to sahi amount ki nayi payment
+  //      (ledger + cash) — user ke liye "edit" jaisa
+  // PO wali payment (po_id set) yahan se reverse NAHI — uska paid_amount
+  // PO par hai, woh Purchase Invoice edit se theek hoti hai.
+  // ==========================================================
+  Future<SupplierModel> reversePayment({
+    required String ledgerId,
+    required String reason,
+    double          correctAmount = 0,
+    String?         userId,
+    String?         userName,
+  }) async {
+    final why = reason.trim();
+    if (why.isEmpty)       throw Exception('Reverse ki wajah likhna zaroori hai');
+    if (correctAmount < 0) throw Exception('Sahi amount minus nahi ho sakti');
+
+    final conn = await _db;
+    String? supplierId;
+
+    await conn.runTx((tx) async {
+      // Step 1: Original payment row lock + validate
+      final origResult = await tx.execute(
+        Sql.named('''
+          SELECT id, supplier_id, entry_type, amount, po_id
+          FROM supplier_ledger
+          WHERE id           = @id
+            AND warehouse_id = @wid
+          FOR UPDATE
+        '''),
+        parameters: {'id': ledgerId, 'wid': _wid},
+      );
+      if (origResult.isEmpty) throw Exception('Ledger entry nahi mili');
+
+      final orig = origResult.first.toColumnMap();
+      if (orig['entry_type']?.toString() != 'payment') {
+        throw Exception('Sirf payment entry reverse ho sakti hai');
+      }
+      if (orig['po_id'] != null) {
+        throw Exception('Yeh PO ki payment hai — Purchase Invoice edit '
+            'karke theek karein');
+      }
+
+      final already = await tx.execute(
+        Sql.named('''
+          SELECT 1 FROM supplier_ledger
+          WHERE reversal_of = @id
+          LIMIT 1
+        '''),
+        parameters: {'id': ledgerId},
+      );
+      if (already.isNotEmpty) {
+        throw Exception('Yeh payment pehle se reverse ho chuki hai');
+      }
+
+      final sid        = orig['supplier_id'].toString();
+      final paidAmount = _parseDouble(orig['amount']).abs();
+      supplierId = sid;
+
+      // Step 2: Supplier lock + ledger reversal (+amount)
+      final sup               = await _lockSupplier(tx, sid);
+      final balanceAfterRev   = sup.balance + paidAmount;
+
+      await tx.execute(
+        Sql.named('''
+          INSERT INTO supplier_ledger (
+            id,            warehouse_id,  supplier_id,
+            entry_type,    amount,        balance_before, balance_after,
+            notes,         created_by,    reversal_of,    created_at
+          ) VALUES (
+            @id,           @wid,          @supplierId,
+            'payment_reversal', @amount,  @balanceBefore, @balanceAfter,
+            @notes,        @userId,       @reversalOf,    clock_timestamp()
+          )
+        '''),
+        parameters: {
+          'id':            const Uuid().v4(),
+          'wid':           _wid,
+          'supplierId':    sid,
+          'amount':        paidAmount,
+          'balanceBefore': sup.balance,
+          'balanceAfter':  balanceAfterRev,
+          'notes':         'Reversal: $why',
+          'userId':        userId,
+          'reversalOf':    ledgerId,
+        },
+      );
+
+      // Step 3: Cash wapas — SAME transaction
+      await WarehouseFinanceRepository.instance.addSupplierPaymentReversal(
+        amount:        paidAmount,
+        supplierId:    sid,
+        notes:         'Payment reversal — ${sup.name} ($why)',
+        createdBy:     userId,
+        createdByName: userName,
+        session:       tx,
+      );
+
+      // Step 4: Sahi amount ki nayi payment (optional)
+      if (correctAmount > 0) {
+        await _insertPaymentTx(
+          tx,
+          supplierId:    sid,
+          supplierName:  sup.name,
+          amount:        correctAmount,
+          balanceBefore: balanceAfterRev,
+          notes:         'Sahi payment (galat Rs '
+              '${paidAmount.toStringAsFixed(0)} ki jagah)',
+          userId:        userId,
+          userName:      userName,
+        );
+      }
+    });
+
+    return (await getById(supplierId!))!;
+  }
+
+  // ── PRIVATE: supplier row FOR UPDATE lock + fresh balance ──
+  Future<({String name, double balance})> _lockSupplier(
+      TxSession tx, String supplierId) async {
+    final result = await tx.execute(
       Sql.named('''
-      INSERT INTO supplier_ledger (
-        id,          warehouse_id, supplier_id,
-        entry_type,  amount,       balance_before, balance_after,
-        notes,       created_by
-      ) VALUES (
-        @id,         @wid,         @supplierId,
-        'payment',   @amount,      @balanceBefore, @balanceAfter,
-        @notes,      @userId
-      )
-    '''),
+        SELECT name, outstanding_balance FROM suppliers
+        WHERE id           = @supplierId
+          AND warehouse_id = @wid
+          AND deleted_at   IS NULL
+        FOR UPDATE
+      '''),
+      parameters: {'supplierId': supplierId, 'wid': _wid},
+    );
+    if (result.isEmpty) throw Exception('Supplier nahi mila');
+
+    final row = result.first.toColumnMap();
+    return (
+      name:    row['name']?.toString() ?? '',
+      balance: _parseDouble(row['outstanding_balance']),
+    );
+  }
+
+  // ── PRIVATE: ledger 'payment' + cash 'supplier_payment' (caller ka tx) ──
+  // Overpay guard [balanceBefore] (DB ka fresh, locked balance) par
+  Future<void> _insertPaymentTx(
+    TxSession tx, {
+    required String supplierId,
+    required String supplierName,
+    required double amount,
+    required double balanceBefore,
+    String?         notes,
+    String?         userId,
+    String?         userName,
+  }) async {
+    if (amount <= 0) throw Exception('Amount 0 se zyada honi chahiye');
+    if (amount > balanceBefore + 0.001) {
+      throw Exception('Amount outstanding '
+          '(Rs ${balanceBefore.toStringAsFixed(2)}) se zyada hai');
+    }
+    final balanceAfter = balanceBefore - amount;
+
+    // created_at = clock_timestamp() — reversal ke baad wali payment ka
+    // time reversal se alag (now() transaction mein same rehta)
+    await tx.execute(
+      Sql.named('''
+        INSERT INTO supplier_ledger (
+          id,          warehouse_id, supplier_id,
+          entry_type,  amount,       balance_before, balance_after,
+          notes,       created_by,   created_at
+        ) VALUES (
+          @id,         @wid,         @supplierId,
+          'payment',   @amount,      @balanceBefore, @balanceAfter,
+          @notes,      @userId,      clock_timestamp()
+        )
+      '''),
       parameters: {
         'id':            const Uuid().v4(),
         'wid':           _wid,
         'supplierId':    supplierId,
         'amount':        -amount,
-        'balanceBefore': supplier.outstandingBalance,
-        'balanceAfter':  newBalance,
+        'balanceBefore': balanceBefore,
+        'balanceAfter':  balanceAfter,
         'notes':         notes ?? 'Manual payment',
         'userId':        userId,
       },
     );
 
-    // Step 3: Warehouse finance mein cash out entry karo
     await WarehouseFinanceRepository.instance.addSupplierPayment(
       amount:        amount,
       supplierId:    supplierId,
-      notes:         notes ?? 'Supplier payment — ${supplier.name}',
+      notes:         notes ?? 'Supplier payment — $supplierName',
       createdBy:     userId,
       createdByName: userName,
+      session:       tx,
     );
-
-    // Step 4: Fresh data wapas lo
-    return (await getById(supplierId))!;
   }
 
   // ==========================================================
@@ -380,6 +568,12 @@ class SupplierRepository {
 
     final count = _parseInt(result.first[0]) + 1;
     return 'SUPP-${count.toString().padLeft(4, '0')}';
+  }
+
+  double _parseDouble(dynamic v) {
+    if (v == null) return 0.0;
+    if (v is num)  return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0.0;
   }
 
   int _parseInt(dynamic v) {

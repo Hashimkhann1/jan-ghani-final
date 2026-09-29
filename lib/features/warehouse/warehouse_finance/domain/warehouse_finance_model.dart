@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:46 AM
 // =============================================================
 // warehouse_finance_model.dart
 // Domain models for warehouse_finance feature
@@ -53,7 +54,7 @@ class WarehouseFinanceModel {
 class CashTransactionModel {
   final String   id;
   final String   warehouseId;
-  final String   entryType;        // cash_in / purchase / supplier_payment / expense
+  final String   entryType;        // cash_in / purchase / supplier_payment / supplier_payment_reversal / expense / salary
   final double   amount;
   final double   cashInHandBefore;
   final double   cashInHandAfter;
@@ -118,12 +119,17 @@ class CashTransactionModel {
       case 'supplier_payment': return 'Supplier Payment';
       case 'expense':          return 'Expense';
       case 'salary':           return 'Salary';
+      case 'supplier_payment_reversal': return 'Payment Reversal';
       default:                 return entryType;
     }
   }
 
-  // Cash in hai ya out
-  bool get isCashIn => entryType == 'cash_in';
+  // Cash andar aane wale types (trigger mein +amount)
+  static bool isInflowType(String type) =>
+      type == 'cash_in' || type == 'supplier_payment_reversal';
+
+  // Cash in hai ya out (display: + / -)
+  bool get isCashIn => isInflowType(entryType);
 }
 
 // ─────────────────────────────────────────────────────────────

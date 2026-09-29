@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:15 AM
 // =============================================================
 // pay_outstanding_dialog.dart
 // Supplier ka outstanding balance pay karne ka dialog
@@ -11,6 +12,7 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_detail_provider/supplier_detail_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_provider/supplier_provider.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 
@@ -364,6 +366,10 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
         userId:     userId,
         userName: userName
       );
+
+      // Supplier ka fresh balance list state mein — detail screen top bar
+      // aur agla Pay dialog naya outstanding dekhein
+      await ref.read(supplierProvider.notifier).refreshSupplier(widget.supplier.id);
 
       if (mounted) {
         Navigator.of(context).pop();

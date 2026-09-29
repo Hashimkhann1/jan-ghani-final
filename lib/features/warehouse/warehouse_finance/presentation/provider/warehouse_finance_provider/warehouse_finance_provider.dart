@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:46 AM
 // =============================================================
 // warehouse_finance_provider.dart
 // State + Notifier + Provider — supplier_provider.dart jaisa pattern
@@ -35,7 +36,11 @@ class WarehouseFinanceState {
   List<CashTransactionModel> get filteredTransactions {
     if (activeFilter == 'all') return transactions;
     return transactions
-        .where((t) => t.entryType == activeFilter)
+        .where((t) =>
+            t.entryType == activeFilter ||
+            // "Supplier Pay" tab mein unki reversals bhi dikhein
+            (activeFilter == 'supplier_payment' &&
+                t.entryType == 'supplier_payment_reversal'))
         .toList();
   }
 

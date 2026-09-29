@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // supplier_report_remote_datasource.dart
 //
@@ -72,8 +73,11 @@ class SupplierReportRemoteDatasource implements SupplierReportSource {
 
     // Total paid = 'payment' ledger rows ka |amount| ka sum. Payments negative
     // amount se store hoti hain (payToSupplier), isliye .abs() lete hain.
-    final totalPaid =
-        payments.fold<double>(0, (a, p) => a + _dbl(p['amount']).abs());
+    // 'payment_reversal' (galat payment ki ulti entry) MINUS — local mirror.
+    final totalPaid = payments.fold<double>(0, (a, p) {
+      final amt = _dbl(p['amount']).abs();
+      return p['entry_type'] == 'payment_reversal' ? a - amt : a + amt;
+    });
 
     return SupplierSummaryData(
       totalActive:      totalActive,
@@ -302,17 +306,17 @@ class SupplierReportRemoteDatasource implements SupplierReportSource {
     return out;
   }
 
-  // 'payment' ledger rows (date-filtered by created_at). Same date-boundary
-  // pattern as POs: gte(from-midnight) + lt(to+1 din).
+  // 'payment' + 'payment_reversal' ledger rows (date-filtered by created_at).
+  // Same date-boundary pattern as POs: gte(from-midnight) + lt(to+1 din).
   Future<List<Map<String, dynamic>>> _fetchPayments(DateTime? from, DateTime? to) async {
     final out = <Map<String, dynamic>>[];
     var offset = 0;
     while (true) {
       var q = _client
           .from('supplier_ledger')
-          .select('amount, created_at')
+          .select('entry_type, amount, created_at')
           .eq('warehouse_id', _wid)
-          .eq('entry_type', 'payment');
+          .inFilter('entry_type', ['payment', 'payment_reversal']);
       if (from != null) q = q.gte('created_at', _dayStart(from));
       if (to   != null) q = q.lt('created_at', _dayAfter(to));
 

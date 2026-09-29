@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 01:06 PM
 // =============================================================
 // edit_supplier_dialog.dart
 // =============================================================
@@ -357,21 +358,22 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                       ),
                     ),
                     const SizedBox(height: 6),
+                    // Sirf dikhane ke liye — balance ledger se banta hai
+                    // (payment / reverse / PO se), yahan edit NAHI hota
                     TextFormField(
-                      controller:   _balance,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                      ],
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Balance required hai';
-                        if (double.tryParse(v.trim()) == null) return 'Valid number dalein';
-                        return null;
-                      },
+                      controller: _balance,
+                      enabled:    false,
+                      style: TextStyle(fontSize: 14, color: AppColor.textSecondary),
                       decoration: InputDecoration(
                         hintText:  '0.00',
                         prefixText: 'Rs ',
+                        helperText: 'Balance yahan edit nahi hota — ledger se '
+                            'payment / reverse karein',
+                        helperStyle: TextStyle(
+                            color: AppColor.textSecondary, fontSize: 11),
+                        disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:   BorderSide(color: AppColor.grey200)),
                         hintStyle: TextStyle(color: AppColor.textHint, fontSize: 13),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
@@ -474,14 +476,8 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
         isActive:      _isActive,
       );
 
-      final newBalance = double.tryParse(_balance.text.trim()) ??
-          widget.supplier.outstandingBalance;
-
-      await ref.read(supplierProvider.notifier).updateSupplier(
-        updated,
-        newBalance: newBalance,
-        userId:     widget.supplier.createdById,
-      );
+      // Balance edit band hai — sirf basic info update (koi adjustment entry nahi)
+      await ref.read(supplierProvider.notifier).updateSupplier(updated);
 
       // Error check karo provider se
       final error = ref.read(supplierProvider).errorMessage;

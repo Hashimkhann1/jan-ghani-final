@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // cash_flow_report_models.dart
 //
@@ -75,6 +76,7 @@ class TransactionTypeData {
       case 'cash_in':          return 'Cash In';
       case 'purchase':         return 'Purchase';
       case 'supplier_payment': return 'Supplier Payment';
+      case 'supplier_payment_reversal': return 'Payment Reversal';
       case 'expense':          return 'Expense';
       default:                 return type;
     }
@@ -103,13 +105,15 @@ class CashTransactionEntry {
     required this.createdAt,
   });
 
-  bool get isCashIn => entryType == 'cash_in';
+  bool get isCashIn =>
+      entryType == 'cash_in' || entryType == 'supplier_payment_reversal';
 
   String get typeLabel {
     switch (entryType) {
       case 'cash_in':          return 'Cash In';
       case 'purchase':         return 'Purchase';
       case 'supplier_payment': return 'Supplier Payment';
+      case 'supplier_payment_reversal': return 'Payment Reversal';
       case 'expense':          return 'Expense';
       default:                 return entryType;
     }

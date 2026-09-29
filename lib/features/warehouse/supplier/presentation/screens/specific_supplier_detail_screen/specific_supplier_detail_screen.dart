@@ -1,3 +1,4 @@
+// Updated on 2026-09-28 11:49 AM
 // =============================================================
 // specific_supplier_detail_screen.dart
 // Supplier detail screen — sidebar nahi hai
@@ -11,8 +12,10 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_detail_models.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_detail_provider/supplier_detail_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_provider/supplier_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/pay_outstanding_dialog/pay_outstanding_dialog.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/po_details_dialog_widget/po_details_dialog_widget.dart';
+import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/reverse_payment_dialog/reverse_payment_dialog.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_detail_widgets/supplier_detail_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_info_dialog/supplier_info_dialog.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
@@ -45,7 +48,14 @@ class _SpecificSupplierDetailScreenState
   Widget build(BuildContext context) {
     final state    = ref.watch(supplierDetailProvider);
     final notifier = ref.read(supplierDetailProvider.notifier);
-    final s        = widget.supplier;
+    // Fresh supplier supplierProvider se (payment ke baad refreshSupplier
+    // isse update karta hai) — widget.supplier sirf fallback, warna stale
+    // balance par top bar + Pay dialog ka overpay check chalta tha
+    final s = ref.watch(supplierProvider.select((st) =>
+        st.allSuppliers.firstWhere(
+          (x) => x.id == widget.supplier.id,
+          orElse: () => widget.supplier,
+        )));
 
     return Scaffold(
       backgroundColor: AppColor.background,
@@ -75,7 +85,11 @@ class _SpecificSupplierDetailScreenState
           // ── 4. Table — full width ───────────────────
           Expanded(
             child: state.activeTab == 'ledger'
-                ? _LedgerTable(entries: state.ledgerEntries)
+                ? _LedgerTable(
+              entries:   state.ledgerEntries,
+              onReverse: (entry) =>
+                  ReversePaymentDialog.show(context, s, entry),
+            )
                 : _OrdersTable(
               orders:        state.purchaseOrders,
               supplierName:  s.name,
@@ -369,9 +383,10 @@ class _TabBar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _LedgerTable extends StatelessWidget {
-  final List<SupplierLedgerEntry> entries;
+  final List<SupplierLedgerEntry>          entries;
+  final ValueChanged<SupplierLedgerEntry>  onReverse;
 
-  const _LedgerTable({required this.entries});
+  const _LedgerTable({required this.entries, required this.onReverse});
 
   @override
   Widget build(BuildContext context) {
@@ -397,8 +412,9 @@ class _LedgerTable extends StatelessWidget {
                 separatorBuilder: (_, __) =>
                     Divider(height: 1, color: AppColor.grey100),
                 itemBuilder: (_, i) => LedgerEntryRow(
-                  key:   ValueKey(entries[i].id),
-                  entry: entries[i],
+                  key:       ValueKey(entries[i].id),
+                  entry:     entries[i],
+                  onReverse: () => onReverse(entries[i]),
                 ),
               ),
             ),
