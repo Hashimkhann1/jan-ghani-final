@@ -1,4 +1,4 @@
-// Updated on 2026-09-12 12:50 PM
+// Updated on 2026-10-01 05:10 PM
 // =============================================================
 // inventory_balance_provider.dart
 // Warehouse-side providers for Inventory Balance feature.
@@ -20,11 +20,23 @@ export '../../data/model/balance_batch_model.dart';
 // ─────────────────────────────────────────────────────────────
 // 1. Pending counts (per store) — Create Batch panel ke liye
 // ─────────────────────────────────────────────────────────────
+// Date range createBatchProvider se — badle to list dobara load.
 final pendingCountsProvider = FutureProvider.autoDispose
     .family<List<PendingCountRow>, String>((ref, storeId) async {
-  return InventoryBalanceRepository.instance
-      .fetchPendingCounts(storeId: storeId, daysBack: 7);
+  final range = ref.watch(createBatchProvider.select((s) => (s.fromDate, s.toDate)));
+  return InventoryBalanceRepository.instance.fetchPendingCounts(
+    storeId:  storeId,
+    fromDate: range.$1,
+    toDate:   range.$2,
+  );
 });
+
+// Default date range — last 7 din (pehle ke daysBack: 7 jaisa)
+DateTime _todayStart() {
+  final n = DateTime.now();
+  return DateTime(n.year, n.month, n.day);
+}
+DateTime _defaultFrom() => _todayStart().subtract(const Duration(days: 7));
 
 // ─────────────────────────────────────────────────────────────
 // View filter + sort mode (client-side filter of pending counts)
@@ -50,6 +62,9 @@ class CreateBatchState {
   final CreateViewFilter     viewFilter;
   final CreateSortMode       sortMode;
   final String               searchQuery;
+  // Ginti ki date range (counted_date, dono din shamil). null = default 7 din.
+  final DateTime?            fromDate;
+  final DateTime?            toDate;
 
   const CreateBatchState({
     this.selectedStoreId,
@@ -60,9 +75,15 @@ class CreateBatchState {
     this.errorMessage,
     this.successBatchNumber,
     this.viewFilter          = CreateViewFilter.all,
-    this.sortMode            = CreateSortMode.impactDesc,
+    this.sortMode            = CreateSortMode.recent, // latest count upar
     this.searchQuery         = '',
+    this.fromDate,
+    this.toDate,
   });
+
+  // UI ke liye — null ho to default range
+  DateTime get effectiveFrom => fromDate ?? _defaultFrom();
+  DateTime get effectiveTo   => toDate   ?? _todayStart();
 
   CreateBatchState copyWith({
     String?              selectedStoreId,
@@ -75,6 +96,8 @@ class CreateBatchState {
     CreateViewFilter?    viewFilter,
     CreateSortMode?      sortMode,
     String?              searchQuery,
+    DateTime?            fromDate,
+    DateTime?            toDate,
     bool                 clearError    = false,
     bool                 clearSuccess  = false,
     bool                 clearOverride = false,
@@ -90,6 +113,8 @@ class CreateBatchState {
     viewFilter:          viewFilter  ?? this.viewFilter,
     sortMode:            sortMode    ?? this.sortMode,
     searchQuery:         searchQuery ?? this.searchQuery,
+    fromDate:            fromDate    ?? this.fromDate,
+    toDate:              toDate      ?? this.toDate,
   );
 }
 
@@ -98,8 +123,23 @@ class CreateBatchNotifier extends StateNotifier<CreateBatchState> {
   CreateBatchNotifier(this._ref) : super(const CreateBatchState());
 
   void selectStore(String storeId) {
-    // Store change → selection + overrides reset.
-    state = CreateBatchState(selectedStoreId: storeId);
+    // Store change → selection + overrides reset; date range + sort qaim.
+    state = CreateBatchState(
+      selectedStoreId: storeId,
+      sortMode:        state.sortMode,
+      fromDate:        state.fromDate,
+      toDate:          state.toDate,
+    );
+  }
+
+  /// Ginti ki date range (dono din shamil). List badalti hai, isliye
+  /// purani selection saaf — chhupe hue items galti se send na hon.
+  void setDateRange(DateTime from, DateTime to) {
+    state = state.copyWith(
+      fromDate:            DateTime(from.year, from.month, from.day),
+      toDate:              DateTime(to.year, to.month, to.day),
+      selectedCountingIds: {},
+    );
   }
 
   void toggleItem(String countingId, bool selected) {
@@ -156,6 +196,10 @@ class CreateBatchNotifier extends StateNotifier<CreateBatchState> {
 
     state = state.copyWith(isSaving: true, clearError: true, clearSuccess: true);
 
+    // Store ID pehle capture — success par state reset hoti hai, uske baad
+    // state.selectedStoreId null ho jata (ghalat store invalidate hota tha)
+    final storeId = state.selectedStoreId!;
+
     try {
       final user = _ref.read(authProvider).user;
       final picked = allRows
@@ -195,9 +239,18 @@ class CreateBatchNotifier extends StateNotifier<CreateBatchState> {
         createdByName: user?.fullName,
       );
 
-      state = CreateBatchState(successBatchNumber: batch.batchNumber);
-      // Consumed IDs invalidate — pending list refresh ho jaye.
-      _ref.invalidate(pendingCountsProvider(state.selectedStoreId ?? ''));
+      // Wahi store selected rahe (pehle reset hokar screen pehle store par
+      // chali jati thi). Selection, overrides, notes reset; filter + sort qaim.
+      state = CreateBatchState(
+        selectedStoreId:    storeId,
+        successBatchNumber: batch.batchNumber,
+        viewFilter:         state.viewFilter,
+        sortMode:           state.sortMode,
+        fromDate:           state.fromDate,
+        toDate:             state.toDate,
+      );
+      // Consumed IDs invalidate — ISI store ki pending list refresh ho.
+      _ref.invalidate(pendingCountsProvider(storeId));
       return true;
     } catch (e) {
       state = state.copyWith(

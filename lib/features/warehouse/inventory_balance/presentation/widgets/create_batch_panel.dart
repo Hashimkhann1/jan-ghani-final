@@ -1,4 +1,4 @@
-// Updated on 2026-09-12 12:50 PM
+// Updated on 2026-10-01 05:10 PM
 // =============================================================
 // create_batch_panel.dart
 // Tab 1 — Create Balance Request (redesigned).
@@ -130,6 +130,17 @@ class _LeftSidebar extends ConsumerWidget {
 
             // Summary tiles (only when a store is picked)
             if (state.selectedStoreId != null) ...[
+              // Ginti ki date range (default last 7 din)
+              const _SectionLabel('DATE'),
+              const SizedBox(height: 8),
+              _CountDateRangeField(
+                from: state.effectiveFrom,
+                to:   state.effectiveTo,
+                onChanged: (f, t) => ref
+                    .read(createBatchProvider.notifier)
+                    .setDateRange(f, t),
+              ),
+              const SizedBox(height: 20),
               _SummaryTiles(storeId: state.selectedStoreId!),
               const SizedBox(height: 20),
               const _SectionLabel('VIEW'),
@@ -140,6 +151,73 @@ class _LeftSidebar extends ConsumerWidget {
               const SizedBox(height: 8),
               const _SortDropdown(),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// DATE RANGE FIELD — ginti ki from/to date (showDateRangePicker)
+// ─────────────────────────────────────────────────────────────
+class _CountDateRangeField extends StatelessWidget {
+  final DateTime from;
+  final DateTime to;
+  final void Function(DateTime from, DateTime to) onChanged;
+
+  const _CountDateRangeField({
+    required this.from,
+    required this.to,
+    required this.onChanged,
+  });
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Future<void> _pick(BuildContext context) async {
+    final now   = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final picked = await showDateRangePicker(
+      context:          context,
+      initialDateRange: DateTimeRange(start: from, end: to.isAfter(today) ? today : to),
+      firstDate:        DateTime(2020),
+      lastDate:         today, // aaj tak
+      helpText:         'Ginti ki date range',
+      saveText:         'Apply',
+    );
+    if (picked != null) onChanged(picked.start, picked.end);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap:        () => _pick(context),
+      borderRadius: BorderRadius.circular(9),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color:        AppColor.surface,
+          borderRadius: BorderRadius.circular(9),
+          border:       Border.all(color: AppColor.grey200),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.date_range_rounded,
+                size: 16, color: AppColor.textSecondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${_fmt(from)}  –  ${_fmt(to)}',
+                style: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600,
+                  color: AppColor.textPrimary,
+                ),
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: AppColor.textSecondary),
           ],
         ),
       ),
@@ -642,7 +720,7 @@ class _StoreContent extends ConsumerWidget {
       data: (rows) {
         if (rows.isEmpty) {
           return const _EmptyHint(
-            text: 'Is store ke liye koi pending count nahi (last 7 din)',
+            text: 'Is store ke liye is date range mein koi pending count nahi',
             icon: Icons.inbox_outlined,
           );
         }

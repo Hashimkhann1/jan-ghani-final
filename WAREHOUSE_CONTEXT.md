@@ -1,4 +1,4 @@
-<!-- Updated on 2026-09-28 01:10 PM -->
+<!-- Updated on 2026-10-01 05:12 PM -->
 
 # Jan Ghani POS — Project Context
 
@@ -1322,6 +1322,53 @@ try {
 
 ---
 
+## Session 16 — Inventory Balance: analysis · store-apply bug doc · warehouse fixes · date filter ⭐
+
+> **Maqsad:** Inventory Balance feature (warehouse side) poora padha, store "apply" step ka bug pakda (store developer ka kaam — doc share kiya), aur warehouse side ke 2 bugs + Create Request mein date filter / latest-first sort.
+
+### 1. Feature flow (samajh — 3 roles)
+```
+Store counting (Supabase inventory_counting)
+  → WAREHOUSE Create Request: batch + items LOCAL DB (review_pending) → sync → Supabase
+  → REVIEWER (accountant, Supabase): Accept → branch_pending | Reject → reviewer_rejected
+  → STORE (Supabase RPC + store local DB): Accept → applied (stock update) | Reject → branch_rejected
+```
+- Warehouse har item ke saath `system_stock_at_count`, `physical_stock` (store ki ginti, read-only), `delta` (warehouse ka faisla, stepper se override) save karta hai.
+- Reviewer sirf status + reviewer fields badalta hai — stock numbers nahi chhoota.
+- Sync one-way (local → Supabase) → warehouse local DB mein status hamesha `review_pending`; History tab **Supabase se** padhta hai.
+
+### 2. ⚠️ Store-apply bug (STORE side — doosre developer ka, hum NAHI chhooté)
+- Store Accept par **dono jagah** `stock = physical_stock` (absolute) — `delta` istemal hi nahi hota:
+  - Supabase RPC `apply_inventory_balance_item` — `supabase/migrations/2026_09_15_inventory_balance_apply_absolute.sql`
+  - Store local `applyLocalStockCount()` — `lib/features/branch/inventory_balance/data/datasource/branch_inventory_balance_datasource.dart`
+- Pehle (`2026_09_13_inventory_balance_branch_apply.sql`) `v_current + delta` tha; **Shahabmustafa** ne commit `1e2b58f` (16 Sep 2026) mein absolute kiya (wajah: live stock pehle se ghalat/minus tha).
+- **Asar:** (A) warehouse ka delta override stock par lagta hi nahi; (B) ginti ke baad ki sales nazar-andaz → stock **zyada** dikhta (Somwar gine 7, Budh 2 bike, Jumma Accept → 7, sahi 5).
+- **Tajweez (Option 1):** dono jagah wapas `live stock + delta` (`stock = stock + $delta` local). Option 3 (ginti + baad ki movement) future.
+- Warehouse + reviewer data **sahi** bhejte hain — masla sirf store ke Accept par.
+- **Doc (doosre developer ke saath share kiya):** "Inventory Balance — Store Apply Bug (Delta vs Physical)" — https://claude.ai/code/artifact/7ce71763-6903-4801-862f-a1b5bb9ff827
+
+### 3. Warehouse fixes
+| # | Bug | Fix | File |
+|---|---|---|---|
+| 2 | `submit()` ke baad state reset → `pendingCountsProvider('')` (khaali store) invalidate + screen khud **pehle store** par chali jati | `storeId` save se pehle capture; success par **wahi store** selected (filter/sort/date qaim); usi store ki list invalidate | `inventory_balance_provider.dart` |
+| 4a | History `fetchItems` `limit(500)` → zyada items chupchaap katte (KPI kam); `fetchBatchesByIds` bina chunk → 200+ IDs par gateway 400 | `fetchItems` `.range()` 1000-pages (+ `id` tie-breaker), `limit` → optional `maxRows` (default: sab); batch IDs 200-200 chunks | `inventory_balance_remote_datasource.dart`, `inventory_balance_repository.dart` |
+
+### 4. Create Request — date filter + latest-first (naya)
+- **Default sort = `CreateSortMode.recent`** (latest ginti upar; pehle impactDesc).
+- Left sidebar mein **DATE** section (`_CountDateRangeField`, `showDateRangePicker`, aaj tak) — default **last 7 din** (`today − 7` → today, pehle ke `daysBack: 7` jaisa).
+- `CreateBatchState.fromDate/toDate` (+ `effectiveFrom/effectiveTo`); `setDateRange()` selection saaf karta (chhupe items galti se send na hon); `selectStore()` + submit success date range + sort qaim rakhte.
+- `pendingCountsProvider(storeId)` ab `createBatchProvider.select((s) => (s.fromDate, s.toDate))` watch karta → date badle to reload (callers unchanged).
+- `fetchPendingCounts` `fromDate/toDate` (counted_date, dono din shamil) + `.range()` pages (pehle `.limit(1000)` — lambi range mein kat jata).
+
+### 5. Sirf samjhaye (fix NAHI kiye)
+- **#3 Sync risk:** local item row dobara `is_synced=false` hui to sync poori row (status `review_pending`) Supabase par likh degi → reviewer/store ka status mit jayega. Abhi local rows create ke baad update nahi hotin. Bachao: in tables ke liye insert-only sync.
+- **#4b Password:** `warehouse_supabase_sync_service.dart` mein `_dbUser`/`_dbPassword` hardcoded (local DB ka). Bachao: `AppConfig.dbUser/dbPassword` use karo.
+
+### Files (Session 16)
+`inventory_balance_provider.dart` · `create_batch_panel.dart` · `inventory_balance_remote_datasource.dart` · `inventory_balance_repository.dart` (sab `lib/features/warehouse/inventory_balance/`)
+
+---
+
 ## ⚠️ Known Open Issues (pending fixes)
 
 ### A. Cash chain drift — `cash_in_hand_before/after` snapshots
@@ -1339,15 +1386,15 @@ try {
 - **Sync:** one-way local → Supabase confirmed. Supabase-side trigger not needed.
 - Details in personal memory `janghani-cash-chain-drift-bug.md`.
 
-### B. Branch Inventory Balance — Apply-to-live-stock step (still pending)
-> Session 11 mein workflow foundation (batch create → reviewer accept/reject → branch queue) implement ho gaya. Session 12 mein UX/time polish (delta editable, count date+time, UTC/toLocal) complete. **Baaki:** branch acceptance par actual `branch_stock_inventory.stock` adjust nahi hota — apply step abhi likha nahi.
-- **Feature paths (implemented so far):**
-  - Warehouse init: [`lib/features/warehouse/inventory_balance/`](lib/features/warehouse/inventory_balance/)
-  - Reviewer queue/history: [`lib/features/accountant/accountant_inventory_review/`](lib/features/accountant/accountant_inventory_review/)
-  - Branch counting entry: [`lib/features/branch/inventory_management/`](lib/features/branch/inventory_management/)
-- **Applied stock adjust — kaise honi chahiye:** branch app par `status='branch_pending'` items ka acceptance screen bane; accept par `branch_stock_inventory.stock = stock + delta` (delta apply, NOT absolute), stamp `applied_at/applied_stock_before/applied_stock_after`, status → `applied`. Reject → `branch_rejected` + reason. RLS/SECURITY DEFINER RPC use karo.
-- **Delta apply (NOT absolute) — kyun crucial:** count aur apply ke beech mein sales/transfers ho sakti hain. `after = system_now + delta` safe hai; `after = physical_stock` (absolute) galat — sales double-count kar deta.
-- Details in personal memory `janghani-inventory-balance-workflow.md`.
+### B. Inventory Balance — Store apply ABSOLUTE hai, delta nahi (STORE side — doosre developer ka)
+> Apply step ab **ban chuka hai** (Shahabmustafa, 13 + 16 Sep 2026), lekin `stock = physical_stock` (absolute) — warehouse ka `delta` nazar-andaz. Tafseel + tajweez: **Session 16 §2** aur shared doc (https://claude.ai/code/artifact/7ce71763-6903-4801-862f-a1b5bb9ff827).
+- **Feature paths:**
+  - Warehouse: [`lib/features/warehouse/inventory_balance/`](lib/features/warehouse/inventory_balance/)
+  - Reviewer: [`lib/features/accountant/accountant_inventory_review/`](lib/features/accountant/accountant_inventory_review/)
+  - Store counting: [`lib/features/branch/inventory_management/`](lib/features/branch/inventory_management/) · Store apply: [`lib/features/branch/inventory_balance/`](lib/features/branch/inventory_balance/)
+  - RPC: `supabase/migrations/2026_09_15_inventory_balance_apply_absolute.sql` (`apply_inventory_balance_item`)
+- **Sahi formula:** `after = live stock + delta` (count aur apply ke beech sales/transfers ho sakti hain; absolute un ko nazar-andaz karta). Fix store developer karega — hum branch code NAHI chhooté.
+- Warehouse side baaqi: #3 sync insert-only, #4b hardcoded password (Session 16 §5).
 
 ---
 

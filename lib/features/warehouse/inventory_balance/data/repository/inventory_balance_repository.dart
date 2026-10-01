@@ -1,3 +1,4 @@
+// Updated on 2026-10-01 05:10 PM
 // =============================================================
 // inventory_balance_repository.dart
 // Thin wrapper over local + remote datasources.
@@ -74,11 +75,15 @@ class InventoryBalanceRepository {
   Future<List<PendingCountRow>> fetchPendingCounts({
     required String storeId,
     int daysBack = 7,
+    DateTime? fromDate,
+    DateTime? toDate,
   }) async {
     final consumed = await _local.getConsumedCountingIds();
     return _remote.fetchPendingCounts(
       storeId: storeId,
       daysBack: daysBack,
+      fromDate: fromDate,
+      toDate:   toDate,
       excludeCountingIds: consumed,
     );
   }
@@ -93,13 +98,13 @@ class InventoryBalanceRepository {
     DateTime?       toDate,
     BalanceStatus?  status,
     String?         storeId,
-    int             limit = 500,
+    int?            maxRows, // null = date range ke saare items (paginated)
   }) => _remote.fetchItems(
     warehouseId: AppConfig.warehouseId,
     fromDate:    fromDate,
     toDate:      toDate,
     status:      status,
     storeId:     storeId,
-    limit:       limit,
+    maxRows:     maxRows,
   );
 }
