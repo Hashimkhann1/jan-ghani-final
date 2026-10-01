@@ -33,6 +33,8 @@ create index if not exists idx_customer_store_balance
 --  idx_sale_invoice_items_invoice, idx_sale_return_items_return,
 --  idx_sale_invoice_payments_invoice already exist from earlier migrations.)
 
+drop function if exists get_branch_dashboard_summary(uuid, timestamptz, timestamptz);
+
 create or replace function get_branch_dashboard_summary(
   p_store_id uuid,
   p_from     timestamptz,

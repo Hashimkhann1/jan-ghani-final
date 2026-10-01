@@ -133,24 +133,25 @@ class BranchInventoryBalanceDatasource {
   // the RPC above (Supabase-only) never reaches POS / sale screens.
   // Isliye Accept ke baad yahan bhi apply karna zaroori hai.
   //
-  // ABSOLUTE set (not delta) — physical count hi nayi truth hai.
-  // Delta add karna galat tha: agar live stock count ke baad drift
-  // ho chuka ho (aur sales), purane delta ko naye live stock par
-  // add karne se bakwas number ban jata (e.g. live -5, delta -3
-  // se -8 — jabke counted physical stock sirf 3 tha).
+  // DELTA apply (stock = stock + delta) — Supabase RPC jaisa hi
+  // formula. Absolute set (stock = physical) ginti ke baad ki sales
+  // ko nazar-andaz karta tha aur warehouse ka delta override bekaar
+  // ho jata tha. Single UPDATE hai, is liye beech ki sale safe hai.
+  // Delta sirf ek dafa lage: RPC (branch_pending guard) kamyab hone
+  // ke baad hi yeh chalta hai.
   // ─────────────────────────────────────────────────────────
-  Future<void> applyLocalStockCount({
+  Future<void> applyLocalStockDelta({
     required String storeId,
     required String productId,
-    required double physicalStock,
+    required double delta,
   }) async {
     final conn = await DataBaseService.getConnection();
     final result = await conn.execute(
       r'''UPDATE public.branch_stock_inventory
-          SET stock = $1, updated_at = NOW()
+          SET stock = stock + $1, updated_at = NOW()
           WHERE store_id = $2 AND product_id = $3
           RETURNING stock''',
-      parameters: [physicalStock, storeId, productId],
+      parameters: [delta, storeId, productId],
     );
     if (result.isEmpty) {
       throw StateError('local_stock_row_not_found');

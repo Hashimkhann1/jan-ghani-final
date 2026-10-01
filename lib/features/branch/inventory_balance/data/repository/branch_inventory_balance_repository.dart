@@ -38,12 +38,12 @@ class BranchInventoryBalanceRepository {
     itemId: itemId, branchUserId: branchUserId, branchUserName: branchUserName,
   );
 
-  Future<void> applyLocalStockCount({
+  Future<void> applyLocalStockDelta({
     required String storeId,
     required String productId,
-    required double physicalStock,
-  }) => _remote.applyLocalStockCount(
-    storeId: storeId, productId: productId, physicalStock: physicalStock,
+    required double delta,
+  }) => _remote.applyLocalStockDelta(
+    storeId: storeId, productId: productId, delta: delta,
   );
 
   Future<void> revertAppliedItem(String itemId) =>

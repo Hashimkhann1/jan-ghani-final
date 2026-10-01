@@ -91,14 +91,14 @@ class BranchBalanceQueueNotifier extends StateNotifier<BranchBalanceQueueState> 
       );
 
       // Supabase item claimed — ab branch ki REAL (local) stock par
-      // counted physical stock ABSOLUTE set karo (delta nahi — see
-      // applyLocalStockCount). Yeh fail ho to Supabase claim revert
+      // manzoor shuda delta apply karo (live stock + delta — see
+      // applyLocalStockDelta). Yeh fail ho to Supabase claim revert
       // karo taake Accept dobara try ho sake.
       try {
-        await BranchInventoryBalanceRepository.instance.applyLocalStockCount(
-          storeId:       item.storeId,
-          productId:     item.productId,
-          physicalStock: item.physicalStock,
+        await BranchInventoryBalanceRepository.instance.applyLocalStockDelta(
+          storeId:   item.storeId,
+          productId: item.productId,
+          delta:     item.delta,
         );
       } catch (e) {
         try {

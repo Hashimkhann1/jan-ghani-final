@@ -666,7 +666,11 @@ class SyncConfig {
   static const int lookbackDays = 7;
 
   // ── Ek sync cycle ki max muddat — slow internet par hang na ho
-  static const int syncTimeoutMinutes = 15;
+  static const int syncTimeoutMinutes = 5;
+
+  // ── App open hone par full check (har table ki har row Supabase
+  // se match) — zyada data hai, is liye iski muddat alag aur lambi
+  static const int fullCheckTimeoutMinutes = 15;
 
   // ── Tables — dependency order mein (parent pehle) ────────
   static const List<String> tables = [
@@ -760,21 +764,24 @@ class SyncConfig {
     'branch_transaction_to_janghani': 'branch_id',
   };
 
-  // ── Yeh tables mein na store_id hai na koi aur branch-scoping
-  // column (sirf invoice_id/return_id FK se linked hain) — is
-  // liye per-branch filter possible nahi. Global timestamp use
-  // karna in par cross-branch skew bug deta (Branch A ka sync
-  // Branch B ke purane rows ko hamesha ke liye skip kar deta).
-  // Fix: har cycle mein poora table resync karo (extra egress,
-  // lekin koi row miss nahi hogi).
-  //
-  // 'branch_stock_damage' bhi shamil: is table mein 'updated_at'
-  // column hi nahi hai, aur 'updateDamage()' row edit karte waqt
+  // ── Yeh child tables mein store_id nahi, sirf parent FK hai.
+  // Per-branch watermark parent ke store_id par inner join se
+  // nikalta hai. Pehle yeh full resync hoti thin (~72k rows har
+  // cycle, purani pehle) — slow internet par cycle beech mein
+  // timeout/kill ho jaata aur naye items kabhi Supabase tak nahi
+  // pahunchte thay (invoice sync, items missing). Items sirf
+  // insert hote hain, is liye created_at watermark safe hai.
+  //   table → (parent table, FK column)
+  static const Map<String, (String, String)> _parentScopedTables = {
+    'sale_invoice_items': ('sale_invoices', 'invoice_id'),
+    'sale_return_items' : ('sale_returns',  'return_id'),
+  };
+
+  // ── 'branch_stock_damage': is table mein 'updated_at' column
+  // hi nahi hai, aur 'updateDamage()' row edit karte waqt
   // 'created_at' ko touch nahi karta — isliye edit hui row kabhi
-  // incremental sync mein pick nahi hoti thi.
+  // incremental sync mein pick nahi hoti thi. Har cycle poora.
   static const List<String> fullSyncTables = [
-    'sale_invoice_items',
-    'sale_return_items',
     'branch_stock_damage',
   ];
 
@@ -791,6 +798,9 @@ class SyncConfig {
     if (storeIdTables.contains(table)) return 'store_id';
     return null;
   }
+
+  static (String, String)? parentScope(String table) =>
+      _parentScopedTables[table];
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -857,11 +867,13 @@ class _IsolateArgs {
   final SendPort sendPort;
   final String   supabaseUrl;
   final String   supabaseKey;
+  final bool     fullCheck;
 
   const _IsolateArgs({
     required this.sendPort,
     required this.supabaseUrl,
     required this.supabaseKey,
+    required this.fullCheck,
   });
 }
 
@@ -879,6 +891,12 @@ class SyncService {
   Timer?       _internetTimer;
   bool         _running = false;
 
+  // App open hone ke baad pehli mukammal sync full check hogi. Internet
+  // na ho, timeout ho ya connection error aaye to yeh false hi rehta hai
+  // aur agli cycle phir se full check karti hai.
+  bool _fullCheckDone  = false;
+  bool _currentRunFull = false;
+
   SyncStatus _status = const SyncStatus();
   SyncStatus get currentStatus => _status;
 
@@ -888,7 +906,8 @@ class SyncService {
   Future<void> start() async {
     if (_running) return;
     _running = true;
-    _log('🏪 Store Sync Service — Start (10 min interval)');
+    _fullCheckDone = false;
+    _log('🏪 Store Sync Service — Start (full check, phir har ${SyncConfig.syncIntervalSeconds}s)');
     _startInternetMonitor();
     await _runSync();
     _syncTimer = Timer.periodic(
@@ -940,6 +959,7 @@ class SyncService {
       _emit(_status.copyWith(hasInternet: false));
       return;
     }
+    _currentRunFull = !_fullCheckDone;
     _emit(_status.copyWith(isSyncing: true, hasInternet: true));
     _killIsolate();
     _receivePort = ReceivePort();
@@ -950,6 +970,7 @@ class SyncService {
           sendPort:    _receivePort!.sendPort,
           supabaseUrl: SyncConfig.supabaseUrl,
           supabaseKey: SyncConfig.supabaseKey,
+          fullCheck:   _currentRunFull,
         ),
         errorsAreFatal: false,
         debugName: 'SyncIsolate',
@@ -959,7 +980,9 @@ class SyncService {
           if (msg is _IsolateMsg) _handleMsg(msg);
           if (msg == 'DONE') break;
         }
-      }().timeout(Duration(minutes: SyncConfig.syncTimeoutMinutes));
+      }().timeout(Duration(minutes: _currentRunFull
+          ? SyncConfig.fullCheckTimeoutMinutes
+          : SyncConfig.syncTimeoutMinutes));
     } catch (e) {
       _log('❌ Isolate error: $e');
       _killIsolate();
@@ -967,6 +990,11 @@ class SyncService {
     } finally {
       _receivePort?.close();
       _receivePort = null;
+      // Isolate error path _SyncComplete nahi bhejta — flag reset na ho
+      // to har agla _runSync "pehle se chal rahi hai" keh kar skip hota.
+      if (_status.isSyncing) {
+        _emit(_status.copyWith(isSyncing: false, lastError: _status.lastError));
+      }
     }
   }
 
@@ -987,6 +1015,10 @@ class SyncService {
           lastError:   '[$table] $error',
         ));
       case _SyncComplete():
+        if (_currentRunFull) {
+          _fullCheckDone = true;
+          _log('✅ Full check mukammal — ab normal sync');
+        }
         _emit(_status.copyWith(
           isSyncing:    false,
           lastSyncTime: DateTime.now(),
@@ -1072,6 +1104,16 @@ class SyncService {
         _log(count > 0
             ? '  🔄 $table: $count rows synced'
             : '  ✅ $table: kuch nahi tha');
+      }
+
+      // ── App open: har table ki har row Supabase se match karo ──
+      // Incremental upar ho chuka (naya data pehle pahunche); yahan
+      // sirf woh purani rows jo Supabase mein hain hi nahi.
+      if (args.fullCheck) {
+        _log('  🔎 Full check shuru — har table match ho rahi hai');
+        for (final table in SyncConfig.tables) {
+          await _reconcileTable(db, supabase, table, storeId, send);
+        }
       }
 
       send.send(_SyncComplete());
@@ -1256,6 +1298,13 @@ class SyncService {
         return _upsertRows(db, supabase, table, conflictCol, rows, send);
       }
 
+      final parent = SyncConfig.parentScope(table);
+      if (parent != null) {
+        return _syncChildTable(
+            db, supabase, table, parent.$1, parent.$2, tsCol, conflictCol,
+            storeId, send);
+      }
+
       // ── Step 1: Sirf timestamp fetch karo (min egress) ──
       String? lastSyncedAt;
 
@@ -1338,6 +1387,167 @@ class SyncService {
       _log('  ❌ $table sync error: $e\n$st');
       send.send(_TableError(table, e.toString()));
       return 0;
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  //  🔗 Child Table Sync (items) — parent.store_id se scoped
+  //
+  //  Watermark: Supabase mein IS branch ka latest child row
+  //  (parent par inner join). Local: sirf is branch ke parents
+  //  ke children, watermark - lookbackDays ke baad wale.
+  // ══════════════════════════════════════════════
+
+  static Future<int> _syncChildTable(
+      Connection     db,
+      SupabaseClient supabase,
+      String         table,
+      String         parentTable,
+      String         fkCol,
+      String         tsCol,
+      String         conflictCol,
+      String         storeId,
+      SendPort       send,
+      ) async {
+    String? lastSyncedAt;
+    try {
+      final res = await supabase
+          .from(table)
+          .select('$tsCol, $parentTable!inner(store_id)')
+          .eq('$parentTable.store_id', storeId)
+          .order(tsCol, ascending: false)
+          .limit(1);
+      if (res.isNotEmpty && res[0][tsCol] != null) {
+        lastSyncedAt = res[0][tsCol].toString();
+        _log('  📅 $table — last synced: $lastSyncedAt (store: $storeId)');
+      } else {
+        _log('  📅 $table — Supabase mein kuch nahi, full send');
+      }
+    } catch (e) {
+      // Watermark na mile to full send — upsert idempotent hai
+      _log('  ⚠️  $table — lastSync fetch fail: $e');
+    }
+
+    final result = await db.execute(
+      Sql.named(
+        'SELECT c.* FROM "$table" c '
+            'JOIN "$parentTable" p ON p.id = c."$fkCol" '
+            'WHERE p.store_id = @sid '
+            '${lastSyncedAt != null ? 'AND c."$tsCol" > (@ts::timestamptz - interval \'${SyncConfig.lookbackDays} days\') ' : ''}'
+            'ORDER BY c."$tsCol" ASC',
+      ),
+      parameters: {
+        'sid': storeId,
+        if (lastSyncedAt != null) 'ts': lastSyncedAt,
+      },
+    );
+    final rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+    _log('  📦 $table: ${rows.length} rows milein');
+    return _upsertRows(db, supabase, table, conflictCol, rows, send);
+  }
+
+  // ══════════════════════════════════════════════
+  //  🔎 Full Check (app open par) — local vs Supabase
+  //
+  //  Local ki is branch ki saari ids, Supabase ki saari ids se
+  //  match hoti hain; jo Supabase mein nahi, sirf woh upload.
+  //  Composite conflict wali tables (id match nahi hoti) poori
+  //  bheji jaati hain; fullSyncTables har cycle poori jaati hi hain.
+  // ══════════════════════════════════════════════
+
+  static Future<void> _reconcileTable(
+      Connection     db,
+      SupabaseClient supabase,
+      String         table,
+      String         storeId,
+      SendPort       send,
+      ) async {
+    if (SyncConfig.fullSyncTables.contains(table)) return;
+    try {
+      final parent    = SyncConfig.parentScope(table);
+      final filterCol = SyncConfig.filterColumn(table);
+
+      // ── Local scope: sirf is branch ki rows ──────────
+      final String fromWhere;
+      if (parent != null) {
+        fromWhere = 'FROM "$table" c '
+            'JOIN "${parent.$1}" p ON p.id = c."${parent.$2}" '
+            'WHERE p.store_id = @sid';
+      } else if (filterCol != null) {
+        fromWhere = 'FROM "$table" c WHERE c."$filterCol" = @sid';
+      } else {
+        fromWhere = 'FROM "$table" c WHERE @sid::text IS NOT NULL';
+      }
+
+      // ── Composite conflict: id se match mumkin nahi — poori bhejo
+      if (SyncConfig.conflictColumn(table) != 'id') {
+        final result = await db.execute(
+          Sql.named('SELECT c.* $fromWhere'),
+          parameters: {'sid': storeId},
+        );
+        final rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        _log('  🔎 $table — full check: ${rows.length} rows (poori)');
+        await _upsertRows(db, supabase, table,
+            SyncConfig.conflictColumn(table), rows, send);
+        return;
+      }
+
+      // ── Local ids ─────────────────────────────────────
+      final localRes = await db.execute(
+        Sql.named('SELECT c.id::text AS id $fromWhere'),
+        parameters: {'sid': storeId},
+      );
+      final localIds = localRes
+          .map((r) => r.toColumnMap()['id'].toString())
+          .toSet();
+      if (localIds.isEmpty) return;
+
+      // ── Supabase ids (keyset pagination, 1000 per page) ──
+      final remoteIds = <String>{};
+      String? lastId;
+      while (true) {
+        var q = supabase.from(table).select(
+            parent != null ? 'id, ${parent.$1}!inner(store_id)' : 'id');
+        if (parent != null) {
+          q = q.eq('${parent.$1}.store_id', storeId);
+        } else if (filterCol != null) {
+          q = q.eq(filterCol, storeId);
+        }
+        if (lastId != null) q = q.gt('id', lastId);
+        final page = await q
+            .order('id', ascending: true)
+            .limit(1000)
+            .timeout(const Duration(seconds: 60));
+        if (page.isEmpty) break;
+        for (final r in page) {
+          remoteIds.add(r['id'].toString());
+        }
+        lastId = page.last['id'].toString();
+        if (page.length < 1000) break;
+      }
+
+      final missing = localIds.difference(remoteIds).toList();
+      if (missing.isEmpty) {
+        _log('  🔎 $table — full check: sab ${localIds.length} rows maujood');
+        return;
+      }
+      _log('  🔎 $table — full check: ${missing.length} missing rows mili');
+
+      // ── Missing rows upload (chunks mein) ──────────────
+      const chunk = 500;
+      for (int i = 0; i < missing.length; i += chunk) {
+        final ids = missing.sublist(i, (i + chunk).clamp(0, missing.length));
+        final result = await db.execute(
+          Sql.named('SELECT * FROM "$table" WHERE id = ANY(@ids::uuid[]) '
+              'ORDER BY "${SyncConfig.timestampColumn(table)}" ASC'),
+          parameters: {'ids': ids},
+        );
+        final rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        await _upsertRows(db, supabase, table, 'id', rows, send);
+      }
+    } catch (e, st) {
+      _log('  ❌ $table full check error: $e\n$st');
+      send.send(_TableError(table, 'full check: $e'));
     }
   }
 
