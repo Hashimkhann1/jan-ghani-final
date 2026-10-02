@@ -1,423 +1,345 @@
+// Updated on 2026-10-02 09:35 AM
+// =============================================================
+// warehouse_dashboard_remote_datasource.dart
+// Dashboard v2 (Stitch design) — LOCAL postgres queries.
+//
+// Period (filter) [start, end) Dart mein banta hai (DashboardPeriod)
+// aur timestamptz params ke tor par jata hai. Period par chalte hain:
+// cash in/out, purchases, expenses, chart, stock movements.
+// Baaki (cash in hand, dues, inventory, low/out of stock, pending)
+// hamesha LIVE.
+//
+// Rules (poore app ke saath consistent):
+//   • Purchases = po_type 'purchase' + status 'received' (return/draft nahi)
+//   • Cash out  = cash_in ke ilawa sab; supplier_payment_reversal MINUS
+//   • Low stock = track stock, reorder_point > 0, available <= reorder_point
+//   • Out of stock = track stock, available <= 0   (available = qty − reserved)
+// =============================================================
+
+import 'package:jan_ghani_final/core/config/app_config.dart';
+import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/domain/warehouse_dashboard_models.dart';
 import 'package:postgres/postgres.dart';
-import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
-import 'package:jan_ghani_final/core/config/app_config.dart';
 
 class WarehouseDashboardRemoteDataSource {
   Future<Connection> get _db => DatabaseService.getConnection();
   String get _wid => AppConfig.warehouseId;
 
-  // ── DATE CONDITION HELPER ─────────────────────────────────
-  String _buildDateCondition(
-      PurchaseDateFilter filter,
-      DateTime?          dateFrom,
-      DateTime?          dateTo,
-      ) {
-    switch (filter) {
-      case PurchaseDateFilter.today:
-        return "DATE(created_at AT TIME ZONE 'Asia/Karachi') = CURRENT_DATE";
+  // Cash OUT ka signed amount (reversal = galat payment ki correction)
+  static const _signedOut =
+      "CASE WHEN entry_type = 'supplier_payment_reversal' "
+      "THEN -amount ELSE amount END";
 
-      case PurchaseDateFilter.thisWeek:
-        return "created_at AT TIME ZONE 'Asia/Karachi' >= "
-            "DATE_TRUNC('week', NOW() AT TIME ZONE 'Asia/Karachi')";
+  // Available stock per product (inventory row na ho to 0)
+  static const _availableCte = '''
+    WITH stock AS (
+      SELECT
+        p.id, p.name, p.sku, p.unit_of_measure, p.reorder_point,
+        p.purchase_price, p.is_track_stock,
+        COALESCE(SUM(i.quantity), 0)                            AS qty,
+        COALESCE(SUM(i.quantity - i.reserved_quantity), 0)      AS available
+      FROM warehouse_products p
+      LEFT JOIN warehouse_inventory i
+        ON i.product_id = p.id AND i.warehouse_id = @wid
+      WHERE p.warehouse_id = @wid
+        AND p.is_active    = true
+        AND p.deleted_at   IS NULL
+      GROUP BY p.id
+    )
+  ''';
 
-      case PurchaseDateFilter.thisMonth:
-        return "DATE_TRUNC('month', created_at AT TIME ZONE 'Asia/Karachi') = "
-            "DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Karachi')";
-
-      case PurchaseDateFilter.last3Months:
-        return "created_at AT TIME ZONE 'Asia/Karachi' >= "
-            "(NOW() AT TIME ZONE 'Asia/Karachi' - INTERVAL '3 months')";
-
-      case PurchaseDateFilter.custom:
-        if (dateFrom != null && dateTo != null) {
-          return "DATE(created_at AT TIME ZONE 'Asia/Karachi') "
-              "BETWEEN @dateFrom::date AND @dateTo::date";
-        }
-        return "DATE(created_at AT TIME ZONE 'Asia/Karachi') = CURRENT_DATE";
-    }
-  }
-
-  // ── STATS ─────────────────────────────────────────────────
-  Future<DashboardStats> getStats({
-    PurchaseDateFilter filter    = PurchaseDateFilter.today,
-    DateTime?          dateFrom,
-    DateTime?          dateTo,
-  }) async {
-    final conn          = await _db;
-    final dateCondition = _buildDateCondition(filter, dateFrom, dateTo);
-    final Map<String, dynamic> params = {'wid': _wid};
-    if (filter == PurchaseDateFilter.custom &&
-        dateFrom != null &&
-        dateTo != null) {
-      params['dateFrom'] = dateFrom.toIso8601String().substring(0, 10);
-      params['dateTo']   = dateTo.toIso8601String().substring(0, 10);
-    }
-
+  // ── 1. KPI + Needs attention ──────────────────────────────
+  Future<DashboardSummary> getSummary(DashboardPeriod period) async {
+    final conn   = await _db;
     final result = await conn.execute(
       Sql.named('''
-      SELECT
-        (SELECT COUNT(*)::int
-         FROM warehouse_products
-         WHERE warehouse_id = @wid
-           AND is_active    = true
-           AND deleted_at   IS NULL
-        ) AS total_products,
+        $_availableCte
+        SELECT
+          (SELECT COALESCE(cash_in_hand, 0) FROM warehouse_finance
+            WHERE warehouse_id = @wid LIMIT 1)                       AS cash_in_hand,
 
-        (SELECT COUNT(*)::int
-         FROM v_reorder_needed
-         WHERE warehouse_id = @wid
-        ) AS low_stock_count,
+          (SELECT COALESCE(SUM(amount), 0) FROM warehouse_cash_transactions
+            WHERE warehouse_id = @wid AND entry_type = 'cash_in'
+              AND created_at >= @start AND created_at < @end)        AS period_in,
 
-        (SELECT COUNT(*)::int
-         FROM suppliers
-         WHERE warehouse_id = @wid
-           AND is_active    = true
-           AND deleted_at   IS NULL
-        ) AS active_suppliers,
+          (SELECT COALESCE(SUM($_signedOut), 0) FROM warehouse_cash_transactions
+            WHERE warehouse_id = @wid AND entry_type <> 'cash_in'
+              AND created_at >= @start AND created_at < @end)        AS period_out,
 
-        (SELECT COALESCE(SUM(outstanding_balance), 0)
-         FROM suppliers
-         WHERE warehouse_id = @wid
-           AND is_active    = true
-           AND deleted_at   IS NULL
-        ) AS total_outstanding,
+          (SELECT COALESCE(SUM(total_amount), 0) FROM purchase_orders
+            WHERE warehouse_id = @wid AND deleted_at IS NULL
+              AND po_type = 'purchase' AND status = 'received'
+              AND created_at >= @start AND created_at < @end)        AS purchase_amount,
 
-        (SELECT COUNT(*)::int
-         FROM purchase_orders
-         WHERE warehouse_id = @wid
-           AND status       IN ('draft','ordered','partial')
-           AND deleted_at   IS NULL
-        ) AS pending_pos,
+          (SELECT COUNT(*)::int FROM purchase_orders
+            WHERE warehouse_id = @wid AND deleted_at IS NULL
+              AND po_type = 'purchase' AND status = 'received'
+              AND created_at >= @start AND created_at < @end)        AS purchase_count,
 
-        (SELECT COUNT(*)::int
-         FROM v_unsynced
-         WHERE warehouse_id = @wid
-        ) AS unsynced_records,
+          (SELECT COALESCE(SUM(outstanding_balance), 0) FROM suppliers
+            WHERE warehouse_id = @wid AND is_active = true
+              AND deleted_at IS NULL AND outstanding_balance > 0)    AS supplier_outstanding,
 
-        (SELECT COALESCE(SUM(total_amount), 0)
-         FROM purchase_orders
-         WHERE warehouse_id = @wid
-           AND status       != 'cancelled'
-           AND deleted_at   IS NULL
-           AND $dateCondition
-        ) AS total_purchase_amount,
+          (SELECT COUNT(*)::int FROM suppliers
+            WHERE warehouse_id = @wid AND is_active = true
+              AND deleted_at IS NULL AND outstanding_balance > 0)    AS suppliers_with_dues,
 
-        (SELECT COUNT(*)::int
-         FROM purchase_orders
-         WHERE warehouse_id = @wid
-           AND status       != 'cancelled'
-           AND deleted_at   IS NULL
-           AND $dateCondition
-        ) AS total_orders_count
+          (SELECT COALESCE(SUM(amount), 0) FROM warehouse_expenses
+            WHERE warehouse_id = @wid AND deleted_at IS NULL
+              AND expense_date >= @start AND expense_date < @end)    AS expense_amount,
+
+          (SELECT COALESCE(SUM(amount), 0) FROM warehouse_expenses
+            WHERE warehouse_id = @wid AND deleted_at IS NULL
+              AND expense_head = 'Salary'
+              AND expense_date >= @start AND expense_date < @end)    AS salary_amount,
+
+          (SELECT COALESCE(SUM(GREATEST(qty, 0) * purchase_price), 0)
+             FROM stock)                                             AS inventory_value,
+
+          (SELECT COUNT(*)::int FROM stock)                          AS active_products,
+
+          (SELECT COUNT(*)::int FROM stock
+            WHERE is_track_stock = true AND reorder_point > 0
+              AND available <= reorder_point)                        AS low_stock_count,
+
+          (SELECT COUNT(*)::int FROM stock
+            WHERE is_track_stock = true AND available <= 0)          AS out_of_stock_count,
+
+          (SELECT COUNT(*)::int FROM purchase_orders
+            WHERE warehouse_id = @wid AND deleted_at IS NULL
+              AND po_type = 'purchase'
+              AND status IN ('draft','ordered','partial'))           AS pending_pos,
+
+          (SELECT COUNT(*)::int FROM stock_transfers
+            WHERE warehouse_id = @wid AND deleted_at IS NULL
+              AND status = 'pending')                                AS pending_transfers,
+
+          (SELECT COALESCE(SUM(unsynced_count), 0)::int FROM v_unsynced
+            WHERE warehouse_id = @wid)                               AS unsynced_records
       '''),
-      parameters: params,
+      parameters: {'wid': _wid, 'start': period.start, 'end': period.end},
     );
 
     final m = result.first.toColumnMap();
-    return DashboardStats(
-      totalProducts:       _toInt(m['total_products']),
+    return DashboardSummary(
+      cashInHand:          _toDouble(m['cash_in_hand']),
+      periodCashIn:        _toDouble(m['period_in']),
+      periodCashOut:       _toDouble(m['period_out']),
+      purchaseAmount:      _toDouble(m['purchase_amount']),
+      purchaseCount:       _toInt(m['purchase_count']),
+      supplierOutstanding: _toDouble(m['supplier_outstanding']),
+      suppliersWithDues:   _toInt(m['suppliers_with_dues']),
+      expenseAmount:       _toDouble(m['expense_amount']),
+      salaryAmount:        _toDouble(m['salary_amount']),
+      inventoryValue:      _toDouble(m['inventory_value']),
+      activeProducts:      _toInt(m['active_products']),
       lowStockCount:       _toInt(m['low_stock_count']),
-      activeSuppliers:     _toInt(m['active_suppliers']),
-      totalOutstanding:    _toDouble(m['total_outstanding']),
+      outOfStockCount:     _toInt(m['out_of_stock_count']),
       pendingPOs:          _toInt(m['pending_pos']),
+      pendingTransfers:    _toInt(m['pending_transfers']),
       unsyncedRecords:     _toInt(m['unsynced_records']),
-      totalPurchaseAmount: _toDouble(m['total_purchase_amount']),
-      totalOrdersCount:    _toInt(m['total_orders_count']),
     );
   }
 
-  // ── PURCHASE TREND ────────────────────────────────────────
-  Future<List<PurchaseTrendPoint>> getPurchaseTrend({
-    PurchaseDateFilter filter    = PurchaseDateFilter.today,
-    DateTime?          dateFrom,
-    DateTime?          dateTo,
-  }) async {
-    final conn = await _db;
-    final Map<String, dynamic> params = {'wid': _wid};
-    String query;
+  // ── 2. Purchases vs Cash out (chart) ──────────────────────
+  // Bucket: Today → ghanta · ≤ 31 din → din · zyada → hafta (Monday).
+  // Khaali buckets 0 se bharte hain taake chart poora period dikhaye.
+  Future<List<DashboardTrendPoint>> getTrend(
+      DashboardPeriod period, PurchaseDateFilter filter) async {
+    final days = period.end.difference(period.start).inDays;
+    final unit = filter == PurchaseDateFilter.today
+        ? 'hour' : (days <= 31 ? 'day' : 'week');
 
-    switch (filter) {
-      case PurchaseDateFilter.today:
-        query = '''
-          SELECT
-            EXTRACT(HOUR FROM created_at AT TIME ZONE 'Asia/Karachi')::int AS period,
-            COALESCE(SUM(total_amount), 0) AS amount
-          FROM purchase_orders
-          WHERE warehouse_id = @wid
-            AND status       != 'cancelled'
-            AND deleted_at   IS NULL
-            AND DATE(created_at AT TIME ZONE 'Asia/Karachi') = CURRENT_DATE
-          GROUP BY period
-          ORDER BY period
-        ''';
-        break;
+    final conn   = await _db;
+    final params = {
+      'wid': _wid, 'start': period.start, 'end': period.end, 'unit': unit,
+    };
 
-      case PurchaseDateFilter.thisWeek:
-        query = '''
-          SELECT
-            DATE(created_at AT TIME ZONE 'Asia/Karachi') AS period,
-            COALESCE(SUM(total_amount), 0) AS amount
-          FROM purchase_orders
-          WHERE warehouse_id = @wid
-            AND status       != 'cancelled'
-            AND deleted_at   IS NULL
-            AND created_at AT TIME ZONE 'Asia/Karachi'
-                >= DATE_TRUNC('week', NOW() AT TIME ZONE 'Asia/Karachi')
-          GROUP BY period
-          ORDER BY period
-        ''';
-        break;
-
-      case PurchaseDateFilter.thisMonth:
-        query = '''
-          SELECT
-            DATE(created_at AT TIME ZONE 'Asia/Karachi') AS period,
-            COALESCE(SUM(total_amount), 0) AS amount
-          FROM purchase_orders
-          WHERE warehouse_id = @wid
-            AND status       != 'cancelled'
-            AND deleted_at   IS NULL
-            AND DATE_TRUNC('month', created_at AT TIME ZONE 'Asia/Karachi')
-                = DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Karachi')
-          GROUP BY period
-          ORDER BY period
-        ''';
-        break;
-
-      case PurchaseDateFilter.last3Months:
-        query = '''
-          SELECT
-            DATE_TRUNC('week', created_at AT TIME ZONE 'Asia/Karachi')::date AS period,
-            COALESCE(SUM(total_amount), 0) AS amount
-          FROM purchase_orders
-          WHERE warehouse_id = @wid
-            AND status       != 'cancelled'
-            AND deleted_at   IS NULL
-            AND created_at AT TIME ZONE 'Asia/Karachi'
-                >= (NOW() AT TIME ZONE 'Asia/Karachi' - INTERVAL '3 months')
-          GROUP BY period
-          ORDER BY period
-        ''';
-        break;
-
-      case PurchaseDateFilter.custom:
-        if (dateFrom == null || dateTo == null) return [];
-        params['dateFrom'] = dateFrom.toIso8601String().substring(0, 10);
-        params['dateTo']   = dateTo.toIso8601String().substring(0, 10);
-        final diff = dateTo.difference(dateFrom).inDays;
-        if (diff <= 14) {
-          query = '''
-            SELECT
-              DATE(created_at AT TIME ZONE 'Asia/Karachi') AS period,
-              COALESCE(SUM(total_amount), 0) AS amount
-            FROM purchase_orders
-            WHERE warehouse_id = @wid
-              AND status       != 'cancelled'
-              AND deleted_at   IS NULL
-              AND DATE(created_at AT TIME ZONE 'Asia/Karachi')
-                  BETWEEN @dateFrom::date AND @dateTo::date
-            GROUP BY period
-            ORDER BY period
-          ''';
-        } else {
-          query = '''
-            SELECT
-              DATE_TRUNC('week', created_at AT TIME ZONE 'Asia/Karachi')::date AS period,
-              COALESCE(SUM(total_amount), 0) AS amount
-            FROM purchase_orders
-            WHERE warehouse_id = @wid
-              AND status       != 'cancelled'
-              AND deleted_at   IS NULL
-              AND DATE(created_at AT TIME ZONE 'Asia/Karachi')
-                  BETWEEN @dateFrom::date AND @dateTo::date
-            GROUP BY period
-            ORDER BY period
-          ''';
-        }
-        break;
-    }
-
-    final result = await conn.execute(
-      Sql.named(query),
+    final purchases = await conn.execute(
+      Sql.named('''
+        SELECT date_trunc(@unit::text, created_at AT TIME ZONE 'Asia/Karachi') AS bucket,
+               COALESCE(SUM(total_amount), 0) AS amount
+        FROM purchase_orders
+        WHERE warehouse_id = @wid AND deleted_at IS NULL
+          AND po_type = 'purchase' AND status = 'received'
+          AND created_at >= @start AND created_at < @end
+        GROUP BY bucket
+      '''),
+      parameters: params,
+    );
+    final cashOut = await conn.execute(
+      Sql.named('''
+        SELECT date_trunc(@unit::text, created_at AT TIME ZONE 'Asia/Karachi') AS bucket,
+               COALESCE(SUM($_signedOut), 0) AS amount
+        FROM warehouse_cash_transactions
+        WHERE warehouse_id = @wid AND entry_type <> 'cash_in'
+          AND created_at >= @start AND created_at < @end
+        GROUP BY bucket
+      '''),
       parameters: params,
     );
 
-    return result.map((row) {
-      final m      = row.toColumnMap();
-      final period = m['period'];
-      final amount = _toDouble(m['amount']);
+    Map<String, double> toMap(Result rows) => {
+      for (final r in rows)
+        _key(_toDate(r.toColumnMap()['bucket']), unit):
+            _toDouble(r.toColumnMap()['amount']),
+    };
+    final pMap = toMap(purchases);
+    final cMap = toMap(cashOut);
 
-      String label;
-      if (filter == PurchaseDateFilter.today) {
-        final h   = (period as num).toInt();
-        final am  = h < 12 ? 'AM' : 'PM';
-        final h12 = h % 12 == 0 ? 12 : h % 12;
-        label = '$h12$am';
-      } else if (filter == PurchaseDateFilter.thisWeek) {
-        final dt   = period is DateTime
-            ? period : DateTime.parse(period.toString());
-        final days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-        label = days[dt.weekday - 1];
-      } else {
-        final dt     = period is DateTime
-            ? period : DateTime.parse(period.toString());
-        final months = ['Jan','Feb','Mar','Apr','May','Jun',
-          'Jul','Aug','Sep','Oct','Nov','Dec'];
-        label = '${dt.day} ${months[dt.month - 1]}';
+    // Saare buckets banao (period ke shuru se aakhir tak)
+    final buckets = <DateTime>[];
+    if (unit == 'hour') {
+      for (var h = 0; h < 24; h++) {
+        buckets.add(DateTime(period.start.year, period.start.month,
+            period.start.day, h));
       }
+    } else if (unit == 'day') {
+      for (var d = period.start; d.isBefore(period.end);
+           d = DateTime(d.year, d.month, d.day + 1)) {
+        buckets.add(d);
+      }
+    } else {
+      var w = period.start.subtract(Duration(days: period.start.weekday - 1));
+      w = DateTime(w.year, w.month, w.day);
+      for (; w.isBefore(period.end); w = DateTime(w.year, w.month, w.day + 7)) {
+        buckets.add(w);
+      }
+    }
 
-      return PurchaseTrendPoint(label: label, amount: amount);
+    return buckets.map((b) {
+      final k = _key(b, unit);
+      return DashboardTrendPoint(
+        label:     _label(b, unit, filter),
+        purchases: pMap[k] ?? 0,
+        cashOut:   cMap[k] ?? 0,
+      );
     }).toList();
   }
 
-  // ── SUPPLIER OUTSTANDING BARS ─────────────────────────────
-  Future<List<SupplierOutstandingBar>> getSupplierOutstandingBars() async {
+  // ── 3. Top supplier dues ──────────────────────────────────
+  Future<List<SupplierDue>> getSupplierDues({int limit = 5}) async {
     final conn   = await _db;
     final result = await conn.execute(
       Sql.named('''
-        SELECT
-          id                  AS supplier_id,
-          name                AS supplier_name,
-          outstanding_balance
+        SELECT id AS supplier_id, name AS supplier_name,
+               payment_terms, outstanding_balance
         FROM suppliers
-        WHERE warehouse_id        = @wid
-          AND is_active           = true
-          AND deleted_at          IS NULL
-          AND outstanding_balance > 0
+        WHERE warehouse_id = @wid AND is_active = true
+          AND deleted_at IS NULL AND outstanding_balance > 0
         ORDER BY outstanding_balance DESC
-        LIMIT 6
+        LIMIT @limit
       '''),
-      parameters: {'wid': _wid},
+      parameters: {'wid': _wid, 'limit': limit},
     );
-
-    return result.map((row) {
-      final m = row.toColumnMap();
-      return SupplierOutstandingBar(
-        supplierId:        m['supplier_id'].toString(),
-        supplierName:      m['supplier_name'].toString(),
-        outstandingAmount: _toDouble(m['outstanding_balance']),
-      );
-    }).toList();
-  }
-
-  // ── RECENT POs — pending pehle ────────────────────────────
-  Future<List<RecentPurchaseOrder>> getRecentPOs() async {
-    final conn   = await _db;
-    final result = await conn.execute(
-      Sql.named('''
-        SELECT
-          po.id,
-          po.po_number,
-          COALESCE(s.name, 'Unknown') AS supplier_name,
-          po.status,
-          po.total_amount,
-          po.order_date
-        FROM purchase_orders po
-        LEFT JOIN suppliers s ON s.id = po.supplier_id
-        WHERE po.warehouse_id = @wid
-          AND po.deleted_at   IS NULL
-        ORDER BY
-          CASE po.status
-            WHEN 'ordered'   THEN 1
-            WHEN 'partial'   THEN 2
-            WHEN 'draft'     THEN 3
-            WHEN 'received'  THEN 4
-            WHEN 'cancelled' THEN 5
-            ELSE 6
-          END,
-          po.created_at DESC
-        LIMIT 5
-      '''),
-      parameters: {'wid': _wid},
-    );
-
-    return result.map((row) {
-      final m = row.toColumnMap();
-      return RecentPurchaseOrder(
-        id:           m['id'].toString(),
-        poNumber:     m['po_number'].toString(),
-        supplierName: m['supplier_name'].toString(),
-        status:       m['status'].toString(),
-        totalAmount:  _toDouble(m['total_amount']),
-        orderDate:    m['order_date'] is DateTime
-            ? m['order_date'] as DateTime
-            : DateTime.parse(m['order_date'].toString()),
-      );
-    }).toList();
-  }
-
-  // ── LOW STOCK ─────────────────────────────────────────────
-  Future<List<LowStockItem>> getLowStockItems() async {
-    final conn   = await _db;
-    final result = await conn.execute(
-      Sql.named('''
-        SELECT
-          product_id,
-          product_name,
-          sku,
-          current_stock,
-          reorder_point,
-          max_stock_level,
-          quantity_to_order
-        FROM v_reorder_needed
-        WHERE warehouse_id = @wid
-        ORDER BY current_stock ASC
-        LIMIT 5
-      '''),
-      parameters: {'wid': _wid},
-    );
-
-    return result.map((row) {
-      final m = row.toColumnMap();
-      return LowStockItem(
-        productId:       m['product_id'].toString(),
-        productName:     m['product_name'].toString(),
-        sku:             m['sku'].toString(),
-        currentStock:    _toDouble(m['current_stock']),
-        reorderPoint:    _toInt(m['reorder_point']),
-        maxStockLevel:   m['max_stock_level'] != null
-            ? _toInt(m['max_stock_level']) : null,
-        quantityToOrder: _toDouble(m['quantity_to_order']),
-      );
-    }).toList();
-  }
-
-  // ── SUPPLIER DUES ─────────────────────────────────────────
-  Future<List<SupplierDue>> getSupplierDues() async {
-    final conn   = await _db;
-    final result = await conn.execute(
-      Sql.named('''
-        SELECT
-          s.id            AS supplier_id,
-          s.name          AS supplier_name,
-          COALESCE(s.company_name, s.name) AS company_name,
-          s.payment_terms,
-          s.outstanding_balance
-        FROM suppliers s
-        WHERE s.warehouse_id        = @wid
-          AND s.is_active           = true
-          AND s.deleted_at          IS NULL
-          AND s.outstanding_balance > 0
-        ORDER BY s.outstanding_balance DESC
-        LIMIT 5
-      '''),
-      parameters: {'wid': _wid},
-    );
-
     return result.map((row) {
       final m = row.toColumnMap();
       return SupplierDue(
         supplierId:        m['supplier_id'].toString(),
         supplierName:      m['supplier_name'].toString(),
-        companyName:       m['company_name'].toString(),
         paymentTerms:      _toInt(m['payment_terms']),
         outstandingAmount: _toDouble(m['outstanding_balance']),
       );
     }).toList();
   }
 
+  // ── 4. Low stock — reorder (sab se kam level pehle) ───────
+  Future<List<DashboardLowStockRow>> getLowStock({int limit = 5}) async {
+    final conn   = await _db;
+    final result = await conn.execute(
+      Sql.named('''
+        $_availableCte
+        SELECT name, sku, unit_of_measure, available, reorder_point
+        FROM stock
+        WHERE is_track_stock = true AND reorder_point > 0
+          AND available <= reorder_point
+        ORDER BY (available / NULLIF(reorder_point, 0)) ASC, name
+        LIMIT @limit
+      '''),
+      parameters: {'wid': _wid, 'limit': limit},
+    );
+    return result.map((row) {
+      final m = row.toColumnMap();
+      return DashboardLowStockRow(
+        productName:  m['name'].toString(),
+        sku:          m['sku']?.toString() ?? '',
+        unit:         m['unit_of_measure']?.toString() ?? '',
+        available:    _toDouble(m['available']),
+        reorderPoint: _toInt(m['reorder_point']),
+      );
+    }).toList();
+  }
+
+  // ── 5. Recent stock movements (period, latest pehle) ──────
+  Future<List<DashboardMovement>> getMovements(DashboardPeriod period,
+      {int limit = 6}) async {
+    final conn   = await _db;
+    final result = await conn.execute(
+      Sql.named('''
+        SELECT m.id, m.movement_type, m.quantity, m.created_at,
+               COALESCE(p.name, 'Product') AS product_name,
+               CASE m.reference_type
+                 WHEN 'purchase' THEN po.po_number
+                 WHEN 'transfer' THEN st.transfer_number
+               END AS reference
+        FROM warehouse_stock_movements m
+        LEFT JOIN warehouse_products p ON p.id = m.product_id
+        LEFT JOIN purchase_orders   po ON po.id = m.reference_id
+                                      AND m.reference_type = 'purchase'
+        LEFT JOIN stock_transfers   st ON st.id = m.reference_id
+                                      AND m.reference_type = 'transfer'
+        WHERE m.warehouse_id = @wid
+          AND m.created_at >= @start AND m.created_at < @end
+        ORDER BY m.created_at DESC
+        LIMIT @limit
+      '''),
+      parameters: {
+        'wid': _wid, 'start': period.start, 'end': period.end, 'limit': limit,
+      },
+    );
+    return result.map((row) {
+      final m    = row.toColumnMap();
+      final type = m['movement_type'].toString();
+      final qty  = _toDouble(m['quantity']);
+      // transfer_out / return_out positive save hote hain → minus dikhao.
+      // adjustment pehle se signed hai.
+      final signed = switch (type) {
+        'transfer_out' || 'return_out' => -qty.abs(),
+        'adjustment'                   => qty,
+        _                              => qty.abs(),
+      };
+      return DashboardMovement(
+        id:           m['id'].toString(),
+        productName:  m['product_name'].toString(),
+        movementType: type,
+        reference:    m['reference']?.toString(),
+        signedQty:    signed,
+        createdAt:    _toDate(m['created_at']),
+      );
+    }).toList();
+  }
+
   // ── HELPERS ───────────────────────────────────────────────
+  static const _months = ['Jan','Feb','Mar','Apr','May','Jun',
+                          'Jul','Aug','Sep','Oct','Nov','Dec'];
+  static const _days   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  // date_trunc ka "timestamp without tz" driver se UTC-flag ke saath aata
+  // hai lekin fields Karachi-local hote hain — isliye fields seedha padho.
+  static String _key(DateTime d, String unit) {
+    final ymd = '${d.year}-${d.month}-${d.day}';
+    return unit == 'hour' ? '$ymd-${d.hour}' : ymd;
+  }
+
+  static String _label(DateTime d, String unit, PurchaseDateFilter f) {
+    if (unit == 'hour') {
+      final h12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
+      return '$h12${d.hour < 12 ? 'AM' : 'PM'}';
+    }
+    if (f == PurchaseDateFilter.thisWeek) return _days[d.weekday - 1];
+    return '${d.day} ${_months[d.month - 1]}';
+  }
+
   static double _toDouble(dynamic v) {
     if (v == null) return 0.0;
     if (v is num) return v.toDouble();
@@ -427,6 +349,12 @@ class WarehouseDashboardRemoteDataSource {
   static int _toInt(dynamic v) {
     if (v == null) return 0;
     if (v is int) return v;
+    if (v is num) return v.toInt();
     return int.tryParse(v.toString()) ?? 0;
+  }
+
+  static DateTime _toDate(dynamic v) {
+    if (v is DateTime) return v;
+    return DateTime.tryParse(v.toString()) ?? DateTime.now();
   }
 }

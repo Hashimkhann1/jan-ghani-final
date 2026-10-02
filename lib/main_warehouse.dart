@@ -150,3 +150,8 @@ class _AuthWrapper extends ConsumerWidget {
     return const LoginScreen();
   }
 }
+
+
+
+// git tag ws-v1.*.*
+// git push origin ws-v1.*.*

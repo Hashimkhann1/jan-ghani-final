@@ -1,4 +1,4 @@
-<!-- Updated on 2026-10-01 05:12 PM -->
+<!-- Updated on 2026-10-02 10:07 AM -->
 
 # Jan Ghani POS — Project Context
 
@@ -85,10 +85,11 @@ lib/
 │   │   ├── stock_assign_services/    ← stock transfer sync
 │   │   └── warehouse_supabase_sync_service/
 │   └── widget/
-│       ├── sidebar/
-│       │   ├── sidebar_widget.dart       ← Warehouse sidebar (main nav)
-│       │   └── branch_sidebar_widget.dart
-│       └── nav_tile_widget.dart
+│       └── sidebar/
+│           ├── sidebar_widget.dart              ← Warehouse sidebar (S17: grouped, collapsible 72⇄248)
+│           ├── nav_tile_widget.dart             ← menu item (expanded / collapsed)
+│           ├── sidebar_sync_status_provider.dart ← S17: footer sync status (v_unsynced)
+│           └── branch_sidebar_widget.dart
 │
 └── features/
     ├── warehouse/                    ← HUM SIRF YAHAN KAM KARTE HAIN
@@ -107,11 +108,15 @@ lib/
     │   ├── purchase_invoice/         ← Purchase Orders
     │   ├── supplier/                 ← Supplier management + ledger
     │   ├── warehouse_cash_requests/
-    │   ├── warehouse_dashboard/      ← Dashboard screen + charts
-    │   │   └── presentation/widgets/
-    │   │       ├── warehouse_dashboard_widgets.dart  ← DashStatCard, SectionCard (REUSABLE)
-    │   │       ├── dashboard_chart_widgets.dart      ← PurchaseTrendChart, SupplierOutstandingChart
-    │   │       └── purchase_filter_bar/purchase_filter_bar.dart
+    │   ├── warehouse_dashboard/      ← Dashboard v2 (S17 — Stitch design)
+    │   │   ├── data/warehouse_dashboard_remote_datasource.dart  ← summary/trend/dues/low stock/movements
+    │   │   ├── domain/warehouse_dashboard_models.dart           ← DashboardPeriod, DashboardSummary…
+    │   │   └── presentation/
+    │   │       ├── provider/warehouse_dashboard_provider.dart   ← + dashboardNavRequestProvider
+    │   │       ├── screens/warehouse_dashboard_screen.dart
+    │   │       └── widgets/
+    │   │           ├── dashboard_v2/dashboard_v2_widgets.dart   ← dashboard ke cards/chart
+    │   │           └── warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart ← DashStatCard, SectionCard (REPORTS use karti hain)
     │   ├── warehouse_expense/        ← Expenses
     │   ├── warehouse_finance/        ← Finance / Cash in hand
     │   ├── warehouse_stock_inventory/ ← Products + stock management
@@ -193,23 +198,27 @@ AppColor.background    // white
 ## Navigation Structure (`sidebar_widget.dart`)
 
 ```
-SideBar (90px wide sidebar) — Session 7: har role mein "Company" (Category ke baad) + "Salary" (Expense ke baad) add hue
-├── Role: warehouse_manager → Full nav (Dashboard, Stock, Purchase, Supplier, Assign Stock, Category, Company, Finance, Expense, Salary, Link Stores, User, Reports)
-├── Role: warehouse_owner / default → (Stock, Purchase, Supplier, Category, Company, Finance, Expense, Salary, Reports)
-└── Role: data_entry → (Stock, Supplier, Category, Company, Finance, Expense, Salary)
+SideBar — S17: default COLLAPSED 72px rail ⇄ 248px expanded (Ctrl/Cmd+K = search), groups:
+OVERVIEW · INVENTORY · PURCHASING · FINANCE · ADMIN  (badges nahi; footer = sync status + user/logout)
+├── Role: warehouse_manager → Dashboard, Reports | Stock, Assign Stock, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary | Link Stores, User
+├── Role: warehouse_owner / default → Reports | Stock, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary
+└── Role: data_entry → Stock, Category, Company | Supplier | Finance, Expense, Salary
+Home (login / Reports se wapsi) = pehla non-Reports item (manager = Dashboard, baaki = Stock)
 ```
 
 **Special handling for Reports:**
 ```dart
 // Reports item mein screen: const SizedBox.shrink()
-// Sidebar _buildContent() mein check:
-if (item.label == 'Reports') {
+// SideBar build() mein check:
+if (currentItem.label == 'Reports') {
   return WarehouseReportsShell(
-    onBack: () => setState(() => _index = 0), // Dashboard par wapis
+    onBack: () => setState(() => _index = -1), // home par wapis
   );
 }
 ```
-Jab Reports select ho, main 90px sidebar HIDE ho jata hai, sirf shell full-screen show hoti hai.
+Jab Reports select ho, main sidebar HIDE ho jata hai, sirf shell full-screen show hoti hai.
+
+**Dashboard se navigation:** `dashboardNavRequestProvider` (label) set karo → SideBar `ref.listen` karke us item par jata hai.
 
 ---
 
@@ -422,13 +431,11 @@ ORDER BY ms.month
 **File:** `lib/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart`
 
 ```dart
-DashStatCard(label, value, badge, icon, color, barPercent)  // top stat cards
-SectionCard(headerIcon, title, headerTrailing, children, footerLeft, footerRight)  // card wrapper
-PoStatusBadge(status)      // PO status
-TransferStatusBadge(status)
-StockProgressRow(item, isLast)  // low stock progress
-SupplierDueRow(item, isLast)
-MovementRow(entry, isLast)
+DashStatCard(label, value, badge, icon, color, barPercent)  // top stat cards (reports)
+SectionCard(headerIcon, title, headerTrailing, children, footerLeft, footerRight)  // card wrapper (reports)
+// S17: baaki purane widgets hata diye. Dashboard v2 ke widgets:
+//   widgets/dashboard_v2/dashboard_v2_widgets.dart → DashCard, DashKpiCard,
+//   NeedsAttentionCard, PurchaseCashChartCard, SupplierDuesCard, LowStockCard, MovementsCard
 ```
 
 ---
@@ -450,7 +457,9 @@ MovementRow(entry, isLast)
 | `salaryProvider` | `employee/presentation/provider/salary_provider.dart` | `StateNotifierProvider<SalaryNotifier, SalaryState>` | ⭐ S7 — monthly salary tracking + pay/delete (month state) |
 | `transferReportProvider` | `assign_stock/presentation/providers/assign_stock_report_provider.dart` | `StateNotifierProvider<TransferReportNotifier, TransferReportState>` | Stock transfers data |
 | `assignStockProvider` | `assign_stock/presentation/providers/assign_stock_provider.dart` | StateNotifier | Cart state for assigning stock |
-| `warehouseDashboardProvider` | `warehouse_dashboard/presentation/provider/` | StateNotifier | Dashboard data |
+| `warehouseDashboardProvider` | `warehouse_dashboard/presentation/provider/warehouse_dashboard_provider.dart` | `StateNotifierProvider` | ⭐ S17 — Dashboard v2: summary, trend, dues, low stock, movements + filter |
+| `dashboardNavRequestProvider` | same file | `StateProvider<String?>` | ⭐ S17 — dashboard tile → sidebar screen (label) |
+| `sidebarSyncStatusProvider` | `core/widget/sidebar/sidebar_sync_status_provider.dart` | `FutureProvider.autoDispose` | ⭐ S17 — sidebar footer unsynced count |
 
 ---
 
@@ -490,7 +499,7 @@ class ProductModel {
 7. **Overflow fix pattern:** `OverflowBox + SizedBox` inside `AnimatedContainer` with `Clip.hardEdge`
 8. **Search fields:** always `TextEditingController` + clear (X) button jab text ho
 9. **New feature add karna:** `lib/features/warehouse/<feature_name>/` mein banao, `data/`, `presentation/providers/`, `presentation/screens/`, `presentation/widgets/` structure follow karo
-10. **Sidebar:** `sidebar_widget.dart` mein NavItem add karo, Reports jaise special case mein `_buildContent()` override karo
+10. **Sidebar:** `sidebar_widget.dart` mein `NavItem(icon, label, screen, group:)` add karo aur role list mein group order mein rakho; Reports jaisa special case `build()` mein
 
 ---
 
@@ -1366,6 +1375,71 @@ Store counting (Supabase inventory_counting)
 
 ### Files (Session 16)
 `inventory_balance_provider.dart` · `create_batch_panel.dart` · `inventory_balance_remote_datasource.dart` · `inventory_balance_repository.dart` (sab `lib/features/warehouse/inventory_balance/`)
+
+---
+
+## Session 17 — Dashboard v2 (Stitch) · Dashboard cleanup · Sidebar redesign · Employee mobile responsive ⭐⭐
+
+> **Maqsad:** Warehouse dashboard ko Stitch design par naya banaya (asal data, dummy hataya), dashboard ka bekar code hataya, warehouse sidebar ko grouped/collapsible design diya, aur Employee (Salary) feature ko mobile par overflow-free kiya — desktop design same.
+> **Stitch project:** "Jan Ghani — Warehouse Dashboard v2" — https://stitch.withgoogle.com/projects/9155843749988575711 (screens: dashboard bina "Recent purchase orders" + "Improved Sidebar in Context")
+
+### 1. Dashboard v2 (`warehouse_dashboard/`) — Stitch design ka code
+**Layout (upar se neeche):** TopBar (title · `AppConfig.warehouseCode` chip · unsynced pill · user pill · refresh) → Filter pills (Today / This Week / This Month / Last 3 Months / Custom range) → **5 KPI cards** → **Needs attention** (5 tiles) → Row(Purchases vs Cash out chart 60% + Top supplier dues 40%) → Row(Low stock — reorder 50% + Recent stock movements 50%).
+
+| Hissa | Data | Rule |
+|---|---|---|
+| Cash in hand | `warehouse_finance.cash_in_hand` + period in/out | out mein `supplier_payment_reversal` **minus** |
+| Purchases (period) | `purchase_orders` | sirf `po_type='purchase'` + `status='received'` (return/draft nahi) |
+| Supplier outstanding | `suppliers.outstanding_balance > 0` | live |
+| Expenses (period) | `warehouse_expenses` (`expense_date`) | salary = `expense_head='Salary'` |
+| Inventory value | Σ `GREATEST(qty,0) × purchase_price` | active, non-deleted products |
+| Low / Out of stock | `available = qty − reserved` | low: track stock + `reorder_point > 0` + available ≤ reorder; out: available ≤ 0 |
+| Pending POs / transfers | POs draft/ordered/partial · `stock_transfers` pending | live |
+| Cash requests | `pendingCashRequestsProvider` (Supabase stream) | live |
+| Unsynced | `SUM(v_unsynced.unsynced_count)` | ⚠️ pehle `COUNT(*)` tha (groups ginta tha — galat) |
+| Chart | POs + cash out per bucket | Today = ghanta · ≤31 din = din · zyada = hafta (Monday); khaali buckets 0 |
+| Top supplier dues | top 5 by outstanding | badge = `payment_terms` (credit days) — aging data nahi |
+| Low stock table | top 5 by level (available/reorder) | <30% laal, warna amber |
+| Recent movements | `warehouse_stock_movements` (period, latest 6) | ref = PO number / transfer number; sign type se (`transfer_out`/`return_out` −, `adjustment` signed) |
+
+- **Period:** `DashboardPeriod.of(filter, from, to)` Dart mein `[start, end)` banata hai → timestamptz params. Chart buckets `date_trunc(@unit::text, created_at AT TIME ZONE 'Asia/Karachi')`.
+- **Provider:** `loadDashboard()` (pehli load spinner) · `refresh()` / `applyFilter()` / `applyCustomRange()` (`isRefreshing` — screen chhupti nahi) · `copyWith(clearError:)` · filter error par sirf upar laal banner + Retry.
+- **Navigation:** naya `dashboardNavRequestProvider` (`StateProvider<String?>`) — tile/link label set karta hai (`'Stock'`, `'Purchase Order'`, `'Assign Stock'`, `'Supplier'`), `SideBar` `ref.listen` karke us item par jata aur `null` karta. Cash requests → `WarehouseCashRequestsScreen` push.
+- **Responsive:** KPI ≥1150 = 5/row, warna 3/2/1 Wrap; rows ≥1000 side-by-side, warna stacked. Cards fixed height (row3 450, row4 580) — scroll view mein `stretch` nahi.
+- **Design se farq:** amounts `pkrFormat` (western commas, app convention); "Full log →" link nahi (movements screen nahi); "Terminal 01" ki jagah warehouse code.
+
+### 2. Dashboard cleanup (sirf `warehouse_dashboard/`)
+- **Delete:** `data/warehouse_dashboard_dummy_data.dart`, `widgets/dashboard_chart_widgets/`, `widgets/purchase_filter_bar/`.
+- `warehouse_dashboard_widgets.dart` → sirf **`DashStatCard` + `SectionCard`** (4 reports inhein use karti hain). Hataye: `PoStatusBadge`, `TransferStatusBadge`, `StockProgressRow`, `SupplierDueRow`, `MovementRow` (purchase invoice ka apna `PoStatusBadge` hai).
+- Models se hataye: `DashboardStats`, `PurchaseTrendPoint`, `SupplierOutstandingBar`, `RecentPurchaseOrder`, `PendingTransfer`, `LowStockItem`, `StockMovementEntry`; `SupplierDue` se `companyName`/`initials`.
+- **Ab 6 files:** datasource · models · provider · screen · `widgets/dashboard_v2/dashboard_v2_widgets.dart` · `warehouse_dashboard_widgets.dart` (reports ke liye).
+
+### 3. Warehouse sidebar redesign (`core/widget/sidebar/`)
+- **Default COLLAPSED 72px rail** (sirf icons + tooltip) ⇄ **Expanded 248px** (chevron button ya **Ctrl/Cmd + K**). Width animation = `AnimatedContainer` + `OverflowBox` + `SizedBox` + `Clip.hardEdge`.
+- **Groups:** OVERVIEW (Dashboard, Reports) · INVENTORY (Stock, Assign Stock, Inventory Balance, Category, Company) · PURCHASING (Purchase Order, Supplier) · FINANCE (Finance, Expense, Salary) · ADMIN (Link Stores, User). `NavItem` mein naya `group` field; role lists isi order mein (data_entry/owner ko unke items hi).
+- **Search menu** (Ctrl/Cmd+K focus, type = filter, Enter = pehla match).
+- **Active item:** purple tint + left 3px indicator. **Badges NAHI** (user ne hatwaye).
+- **Footer:** sync status (`sidebarSyncStatusProvider` → `SUM(v_unsynced)`, har 60 sec refresh; "Synced · Xm ago" = ginti kab **check** hui, asal sync time nahi — sync service untouched) + user card (initials avatar, naam, role · code, logout). Rail mein sync dot + avatar menu (Logout).
+- **Home:** `_index = -1` → pehla non-Reports item (manager = Dashboard, baaki = Stock); Reports se wapsi bhi home. Reports full-width shell + cash request card + dashboard nav — pehle jaisa.
+- **Files:** `sidebar_widget.dart` (rewrite) · `nav_tile_widget.dart` (expanded/collapsed tile) · **naya** `sidebar_sync_status_provider.dart`.
+
+### 4. Employee (Salary) — mobile responsive (sirf UI)
+- Breakpoint **`_kNarrowWidth = 700`** (`LayoutBuilder`) — kam = mobile layout, zyada = **pehle wala desktop layout bilkul same**. Logic/providers/dialogs untouched (dialogs mein overflow tha hi nahi).
+- **Salary Tracking (mobile):** top bar 2 lines (title + refresh + Employees icon-only / month nav center) · cards 2×2 (amount `FittedBox scaleDown`) · employee row 2 lines (naam + badge + history / Paid-Baaki + Pay 100px) · payment line ek Expanded text (ellipsis) + date.
+- **Employees (mobile):** "New Employee" → icon-only `+` · chips `Wrap` + search full width · card mein salary naam ke neeche (active: salary + "Max advance" ek text; inactive: salary FittedBox + badge) · edit/delete `VisualDensity.compact` · naam `Flexible` ellipsis.
+- **Verify:** temporary widget test (fake notifiers, Arial font as Roboto) — 288 / 340 / 412 / 1280 px par 0 overflow; screenshots dekhe; test file delete.
+
+### ⚠️ Session 17 lessons
+1. **Stitch `edit_screens`** live session mein DOM edit karta hai lekin **project mein save nahi** hota (export purana rehta) → change ke liye **naya screen generate** karo aur screenshot se verify karo.
+2. **`v_unsynced`** per-warehouse **grouped** view hai — `COUNT(*)` nahi, `SUM(unsynced_count)`.
+3. Flutter widget test ka default **Ahem** font har akshar = font size chaura → overflow over-report. Realistic check: `FontLoader('Roboto')` mein system font load karo.
+4. Row mein `Flexible` text + `Spacer` dono flexible → space aadha-aadha bantta (date right edge se hat-ti). Desktop same rakhna ho to naya layout sirf `compact` branch mein.
+5. `build_runner build --build-filter` doosri generated mock files **delete** kar sakta hai → `git restore` se wapas (Session 15 mock regen mein hua).
+
+### Files (Session 17)
+**Dashboard:** `warehouse_dashboard_remote_datasource.dart` · `warehouse_dashboard_models.dart` · `warehouse_dashboard_provider.dart` · `warehouse_dashboard_screen.dart` · **naya** `widgets/dashboard_v2/dashboard_v2_widgets.dart` · `warehouse_dashboard_widgets.dart` (trim) · 3 files delete
+**Sidebar:** `sidebar_widget.dart` · `nav_tile_widget.dart` · **naya** `sidebar_sync_status_provider.dart`
+**Employee:** `salary_tracking_screen.dart` · `employees_screen.dart`
 
 ---
 

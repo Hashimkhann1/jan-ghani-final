@@ -1,21 +1,32 @@
+// Updated on 2026-10-02 09:31 AM
+// =============================================================
+// warehouse_dashboard_provider.dart
+// Dashboard v2 (Stitch design) — state + notifier.
+//   • loadDashboard()  — pehli load (full-screen spinner)
+//   • applyFilter / applyCustomRange — period badla → sab data
+//     refresh, screen dikhti rehti hai (isRefreshing)
+//   • dashboardNavRequestProvider — "Needs attention" tile / links
+//     se sidebar ko screen badalne ka signal
+// =============================================================
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/warehouse_dashboard_models.dart';
 import '../../data/warehouse_dashboard_remote_datasource.dart';
-import '../../data/warehouse_dashboard_dummy_data.dart';
+
+/// Sidebar item ka label (jaise 'Stock', 'Supplier'). Dashboard set karta
+/// hai, SideBar sun kar us screen par jata hai aur wapas null kar deta hai.
+final dashboardNavRequestProvider = StateProvider<String?>((ref) => null);
 
 class WarehouseDashboardState {
-  final DashboardStats?               stats;
-  final List<RecentPurchaseOrder>     recentPOs;
-  final List<PendingTransfer>         pendingTransfers;
-  final List<LowStockItem>            lowStockItems;
-  final List<SupplierDue>             supplierDues;
-  final List<StockMovementEntry>      stockMovements;
-  final List<PurchaseTrendPoint>      purchaseTrend;
-  final List<SupplierOutstandingBar>  supplierOutstandingBars;
-  final bool                          isLoading;
-  final bool                          isChartLoading;
-  final String?                       errorMessage;
+  final DashboardSummary?           summary;
+  final List<DashboardTrendPoint>   trend;
+  final List<SupplierDue>           supplierDues;
+  final List<DashboardLowStockRow>  lowStock;
+  final List<DashboardMovement>     movements;
+  final bool                        isLoading;     // pehli load
+  final bool                        isRefreshing;  // filter / refresh
+  final String?                     errorMessage;
 
   // ── Filter state ──────────────────────────────────────────
   final PurchaseDateFilter activeFilter;
@@ -23,53 +34,49 @@ class WarehouseDashboardState {
   final DateTime?          customTo;
 
   const WarehouseDashboardState({
-    this.stats,
-    this.recentPOs              = const [],
-    this.pendingTransfers       = const [],
-    this.lowStockItems          = const [],
-    this.supplierDues           = const [],
-    this.stockMovements         = const [],
-    this.purchaseTrend          = const [],
-    this.supplierOutstandingBars = const [],
-    this.isLoading              = false,
-    this.isChartLoading         = false,
+    this.summary,
+    this.trend        = const [],
+    this.supplierDues = const [],
+    this.lowStock     = const [],
+    this.movements    = const [],
+    this.isLoading    = false,
+    this.isRefreshing = false,
     this.errorMessage,
-    this.activeFilter           = PurchaseDateFilter.today,
+    this.activeFilter = PurchaseDateFilter.today,
     this.customFrom,
     this.customTo,
   });
 
+  DashboardPeriod get period =>
+      DashboardPeriod.of(activeFilter, customFrom, customTo);
+
   WarehouseDashboardState copyWith({
-    DashboardStats?               stats,
-    List<RecentPurchaseOrder>?    recentPOs,
-    List<PendingTransfer>?        pendingTransfers,
-    List<LowStockItem>?           lowStockItems,
-    List<SupplierDue>?            supplierDues,
-    List<StockMovementEntry>?     stockMovements,
-    List<PurchaseTrendPoint>?     purchaseTrend,
-    List<SupplierOutstandingBar>? supplierOutstandingBars,
-    bool?                         isLoading,
-    bool?                         isChartLoading,
-    String?                       errorMessage,
-    PurchaseDateFilter?           activeFilter,
-    DateTime?                     customFrom,
-    DateTime?                     customTo,
+    DashboardSummary?           summary,
+    List<DashboardTrendPoint>?  trend,
+    List<SupplierDue>?          supplierDues,
+    List<DashboardLowStockRow>? lowStock,
+    List<DashboardMovement>?    movements,
+    bool?                       isLoading,
+    bool?                       isRefreshing,
+    String?                     errorMessage,
+    PurchaseDateFilter?         activeFilter,
+    DateTime?                   customFrom,
+    DateTime?                   customTo,
+    bool                        clearError  = false, // ?? se null set nahi hota
+    bool                        clearCustom = false,
   }) {
     return WarehouseDashboardState(
-      stats:                   stats                   ?? this.stats,
-      recentPOs:               recentPOs               ?? this.recentPOs,
-      pendingTransfers:        pendingTransfers         ?? this.pendingTransfers,
-      lowStockItems:           lowStockItems            ?? this.lowStockItems,
-      supplierDues:            supplierDues             ?? this.supplierDues,
-      stockMovements:          stockMovements           ?? this.stockMovements,
-      purchaseTrend:           purchaseTrend            ?? this.purchaseTrend,
-      supplierOutstandingBars: supplierOutstandingBars  ?? this.supplierOutstandingBars,
-      isLoading:               isLoading               ?? this.isLoading,
-      isChartLoading:          isChartLoading           ?? this.isChartLoading,
-      errorMessage:            errorMessage            ?? this.errorMessage,
-      activeFilter:            activeFilter            ?? this.activeFilter,
-      customFrom:              customFrom              ?? this.customFrom,
-      customTo:                customTo                ?? this.customTo,
+      summary:      summary      ?? this.summary,
+      trend:        trend        ?? this.trend,
+      supplierDues: supplierDues ?? this.supplierDues,
+      lowStock:     lowStock     ?? this.lowStock,
+      movements:    movements    ?? this.movements,
+      isLoading:    isLoading    ?? this.isLoading,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      activeFilter: activeFilter ?? this.activeFilter,
+      customFrom:   clearCustom ? null : (customFrom ?? this.customFrom),
+      customTo:     clearCustom ? null : (customTo   ?? this.customTo),
     );
   }
 }
@@ -83,89 +90,59 @@ class WarehouseDashboardNotifier
       : _ds = WarehouseDashboardRemoteDataSource(),
         super(const WarehouseDashboardState());
 
-  // ── Initial load ──────────────────────────────────────────
+  // ── Pehli load — full-screen spinner ──────────────────────
   Future<void> loadDashboard() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-    try {
-      final results = await Future.wait([
-        _ds.getStats(filter: state.activeFilter),
-        _ds.getRecentPOs(),
-        _ds.getLowStockItems(),
-        _ds.getSupplierDues(),
-        _ds.getPurchaseTrend(filter: state.activeFilter),
-        _ds.getSupplierOutstandingBars(),
-      ]);
-
-      state = state.copyWith(
-        stats:                   results[0] as DashboardStats,
-        recentPOs:               results[1] as List<RecentPurchaseOrder>,
-        lowStockItems:           results[2] as List<LowStockItem>,
-        supplierDues:            results[3] as List<SupplierDue>,
-        purchaseTrend:           results[4] as List<PurchaseTrendPoint>,
-        supplierOutstandingBars: results[5] as List<SupplierOutstandingBar>,
-        pendingTransfers:        dummyPendingTransfers,
-        stockMovements:          dummyStockMovements,
-        isLoading:               false,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading:    false,
-        errorMessage: 'Dashboard load karne mein masla: $e',
-      );
-    }
+    state = state.copyWith(isLoading: true, clearError: true);
+    await _fetchAll();
+    state = state.copyWith(isLoading: false);
   }
 
-  // ── Filter change ─────────────────────────────────────────
+  // ── Refresh button / filter — screen dikhti rahe ──────────
+  Future<void> refresh() async {
+    if (state.summary == null) return loadDashboard();
+    state = state.copyWith(isRefreshing: true, clearError: true);
+    await _fetchAll();
+    state = state.copyWith(isRefreshing: false);
+  }
+
   Future<void> applyFilter(PurchaseDateFilter filter) async {
     state = state.copyWith(
       activeFilter: filter,
-      customFrom: filter != PurchaseDateFilter.custom ? null : state.customFrom,
-      customTo:   filter != PurchaseDateFilter.custom ? null : state.customTo,
+      clearCustom:  filter != PurchaseDateFilter.custom,
     );
-    await _reloadStatsAndCharts();
+    await refresh();
   }
 
-  // ── Custom date range ─────────────────────────────────────
   Future<void> applyCustomRange(DateTime from, DateTime to) async {
     state = state.copyWith(
       activeFilter: PurchaseDateFilter.custom,
       customFrom:   from,
       customTo:     to,
     );
-    await _reloadStatsAndCharts();
+    await refresh();
   }
 
-  // ── Stats + Charts reload — filter change pe ─────────────
-  Future<void> _reloadStatsAndCharts() async {
-    state = state.copyWith(isChartLoading: true);
+  Future<void> _fetchAll() async {
+    final period = state.period;
     try {
       final results = await Future.wait([
-        _ds.getStats(
-          filter:   state.activeFilter,
-          dateFrom: state.customFrom,
-          dateTo:   state.customTo,
-        ),
-        _ds.getPurchaseTrend(
-          filter:   state.activeFilter,
-          dateFrom: state.customFrom,
-          dateTo:   state.customTo,
-        ),
+        _ds.getSummary(period),
+        _ds.getTrend(period, state.activeFilter),
+        _ds.getSupplierDues(),
+        _ds.getLowStock(),
+        _ds.getMovements(period),
       ]);
-
       state = state.copyWith(
-        stats:          results[0] as DashboardStats,
-        purchaseTrend:  results[1] as List<PurchaseTrendPoint>,
-        isChartLoading: false,
+        summary:      results[0] as DashboardSummary,
+        trend:        results[1] as List<DashboardTrendPoint>,
+        supplierDues: results[2] as List<SupplierDue>,
+        lowStock:     results[3] as List<DashboardLowStockRow>,
+        movements:    results[4] as List<DashboardMovement>,
       );
     } catch (e) {
-      state = state.copyWith(
-        isChartLoading: false,
-        errorMessage:   'Filter apply karne mein masla: $e',
-      );
+      state = state.copyWith(errorMessage: 'Dashboard load nahi hua: $e');
     }
   }
-
-  Future<void> refresh() => loadDashboard();
 }
 
 final warehouseDashboardProvider =

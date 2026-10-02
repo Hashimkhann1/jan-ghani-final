@@ -1,3 +1,4 @@
+// Updated on 2026-10-02 09:35 AM
 // =============================================================
 // warehouse_dashboard_models.dart
 // =============================================================
@@ -10,191 +11,156 @@ enum PurchaseDateFilter {
   custom,
 }
 
-class DashboardStats {
-  final int    totalProducts;
-  final int    lowStockCount;
-  final int    activeSuppliers;
-  final double totalOutstanding;
-  final int    pendingPOs;
-  final int    unsyncedRecords;
-  final double totalPurchaseAmount;
-  final int    totalOrdersCount;
+// ═════════════════════════════════════════════════════════════
+// DASHBOARD (Stitch design) — models
+// ═════════════════════════════════════════════════════════════
 
-  const DashboardStats({
-    required this.totalProducts,
-    required this.lowStockCount,
-    required this.activeSuppliers,
-    required this.totalOutstanding,
-    required this.pendingPOs,
-    required this.unsyncedRecords,
-    required this.totalPurchaseAmount,
-    required this.totalOrdersCount,
-  });
-}
+/// Period (filter) ka [start, end) — local time, end exclusive.
+class DashboardPeriod {
+  final DateTime start;
+  final DateTime end;
+  const DashboardPeriod(this.start, this.end);
 
-// ── Purchase Trend Chart — ek point (label + amount) ─────────
-class PurchaseTrendPoint {
-  final String label;   // "Mon", "10 Apr", "9 AM" etc
-  final double amount;
-
-  const PurchaseTrendPoint({
-    required this.label,
-    required this.amount,
-  });
-}
-
-// ── Supplier Outstanding Chart — ek supplier bar ─────────────
-class SupplierOutstandingBar {
-  final String supplierId;
-  final String supplierName;
-  final double outstandingAmount;
-
-  const SupplierOutstandingBar({
-    required this.supplierId,
-    required this.supplierName,
-    required this.outstandingAmount,
-  });
-}
-
-class RecentPurchaseOrder {
-  final String   id;
-  final String   poNumber;
-  final String   supplierName;
-  final String   status;
-  final double   totalAmount;
-  final DateTime orderDate;
-
-  const RecentPurchaseOrder({
-    required this.id,
-    required this.poNumber,
-    required this.supplierName,
-    required this.status,
-    required this.totalAmount,
-    required this.orderDate,
-  });
-
-  String get statusLabel {
-    switch (status) {
-      case 'draft':     return 'Draft';
-      case 'ordered':   return 'Ordered';
-      case 'partial':   return 'Partial';
-      case 'received':  return 'Received';
-      case 'cancelled': return 'Cancelled';
-      default:          return status;
+  static DashboardPeriod of(
+      PurchaseDateFilter f, DateTime? from, DateTime? to) {
+    final n     = DateTime.now();
+    final today = DateTime(n.year, n.month, n.day);
+    final tmrw  = today.add(const Duration(days: 1));
+    switch (f) {
+      case PurchaseDateFilter.today:
+        return DashboardPeriod(today, tmrw);
+      case PurchaseDateFilter.thisWeek:
+        return DashboardPeriod(
+            today.subtract(Duration(days: today.weekday - 1)), tmrw);
+      case PurchaseDateFilter.thisMonth:
+        return DashboardPeriod(DateTime(n.year, n.month, 1), tmrw);
+      case PurchaseDateFilter.last3Months:
+        return DashboardPeriod(DateTime(n.year, n.month - 3, n.day), tmrw);
+      case PurchaseDateFilter.custom:
+        if (from == null || to == null) return DashboardPeriod(today, tmrw);
+        return DashboardPeriod(
+          DateTime(from.year, from.month, from.day),
+          DateTime(to.year, to.month, to.day).add(const Duration(days: 1)),
+        );
     }
   }
 }
 
-class PendingTransfer {
-  final String   id;
-  final String   transferNumber;
-  final String   fromLocation;
-  final String   toLocation;
-  final String   status;
-  final int      totalItems;
-  final double   totalCost;
-  final DateTime requestedAt;
+extension PurchaseDateFilterLabel on PurchaseDateFilter {
+  /// KPI label suffix — "Purchases (Today)"
+  String get shortLabel {
+    switch (this) {
+      case PurchaseDateFilter.today:       return 'Today';
+      case PurchaseDateFilter.thisWeek:    return 'This Week';
+      case PurchaseDateFilter.thisMonth:   return 'This Month';
+      case PurchaseDateFilter.last3Months: return '3 Months';
+      case PurchaseDateFilter.custom:      return 'Custom';
+    }
+  }
+}
 
-  const PendingTransfer({
-    required this.id,
-    required this.transferNumber,
-    required this.fromLocation,
-    required this.toLocation,
-    required this.status,
-    required this.totalItems,
-    required this.totalCost,
-    required this.requestedAt,
+/// KPI cards + "Needs attention" counts — ek query se.
+class DashboardSummary {
+  final double cashInHand;
+  final double periodCashIn;
+  final double periodCashOut;     // reversal minus
+  final double purchaseAmount;    // received purchase POs (period)
+  final int    purchaseCount;
+  final double supplierOutstanding;
+  final int    suppliersWithDues;
+  final double expenseAmount;     // period (salary samet)
+  final double salaryAmount;      // period, head = Salary
+  final double inventoryValue;    // qty × purchase_price
+  final int    activeProducts;
+  final int    lowStockCount;
+  final int    outOfStockCount;
+  final int    pendingPOs;
+  final int    pendingTransfers;
+  final int    unsyncedRecords;
+
+  const DashboardSummary({
+    required this.cashInHand,
+    required this.periodCashIn,
+    required this.periodCashOut,
+    required this.purchaseAmount,
+    required this.purchaseCount,
+    required this.supplierOutstanding,
+    required this.suppliersWithDues,
+    required this.expenseAmount,
+    required this.salaryAmount,
+    required this.inventoryValue,
+    required this.activeProducts,
+    required this.lowStockCount,
+    required this.outOfStockCount,
+    required this.pendingPOs,
+    required this.pendingTransfers,
+    required this.unsyncedRecords,
   });
 }
 
-class LowStockItem {
-  final String productId;
+/// "Purchases vs Cash out" chart ka ek bucket (ghanta / din / hafta).
+class DashboardTrendPoint {
+  final String label;
+  final double purchases;
+  final double cashOut;
+  const DashboardTrendPoint({
+    required this.label,
+    required this.purchases,
+    required this.cashOut,
+  });
+}
+
+/// "Low stock — reorder" table row (available = qty − reserved).
+class DashboardLowStockRow {
   final String productName;
   final String sku;
-  final double currentStock;
+  final String unit;
+  final double available;
   final int    reorderPoint;
-  final int?   maxStockLevel;
-  final double quantityToOrder;
 
-  const LowStockItem({
-    required this.productId,
+  const DashboardLowStockRow({
     required this.productName,
     required this.sku,
-    required this.currentStock,
+    required this.unit,
+    required this.available,
     required this.reorderPoint,
-    this.maxStockLevel,
-    required this.quantityToOrder,
   });
 
-  double get stockPercent {
-    final max = maxStockLevel?.toDouble() ?? 100;
-    return (currentStock / max).clamp(0.0, 1.0);
-  }
-
-  bool get isCritical => stockPercent < 0.20;
+  /// Reorder point ke muqable kitna stock bacha (0..1)
+  double get level => reorderPoint <= 0
+      ? 0 : (available / reorderPoint).clamp(0.0, 1.0);
 }
 
+/// "Recent stock movements" row — quantity sign type se (in +, out −).
+class DashboardMovement {
+  final String   id;
+  final String   productName;
+  final String   movementType;  // purchase_in / transfer_out / return_in / return_out / adjustment / opening
+  final String?  reference;     // PO / transfer number
+  final double   signedQty;
+  final DateTime createdAt;
+
+  const DashboardMovement({
+    required this.id,
+    required this.productName,
+    required this.movementType,
+    this.reference,
+    required this.signedQty,
+    required this.createdAt,
+  });
+}
+
+/// "Top supplier dues" row
 class SupplierDue {
   final String supplierId;
   final String supplierName;
-  final String companyName;
-  final int    paymentTerms;
+  final int    paymentTerms;      // credit days
   final double outstandingAmount;
 
   const SupplierDue({
     required this.supplierId,
     required this.supplierName,
-    required this.companyName,
     required this.paymentTerms,
     required this.outstandingAmount,
   });
-
-  String get initials {
-    final parts = supplierName.split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return supplierName.substring(0, 2).toUpperCase();
-  }
-}
-
-class StockMovementEntry {
-  final String   id;
-  final String   productName;
-  final String   movementType;
-  final String?  referenceType;
-  final String?  referenceNumber;
-  final double   quantity;
-  final DateTime createdAt;
-
-  const StockMovementEntry({
-    required this.id,
-    required this.productName,
-    required this.movementType,
-    this.referenceType,
-    this.referenceNumber,
-    required this.quantity,
-    required this.createdAt,
-  });
-
-  bool get isInward  => quantity > 0;
-  bool get isOutward => quantity < 0;
-
-  String get movementLabel {
-    switch (movementType) {
-      case 'purchase_in':  return 'purchase_in';
-      case 'transfer_out': return 'transfer_out';
-      case 'return_in':    return 'return_in';
-      case 'adjustment':   return 'adjustment';
-      default:             return movementType;
-    }
-  }
-
-  String get timeLabel {
-    final h   = createdAt.hour;
-    final m   = createdAt.minute.toString().padLeft(2, '0');
-    final am  = h < 12 ? 'AM' : 'PM';
-    final h12 = h % 12 == 0 ? 12 : h % 12;
-    return '$h12:$m $am';
-  }
 }

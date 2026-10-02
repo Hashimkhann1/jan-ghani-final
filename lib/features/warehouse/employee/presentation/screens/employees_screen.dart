@@ -1,5 +1,8 @@
+// Updated on 2026-10-02 10:04 AM
 // =============================================================
 // employees_screen.dart — employee master list
+// Mobile (< 700px): "New" icon-only, chips Wrap + search full width,
+// card mein salary naam ke neeche. Desktop layout pehle jaisa.
 // =============================================================
 
 import 'package:flutter/material.dart';
@@ -31,96 +34,138 @@ class EmployeesScreen extends ConsumerWidget {
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppColor.background,
-      appBar: AppBar(
-        backgroundColor: AppColor.surface,
-        elevation: 0,
-        foregroundColor: AppColor.textPrimary,
-        title: const Text('Employees',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: SizedBox(
-              width: 180,
-              child: ElevatedButton.icon(
-                onPressed: () => AddEmployeeDialog.show(context),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('New Employee'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: AppColor.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ),
-          ),
-        ],
+    final chips = [
+      _StatChip(label: 'Total', value: '${state.totalCount}',
+          icon: Icons.people_outline, color: AppColor.primary),
+      _StatChip(label: 'Active', value: '${state.activeCount}',
+          icon: Icons.check_circle_outline_rounded, color: AppColor.success),
+      _StatChip(label: 'Monthly Total', value: 'Rs ${state.totalMonthly.pkrFormat}',
+          icon: Icons.payments_outlined, color: const Color(0xFF5C6BC0)),
+    ];
+
+    final searchField = TextField(
+      onChanged: notifier.onSearch,
+      decoration: InputDecoration(
+        hintText: 'Name ya phone se search...',
+        hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
+        prefixIcon: const Icon(Icons.search_rounded,
+            color: AppColor.grey400, size: 20),
+        filled: true, fillColor: AppColor.grey100,
+        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 14),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: AppColor.grey200)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: AppColor.grey200)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
       ),
-      body: Column(children: [
-        // Stats + search
-        Container(
-          color: AppColor.surface,
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
-          child: Row(children: [
-            _StatChip(label: 'Total', value: '${state.totalCount}',
-                icon: Icons.people_outline, color: AppColor.primary),
-            const SizedBox(width: 12),
-            _StatChip(label: 'Active', value: '${state.activeCount}',
-                icon: Icons.check_circle_outline_rounded, color: AppColor.success),
-            const SizedBox(width: 12),
-            _StatChip(label: 'Monthly Total', value: 'Rs ${state.totalMonthly.pkrFormat}',
-                icon: Icons.payments_outlined, color: const Color(0xFF5C6BC0)),
-            const Spacer(),
-            SizedBox(
-              width: 300, height: 42,
-              child: TextField(
-                onChanged: notifier.onSearch,
-                decoration: InputDecoration(
-                  hintText: 'Name ya phone se search...',
-                  hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search_rounded,
-                      color: AppColor.grey400, size: 20),
-                  filled: true, fillColor: AppColor.grey100,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 14),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: AppColor.grey200)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: AppColor.grey200)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
-                ),
-              ),
-            ),
-          ]),
-        ),
-
-        if (state.isLoading) const LinearProgressIndicator(minHeight: 2),
-
-        Expanded(
-          child: state.filtered.isEmpty
-              ? const _EmptyState()
-              : ListView.separated(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: state.filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) => _EmployeeCard(
-                    employee: state.filtered[i],
-                    onEdit: () => AddEmployeeDialog.show(context,
-                        employee: state.filtered[i]),
-                    onDelete: () => _confirmDelete(context, ref, state.filtered[i]),
-                  ),
-                ),
-        ),
-      ]),
     );
+
+    final newBtnStyle = ElevatedButton.styleFrom(
+      backgroundColor: AppColor.primary,
+      foregroundColor: AppColor.white,
+      elevation: 0,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    );
+
+    return LayoutBuilder(builder: (context, c) {
+      // Mobile (< 700px): button icon-only, chips Wrap + search apni line,
+      // card mein salary naam ke neeche. Desktop pehle jaisa.
+      final narrow = c.maxWidth < _kNarrowWidth;
+      final hPad   = narrow ? 16.0 : 24.0;
+
+      return Scaffold(
+        backgroundColor: AppColor.background,
+        appBar: AppBar(
+          backgroundColor: AppColor.surface,
+          elevation: 0,
+          foregroundColor: AppColor.textPrimary,
+          title: const Text('Employees',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: narrow
+                  ? Tooltip(
+                      message: 'New Employee',
+                      child: SizedBox(
+                        width: 44, height: 44,
+                        child: ElevatedButton(
+                          onPressed: () => AddEmployeeDialog.show(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColor.primary,
+                            foregroundColor: AppColor.white,
+                            elevation: 0,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Icon(Icons.add_rounded, size: 20),
+                        ),
+                      ),
+                    )
+                  : SizedBox(
+                      width: 180,
+                      child: ElevatedButton.icon(
+                        onPressed: () => AddEmployeeDialog.show(context),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('New Employee'),
+                        style: newBtnStyle,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+        body: Column(children: [
+          // Stats + search
+          Container(
+            color: AppColor.surface,
+            padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 14),
+            child: narrow
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Wrap(spacing: 10, runSpacing: 10, children: chips),
+                      const SizedBox(height: 12),
+                      SizedBox(height: 42, child: searchField),
+                    ],
+                  )
+                : Row(children: [
+                    chips[0],
+                    const SizedBox(width: 12),
+                    chips[1],
+                    const SizedBox(width: 12),
+                    chips[2],
+                    const Spacer(),
+                    SizedBox(width: 300, height: 42, child: searchField),
+                  ]),
+          ),
+
+          if (state.isLoading) const LinearProgressIndicator(minHeight: 2),
+
+          Expanded(
+            child: state.filtered.isEmpty
+                ? const _EmptyState()
+                : ListView.separated(
+                    padding: EdgeInsets.all(narrow ? 12 : 20),
+                    itemCount: state.filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) => _EmployeeCard(
+                      employee: state.filtered[i],
+                      compact: narrow,
+                      onEdit: () => AddEmployeeDialog.show(context,
+                          employee: state.filtered[i]),
+                      onDelete: () => _confirmDelete(context, ref, state.filtered[i]),
+                    ),
+                  ),
+          ),
+        ]),
+      );
+    });
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, EmployeeModel e) {
@@ -153,7 +198,9 @@ class EmployeesScreen extends ConsumerWidget {
 class _EmployeeCard extends StatelessWidget {
   final EmployeeModel employee;
   final VoidCallback onEdit, onDelete;
-  const _EmployeeCard({required this.employee, required this.onEdit, required this.onDelete});
+  final bool compact; // mobile: salary naam ke neeche
+  const _EmployeeCard({required this.employee, required this.onEdit,
+      required this.onDelete, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -181,21 +228,18 @@ class _EmployeeCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Text(e.name,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary)),
+                // Flexible — lamba naam overflow na kare (fit ho to farq nahi)
+                Flexible(
+                  child: Text(e.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600,
+                          color: AppColor.textPrimary)),
+                ),
                 const SizedBox(width: 8),
-                if (!e.isActive)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: AppColor.grey200,
-                        borderRadius: BorderRadius.circular(5)),
-                    child: const Text('Inactive',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600,
-                            color: AppColor.grey600)),
-                  ),
+                // Mobile par badge salary wali line par (naam ko jagah mile)
+                if (!e.isActive && !compact) _inactiveBadge,
               ]),
               const SizedBox(height: 2),
               Text(
@@ -205,32 +249,89 @@ class _EmployeeCard extends StatelessWidget {
                   ].whereType<String>().join(' · '),
                   style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
                   overflow: TextOverflow.ellipsis),
+              // Mobile: salary + advance naam ke neeche
+              if (compact) ...[
+                const SizedBox(height: 4),
+                Row(children: [
+                  // Salary kabhi kat-ti nahi — jagah kam ho to chhoti ho
+                  // jati hai (scaleDown); "Max advance" ellipsis ho sakta hai
+                  // Active: salary + "Max advance" ek text — kate to sirf
+                  // aakhir ka advance hissa. Inactive: sirf salary + badge.
+                  Flexible(
+                    child: e.isActive
+                        ? Text.rich(
+                            TextSpan(children: [
+                              TextSpan(text: 'Rs ${e.monthlySalary.pkrFormat}',
+                                  style: const TextStyle(
+                                      fontSize: 13, fontWeight: FontWeight.w700,
+                                      color: AppColor.textPrimary)),
+                              TextSpan(
+                                  text: '  ·  Max advance ${e.maxAdvancePercent.toStringAsFixed(0)}%',
+                                  style: const TextStyle(
+                                      fontSize: 10, color: AppColor.textHint)),
+                            ]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text('Rs ${e.monthlySalary.pkrFormat}',
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w700,
+                                    color: AppColor.textPrimary)),
+                          ),
+                  ),
+                  if (!e.isActive) ...[
+                    const SizedBox(width: 6),
+                    _inactiveBadge,
+                  ],
+                ]),
+              ],
             ],
           ),
         ),
-        // Salary + advance
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('Rs ${e.monthlySalary.pkrFormat}',
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary)),
-            Text('Max advance ${e.maxAdvancePercent.toStringAsFixed(0)}%',
-                style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
-          ],
-        ),
-        const SizedBox(width: 8),
+        // Salary + advance (desktop — right side)
+        if (!compact) ...[
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text('Rs ${e.monthlySalary.pkrFormat}',
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w700,
+                      color: AppColor.textPrimary)),
+              Text('Max advance ${e.maxAdvancePercent.toStringAsFixed(0)}%',
+                  style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
         IconButton(
             onPressed: onEdit,
+            // Mobile: compact (kam jagah) — desktop pehle jaisa
+            visualDensity: compact ? VisualDensity.compact : null,
             icon: const Icon(Icons.edit_outlined, size: 18, color: AppColor.info)),
         IconButton(
             onPressed: onDelete,
+            visualDensity: compact ? VisualDensity.compact : null,
             icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColor.error)),
       ]),
     );
   }
+
+  static final _inactiveBadge = Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+        color: AppColor.grey200,
+        borderRadius: BorderRadius.circular(5)),
+    child: const Text('Inactive',
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600,
+            color: AppColor.grey600)),
+  );
 }
+
+// Is se kam chaudai = mobile layout
+const double _kNarrowWidth = 700;
 
 class _StatChip extends StatelessWidget {
   final String label, value;

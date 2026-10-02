@@ -1,27 +1,25 @@
+// Updated on 2026-10-02 09:31 AM
 // =============================================================
-// warehouse_dashboard_screen.dart
+// warehouse_dashboard_screen.dart — Dashboard v2 (Stitch design)
 // Layout:
-//   TopBar
-//   → PurchaseFilterBar
-//   → 4 Stat Cards
-//   → PurchaseTrendChart      (full width)
-//   → Row(Recent POs + Pending Transfers)
-//   → Row(SupplierOutstandingChart + Supplier Dues)
-//   → Row(Low Stock + Stock Movements)
+//   TopBar (title · code chip · unsynced · user · refresh)
+//   → Filter pills (Today / Week / Month / 3 Months / Custom)
+//   → 5 KPI cards
+//   → Needs attention (5 tiles → sidebar screens)
+//   → Row(Purchases vs Cash out chart 60% + Top supplier dues 40%)
+//   → Row(Low stock — reorder 50% + Recent stock movements 50%)
 // =============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
-import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
-import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/domain/warehouse_dashboard_models.dart';
-import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/dashboard_chart_widgets/dashboard_chart_widgets.dart';
-import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/purchase_filter_bar/purchase_filter_bar.dart';
-import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
-import '../provider/warehouse_dashboard_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
-import 'package:jan_ghani_final/core/extension/app_extention.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/screen/warehouse_cash_requests_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/domain/warehouse_dashboard_models.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/dashboard_v2/dashboard_v2_widgets.dart';
+import '../provider/warehouse_dashboard_provider.dart';
 
 class WarehouseDashboardScreen extends ConsumerStatefulWidget {
   const WarehouseDashboardScreen({super.key});
@@ -41,77 +39,244 @@ class _WarehouseDashboardScreenState
         ref.read(warehouseDashboardProvider.notifier).loadDashboard());
   }
 
+  // Sidebar ko us screen par bhejo (label = sidebar item ka naam)
+  void _goTo(String label) =>
+      ref.read(dashboardNavRequestProvider.notifier).state = label;
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(warehouseDashboardProvider);
+    final s     = state.summary;
 
     return Scaffold(
-      backgroundColor: AppColor.background,
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : state.errorMessage != null
-          ? _ErrorState(
-        message: state.errorMessage!,
-        onRetry: () =>
-            ref.read(warehouseDashboardProvider.notifier).refresh(),
-      )
-          : Column(
+      backgroundColor: AppColor.grey100,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Top bar ────────────────────────────────
-          _TopBar(stats: state.stats),
-
-          // ── Scrollable content ─────────────────────
+          _TopBar(
+            unsynced:     s?.unsyncedRecords ?? 0,
+            isRefreshing: state.isRefreshing,
+            onRefresh:    () =>
+                ref.read(warehouseDashboardProvider.notifier).refresh(),
+          ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 4),
-
-                  // ── Filter bar ─────────────────────
-                  const PurchaseFilterBar(),
-                  const SizedBox(height: 12),
-
-                  // ── 4 stat cards ───────────────────
-                  _StatCardsRow(stats: state.stats),
-                  const SizedBox(height: 16),
-
-                  // ── Purchase Trend Chart ────────────
-                  PurchaseTrendChart(
-                    points:    state.purchaseTrend,
-                    filter:    state.activeFilter,
-                    isLoading: state.isChartLoading,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── POs + Transfers ─────────────────
-                  _PoAndTransferRow(
-                    recentPOs:        state.recentPOs,
-                    pendingTransfers: state.pendingTransfers,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Supplier Chart + Supplier Dues ──
-                  _SupplierRow(
-                    bars:         state.supplierOutstandingBars,
-                    supplierDues: state.supplierDues,
-                    stockMovements: state.stockMovements,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Low Stock + Stock Movements ─────
-                  _LowStockAndMovementsRow(
-                    lowStockItems:  state.lowStockItems,
-                    stockMovements: state.stockMovements,
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
+            child: state.isLoading || (s == null && state.errorMessage == null)
+                ? const Center(child: CircularProgressIndicator())
+                : s == null
+                    ? _ErrorState(
+                        message: state.errorMessage!,
+                        onRetry: () => ref
+                            .read(warehouseDashboardProvider.notifier)
+                            .loadDashboard(),
+                      )
+                    : _Body(state: state, summary: s, goTo: _goTo),
           ),
         ],
       ),
     );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// BODY
+// ─────────────────────────────────────────────────────────────
+class _Body extends ConsumerWidget {
+  final WarehouseDashboardState state;
+  final DashboardSummary        summary;
+  final void Function(String)   goTo;
+
+  const _Body({required this.state, required this.summary, required this.goTo});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s            = summary;
+    final cashRequests = ref.watch(pendingCashRequestsProvider)
+        .valueOrNull?.length ?? 0;
+    final period       = state.activeFilter.shortLabel;
+
+    return LayoutBuilder(builder: (context, c) {
+      final w      = c.maxWidth - 48; // padding 24 + 24
+      final wide   = w >= 1000;
+      const gap    = 20.0;
+
+      // ── KPI cards ────────────────────────────────────────
+      final kpis = <Widget>[
+        DashKpiCard(
+          label: 'Cash in hand',
+          value: rs(s.cashInHand),
+          icon:  Icons.account_balance_wallet_outlined,
+          color: AppColor.primary,
+          bg:    AppColor.primary.withOpacity(0.1),
+          sub: Text.rich(TextSpan(children: [
+            TextSpan(text: '+${rs(s.periodCashIn)} in',
+                style: const TextStyle(color: AppColor.success)),
+            const TextSpan(text: '  ·  '),
+            TextSpan(text: '−${rs(s.periodCashOut)} out',
+                style: const TextStyle(color: AppColor.error)),
+          ])),
+        ),
+        DashKpiCard(
+          label: 'Purchases ($period)',
+          value: rs(s.purchaseAmount),
+          icon:  Icons.shopping_bag_outlined,
+          color: AppColor.info,
+          bg:    AppColor.infoLight,
+          sub: Text.rich(TextSpan(children: [
+            TextSpan(text: '${s.purchaseCount} POs',
+                style: const TextStyle(color: AppColor.textPrimary)),
+            const TextSpan(text: ' received'),
+          ])),
+        ),
+        DashKpiCard(
+          label: 'Supplier outstanding',
+          value: rs(s.supplierOutstanding),
+          icon:  Icons.receipt_long_outlined,
+          color: AppColor.error,
+          bg:    AppColor.errorLight,
+          sub: Text.rich(TextSpan(children: [
+            TextSpan(text: '${s.suppliersWithDues} suppliers',
+                style: const TextStyle(color: AppColor.error)),
+            const TextSpan(text: ' with dues'),
+          ])),
+        ),
+        DashKpiCard(
+          label: 'Expenses ($period)',
+          value: rs(s.expenseAmount),
+          icon:  Icons.money_off_rounded,
+          color: AppColor.warningDark,
+          bg:    AppColor.warningLight,
+          sub:   Text('incl. salary ${rs(s.salaryAmount)}'),
+        ),
+        DashKpiCard(
+          label: 'Inventory value',
+          value: rs(s.inventoryValue),
+          icon:  Icons.inventory_2_outlined,
+          color: AppColor.success,
+          bg:    AppColor.successLight,
+          sub:   Text('${s.activeProducts} products at purchase price'),
+        ),
+      ];
+
+      Widget kpiRow;
+      if (w >= 1150) {
+        kpiRow = Row(children: [
+          for (var i = 0; i < kpis.length; i++) ...[
+            if (i > 0) const SizedBox(width: 16),
+            Expanded(child: kpis[i]),
+          ],
+        ]);
+      } else {
+        final cols = w >= 760 ? 3 : (w >= 480 ? 2 : 1);
+        final cw   = (w - 16 * (cols - 1)) / cols;
+        kpiRow = Wrap(
+          spacing: 16, runSpacing: 16,
+          children: kpis.map((k) => SizedBox(width: cw, child: k)).toList(),
+        );
+      }
+
+      // ── Needs attention ──────────────────────────────────
+      final attention = NeedsAttentionCard(
+        narrow: w < 1150,
+        items: [
+          AttentionItem(
+            title: 'Low stock', hint: 'reorder now', count: s.lowStockCount,
+            color: AppColor.error, bg: AppColor.errorLight,
+            onTap: () => goTo('Stock'),
+          ),
+          AttentionItem(
+            title: 'Out of stock', hint: 'critical shortage',
+            count: s.outOfStockCount,
+            color: AppColor.error, bg: AppColor.errorLight,
+            onTap: () => goTo('Stock'),
+          ),
+          AttentionItem(
+            title: 'Pending POs', hint: 'draft / ordered / partial',
+            count: s.pendingPOs,
+            color: AppColor.info, bg: AppColor.infoLight,
+            onTap: () => goTo('Purchase Order'),
+          ),
+          AttentionItem(
+            title: 'Pending transfers', hint: 'awaiting store accept',
+            count: s.pendingTransfers,
+            color: AppColor.primary, bg: AppColor.primary.withOpacity(0.1),
+            onTap: () => goTo('Assign Stock'),
+          ),
+          AttentionItem(
+            title: 'Cash requests', hint: 'accountant se aayi cash',
+            count: cashRequests,
+            color: AppColor.warningDark, bg: AppColor.warningLight,
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const WarehouseCashRequestsScreen())),
+          ),
+        ],
+      );
+
+      // ── Row 3: chart + dues ──────────────────────────────
+      const row3H = 450.0;
+      final chart = SizedBox(
+        height: row3H,
+        child: PurchaseCashChartCard(
+            points: state.trend, filter: state.activeFilter),
+      );
+      final dues = SizedBox(
+        height: row3H,
+        child: SupplierDuesCard(
+            dues: state.supplierDues, onViewAll: () => goTo('Supplier')),
+      );
+
+      // ── Row 4: low stock + movements ─────────────────────
+      const row4H = 580.0;
+      final low = SizedBox(
+        height: row4H,
+        child: LowStockCard(
+          rows:       state.lowStock,
+          totalCount: s.lowStockCount,
+          onViewAll:  () => goTo('Stock'),
+        ),
+      );
+      final moves = SizedBox(
+        height: row4H,
+        child: MovementsCard(movements: state.movements),
+      );
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _FilterBar(state: state),
+            if (state.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _ErrorBanner(
+                message: state.errorMessage!,
+                onRetry: () =>
+                    ref.read(warehouseDashboardProvider.notifier).refresh(),
+              ),
+            ],
+            const SizedBox(height: gap),
+            kpiRow,
+            const SizedBox(height: gap),
+            attention,
+            const SizedBox(height: gap),
+            if (wide)
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(flex: 3, child: chart),
+                const SizedBox(width: gap),
+                Expanded(flex: 2, child: dues),
+              ])
+            else ...[chart, const SizedBox(height: gap), dues],
+            const SizedBox(height: gap),
+            if (wide)
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: low),
+                const SizedBox(width: gap),
+                Expanded(child: moves),
+              ])
+            else ...[low, const SizedBox(height: gap), moves],
+          ],
+        ),
+      );
+    });
   }
 }
 
@@ -119,697 +284,136 @@ class _WarehouseDashboardScreenState
 // TOP BAR
 // ─────────────────────────────────────────────────────────────
 class _TopBar extends ConsumerWidget {
-  final stats;
-  const _TopBar({this.stats});
+  final int          unsynced;
+  final bool         isRefreshing;
+  final VoidCallback onRefresh;
+
+  const _TopBar({
+    required this.unsynced,
+    required this.isRefreshing,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
-    final now = DateTime.now();
-    final weekday = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
-    [now.weekday - 1];
-    final month   = ['Jan','Feb','Mar','Apr','May','Jun','Jul',
-      'Aug','Sep','Oct','Nov','Dec'][now.month - 1];
-    final dateStr = '$weekday, ${now.day} $month ${now.year}';
+    final user = ref.watch(authProvider).user;
+    final now  = DateTime.now();
+    final wd   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][now.weekday - 1];
+    final mo   = ['Jan','Feb','Mar','Apr','May','Jun','Jul',
+                  'Aug','Sep','Oct','Nov','Dec'][now.month - 1];
+    final code = AppConfig.warehouseCode;
 
     return Container(
-      width:   double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: const BoxDecoration(
         color:  AppColor.surface,
         border: Border(bottom: BorderSide(color: AppColor.grey200)),
       ),
       child: Row(
         children: [
           Container(
-            width: 34, height: 34,
+            width: 40, height: 40,
             decoration: BoxDecoration(
               color:        AppColor.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            alignment: Alignment.center,
-            child: Icon(Icons.warehouse_outlined,
-                size: 18, color: AppColor.primary),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Jan Ghani — Warehouse',
-                  style: TextStyle(
-                      fontSize:   16,
-                      fontWeight: FontWeight.w700,
-                      color:      AppColor.textPrimary)),
-              Text('$dateStr  •  ${AppConfig.warehouseName}',
-                  style: TextStyle(
-                      fontSize: 11, color: AppColor.textSecondary)),
-            ],
-          ),
-          const Spacer(),
-
-          // Unsynced pill
-          if (stats != null && stats.unsyncedRecords > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color:        AppColor.errorLight,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: AppColor.error.withOpacity(0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                      width: 6, height: 6,
-                      decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColor.error)),
-                  const SizedBox(width: 5),
-                  Text('${stats.unsyncedRecords} unsynced',
-                      style: TextStyle(
-                          fontSize:   11,
-                          fontWeight: FontWeight.w600,
-                          color:      AppColor.error)),
-                ],
-              ),
-            ),
-          const SizedBox(width: 10),
-
-          // User pill
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              border:       Border.all(color: AppColor.grey200),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Consumer(
-                builder: (context, ref, child) {
-
-                  final userData = ref.watch(authProvider);
-
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(userData.user!.fullName.toString(),
-                        style: TextStyle(
-                            fontSize:   12,
-                            fontWeight: FontWeight.w600,
-                            color:      AppColor.textPrimary)),
-                    const SizedBox(width: 5),
-                    Container(
-                        width: 4, height: 4,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColor.success)),
-                    const SizedBox(width: 4),
-                    Text(userData.user!.role.toString(),
-                        style: TextStyle(
-                            fontSize: 11,
-                            color:    AppColor.textSecondary)),
-                  ],
-                );
-              }
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// STAT CARDS ROW
-// ─────────────────────────────────────────────────────────────
-
-class _StatCardsRow extends StatelessWidget {
-  final DashboardStats? stats;
-  const _StatCardsRow({this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    if (stats == null) return const SizedBox();
-    return Row(
-      children: [
-        DashStatCard(
-          label:      'Total products',
-          value:      '${stats!.totalProducts}',
-          badge:      '${stats!.activeSuppliers} suppliers',
-          icon:       Icons.inventory_2_outlined,
-          color:      AppColor.primary,
-          barPercent: (stats!.totalProducts / 2000).clamp(0.0, 1.0),
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Low stock alerts',
-          value:      '${stats!.lowStockCount}',
-          badge:      stats!.lowStockCount > 0 ? 'Urgent' : 'All good',
-          icon:       Icons.warning_amber_rounded,
-          color:      stats!.lowStockCount > 0
-              ? AppColor.error : AppColor.success,
-          barPercent: (stats!.lowStockCount / 50).clamp(0.0, 1.0),
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Supplier outstanding',
-          value:      stats!.totalOutstanding.pkrFormat,
-          badge:      '${stats!.activeSuppliers} active',
-          icon:       Icons.account_balance_wallet_outlined,
-          color:      AppColor.info,
-          barPercent: (stats!.totalOutstanding / 200000).clamp(0.0, 1.0),
-        ),
-        const SizedBox(width: 12),
-        DashStatCard(
-          label:      'Total purchase amount',
-          value:      stats!.totalPurchaseAmount.toStringAsFixed(2),
-          badge:      '${stats!.totalOrdersCount} orders',
-          icon:       Icons.receipt_long_outlined,
-          color:      AppColor.textPrimary,
-          barPercent: (stats!.totalPurchaseAmount / 500000).clamp(0.0, 1.0),
-        ),
-      ],
-    );
-  }
-
-  String _fmt(double v) {
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K+';
-    return v.toStringAsFixed(0);
-  }
-
-  String _fmtRs(double v) {
-    if (v >= 1000000) return 'Rs ${(v / 1000000).toStringAsFixed(1)}M';
-    if (v >= 1000)    return 'Rs ${(v / 1000).toStringAsFixed(0)}K';
-    return 'Rs ${v.toStringAsFixed(0)}';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// PO + TRANSFERS ROW
-// ─────────────────────────────────────────────────────────────
-
-class _PoAndTransferRow extends StatelessWidget {
-  final recentPOs;
-  final pendingTransfers;
-  const _PoAndTransferRow({
-    required this.recentPOs,
-    required this.pendingTransfers,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 3,
-          child: SectionCard(
-            headerIcon: Container(
-              width: 26, height: 26,
-              decoration: BoxDecoration(
-                color:        AppColor.infoLight,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Icon(Icons.receipt_long_outlined,
-                  size: 13, color: AppColor.info),
-            ),
-            title: 'Recent purchase orders',
-            headerTrailing: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color:        AppColor.infoLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text('Latest 5',
-                  style: TextStyle(
-                      fontSize:   10,
-                      fontWeight: FontWeight.w600,
-                      color:      AppColor.info)),
-            ),
-            children: recentPOs.isEmpty
-                ? [const _EmptyState(
-              icon:    Icons.receipt_long_outlined,
-              message: 'No purchase orders yet',
-            )]
-                : [
-              ...recentPOs.asMap().entries.map((e) {
-                return _PoRow(
-                    po:     e.value,
-                    isLast: e.key == recentPOs.length - 1);
-              }),
-            ],
-            footerLeft:  '${recentPOs.length} orders shown',
-            footerRight: 'View all →',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 2,
-          child: SectionCard(
-            headerIcon: Container(
-              width: 26, height: 26,
-              decoration: BoxDecoration(
-                color:        AppColor.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Icon(Icons.swap_horiz_rounded,
-                  size: 14, color: AppColor.primary),
-            ),
-            title: 'Pending transfers',
-            headerTrailing: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color:        AppColor.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text('${pendingTransfers.length} pending',
-                  style: TextStyle(
-                      fontSize:   10,
-                      fontWeight: FontWeight.w600,
-                      color:      AppColor.primary)),
-            ),
-            children: pendingTransfers.isEmpty
-                ? [const _EmptyState(
-              icon:    Icons.swap_horiz_rounded,
-              message: 'No pending transfers',
-            )]
-                : [
-              ...pendingTransfers.asMap().entries.map((e) {
-                return _TransferRow(
-                    transfer: e.value,
-                    isLast:   e.key == pendingTransfers.length - 1);
-              }),
-            ],
-            footerLeft:  'Assigned transfers',
-            footerRight: 'Manage →',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// SUPPLIER ROW — Chart (left) + Dues detail (right)
-// ─────────────────────────────────────────────────────────────
-
-class _SupplierRow extends StatelessWidget {
-  final List<SupplierOutstandingBar> bars;
-  final supplierDues;
-  final stockMovements;
-
-  const _SupplierRow({
-    required this.bars,
-    required this.supplierDues,
-    required this.stockMovements
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Outstanding chart — left
-        // Expanded(
-        //   child: SupplierOutstandingChart(bars: bars),
-        // ),
-        // const SizedBox(width: 16),
-
-        // Supplier dues detail — right
-        SizedBox(width: MediaQuery.of(context).size.width * 0.45,
-          child: SectionCard(
-            headerIcon: Container(
-              width: 26, height: 26,
-              decoration: BoxDecoration(
-                color:        AppColor.errorLight,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Icon(Icons.account_balance_wallet_outlined,
-                  size: 13, color: AppColor.error),
-            ),
-            title: 'Supplier dues',
-            headerTrailing: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color:        AppColor.errorLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(_totalDues(),
-                  style: TextStyle(
-                      fontSize:   10,
-                      fontWeight: FontWeight.w600,
-                      color:      AppColor.error)),
-            ),
-            children: supplierDues.isEmpty
-                ? [const _EmptyState(
-              icon:      Icons.account_balance_wallet_outlined,
-              message:   'No outstanding dues',
-              isSuccess: true,
-            )]
-                : [
-              ...supplierDues.asMap().entries.map((e) {
-                return SupplierDueRow(
-                  key:    ValueKey(e.value.supplierId),
-                  item:   e.value,
-                  isLast: e.key == supplierDues.length - 1,
-                );
-              }),
-            ],
-            footerLeft:  'Supplier balances',
-            footerRight: 'Pay all →',
-          ),
-        ),
-
-        // Stock Movements
-        Expanded(
-          child: SectionCard(
-            headerIcon: Container(
-              width: 26, height: 26,
-              decoration: BoxDecoration(
-                color:        AppColor.successLight,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Icon(Icons.swap_vert_rounded,
-                  size: 14, color: AppColor.success),
-            ),
-            title: 'Stock movements',
-            headerTrailing: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color:        AppColor.successLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text('Today',
-                  style: TextStyle(
-                      fontSize:   10,
-                      fontWeight: FontWeight.w600,
-                      color:      AppColor.success)),
-            ),
-            children: stockMovements.isEmpty
-                ? [const _EmptyState(
-              icon:    Icons.swap_vert_rounded,
-              message: 'No movements today',
-            )]
-                : [
-              ...stockMovements.asMap().entries.map((e) {
-                return MovementRow(
-                  key:    ValueKey(e.value.id),
-                  entry:  e.value,
-                  isLast: e.key == stockMovements.length - 1,
-                );
-              }),
-            ],
-            footerLeft:  'Today\'s activity',
-            footerRight: 'Full log →',
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _totalDues() {
-    double total = 0;
-    for (final d in supplierDues) total += d.outstandingAmount;
-    if (total >= 1000) return 'Rs ${(total / 1000).toStringAsFixed(0)}K total';
-    return 'Rs ${total.toStringAsFixed(0)} total';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// LOW STOCK + MOVEMENTS ROW
-// ─────────────────────────────────────────────────────────────
-
-class _LowStockAndMovementsRow extends StatelessWidget {
-  final lowStockItems;
-  final stockMovements;
-
-  const _LowStockAndMovementsRow({
-    required this.lowStockItems,
-    required this.stockMovements,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Low Stock
-        SizedBox(
-          width: MediaQuery.of(context).size.width * 0.45,
-          child: SectionCard(
-            headerIcon: Container(
-              width: 26, height: 26,
-              decoration: BoxDecoration(
-                color: lowStockItems.isEmpty
-                    ? AppColor.successLight : AppColor.errorLight,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                lowStockItems.isEmpty
-                    ? Icons.check_circle_outline_rounded
-                    : Icons.warning_amber_rounded,
-                size:  13,
-                color: lowStockItems.isEmpty
-                    ? AppColor.success : AppColor.error,
-              ),
-            ),
-            title: 'Low stock',
-            headerTrailing: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: lowStockItems.isEmpty
-                    ? AppColor.successLight : AppColor.errorLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                lowStockItems.isEmpty
-                    ? 'All stocked' : '${lowStockItems.length} items',
-                style: TextStyle(
-                  fontSize:   10,
-                  fontWeight: FontWeight.w600,
-                  color: lowStockItems.isEmpty
-                      ? AppColor.success : AppColor.error,
-                ),
-              ),
-            ),
-            children: lowStockItems.isEmpty
-                ? [const _EmptyState(
-              icon:      Icons.check_circle_outline_rounded,
-              message:   'All products well stocked',
-              isSuccess: true,
-            )]
-                : [
-              ...lowStockItems.asMap().entries.take(4).map((e) {
-                return StockProgressRow(
-                  key:    ValueKey(e.value.productId),
-                  item:   e.value,
-                  isLast: e.key == 3 ||
-                      e.key == lowStockItems.length - 1,
-                );
-              }),
-            ],
-            footerLeft:  'Reorder list',
-            footerRight: 'View all →',
-          ),
-        ),
-        const SizedBox(width: 16),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// PO ROW
-// ─────────────────────────────────────────────────────────────
-
-class _PoRow extends StatelessWidget {
-  final po;
-  final bool isLast;
-  const _PoRow({required this.po, this.isLast = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-      decoration: BoxDecoration(
-        border: isLast ? null
-            : Border(bottom: BorderSide(color: AppColor.grey100)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 30, height: 30,
-            decoration: BoxDecoration(
-              color:        AppColor.grey100,
-              borderRadius: BorderRadius.circular(7),
-            ),
-            alignment: Alignment.center,
-            child: Icon(Icons.receipt_outlined,
-                size: 14, color: AppColor.grey500),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(po.poNumber,
-                    style: TextStyle(
-                        fontSize:   13,
-                        fontWeight: FontWeight.w600,
-                        color:      AppColor.primary)),
-                Text(
-                  '${po.supplierName}  •  ${_fmtDate(po.orderDate)}',
-                  style: TextStyle(
-                      fontSize: 11, color: AppColor.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              PoStatusBadge(status: po.status),
-              const SizedBox(height: 3),
-              Text(po.totalAmount.toStringAsFixed(2),
-                  style: TextStyle(
-                      fontSize: 11, color: AppColor.textSecondary)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _fmtDate(DateTime dt) {
-    final months = ['Jan','Feb','Mar','Apr','May','Jun',
-      'Jul','Aug','Sep','Oct','Nov','Dec'];
-    return '${dt.day} ${months[dt.month - 1]}';
-  }
-
-  String _fmtRs(double v) {
-    if (v >= 100000) return 'Rs ${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)   return 'Rs ${(v / 1000).toStringAsFixed(0)}K';
-    return 'Rs ${v.toStringAsFixed(0)}';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// TRANSFER ROW
-// ─────────────────────────────────────────────────────────────
-
-class _TransferRow extends StatelessWidget {
-  final transfer;
-  final bool isLast;
-  const _TransferRow({required this.transfer, this.isLast = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-      decoration: BoxDecoration(
-        border: isLast ? null
-            : Border(bottom: BorderSide(color: AppColor.grey100)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.warehouse_outlined,
-                  size: 13, color: AppColor.primary),
-              const SizedBox(width: 4),
-              Text(transfer.fromLocation,
-                  style: TextStyle(
-                      fontSize:   12,
-                      fontWeight: FontWeight.w600,
-                      color:      AppColor.textPrimary)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: Icon(Icons.arrow_forward_rounded,
-                    size: 12, color: AppColor.textSecondary),
-              ),
-              Icon(Icons.storefront_outlined,
-                  size: 13, color: AppColor.success),
-              const SizedBox(width: 4),
-              Text(transfer.toLocation,
-                  style: TextStyle(
-                      fontSize:   12,
-                      fontWeight: FontWeight.w600,
-                      color:      AppColor.textPrimary)),
-              const Spacer(),
-              TransferStatusBadge(status: transfer.status),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${transfer.transferNumber}  •  '
-                '${transfer.totalItems} items  •  '
-                '${_fmtRs(transfer.totalCost)}',
-            style: TextStyle(
-                fontSize: 11, color: AppColor.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _fmtRs(double v) {
-    if (v >= 1000) return 'Rs ${(v / 1000).toStringAsFixed(0)}K';
-    return 'Rs ${v.toStringAsFixed(0)}';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// EMPTY STATE WIDGET
-// ─────────────────────────────────────────────────────────────
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String   message;
-  final bool     isSuccess;
-
-  const _EmptyState({
-    required this.icon,
-    required this.message,
-    this.isSuccess = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isSuccess ? AppColor.success : AppColor.grey400;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              color:        color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: color),
+            child: const Icon(Icons.warehouse_outlined,
+                size: 20, color: AppColor.primary),
           ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize:   12,
-              color:      AppColor.textSecondary,
-              fontWeight: FontWeight.w500,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(children: [
+                  const Flexible(
+                    child: Text('Jan Ghani — Warehouse',
+                        style: TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w700,
+                          color: AppColor.textPrimary,
+                        ),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  if (code.isNotEmpty) ...[
+                    const SizedBox(width: 10),
+                    DashChip(text: code,
+                        color: AppColor.success, bg: AppColor.successLight),
+                  ],
+                ]),
+                const SizedBox(height: 2),
+                Text('$wd, ${now.day} $mo ${now.year}  •  ${AppConfig.warehouseName}',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColor.textSecondary),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          if (unsynced > 0) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color:        AppColor.errorLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColor.error.withOpacity(0.3)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 6, height: 6,
+                    decoration: const BoxDecoration(
+                        shape: BoxShape.circle, color: AppColor.error)),
+                const SizedBox(width: 6),
+                Text('$unsynced unsynced',
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600,
+                        color: AppColor.error)),
+              ]),
+            ),
+            const SizedBox(width: 10),
+          ],
+          if (user != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color:        AppColor.grey100,
+                borderRadius: BorderRadius.circular(20),
+                border:       Border.all(color: AppColor.grey200),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.account_circle_outlined,
+                    size: 16, color: AppColor.textSecondary),
+                const SizedBox(width: 8),
+                Text(user.fullName.toString(),
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600,
+                        color: AppColor.textPrimary)),
+                Container(width: 1, height: 14, color: AppColor.grey300,
+                    margin: const EdgeInsets.symmetric(horizontal: 10)),
+                Text(user.role.toString(),
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColor.textSecondary)),
+              ]),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Tooltip(
+            message: 'Refresh',
+            child: InkWell(
+              onTap:        isRefreshing ? null : onRefresh,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border:       Border.all(color: AppColor.grey200),
+                ),
+                alignment: Alignment.center,
+                child: isRefreshing
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.refresh_rounded,
+                        size: 20, color: AppColor.textPrimary),
+              ),
             ),
           ),
         ],
@@ -819,32 +423,159 @@ class _EmptyState extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ERROR STATE
+// FILTER BAR — segmented pills + info
 // ─────────────────────────────────────────────────────────────
+class _FilterBar extends ConsumerWidget {
+  final WarehouseDashboardState state;
+  const _FilterBar({required this.state});
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(warehouseDashboardProvider.notifier);
+    final active   = state.activeFilter;
+
+    Widget pill(String label, PurchaseDateFilter f, {IconData? icon,
+        VoidCallback? onTap}) {
+      final on = active == f;
+      return InkWell(
+        onTap: onTap ?? () => notifier.applyFilter(f),
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color:        on ? AppColor.primary : AppColor.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (icon != null) ...[
+              Icon(icon, size: 15,
+                  color: on ? AppColor.white : AppColor.textPrimary),
+              const SizedBox(width: 6),
+            ],
+            Text(label,
+                style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600,
+                  color: on ? AppColor.white : AppColor.textPrimary,
+                )),
+          ]),
+        ),
+      );
+    }
+
+    Future<void> pickCustom() async {
+      final now   = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final picked = await showDateRangePicker(
+        context:   context,
+        firstDate: DateTime(2020),
+        lastDate:  today,
+        initialDateRange: state.customFrom != null && state.customTo != null
+            ? DateTimeRange(start: state.customFrom!, end: state.customTo!)
+            : DateTimeRange(
+                start: today.subtract(const Duration(days: 6)), end: today),
+        helpText: 'Dashboard date range',
+        saveText: 'Apply',
+      );
+      if (picked != null) notifier.applyCustomRange(picked.start, picked.end);
+    }
+
+    final customLabel = active == PurchaseDateFilter.custom &&
+            state.customFrom != null && state.customTo != null
+        ? '${_fmt(state.customFrom!)} – ${_fmt(state.customTo!)}'
+        : 'Custom range';
+
+    return Wrap(
+      spacing: 16, runSpacing: 10,
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color:        AppColor.surface,
+            borderRadius: BorderRadius.circular(10),
+            border:       Border.all(color: AppColor.grey200),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            pill('Today',         PurchaseDateFilter.today),
+            pill('This Week',     PurchaseDateFilter.thisWeek),
+            pill('This Month',    PurchaseDateFilter.thisMonth),
+            pill('Last 3 Months', PurchaseDateFilter.last3Months),
+            pill(customLabel,     PurchaseDateFilter.custom,
+                icon: Icons.calendar_today_outlined, onTap: pickCustom),
+          ]),
+        ),
+        const Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.info_outline_rounded,
+              size: 15, color: AppColor.textSecondary),
+          SizedBox(width: 6),
+          Text('Filter applies to purchases, cash, expenses and movements',
+              style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+        ]),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// ERRORS
+// ─────────────────────────────────────────────────────────────
+class _ErrorBanner extends StatelessWidget {
+  final String       message;
+  final VoidCallback onRetry;
+  const _ErrorBanner({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color:        AppColor.errorLight,
+        borderRadius: BorderRadius.circular(10),
+        border:       Border.all(color: AppColor.error.withOpacity(0.3)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.error_outline_rounded, size: 18, color: AppColor.error),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(message,
+              style: const TextStyle(fontSize: 12, color: AppColor.error),
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+        ),
+        TextButton(onPressed: onRetry, child: const Text('Retry')),
+      ]),
+    );
+  }
+}
 
 class _ErrorState extends StatelessWidget {
   final String       message;
   final VoidCallback onRetry;
-
   const _ErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline_rounded,
-              size: 48, color: AppColor.error),
-          const SizedBox(height: 12),
-          Text(message,
-              style: TextStyle(color: AppColor.textSecondary)),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: onRetry,
-            child: const Text('Retry'),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline_rounded,
+                size: 48, color: AppColor.error),
+            const SizedBox(height: 12),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColor.textSecondary)),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
       ),
     );
   }

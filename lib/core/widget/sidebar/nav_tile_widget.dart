@@ -1,72 +1,110 @@
+// Updated on 2026-10-02 09:49 AM
+// =============================================================
+// nav_tile_widget.dart — warehouse sidebar ka ek menu item
+//   • Expanded (248px): icon + label
+//   • Collapsed (72px): sirf icon, tooltip mein label
+//   • Active: purple tint + left 3px indicator + purple icon/text
+// =============================================================
+
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/sidebar/sidebar_widget.dart';
 
-const _kGrey     = Color(0xFFD3D3D3);
-const _kMid      = Color(0xFF666666);
-const _kSelected = AppColor.primary;
-
-class NavTile extends StatelessWidget {
-  final NavItem item;
-  final bool selected;
-  final bool isSettings;
+class NavTile extends StatefulWidget {
+  final NavItem      item;
+  final bool         selected;
+  final bool         collapsed;
   final VoidCallback onTap;
 
   const NavTile({
+    super.key,
     required this.item,
     required this.selected,
     required this.onTap,
-    this.isSettings = false,
+    this.collapsed = false,
   });
 
   @override
+  State<NavTile> createState() => _NavTileState();
+}
+
+class _NavTileState extends State<NavTile> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFECEFF1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? _kGrey : Colors.transparent,
+    final sel   = widget.selected;
+    final color = sel ? AppColor.primary : AppColor.textSecondary;
+    final bg    = sel
+        ? AppColor.primary.withOpacity(0.10)
+        : (_hover ? AppColor.grey100 : AppColor.transparent);
+
+    final icon = Icon(widget.item.icon, size: 20, color: color);
+
+    final tile = MouseRegion(
+      cursor:  SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit:  (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          height: 40,
+          margin: const EdgeInsets.symmetric(vertical: 2),
+          decoration: BoxDecoration(
+            color:        bg,
+            borderRadius: BorderRadius.circular(8),
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSettings ? Icons.settings_outlined : item.icon,
-              size: 22,
-              color: selected ? _kSelected : _kMid,
-            ),
-            const SizedBox(height: 5),
-            Text(
-              item.label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                color: selected ? _kSelected : _kMid,
-                height: 1.2,
-              ),
-            ),
-            if (selected) ...[
-              const SizedBox(height: 6),
-              Container(
-                height: 2,
-                width: 24,
-                decoration: BoxDecoration(
-                  color: _kSelected,
-                  borderRadius: BorderRadius.circular(2),
+          child: Stack(
+            children: [
+              // Active indicator — left edge
+              if (sel)
+                Positioned(
+                  left: 0, top: 8, bottom: 8,
+                  child: Container(
+                    width: 3,
+                    decoration: BoxDecoration(
+                      color:        AppColor.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
+              if (widget.collapsed)
+                Center(child: icon)
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(
+                    children: [
+                      icon,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize:   14,
+                            fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
+                            color:      sel ? AppColor.primary : AppColor.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
-          ],
+          ),
         ),
       ),
     );
+
+    // Collapsed par label tooltip mein
+    return widget.collapsed
+        ? Tooltip(
+            message: widget.item.label,
+            waitDuration: const Duration(milliseconds: 300),
+            child: tile,
+          )
+        : tile;
   }
 }
