@@ -1441,9 +1441,63 @@ class SyncService {
         if (lastSyncedAt != null) 'ts': lastSyncedAt,
       },
     );
-    final rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+    final all  = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+    final rows = await _withRemoteParent(supabase, table, parentTable, fkCol, all);
     _log('  📦 $table: ${rows.length} rows milein');
     return _upsertRows(db, supabase, table, conflictCol, rows, send);
+  }
+
+  // ══════════════════════════════════════════════
+  //  🧹 Sirf woh child rows jinka parent Supabase mein hai
+  //
+  //  Jis invoice/return ka parent Supabase tak nahi pahuncha, uske
+  //  items har cycle FK (23503) se fail hote thay — batch fail →
+  //  row-by-row → har item ki alag request. Lookback ke 7 din ke items
+  //  ASC order mein jaate hain, is liye yeh slow fallback 5 min ka
+  //  sync timeout kha jata aur AAJ ke items (list ke aakhir mein)
+  //  kabhi Supabase tak nahi pahunchte thay (invoice dikhti, items nahi).
+  //  Parent sync ho jaye to agli cycle mein yeh items khud chale jayenge.
+  // ══════════════════════════════════════════════
+
+  static Future<List<Map<String, dynamic>>> _withRemoteParent(
+      SupabaseClient             supabase,
+      String                     table,
+      String                     parentTable,
+      String                     fkCol,
+      List<Map<String, dynamic>> rows,
+      ) async {
+    final parentIds = rows
+        .map((r) => r[fkCol]?.toString())
+        .whereType<String>()
+        .toSet()
+        .toList();
+    if (parentIds.isEmpty) return rows;
+
+    final remote = <String>{};
+    try {
+      const chunk = 100;
+      for (int i = 0; i < parentIds.length; i += chunk) {
+        final ids = parentIds.sublist(i, (i + chunk).clamp(0, parentIds.length));
+        final res = await supabase
+            .from(parentTable)
+            .select('id')
+            .inFilter('id', ids)
+            .timeout(const Duration(seconds: 60));
+        for (final r in res) {
+          remote.add(r['id'].toString());
+        }
+      }
+    } catch (e) {
+      // Check na ho sake to purana behaviour — sab bhejo
+      _log('  ⚠️  $table — parent check fail: $e');
+      return rows;
+    }
+
+    final missing = parentIds.where((id) => !remote.contains(id)).toList();
+    if (missing.isEmpty) return rows;
+    _log('  ⚠️  $table: ${missing.length} $parentTable Supabase mein nahi — '
+        'unke items skip: ${missing.take(10).join(', ')}');
+    return rows.where((r) => remote.contains(r[fkCol]?.toString())).toList();
   }
 
   // ══════════════════════════════════════════════
@@ -1542,7 +1596,11 @@ class SyncService {
               'ORDER BY "${SyncConfig.timestampColumn(table)}" ASC'),
           parameters: {'ids': ids},
         );
-        final rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        var rows = result.map((r) => _toJsonRow(r.toColumnMap())).toList();
+        if (parent != null) {
+          rows = await _withRemoteParent(
+              supabase, table, parent.$1, parent.$2, rows);
+        }
         await _upsertRows(db, supabase, table, 'id', rows, send);
       }
     } catch (e, st) {
