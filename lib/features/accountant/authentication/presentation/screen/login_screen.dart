@@ -3,10 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
-import 'package:jan_ghani_final/core/widget/textfield/app_text_field.dart';
-import 'package:jan_ghani_final/features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
-import '../providers/accountant_auth_providers.dart';
-import '../state/accountant_auth_state.dart';
+import '../widget/accountant_login_form.dart';
 
 class AccountantLoginScreen extends ConsumerStatefulWidget {
   const AccountantLoginScreen({super.key});
@@ -18,10 +15,6 @@ class AccountantLoginScreen extends ConsumerStatefulWidget {
 
 class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
     with SingleTickerProviderStateMixin {
-  final _usernameCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  bool _obscure = true;
-
   late final AnimationController _animCtrl;
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
@@ -44,26 +37,13 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
   @override
   void dispose() {
     _animCtrl.dispose();
-    _usernameCtrl.dispose();
-    _passCtrl.dispose();
     super.dispose();
-  }
-
-  void _listenAuth(AccountantAuthState? prev, AccountantAuthState next) {
-    if (next.status == AuthStatus.success) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const AccountantDashboardScreen()),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(accountantAuthNotifierProvider, _listenAuth);
-    final authState = ref.watch(accountantAuthNotifierProvider);
-    final isLoading = authState.status == AuthStatus.loading;
-
+    // Login success par session set hota hai → router (accountant_router.dart)
+    // khud dashboard / pichle URL par le jata hai.
     // Screen width se mobile/web decide karo
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth > 600;
@@ -73,14 +53,14 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: isWide
-            ? _buildWebLayout(authState, isLoading)
-            : _buildMobileLayout(authState, isLoading),
+            ? _buildWebLayout()
+            : _buildMobileLayout(),
       ),
     );
   }
 
   // ── WEB LAYOUT ──────────────────────────────────────────────────────────
-  Widget _buildWebLayout(AccountantAuthState authState, bool isLoading) {
+  Widget _buildWebLayout() {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 40),
@@ -160,7 +140,7 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
                       ],
                     ),
                     padding: const EdgeInsets.all(40),
-                    child: _buildFormContent(authState, isLoading),
+                    child: const AccountantLoginForm(),
                   ),
                 ),
               ),
@@ -172,7 +152,7 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
   }
 
   // ── MOBILE LAYOUT ────────────────────────────────────────────────────────
-  Widget _buildMobileLayout(AccountantAuthState authState, bool isLoading) {
+  Widget _buildMobileLayout() {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -232,142 +212,13 @@ class _AccountantLoginScreenState extends ConsumerState<AccountantLoginScreen>
                     ],
                   ),
                   padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
-                  child: _buildFormContent(authState, isLoading),
+                  child: const AccountantLoginForm(),
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  // ── SHARED FORM CONTENT ───────────────────────────────────────────────────
-  Widget _buildFormContent(AccountantAuthState authState, bool isLoading) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'Welcome back',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: AppColor.textDark,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Sign in to continue',
-          style: TextStyle(fontSize: 14, color: AppColor.textMuted),
-        ),
-        const SizedBox(height: 28),
-
-        AppTextField(
-          controller: _usernameCtrl,
-          keyboardType: TextInputType.emailAddress,
-          hint: 'Email address',
-          prefixIcon: const Padding(
-            padding: EdgeInsets.all(12),
-            child: AppIcon('ic_role_manager', size: 18, color: AppColor.textMuted),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        AppTextField(
-          controller: _passCtrl,
-          obscureText: _obscure,
-          hint: 'Password',
-          prefixIcon: const Padding(
-            padding: EdgeInsets.all(12),
-            child: AppIcon('ic_custom_access', size: 18, color: AppColor.textMuted),
-          ),
-          suffixIcon: IconButton(
-            icon: AppIcon(
-              'ic_view',
-              size: 20,
-              color: _obscure ? AppColor.textMuted : AppColor.primary,
-            ),
-            onPressed: () => setState(() => _obscure = !_obscure),
-          ),
-        ),
-
-        // Error banner
-        if (authState.status == AuthStatus.error &&
-            authState.errorMessage != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFEBEB),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const AppIcon('ic_rejected', size: 16, color: Colors.red),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    authState.errorMessage!,
-                    style: const TextStyle(color: Colors.red, fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () {},
-            child: const Text(
-              'Forgot password?',
-              style: TextStyle(color: AppColor.primary),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-
-        SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: ElevatedButton(
-            onPressed: isLoading
-                ? null
-                : () {
-              ref
-                  .read(accountantAuthNotifierProvider.notifier)
-                  .login(
-                username: _usernameCtrl.text.trim(),
-                password: _passCtrl.text.trim(),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.primary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: isLoading
-                ? const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2.5,
-              ),
-            )
-                : const Text(
-              'Sign In',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

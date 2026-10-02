@@ -1,20 +1,12 @@
 // Updated on 2026-10-02 10:12 AM
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
-import '../../../accountant_all_orders/presentation/screen/accountant_all_orders_screen.dart';
-import '../../../accountant_cash_transfer/presentation/screen/cash_transfers_screen.dart';
-import '../../../accountant_stock_transfer_record/presentation/screen/accountant_stock_transfer_record_screen.dart';
-import '../../../accountant_warehouse_finance/presentation/screen/accountant_warehouse_finance_screen.dart';
-import '../../../accountant_warehouse_inventory/presentation/screen/accountant_warehouse_inventory_screen.dart';
-import '../../../supplier/presentation/screen/all_supplier_screen.dart';
-import '../../../../warehouse/employee/presentation/screens/salary_tracking_screen.dart';
-import '../../../../warehouse/warehouse_reports/presentation/screens/warehouse_reports_shell.dart';
-import '../../../../warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart'
-    show reportsWarehouseIdProvider;
 import '../../data/model/accountant_warehouse_dashboard_model.dart';
 import '../provider/accountant_warehouse_dashboard_provider.dart';
 import '../widget/send_cash_dialog.dart';
@@ -133,14 +125,8 @@ class _DashboardContent extends ConsumerWidget {
             child: _CashCard(
               amount: stats.cashInHand,
               role: stateRole,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AccountantWarehouseFinanceScreen(
-                    warehouseId: warehouseId,
-                    warehouseName: warehouseName,
-                  ),
-                ),
+              onTap: () => context.push(
+                AccPaths.warehouse(warehouseId, name: warehouseName, sub: 'finance'),
               ),
             ),
           ),
@@ -203,12 +189,9 @@ class _DashboardContent extends ConsumerWidget {
         subLabel: 'Outstanding Payable',
         subValue: _money(stats.totalOutstanding),
         subValueColor: AppColor.cashOut,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AccountantAllSupplierScreen(warehouseId: warehouseId),
+        onTap: () => context.push(
+            AccPaths.warehouse(warehouseId, name: warehouseName, sub: 'suppliers'),
           ),
-        ),
       ),
       _MetricData(
         icon: Icons.inventory_2_rounded,
@@ -219,12 +202,9 @@ class _DashboardContent extends ConsumerWidget {
         subLabel: 'Stock Value',
         subValue: _money(stats.totalInventoryValue),
         subValueColor: AppColor.textDark,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AccountantWarehouseInventoryScreen(warehouseId: warehouseId),
+        onTap: () => context.push(
+            AccPaths.warehouse(warehouseId, name: warehouseName, sub: 'inventory'),
           ),
-        ),
       ),
       _MetricData(
         icon: Icons.receipt_long_rounded,
@@ -235,12 +215,9 @@ class _DashboardContent extends ConsumerWidget {
         subLabel: 'Orders Value',
         subValue: _money(stats.totalOrdersValue),
         subValueColor: AppColor.textDark,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AccountantAllOrdersScreen(warehouseId: warehouseId),
+        onTap: () => context.push(
+            AccPaths.warehouse(warehouseId, name: warehouseName, sub: 'orders'),
           ),
-        ),
       ),
       _MetricData(
         icon: Icons.swap_horiz_rounded,
@@ -251,12 +228,9 @@ class _DashboardContent extends ConsumerWidget {
         subLabel: 'Transfer Value',
         subValue: _money(stats.totalTransfersValue),
         subValueColor: AppColor.textDark,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AccountantStockTransferRecordScreen(warehouseId: warehouseId),
+        onTap: () => context.push(
+            AccPaths.warehouse(warehouseId, name: warehouseName, sub: 'stock-transfers'),
           ),
-        ),
       ),
       _MetricData(
         icon: Icons.account_balance_wallet_rounded,
@@ -267,12 +241,9 @@ class _DashboardContent extends ConsumerWidget {
         subLabel: 'Accepted Value',
         subValue: _money(stats.totalCashTransfersValue),
         subValueColor: AppColor.textDark,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AccountantCashTransfersScreen(warehouseId: warehouseId),
+        onTap: () => context.push(
+            AccPaths.warehouse(warehouseId, name: warehouseName, sub: 'cash-transfers'),
           ),
-        ),
       ),
       // ── Reports (nav card) — sirf full website (wide screen) par ──
       if(isWide)
@@ -288,26 +259,11 @@ class _DashboardContent extends ConsumerWidget {
           isLink: true,
           // Warehouse reports shell — sidebar back button 'Back' (Dashboard nahi),
           // tap par wapas accountant warehouse dashboard par aa jata hai.
-          onTap: () {
-            // Web par reports SELECTED warehouse ka data dikhayein
-            // (config-id nahi — woh local DB ki hai, Supabase ki nahi).
-            ref.read(reportsWarehouseIdProvider.notifier).state = warehouseId;
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (ctx) => Scaffold(
-                  backgroundColor: AppColor.background,
-                  body: SafeArea(
-                    child: WarehouseReportsShell(
-                      onBack: () => Navigator.of(ctx).maybePop(),
-                      backLabel: 'Back',
-                      backIcon: Icons.arrow_back_rounded,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
+          // Selected warehouse ka id route se provider mein set hota hai
+          // (accountant_router.dart → _WarehouseReportsPage).
+          onTap: () => context.push(
+            AccPaths.warehouse(warehouseId, name: warehouseName, sub: 'reports'),
+          ),
         ),
       // ── Salary (nav card, sabse aakhir) — warehouse ka salary screen
       // read-only (Supabase se, selected warehouse). Mobile + web dono.
@@ -321,20 +277,8 @@ class _DashboardContent extends ConsumerWidget {
         subValue: '',
         subValueColor: AppColor.textDark,
         isLink: true,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            // ColoredBox — status bar wali patti bhi safed (SafeArea gap)
-            builder: (_) => ColoredBox(
-              color: AppColor.surface,
-              child: SafeArea(
-                child: SalaryTrackingScreen(
-                  remoteWarehouseId: warehouseId,
-                  warehouseName: warehouseName,
-                ),
-              ),
-            ),
-          ),
+        onTap: () => context.push(
+          AccPaths.warehouse(warehouseId, name: warehouseName, sub: 'salary'),
         ),
       ),
     ];

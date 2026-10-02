@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import '../../data/model/accountant_supplier_model.dart';
 import '../provider/accountant_supplier_provider.dart';
-import 'supplier_detail_screen.dart';
 
 // =============================================================
 // Accountant → All Suppliers (read-only)
@@ -221,18 +221,20 @@ class _SupplierTile extends StatelessWidget {
   Widget build(BuildContext context) {
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AccountantSupplierDetailScreen(
-            supplierId: supplier.id,
-            supplierName: supplier.name,
-            companyName: supplier.companyName,
-            phone: supplier.phone,
-            outstandingBalance: supplier.outstandingBalance,
-          ),
-        ),
-      ),
+      // /warehouses/:id/suppliers/:supplierId — warehouse `name` query bhi rakho.
+      onTap: () {
+        final current = GoRouterState.of(context).uri;
+        context.push(Uri(
+          path: '${current.path}/${Uri.encodeComponent(supplier.id)}',
+          queryParameters: {
+            ...current.queryParameters,
+            'supplier': supplier.name,
+            if (supplier.companyName != null) 'company': supplier.companyName!,
+            'phone': supplier.phone,
+            'balance': supplier.outstandingBalance.toString(),
+          },
+        ).toString());
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),

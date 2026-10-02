@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/account_branch_stock_inventory_report/presentation/screen/accountant_branch_stock_inventory_report_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/screen/accountant_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_discount_wise_sale_report/presentation/screen/accountant_discount_wise_sale_report_screen.dart';
@@ -23,9 +25,15 @@ import 'stock_movement_log/presentation/screen/stock_movement_screen.dart';
 /// Web/desktop par sidebar dikhane ke liye minimum width.
 const double _kSidebarBreakpoint = 900;
 
+/// Accountant web par go_router ke andar chalti hai (report URL mein:
+/// /branches/:branchId/:report). Warehouse desktop app (linked stores) mein
+/// bina router ke push hoti hai — wahan selection local state se.
 class BranchReportListScreen extends StatefulWidget {
-  const BranchReportListScreen({super.key, required this.branchId});
+  const BranchReportListScreen({super.key, required this.branchId, this.report});
   final String branchId;
+
+  /// URL ka report slug (null = list / pehli report).
+  final String? report;
 
   @override
   State<BranchReportListScreen> createState() => _BranchReportListScreenState();
@@ -35,104 +43,158 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
   /// Desktop sidebar par abhi kaunsi report khuli hai.
   int _selected = 0;
 
+  bool get _hasRouter => GoRouter.maybeOf(context) != null;
+
+  int _indexOf(String? slug) {
+    final i = _reports.indexWhere((r) => r.slug == slug);
+    return i < 0 ? 0 : i;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = _indexOf(widget.report);
+  }
+
+  @override
+  void didUpdateWidget(covariant BranchReportListScreen old) {
+    super.didUpdateWidget(old);
+    if (old.report != widget.report) _selected = _indexOf(widget.report);
+  }
+
+  void _select(int index) {
+    if (_hasRouter) {
+      context.go(AccPaths.branchReport(widget.branchId, _reports[index].slug));
+    } else {
+      setState(() => _selected = index);
+    }
+  }
+
+  void _back() {
+    if (!_hasRouter) {
+      Navigator.pop(context);
+    } else if (widget.report == null && context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AccPaths.branches);
+    }
+  }
+
   static const List<_ReportItem> _reports = [
     _ReportItem(
+      slug:     'dashboard',
       iconAsset: 'sidebar_icons/dashboard',
       label:    'Dashboard',
       subtitle: 'Overview of branch activities',
       color:    AppColor.primary,
     ),
     _ReportItem(
+      slug:     'sale-summary',
       iconAsset: 'sidebar_icons/sale_invoice_report',
       label:    'Sale Summary',
       subtitle: 'Sale, return, net sale and customer collection',
       color:    Color(0xFF10B981),
     ),
     _ReportItem(
+      slug:     'inventory',
       iconAsset: 'sidebar_icons/branch_stock',
       label:    'Inventory Report',
       subtitle: 'Stock and items list',
       color:    Color(0xFF8B5CF6),
     ),
     _ReportItem(
+      slug:     'cash-counter',
       iconAsset: 'sidebar_icons/cash_counter',
       label:    'Cash Counter Report',
       subtitle: 'Cash transactions record',
       color:    Color(0xFF06B6D4),
     ),
     _ReportItem(
+      slug:     'inventory-counting',
       iconAsset: 'ic_total_products',
       label:    'Branch Inventory Counting Report',
       subtitle: 'Complete Branch Inventory Counting Report',
       color:    Color(0xFFEC4899),
     ),
     _ReportItem(
+      slug:     'transactions',
       iconAsset: 'sidebar_icons/branch_transactions',
       label:    'Branch Transaction Report',
       subtitle: 'Details of all transactions',
       color:    Color(0xFFF97316),
     ),
     _ReportItem(
+      slug:     'customers',
       iconAsset: 'sidebar_icons/customer',
       label:    'Customer Report',
       subtitle: 'Complete customers list',
       color:    Color(0xFF14B8A6),
     ),
     _ReportItem(
+      slug:     'profit-loss',
       iconAsset: 'ic_sale_price_trend',
       label:    'Profit and Loss Report',
       subtitle: 'Sale profit and loss report',
       color:    Color(0xFF059669),
     ),
     _ReportItem(
+      slug:     'category-sales',
       iconAsset: 'ic_top_products',
       label:    'Category Wise Sale Report',
       subtitle: 'Track sales by category',
       color:    Color(0xFFD97706),
     ),
     _ReportItem(
+      slug:     'discount-sales',
       iconAsset: 'ic_net_amount',
       label:    'Discount Wise Sale Report',
       subtitle: 'Details of Discount Wise items',
       color:    Color(0xFFF59E0B),
     ),
     _ReportItem(
+      slug:     'stock-damage',
       iconAsset: 'sidebar_icons/stock_damage',
       label:    'Inventory Stock Damage Report',
       subtitle: 'Show All damage Stock',
       color:    Color(0xFF8B5CF6),
     ),
     _ReportItem(
+      slug:     'pareto',
       iconAsset: 'ic_top_customers',
       label:    'Pareto Principle Report',
       subtitle: 'Top 20% products, customers & balance',
       color:    Color(0xFF8B5CF6),
     ),
     _ReportItem(
+      slug:     'cash-difference',
       iconAsset: 'sidebar_icons/difference',
       label:    'Cash Difference Report',
       subtitle: 'Cash in/out transaction record',
       color:    Color(0xFF0EA5E9),
     ),
     _ReportItem(
+      slug:     'customer-logs',
       iconAsset: 'sidebar_icons/customer_account',
       label:    'Customer Logs',
       subtitle: 'Customer balance change history',
       color:    Color(0xFF7C3AED),
     ),
     _ReportItem(
+      slug:     'stock-logs',
       iconAsset: 'sidebar_icons/branch_stock',
       label:    'Stock Inventory Logs',
       subtitle: 'Product stock and price change history',
       color:    Color(0xFF0891B2),
     ),
     _ReportItem(
+      slug:     'product-profit-loss',
       iconAsset: 'ic_sale_price_trend',
       label:    'Product Profit & Loss Report',
       subtitle: 'Stock, sales, returns and profit per product',
       color:    Color(0xFF16A34A),
     ),
     _ReportItem(
+      slug:     'stock-movement',
       iconAsset: 'sidebar_icons/branch_stock',
       label:    'Stock Movement Log',
       subtitle: 'Every stock in/out event with reason',
@@ -168,6 +230,10 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
   }
 
   void _openMobile(int index) {
+    if (_hasRouter) {
+      context.push(AccPaths.branchReport(widget.branchId, _reports[index].slug));
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -180,6 +246,11 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
   Widget build(BuildContext context) {
     final desktop = _isDesktop(context);
 
+    // Mobile + URL mein report → seedha wahi report (list ke upar push hui).
+    if (!desktop && widget.report != null) {
+      return _screenForIndex(_indexOf(widget.report), widget.branchId);
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: desktop
@@ -189,8 +260,8 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
                 _ReportSidebar(
                   reports:  _reports,
                   selected: _selected,
-                  onSelect: (i) => setState(() => _selected = i),
-                  onBack:   () => Navigator.pop(context),
+                  onSelect: _select,
+                  onBack:   _back,
                 ),
                 const VerticalDivider(width: 1, color: Color(0xFFE5E7EB)),
                 Expanded(
@@ -511,12 +582,15 @@ class _ReportListCard extends StatelessWidget {
 
 // ── Data Class ────────────────────────────────────────────────────────────────
 class _ReportItem {
+  /// URL slug: /branches/:branchId/<slug>
+  final String slug;
   final String iconAsset;
   final String label;
   final String subtitle;
   final Color  color;
 
   const _ReportItem({
+    required this.slug,
     required this.iconAsset,
     required this.label,
     required this.subtitle,

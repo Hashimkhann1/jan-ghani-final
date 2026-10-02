@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -6,7 +8,6 @@ import 'package:jan_ghani_final/core/service/session/accountant_session.dart';
 import '../../../accountant_all_warehouses/data/model/accountant_warehouse_model.dart';
 import '../../../accountant_all_warehouses/presentation/provider/accountant_warehouse_provider.dart';
 import '../../../accountant_cash_transfer/presentation/provider/cash_transfer_provider.dart';
-import '../../../accountant_cash_transfer/presentation/screen/cash_transfers_screen.dart';
 import '../../../dashboard/presentation/provider/dashboard_provider.dart';
 import '../provider/janghani_net_amount_provider.dart';
 
@@ -164,13 +165,9 @@ class _SendCashDialogState extends ConsumerState<SendCashDialog> {
                 ),
                 GestureDetector(
                   onTap: () {
+                    final router = GoRouter.of(context);
                     Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AccountantCashTransfersScreen(),
-                      ),
-                    );
+                    router.push(AccPaths.cashTransfers);
                   },
                   child: const Icon(Icons.history_rounded,
                       color: AppColor.textMuted, size: 22),

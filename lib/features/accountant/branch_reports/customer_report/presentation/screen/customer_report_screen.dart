@@ -9,7 +9,9 @@ import '../../data/service/customer_report_pdf_service.dart';
 import '../provider/customer_report_provider.dart';
 import 'package:jan_ghani_final/core/service/session/accountant_session.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
-import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
+import 'package:jan_ghani_final/features/accountant/authentication/presentation/providers/accountant_auth_providers.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Design tokens
@@ -175,13 +177,9 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
 
   Future<void> _logout() async {
     await AccountantSession.clear();
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const AccountantLoginScreen()),
-            (_) => false,
-      );
-    }
+    // sessionProvider bhi clear — warna router wapas customer portal par bhej deta.
+    await ref.read(accountantAuthNotifierProvider.notifier).logout();
+    if (mounted) context.go(AccPaths.home);
   }
 
   @override

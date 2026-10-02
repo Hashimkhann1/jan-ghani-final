@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
-import 'package:jan_ghani_final/features/accountant/investment/presentation/screen/investment_screen.dart';
-import 'package:jan_ghani_final/features/accountant/authentication/presentation/screen/login_screen.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/providers/accountant_auth_providers.dart';
-import 'package:jan_ghani_final/features/accountant/accountant_all_warehouses/presentation/screen/accountant_all_warehouses_screen.dart';
-import 'package:jan_ghani_final/features/accountant/accountant_inventory_review/presentation/screen/accountant_inventory_review_screen.dart';
 import 'package:jan_ghani_final/features/installment/installment_dashboard/presentation/screen/installment_dashboard_screen.dart';
 
 import '../../../authentication/presentation/providers/accoutant_session_provider.dart';
-import '../../../branch_reports/accountant_branch/presentation/screen/accountant_branch_screen.dart';
 import '../../../branch_reports/customer_report/data/datasource/customer_report_datasource.dart';
 import '../../../branch_reports/customer_report/presentation/screen/customer_report_screen.dart';
-import 'package:jan_ghani_final/features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart';
 import '../../data/model/dashboard_model.dart';
 import '../provider/dashboard_provider.dart';
 
@@ -24,10 +20,13 @@ class _NavItem {
   /// `assets/branch_icons/` ka SVG file name (bina folder / bina `.svg`).
   final String icon;
   final String label;
+  /// URL path (go_router) — lib/core/routes/accountant_paths.dart
+  final String path;
   final List<String> allowedRoles;
   const _NavItem({
     required this.icon,
     required this.label,
+    required this.path,
     required this.allowedRoles,
   });
 }
@@ -36,26 +35,31 @@ const List<_NavItem> _allNavItems = [
   _NavItem(
     icon: 'sidebar_icons/dashboard',
     label: 'Dashboard',
+    path: AccPaths.dashboard,
     allowedRoles: ['owner', 'accountant'],
   ),
   _NavItem(
     icon: 'ic_cash_registration',
     label: 'Branch',
+    path: AccPaths.branches,
     allowedRoles: ['owner', 'accountant', 'manager'],
   ),
   _NavItem(
     icon: 'sidebar_icons/branch_stock',
     label: 'Warehouse',
+    path: AccPaths.warehouses,
     allowedRoles: ['owner', 'accountant', 'warehouse_manager'],
   ),
   _NavItem(
     icon: 'ic_sale_price_trend',
     label: 'Inventory Review',
+    path: AccPaths.inventoryReview,
     allowedRoles: ['owner'],
   ),
   _NavItem(
     icon: 'ic_sale_price_trend',
     label: 'Investment',
+    path: AccPaths.investment,
     allowedRoles: ['owner', 'accountant'],
   ),
 ];
@@ -84,13 +88,8 @@ Future<void> _confirmAndLogout(BuildContext context, WidgetRef ref) async {
   if (ok != true) return;
 
   await ref.read(accountantAuthNotifierProvider.notifier).logout();
-  if (context.mounted) {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const AccountantLoginScreen()),
-      (_) => false,
-    );
-  }
+  // Logout ke baad website par (wahan login popup khud khulta hai).
+  if (context.mounted) context.go(AccPaths.home);
 }
 
 // ── Balance reveal (bank-style hide) ─────────────────────────────────────────
@@ -103,29 +102,12 @@ String _greeting() {
   return 'Good Evening,';
 }
 
-Widget _screenByLabel(String label) {
-  return switch (label) {
-    'Dashboard'        => const _DashboardBody(),
-    'Branch'           => BranchScreen(),
-    'Warehouse'        => const AccountantAllWarehousesScreen(),
-    'Inventory Review' => const AccountantInventoryReviewScreen(),
-    'Investment'       => const AccountantInvestmentScreen(),
-    _                  => const _DashboardBody(),
-  };
-}
-
-// ── Main Screen ───────────────────────────────────────────────────────────────
-class AccountantDashboardScreen extends ConsumerStatefulWidget {
-  const AccountantDashboardScreen({super.key});
-
-  @override
-  ConsumerState<AccountantDashboardScreen> createState() =>
-      _AccountantDashboardScreenState();
-}
-
-class _AccountantDashboardScreenState
-    extends ConsumerState<AccountantDashboardScreen> {
-  int _selectedIndex = 0;
+// ── Main Screen (go_router ShellRoute) ───────────────────────────────────────
+// Sidebar / bottom nav yahan; [child] = current tab ka screen (URL se).
+// Customer portal aur inventory counter ke apne routes hain (router dekho).
+class AccountantDashboardScreen extends ConsumerWidget {
+  final Widget child;
+  const AccountantDashboardScreen({super.key, required this.child});
 
   bool _isDesktop(BuildContext context) =>
       MediaQuery.of(context).size.width >= 800;
@@ -137,42 +119,12 @@ class _AccountantDashboardScreenState
   }
 
   @override
-  Widget build(BuildContext context) {
-    // ✅ FIXED: .user se access karo
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-
-    final customerToken = user?.customerToken;
-    if (customerToken != null && customerToken.isNotEmpty) {
-      return _CustomerPortal(customerId: customerToken);
-    }
 
     final desktop  = _isDesktop(context);
     final role     = user?.role ?? 'accountant';
     final navItems = _filteredItems(role);
-
-    if (role == 'manager') {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF5F5F7),
-        body: desktop
-            ? Row(
-          children: [
-            _Sidebar(
-              selectedIndex: 0,
-              navItems:      navItems,
-              role:          role,
-              onItemTap:     (_) {},
-            ),
-            const Expanded(child: BranchScreen()),
-          ],
-        )
-            : const BranchScreen(),
-      );
-    }
-
-    // Inventory counter → seedha inventory counting screen (uske store ka)
-    if (role == 'inventory_counter') {
-      return InventoryCountingScreen(storeId: user?.branchId);
-    }
 
     // Kisi role ke liye koi nav item na ho to crash se bachao (empty list guard)
     if (navItems.isEmpty) {
@@ -187,7 +139,30 @@ class _AccountantDashboardScreenState
       );
     }
 
-    final safeIndex = _selectedIndex < navItems.length ? _selectedIndex : 0;
+    final location = GoRouterState.of(context).uri.path;
+    final found = navItems.indexWhere((i) =>
+        location == i.path || location.startsWith('${i.path}/'));
+    final selectedIndex = found < 0 ? 0 : found;
+    void onItemTap(int i) => context.go(navItems[i].path);
+
+    if (role == 'manager') {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5F7),
+        body: desktop
+            ? Row(
+          children: [
+            _Sidebar(
+              selectedIndex: selectedIndex,
+              navItems:      navItems,
+              role:          role,
+              onItemTap:     onItemTap,
+            ),
+            Expanded(child: child),
+          ],
+        )
+            : child,
+      );
+    }
 
     if (desktop) {
       return Scaffold(
@@ -195,12 +170,12 @@ class _AccountantDashboardScreenState
         body: Row(
           children: [
             _Sidebar(
-              selectedIndex: safeIndex,
+              selectedIndex: selectedIndex,
               navItems:      navItems,
               role:          role,
-              onItemTap:     (i) => setState(() => _selectedIndex = i),
+              onItemTap:     onItemTap,
             ),
-            Expanded(child: _screenByLabel(navItems[safeIndex].label)),
+            Expanded(child: child),
           ],
         ),
       );
@@ -208,7 +183,7 @@ class _AccountantDashboardScreenState
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
-      body: _screenByLabel(navItems[safeIndex].label),
+      body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -229,11 +204,11 @@ class _AccountantDashboardScreenState
               children: navItems.asMap().entries.map((entry) {
                 final i      = entry.key;
                 final item   = entry.value;
-                final active = i == safeIndex;
+                final active = i == selectedIndex;
                 return Expanded(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: () => setState(() => _selectedIndex = i),
+                    onTap: () => onItemTap(i),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -283,15 +258,15 @@ class _AccountantDashboardScreenState
 // ══════════════════════════════════════════════════════════════
 // Customer Portal
 // ══════════════════════════════════════════════════════════════
-class _CustomerPortal extends ConsumerStatefulWidget {
+class AccountantCustomerPortal extends ConsumerStatefulWidget {
   final String customerId;
-  const _CustomerPortal({required this.customerId});
+  const AccountantCustomerPortal({required this.customerId});
 
   @override
-  ConsumerState<_CustomerPortal> createState() => _CustomerPortalState();
+  ConsumerState<AccountantCustomerPortal> createState() => _CustomerPortalState();
 }
 
-class _CustomerPortalState extends ConsumerState<_CustomerPortal> {
+class _CustomerPortalState extends ConsumerState<AccountantCustomerPortal> {
   String?  _customerName;
   double   _customerBalance = 0;
   bool     _loading         = true;
@@ -528,8 +503,8 @@ class _SidebarItem extends StatelessWidget {
 }
 
 // ── Dashboard Body ────────────────────────────────────────────────────────────
-class _DashboardBody extends ConsumerWidget {
-  const _DashboardBody();
+class AccountantDashboardBody extends ConsumerWidget {
+  const AccountantDashboardBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

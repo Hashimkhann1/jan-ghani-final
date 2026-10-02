@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
-import '../../../accountant_warehouse_dashboard/presentation/screen/accountant_warehouse_dashboard_screen.dart';
 import '../../data/model/accountant_warehouse_model.dart';
 import '../provider/accountant_warehouse_provider.dart';
 
@@ -148,14 +149,8 @@ class _WarehouseTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AccountantWarehouseDashboardScreen(
-            warehouseId: warehouse.id,
-            warehouseName: warehouse.name,
-          ),
-        ),
+      onTap: () => context.push(
+        AccPaths.warehouse(warehouse.id, name: warehouse.name),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),

@@ -10,6 +10,7 @@ import 'dart:io' if (dart.library.html) 'package:jan_ghani_final/core/stub/io_st
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:jan_ghani_final/core/theme/light_theme.dart';
 import 'package:jan_ghani_final/features/branch/backup/presentation/screen/branch_backup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,16 +20,15 @@ import 'core/config/store_config.dart';
 import 'core/service/db/db_service.dart';
 import 'core/service/sync/sync_service.dart';
 import 'core/widget/sidebar/branch_sidebar_widget.dart';
-import 'features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
-
-import 'features/accountant/authentication/presentation/screen/login_screen.dart';
-import 'features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
+import 'core/routes/accountant_router.dart';
 import 'features/branch/authentication/presentation/screen/login_screen.dart';
 
 final supabase = Supabase.instance.client;
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+  // Web URLs bina '#' ke: /login, /dashboard, /branches ... (non-web par no-op)
+  usePathUrlStrategy();
   await Supabase.initialize(
     url:
     // "https://fngvbieiwilypecznwcl.supabase.co",
@@ -58,36 +58,23 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp(
+    // Website → Accountant (go_router, har screen ka apna URL —
+    // lib/core/routes/accountant_router.dart). Desktop (Windows/Mac) → Branch
+    // (Warehouse ka apna alag entry point hai: lib/main_warehouse.dart).
+    if (kIsWeb) {
+      return MaterialApp.router(
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,
         theme: LightTheme.theme,
-      // Website → Accountant. Desktop (Windows/Mac) → Branch
-      // (Warehouse ka apna alag entry point hai: lib/main_warehouse.dart).
-      home: kIsWeb ? const _AccountantHome() : const _BranchHome(),
-    );
-  }
-}
-
-// ── Web: Accountant ─────────────────────────────────────────────
-class _AccountantHome extends ConsumerWidget {
-  const _AccountantHome();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(sessionProvider);
-
-    if (session.isRestoring) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        routerConfig: ref.watch(accountantRouterProvider),
       );
     }
-
-    if (session.user != null) {
-      return const AccountantDashboardScreen();
-    }
-
-    return const AccountantLoginScreen();
+    return MaterialApp(
+      title: 'Jan Ghani',
+      debugShowCheckedModeBanner: false,
+      theme: LightTheme.theme,
+      home: const _BranchHome(),
+    );
   }
 }
 

@@ -31,6 +31,21 @@
 
   <title>Jan Ghani</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Page ko scroll hone se roko: text field focus pe browser body scroll
+       kar deta tha, jis se Flutter view upar khisak kar neeche white area
+       aa jata tha. Scrolling Flutter khud handle karta hai. -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background-color: #F5F5F5;
+    }
+  </style>
 </head>
 <body>
   <!--

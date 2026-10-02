@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../core/color/app_color.dart';
 import '../../../../../../core/widget/app_logo_widget.dart';
 import '../../../../../branch/authentication/presentation/provider/auth_provider.dart';
 import '../../../../authentication/presentation/providers/accoutant_session_provider.dart';
-import '../../../branch_report_list_screen.dart';
 import '../../data/model/accountant_branch_model.dart';
 import '../provider/accounttant_branch_provider.dart';
 
@@ -263,12 +264,7 @@ class _BranchGridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => BranchReportListScreen(branchId: branch.id),
-        ),
-      ),
+      onTap: () => context.push(AccPaths.branch(branch.id)),
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.all(18),
@@ -571,12 +567,7 @@ class _BranchListCard extends StatelessWidget {
         ),
         trailing: const Icon(Icons.chevron_right_rounded,
             color: AppColor.textHint),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BranchReportListScreen(branchId: branch.id),
-          ),
-        ),
+        onTap: () => context.push(AccPaths.branch(branch.id)),
       ),
     );
   }
