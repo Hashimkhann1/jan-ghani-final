@@ -1,4 +1,4 @@
-<!-- Updated on 2026-10-02 10:07 AM -->
+<!-- Updated on 2026-10-02 10:16 AM -->
 
 # Jan Ghani POS — Project Context
 
@@ -307,6 +307,8 @@ final reportsWarehouseIdProvider = StateProvider<String?>((ref) => null);
 > Inventory & Purchase ne DB objects banaye kyunki data bada/aggregate-heavy tha. Suppliers & Cash Flow chhote the → client-side compute, koi view/RPC nahi.
 
 ### Accountant se Reports kholna
+> S18: isi dashboard par list ke aakhir mein **Salary** card bhi hai (read-only salary screen, Supabase) — Session 18 dekho.
+
 **File:** `accountant/accountant_warehouse_dashboard/.../accountant_warehouse_dashboard_screen.dart`
 - Dashboard mein **"Reports" card** — tap par `reportsWarehouseIdProvider = selected warehouseId` set karke `WarehouseReportsShell` kholta hai
 - Shell ke sidebar back-button web par **"Back"** dikhata hai (Dashboard nahi) — `WarehouseReportsShell` ke naye `backLabel` / `backIcon` params se — tap par wapas accountant dashboard par pop
@@ -455,6 +457,7 @@ SectionCard(headerIcon, title, headerTrailing, children, footerLeft, footerRight
 | `companyProvider` | `company/presentation/provider/company_provider.dart` | `StateNotifierProvider<CompanyNotifier, CompanyState>` | ⭐ S7 — companies CRUD (Category pattern) |
 | `employeeProvider` | `employee/presentation/provider/employee_provider.dart` | `StateNotifierProvider<EmployeeNotifier, EmployeeState>` | ⭐ S7 — employees master CRUD |
 | `salaryProvider` | `employee/presentation/provider/salary_provider.dart` | `StateNotifierProvider<SalaryNotifier, SalaryState>` | ⭐ S7 — monthly salary tracking + pay/delete (month state) |
+| `remoteSalaryProvider` | same file | `StateNotifierProvider.autoDispose.family<…, String>` | ⭐ S18 — accountant: selected warehouse ki salary, Supabase se read-only |
 | `transferReportProvider` | `assign_stock/presentation/providers/assign_stock_report_provider.dart` | `StateNotifierProvider<TransferReportNotifier, TransferReportState>` | Stock transfers data |
 | `assignStockProvider` | `assign_stock/presentation/providers/assign_stock_provider.dart` | StateNotifier | Cart state for assigning stock |
 | `warehouseDashboardProvider` | `warehouse_dashboard/presentation/provider/warehouse_dashboard_provider.dart` | `StateNotifierProvider` | ⭐ S17 — Dashboard v2: summary, trend, dues, low stock, movements + filter |
@@ -1440,6 +1443,29 @@ Store counting (Supabase inventory_counting)
 **Dashboard:** `warehouse_dashboard_remote_datasource.dart` · `warehouse_dashboard_models.dart` · `warehouse_dashboard_provider.dart` · `warehouse_dashboard_screen.dart` · **naya** `widgets/dashboard_v2/dashboard_v2_widgets.dart` · `warehouse_dashboard_widgets.dart` (trim) · 3 files delete
 **Sidebar:** `sidebar_widget.dart` · `nav_tile_widget.dart` · **naya** `sidebar_sync_status_provider.dart`
 **Employee:** `salary_tracking_screen.dart` · `employees_screen.dart`
+
+---
+
+## Session 18 — Accountant warehouse dashboard: Salary card (read-only, Supabase) ⭐
+
+> **Maqsad:** Accountant ke warehouse dashboard par list ke **aakhir mein "Salary" card** — tap par us warehouse ka Salary Tracking screen. ⚠️ User ki explicit request par accountant ki **sirf ek file** (card) chhui; baaki accountant code untouched.
+
+### Masla + hal
+- Warehouse `SalaryTrackingScreen` data **local Postgres** (`EmployeeRepository` → `DatabaseService`) se padhta — accountant app (web/mobile) mein local DB hota hi nahi → seedha kholne par error.
+- **Hal:** wahi screen **read-only remote mode** mein — data Supabase se (warehouse sync `warehouse_employees` + `warehouse_salary_payments` Supabase par bhejti hai, `_allTables` S7).
+
+### Changes
+| File | Change |
+|---|---|
+| `accountant/accountant_warehouse_dashboard/.../accountant_warehouse_dashboard_screen.dart` | `_buildMetrics` mein aakhri `_MetricData` "Salary" (`isLink: true`, mobile + web dono) → `SalaryTrackingScreen(remoteWarehouseId: warehouseId, warehouseName:)` push (`ColoredBox` + `SafeArea`) |
+| `employee/presentation/screens/salary_tracking_screen.dart` | optional `remoteWarehouseId` + `warehouseName`; `_readOnly` → **Pay + Employees buttons nahi**, top-left **back button**, subtitle "`<warehouse>` · sirf dekhne ke liye", empty-state text alag. Provider `ProviderListenable` se select (local `salaryProvider` / remote family) |
+| `employee/presentation/provider/salary_provider.dart` | `SalaryNotifier({remoteWarehouseId})` → `load()` repo ko pass; naya **`remoteSalaryProvider`** (`StateNotifierProvider.autoDispose.family<…, String warehouseId>`) |
+| `employee/data/employee_repository.dart` | Supabase read-only: `getAllEmployeesRemote`, `getPaymentsForMonthRemote` (`salary_month` eq yyyy-mm-dd), `getPaymentsForEmployeeRemote`; `getMonthStatuses(month, {remoteWarehouseId})` branch |
+| `employee/presentation/widgets/employee_history_dialog.dart` | `show(context, employee, {remoteWarehouseId})` → history Supabase se |
+
+- **Warehouse app par asar: zero** — sidebar ka `SalaryTrackingScreen()` (bina params) pehle jaisa local DB + Pay/Employees.
+- **Supabase verify (read-only):** dono tables + saare columns mojood, **RLS OFF** (suppliers jaisa — accountant pehle se padhta), data mojood (11 employees, 52 payments).
+- Pay accountant se **mumkin nahi/design se band** — payment warehouse ke local cash (`warehouse_cash_transactions` + trigger) se hoti hai.
 
 ---
 
