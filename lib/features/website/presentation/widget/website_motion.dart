@@ -3,22 +3,29 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-// Website ke halke animations — koi extra package nahi.
+// Website ke halke animations (3D bhi) — koi extra package nahi.
+
+/// Matrix4 perspective — 3D gehrai (zyada = zyada dramatic).
+const double _perspective = 0.0012;
 
 final _rs = NumberFormat('#,##0', 'en_US');
 String formatRs(num v) => 'Rs ${_rs.format(v.round())}';
 
-/// Scroll karte hue screen mein aate hi fade-up (sirf ek baar).
+/// Scroll karte hue screen mein aate hi 3D flip-up (sirf ek baar).
 class Reveal extends StatefulWidget {
   final Widget child;
   final Duration delay;
   final double offset;
+
+  /// Shuru ka 3D jhukao (radians, X-axis par).
+  final double flip;
 
   const Reveal({
     super.key,
     required this.child,
     this.delay = Duration.zero,
     this.offset = 28,
+    this.flip = 0.35,
   });
 
   @override
@@ -70,28 +77,40 @@ class _RevealState extends State<Reveal> with SingleTickerProviderStateMixin {
     return AnimatedBuilder(
       animation: _curve,
       child: widget.child,
-      builder: (_, child) => Opacity(
-        opacity: _curve.value,
-        child: Transform.translate(
-          offset: Offset(0, widget.offset * (1 - _curve.value)),
-          child: child,
-        ),
-      ),
+      builder: (_, child) {
+        final rest = 1 - _curve.value;
+        return Opacity(
+          opacity: _curve.value,
+          child: Transform(
+            alignment: Alignment.bottomCenter,
+            // 3D: neeche se perspective ke saath seedha khara hota hai.
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, _perspective)
+              ..translateByDouble(0.0, widget.offset * rest, 0.0, 1.0)
+              ..rotateX(widget.flip * rest),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }
 
-/// Hover par halka upar uthna — builder ko `hovered` milta hai
-/// (shadow / icon zoom waghera card khud decide kare).
+/// Hover par upar uthna + mouse ki taraf 3D jhukna (tilt).
+/// Builder ko `hovered` milta hai (shadow / photo zoom waghera card khud kare).
 class HoverLift extends StatefulWidget {
   final Widget Function(BuildContext context, bool hovered) builder;
   final double lift;
+
+  /// Zyada se zyada 3D jhukao (radians). 0 = sirf lift.
+  final double tilt;
   final VoidCallback? onTap;
 
   const HoverLift({
     super.key,
     required this.builder,
     this.lift = 6,
+    this.tilt = 0.14,
     this.onTap,
   });
 
@@ -102,13 +121,33 @@ class HoverLift extends StatefulWidget {
 class _HoverLiftState extends State<HoverLift> {
   bool _hovered = false;
 
+  /// Mouse ki jagah card ke beech se, -1..1 (x, y).
+  Offset _pointer = Offset.zero;
+
+  void _track(Offset local) {
+    final size = context.size;
+    if (size == null || size.isEmpty) return;
+    setState(() => _pointer = Offset(
+          (local.dx / size.width * 2 - 1).clamp(-1.0, 1.0),
+          (local.dy / size.height * 2 - 1).clamp(-1.0, 1.0),
+        ));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final target = _hovered ? _pointer : Offset.zero;
     return MouseRegion(
       cursor:
           widget.onTap != null ? SystemMouseCursors.click : MouseCursor.defer,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
+      onEnter: (e) {
+        _hovered = true;
+        _track(e.localPosition);
+      },
+      onHover: (e) => _track(e.localPosition),
+      onExit: (_) => setState(() {
+        _hovered = false;
+        _pointer = Offset.zero;
+      }),
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
@@ -116,9 +155,69 @@ class _HoverLiftState extends State<HoverLift> {
           curve: Curves.easeOutCubic,
           transform:
               Matrix4.translationValues(0, _hovered ? -widget.lift : 0, 0),
-          child: widget.builder(context, _hovered),
+          child: TweenAnimationBuilder<Offset>(
+            tween: Tween(end: target),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            child: widget.builder(context, _hovered),
+            builder: (_, p, child) => Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, _perspective)
+                ..rotateX(-p.dy * widget.tilt)
+                ..rotateY(p.dx * widget.tilt),
+              child: child,
+            ),
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// Lagataar dheere 3D mein jhoolna (hero card) — Y aur X axis par.
+class Sway3D extends StatefulWidget {
+  final Widget child;
+  final double angle;
+  final Duration period;
+
+  const Sway3D({
+    super.key,
+    required this.child,
+    this.angle = 0.10,
+    this.period = const Duration(seconds: 9),
+  });
+
+  @override
+  State<Sway3D> createState() => _Sway3DState();
+}
+
+class _Sway3DState extends State<Sway3D> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl =
+      AnimationController(vsync: this, duration: widget.period)..repeat();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      child: widget.child,
+      builder: (_, child) {
+        final t = _ctrl.value * 2 * math.pi;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, _perspective)
+            ..rotateY(math.sin(t) * widget.angle)
+            ..rotateX(math.cos(t) * widget.angle * 0.45),
+          child: child,
+        );
+      },
     );
   }
 }

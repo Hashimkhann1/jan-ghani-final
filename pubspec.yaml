@@ -75,6 +75,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/website/
     - assets/branch_icons/
     - assets/branch_icons/sidebar_icons/
     - assets/json/

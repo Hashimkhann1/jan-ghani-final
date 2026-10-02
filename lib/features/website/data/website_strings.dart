@@ -242,19 +242,19 @@ class WebsiteText {
   static WebsiteText of(BuildContext context) =>
       WebsiteLocale.of(context).lang.text;
 
-  // Icons website_content.dart mein — text yahan; dono order se jurte hain.
+  // Photos website_content.dart mein — text yahan; dono order se jurte hain.
   List<WebsiteItem> get highlightItems =>
-      _items(WebsiteContent.highlightIcons, highlights);
+      _items(WebsiteContent.highlightImages, highlights);
   List<WebsiteItem> get categoryItems =>
-      _items(WebsiteContent.categoryIcons, categories);
+      _items(WebsiteContent.categoryImages, categories);
   List<WebsiteItem> get instStepItems =>
-      _items(WebsiteContent.instStepIcons, instSteps);
-  List<WebsiteItem> get whyUsItems => _items(WebsiteContent.whyUsIcons, whyUs);
+      _items(WebsiteContent.instStepImages, instSteps);
+  List<WebsiteItem> get whyUsItems => _items(WebsiteContent.whyUsImages, whyUs);
 
-  static List<WebsiteItem> _items(List<IconData> icons, List<TextPair> pairs) =>
+  static List<WebsiteItem> _items(List<String> images, List<TextPair> pairs) =>
       [
         for (int i = 0; i < pairs.length; i++)
-          WebsiteItem(icons[i], pairs[i].$1, pairs[i].$2),
+          WebsiteItem(images[i], pairs[i].$1, pairs[i].$2),
       ];
 
   // ── English ────────────────────────────────────────────────────────────────

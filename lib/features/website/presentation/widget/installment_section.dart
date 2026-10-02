@@ -182,7 +182,7 @@ class _StepCard extends StatelessWidget {
     return HoverLift(
       builder: (context, hovered) => AnimatedContainer(
         duration: const Duration(milliseconds: 240),
-        padding: const EdgeInsets.all(26),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
@@ -199,51 +199,54 @@ class _StepCard extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            Stack(
               children: [
-                AnimatedScale(
-                  scale: hovered ? 1.08 : 1,
-                  duration: const Duration(milliseconds: 240),
+                WebsitePhoto(item.image, zoomed: hovered, height: 180),
+                PositionedDirectional(
+                  top: 14,
+                  start: 14,
                   child: Container(
-                    width: 54,
-                    height: 54,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
                         colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)],
                       ),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    child: Icon(item.icon, color: Colors.white, size: 26),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '0${index + 1}',
-                  style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1,
-                    color: hovered
-                        ? const Color(0xFFCFCBFF)
-                        : const Color(0xFFE9E8F5),
+                    child: Text(
+                      '0${index + 1}',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Text(item.title,
-                style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: WebsiteColors.ink)),
-            const SizedBox(height: 8),
-            Text(item.text,
-                style: const TextStyle(
-                    fontSize: 14.5, height: 1.55, color: WebsiteColors.muted)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 26),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title,
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: WebsiteColors.ink)),
+                  const SizedBox(height: 8),
+                  Text(item.text,
+                      style: const TextStyle(
+                          fontSize: 14.5,
+                          height: 1.55,
+                          color: WebsiteColors.muted)),
+                ],
+              ),
+            ),
           ],
         ),
       ),

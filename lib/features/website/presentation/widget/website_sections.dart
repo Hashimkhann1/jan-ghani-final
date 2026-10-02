@@ -81,6 +81,43 @@ class DecorBlob extends StatelessWidget {
       );
 }
 
+/// Asset photo — cover fit, hover par halka zoom. File na mile to tint box.
+class WebsitePhoto extends StatelessWidget {
+  final String path;
+  final bool zoomed;
+  final double? height;
+  final BorderRadius radius;
+  const WebsitePhoto(
+    this.path, {
+    super.key,
+    this.zoomed = false,
+    this.height,
+    this.radius = BorderRadius.zero,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: radius,
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: AnimatedScale(
+          scale: zoomed ? 1.08 : 1,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeOutCubic,
+          child: Image.asset(
+            path,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                const ColoredBox(color: WebsiteColors.tint),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SectionHeader extends StatelessWidget {
   final String eyebrow;
   final String title;
@@ -688,111 +725,101 @@ class _HeroVisual extends StatelessWidget {
     final cats = t.categoryItems.take(4).toList();
     final card = Container(
       constraints: const BoxConstraints(maxWidth: 460),
-      padding: EdgeInsets.all(compact ? 20 : 28),
+      height: compact ? 440 : 540,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColor.primary, AppColor.primaryDark],
-        ),
+        color: AppColor.primaryDark,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: AppColor.primary.withValues(alpha: 0.32),
+            color: AppColor.primary.withValues(alpha: 0.30),
             blurRadius: 50,
             offset: const Offset(0, 24),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Row(
-            children: [
-              const AppLogo(size: 56, radius: 14),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const WebsitePhoto(WebsiteContent.heroImage),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: [0, 0.3, 0.55, 1],
+                colors: [
+                  Color(0x9912112B),
+                  Colors.transparent,
+                  Colors.transparent,
+                  Color(0xF212112B),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(compact ? 18 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(t.brand,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 2),
-                    Text(t.tagline,
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13)),
+                    const AppLogo(size: 48, radius: 12),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(t.brand,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text(t.tagline,
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12.5)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: compact ? 1.35 : 1.5,
-            children: [
-              for (final c in cats)
-                HoverLift(
-                  lift: 4,
-                  builder: (_, hovered) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color:
-                          Colors.white.withValues(alpha: hovered ? 0.20 : 0.12),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        AnimatedScale(
-                          scale: hovered ? 1.15 : 1,
-                          duration: const Duration(milliseconds: 220),
-                          alignment: AlignmentDirectional.topStart
-                              .resolve(Directionality.of(context)),
-                          child: Icon(c.icon, color: Colors.white, size: 26),
-                        ),
-                        Text(c.title,
-                            maxLines: 2,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                height: 1.2)),
-                      ],
-                    ),
-                  ),
+                const Spacer(),
+                Row(
+                  children: [
+                    for (int i = 0; i < cats.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 10),
+                      Expanded(child: _HeroCategory(item: cats[i])),
+                    ],
+                  ],
                 ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.local_shipping_rounded,
-                    color: AppColor.cashIn, size: 22),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(t.deliveredDoorstep,
-                      style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: WebsiteColors.ink)),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 38,
+                        child: WebsitePhoto(
+                          WebsiteContent.highlightImages[2],
+                          height: 38,
+                          radius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(t.deliveredDoorstep,
+                            style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: WebsiteColors.ink)),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -825,14 +852,13 @@ class _HeroVisual extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9FBF2),
-                borderRadius: BorderRadius.circular(10),
+            SizedBox(
+              width: 40,
+              child: WebsitePhoto(
+                WebsiteContent.instStepImages[2],
+                height: 40,
+                radius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.event_repeat_rounded,
-                  color: AppColor.cashIn, size: 20),
             ),
             const SizedBox(width: 10),
             Column(
@@ -859,7 +885,9 @@ class _HeroVisual extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.only(bottom: compact ? 30 : 0),
-          child: card,
+          child: Sway3D(
+            child: HoverLift(lift: 0, tilt: 0.18, builder: (_, __) => card),
+          ),
         ),
         PositionedDirectional(
           start: compact ? 12 : -36,
@@ -871,15 +899,60 @@ class _HeroVisual extends StatelessWidget {
   }
 }
 
+/// Hero card ke andar chhoti category photo tile.
+class _HeroCategory extends StatelessWidget {
+  final WebsiteItem item;
+  const _HeroCategory({required this.item});
+
+  @override
+  Widget build(BuildContext context) => HoverLift(
+        lift: 4,
+        tilt: 0.3,
+        builder: (_, hovered) => Column(
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: hovered ? 0.9 : 0.5),
+                    width: 2,
+                  ),
+                ),
+                child: WebsitePhoto(
+                  item.image,
+                  zoomed: hovered,
+                  radius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(item.title,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2)),
+          ],
+        ),
+      );
+}
+
 // ── Cards grid (About highlights / Products / Why us) ────────────────────────
 class _CardGrid extends StatelessWidget {
   final List<WebsiteItem> items;
   final int columns;
   final bool centered;
+  final bool overlay;
   const _CardGrid({
     required this.items,
     required this.columns,
     this.centered = false,
+    this.overlay = false,
   });
 
   @override
@@ -901,7 +974,8 @@ class _CardGrid extends StatelessWidget {
               width: w,
               child: Reveal(
                 delay: Duration(milliseconds: 80 * (i % cols)),
-                child: _InfoCard(item: items[i], centered: centered),
+                child: _InfoCard(
+                    item: items[i], centered: centered, overlay: overlay),
               ),
             ),
         ],
@@ -913,78 +987,124 @@ class _CardGrid extends StatelessWidget {
 class _InfoCard extends StatelessWidget {
   final WebsiteItem item;
   final bool centered;
-  const _InfoCard({required this.item, this.centered = false});
+  final bool overlay;
+  const _InfoCard({
+    required this.item,
+    this.centered = false,
+    this.overlay = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return HoverLift(
       builder: (_, hovered) => AnimatedContainer(
         duration: const Duration(milliseconds: 240),
-        padding: const EdgeInsets.all(26),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: hovered ? const Color(0xFFCFCBFF) : WebsiteColors.line,
-          ),
+          border: overlay
+              ? null
+              : Border.all(
+                  color: hovered ? const Color(0xFFCFCBFF) : WebsiteColors.line,
+                ),
           boxShadow: [
             BoxShadow(
-              color: AppColor.primary.withValues(alpha: hovered ? 0.13 : 0.03),
+              color: AppColor.primary.withValues(alpha: hovered ? 0.16 : 0.04),
               blurRadius: hovered ? 30 : 12,
               offset: Offset(0, hovered ? 16 : 4),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment:
-              centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+        child: overlay ? _overlay(hovered) : _stacked(hovered),
+      ),
+    );
+  }
+
+  // Products: poori card photo, neeche dark gradient par title (shop style).
+  Widget _overlay(bool hovered) => SizedBox(
+        height: 320,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 240),
-              width: 56,
-              height: 56,
+            WebsitePhoto(item.image, zoomed: hovered),
+            const DecoratedBox(
               decoration: BoxDecoration(
-                gradient: hovered
-                    ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)])
-                    : null,
-                color: hovered ? null : WebsiteColors.tint,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: AnimatedScale(
-                scale: hovered ? 1.12 : 1,
-                duration: const Duration(milliseconds: 240),
-                child: Icon(item.icon,
-                    color: hovered ? Colors.white : AppColor.primary, size: 27),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.35, 1],
+                  colors: [Colors.transparent, Color(0xE612112B)],
+                ),
               ),
             ),
-            const SizedBox(height: 18),
-            Text(
-              item.title,
-              textAlign: centered ? TextAlign.center : TextAlign.start,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: WebsiteColors.ink,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.text,
-              textAlign: centered ? TextAlign.center : TextAlign.start,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.55,
-                color: WebsiteColors.muted,
+            Positioned(
+              left: 22,
+              right: 22,
+              bottom: 22,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.text,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      height: 1.5,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+
+  // About / Why us: upar photo, neeche text.
+  Widget _stacked(bool hovered) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          WebsitePhoto(item.image, zoomed: hovered, height: 170),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
+            child: Column(
+              crossAxisAlignment: centered
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  textAlign: centered ? TextAlign.center : TextAlign.start,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: WebsiteColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.text,
+                  textAlign: centered ? TextAlign.center : TextAlign.start,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.55,
+                    color: WebsiteColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
 }
 
 // ── About ────────────────────────────────────────────────────────────────────
@@ -1041,7 +1161,7 @@ class ProductsSection extends StatelessWidget {
             ),
           ),
           SizedBox(height: mobile ? 36 : 56),
-          _CardGrid(items: t.categoryItems, columns: 3),
+          _CardGrid(items: t.categoryItems, columns: 3, overlay: true),
         ],
       ),
     );
@@ -1248,19 +1368,13 @@ class _NearestBranchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final icon = Floating(
       amplitude: 6,
-      child: Container(
-        width: 84,
-        height: 84,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)],
-          ),
-          borderRadius: BorderRadius.circular(24),
+      child: SizedBox(
+        width: mobile ? 160 : 140,
+        child: WebsitePhoto(
+          WebsiteContent.highlightImages[1],
+          height: mobile ? 120 : 110,
+          radius: BorderRadius.circular(22),
         ),
-        child:
-            const Icon(Icons.storefront_rounded, color: Colors.white, size: 40),
       ),
     );
     final t = WebsiteText.of(context);
