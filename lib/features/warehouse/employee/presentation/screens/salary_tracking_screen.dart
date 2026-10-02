@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 10:04 AM
+// Updated on 2026-10-02 10:12 AM
 // =============================================================
 // salary_tracking_screen.dart — monthly salary tracking (main)
 // Mobile (< 700px): top bar 2 lines, cards 2×2, employee row 2 lines.
@@ -23,14 +23,27 @@ const _kMonths = [
 ];
 
 class SalaryTrackingScreen extends ConsumerWidget {
-  const SalaryTrackingScreen({super.key});
+  /// Accountant app: selected warehouse ka data Supabase se — READ-ONLY
+  /// (Pay / Employees buttons nahi, back button). null = warehouse app.
+  final String? remoteWarehouseId;
+  final String? warehouseName;
+
+  const SalaryTrackingScreen({super.key, this.remoteWarehouseId, this.warehouseName});
+
+  bool get _readOnly => remoteWarehouseId != null;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state    = ref.watch(salaryProvider);
-    final notifier = ref.read(salaryProvider.notifier);
+    final rid = remoteWarehouseId;
+    final ProviderListenable<SalaryState> stateP =
+        rid == null ? salaryProvider : remoteSalaryProvider(rid);
+    final ProviderListenable<SalaryNotifier> notifierP =
+        rid == null ? salaryProvider.notifier : remoteSalaryProvider(rid).notifier;
 
-    ref.listen<SalaryState>(salaryProvider, (_, next) {
+    final state    = ref.watch(stateP);
+    final notifier = ref.read(notifierP);
+
+    ref.listen<SalaryState>(stateP, (_, next) {
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(next.errorMessage!),
@@ -44,20 +57,43 @@ class SalaryTrackingScreen extends ConsumerWidget {
     });
 
     // ── Shared top-bar parts (desktop + mobile dono) ──
-    const title = Column(
+    final title = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Salary Tracking',
+        const Text('Salary Tracking',
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: AppColor.textPrimary)),
-        Text('Kis employee ki salary/advance paid, kaun pending',
+        Text(
+            _readOnly
+                ? '${warehouseName ?? 'Warehouse'} · sirf dekhne ke liye'
+                : 'Kis employee ki salary/advance paid, kaun pending',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+            style: const TextStyle(fontSize: 12, color: AppColor.textSecondary)),
       ],
+    );
+
+    // Accountant (read-only) — pushed screen, wapsi ka button
+    final backBtn = Tooltip(
+      message: 'Back',
+      child: InkWell(
+        onTap: () => Navigator.of(context).maybePop(),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColor.grey100,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColor.grey200),
+          ),
+          child: const Icon(Icons.arrow_back_rounded,
+              size: 20, color: AppColor.textSecondary),
+        ),
+      ),
     );
 
     final monthNav = _MonthNav(
@@ -159,25 +195,31 @@ class SalaryTrackingScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(children: [
-                          const Expanded(child: title),
+                          if (_readOnly) ...[backBtn, const SizedBox(width: 10)],
+                          Expanded(child: title),
                           const SizedBox(width: 8),
                           refreshBtn,
-                          const SizedBox(width: 8),
-                          employeesIconBtn,
+                          if (!_readOnly) ...[
+                            const SizedBox(width: 8),
+                            employeesIconBtn,
+                          ],
                         ]),
                         const SizedBox(height: 10),
                         Center(child: monthNav),
                       ],
                     )
                   : Row(children: [
-                      const Expanded(child: title),
+                      if (_readOnly) ...[backBtn, const SizedBox(width: 12)],
+                      Expanded(child: title),
                       const SizedBox(width: 12),
                       // Month navigator
                       monthNav,
                       const SizedBox(width: 8),
                       refreshBtn,
-                      const SizedBox(width: 8),
-                      employeesBtn,
+                      if (!_readOnly) ...[
+                        const SizedBox(width: 8),
+                        employeesBtn,
+                      ],
                     ]),
             ),
 
@@ -207,7 +249,7 @@ class SalaryTrackingScreen extends ConsumerWidget {
             // ── Employee list ──
             Expanded(
               child: state.statuses.isEmpty
-                  ? const _EmptyState()
+                  ? _EmptyState(readOnly: _readOnly)
                   : ListView.separated(
                       padding: EdgeInsets.all(narrow ? 12 : 20),
                       itemCount: state.statuses.length,
@@ -215,9 +257,11 @@ class SalaryTrackingScreen extends ConsumerWidget {
                       itemBuilder: (_, i) => _EmployeeRow(
                         status: state.statuses[i],
                         compact: narrow,
+                        readOnly: _readOnly,
                         onPay: () => PaySalaryDialog.show(context, state.statuses[i]),
                         onHistory: () => EmployeeHistoryDialog.show(
-                            context, state.statuses[i].employee),
+                            context, state.statuses[i].employee,
+                            remoteWarehouseId: rid),
                         onDeletePayment: (p) => notifier.deletePayment(p),
                       ),
                     ),
@@ -270,7 +314,8 @@ class _EmployeeRow extends StatelessWidget {
   final VoidCallback onPay;
   final VoidCallback onHistory;
   final ValueChanged<SalaryPaymentModel> onDeletePayment;
-  final bool compact; // mobile: 2 lines (overflow se bachao)
+  final bool compact;  // mobile: 2 lines (overflow se bachao)
+  final bool readOnly; // accountant: Pay button nahi
 
   const _EmployeeRow({
     required this.status,
@@ -278,6 +323,7 @@ class _EmployeeRow extends StatelessWidget {
     required this.onHistory,
     required this.onDeletePayment,
     this.compact = false,
+    this.readOnly = false,
   });
 
   Color get _statusColor {
@@ -388,8 +434,10 @@ class _EmployeeRow extends StatelessWidget {
             const SizedBox(height: 10),
             Row(children: [
               Expanded(child: paidCol(CrossAxisAlignment.start)),
-              const SizedBox(width: 8),
-              payBtn(100),
+              if (!readOnly) ...[
+                const SizedBox(width: 8),
+                payBtn(100),
+              ],
             ]),
           ])
         : Row(children: [
@@ -401,8 +449,10 @@ class _EmployeeRow extends StatelessWidget {
             badge,
             const SizedBox(width: 8),
             historyIcon,
-            const SizedBox(width: 8),
-            payBtn(120),
+            if (!readOnly) ...[
+              const SizedBox(width: 8),
+              payBtn(120),
+            ],
           ]);
 
     // Row par tap → employee ka poora salary record (history dialog)
@@ -530,7 +580,8 @@ class _StatCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final bool readOnly;
+  const _EmptyState({this.readOnly = false});
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -541,8 +592,10 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
                 color: AppColor.textSecondary)),
         const SizedBox(height: 4),
-        const Text('"Employees" button se employee add karein',
-            style: TextStyle(fontSize: 13, color: AppColor.textHint)),
+        Text(readOnly
+                ? 'Warehouse app mein employees add hon to yahan dikhenge'
+                : '"Employees" button se employee add karein',
+            style: const TextStyle(fontSize: 13, color: AppColor.textHint)),
       ]),
     );
   }

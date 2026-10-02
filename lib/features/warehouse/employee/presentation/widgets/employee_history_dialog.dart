@@ -1,3 +1,4 @@
+// Updated on 2026-10-02 10:12 AM
 // =============================================================
 // employee_history_dialog.dart
 // Employee par tap → uska POORA salary/advance record (sab months).
@@ -13,13 +14,18 @@ import '../../domain/salary_payment_model.dart';
 
 class EmployeeHistoryDialog extends StatefulWidget {
   final EmployeeModel employee;
-  const EmployeeHistoryDialog({super.key, required this.employee});
+  /// Accountant app: data Supabase se (selected warehouse). null = local DB.
+  final String? remoteWarehouseId;
+  const EmployeeHistoryDialog({super.key, required this.employee,
+      this.remoteWarehouseId});
 
-  static void show(BuildContext context, EmployeeModel employee) {
+  static void show(BuildContext context, EmployeeModel employee,
+      {String? remoteWarehouseId}) {
     showDialog(
       context:      context,
       barrierColor: Colors.black.withOpacity(0.35),
-      builder:      (_) => EmployeeHistoryDialog(employee: employee),
+      builder:      (_) => EmployeeHistoryDialog(
+          employee: employee, remoteWarehouseId: remoteWarehouseId),
     );
   }
 
@@ -44,8 +50,12 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
 
   Future<void> _load() async {
     try {
-      final list = await EmployeeRepository.instance
-          .getPaymentsForEmployee(widget.employee.id);
+      final rid  = widget.remoteWarehouseId;
+      final list = rid == null
+          ? await EmployeeRepository.instance
+              .getPaymentsForEmployee(widget.employee.id)
+          : await EmployeeRepository.instance
+              .getPaymentsForEmployeeRemote(rid, widget.employee.id);
       if (mounted) setState(() => _payments = list);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());

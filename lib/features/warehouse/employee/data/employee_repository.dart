@@ -1,3 +1,4 @@
+// Updated on 2026-10-02 10:12 AM
 // =============================================================
 // employee_repository.dart
 // Employees CRUD + salary/advance payments + monthly status.
@@ -13,6 +14,7 @@ import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/data/warehouse_finance_repository.dart';
 import 'package:postgres/postgres.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../domain/employee_model.dart';
@@ -277,13 +279,75 @@ class EmployeeRepository {
   }
 
   // ─────────────────────────────────────────────────────────
-  // MONTHLY STATUS (salary tracking screen)
+  // SUPABASE READ-ONLY (accountant app — local DB nahi hota)
+  // Warehouse sync warehouse_employees + warehouse_salary_payments
+  // Supabase par bhejti hai; accountant SELECTED warehouse ka data
+  // yahin se padhta hai. Koi write nahi.
   // ─────────────────────────────────────────────────────────
-  Future<List<EmployeeMonthStatus>> getMonthStatuses(DateTime month) async {
+  static const _empCols =
+      'id, warehouse_id, name, phone, address, monthly_salary, '
+      'max_advance_percent, is_active, created_at, updated_at, deleted_at';
+  static const _payCols =
+      'id, warehouse_id, employee_id, cash_transaction_id, payment_type, '
+      'amount, salary_month, notes, paid_by, paid_by_name, created_at, '
+      'updated_at, deleted_at';
+
+  SupabaseClient get _sb => Supabase.instance.client;
+
+  Future<List<EmployeeModel>> getAllEmployeesRemote(String warehouseId) async {
+    final rows = await _sb
+        .from('warehouse_employees')
+        .select(_empCols)
+        .eq('warehouse_id', warehouseId)
+        .filter('deleted_at', 'is', null)
+        .order('name', ascending: true);
+    return (rows as List)
+        .map((r) => EmployeeModel.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<SalaryPaymentModel>> getPaymentsForMonthRemote(
+      String warehouseId, DateTime month) async {
     final first = DateTime(month.year, month.month, 1);
+    final rows = await _sb
+        .from('warehouse_salary_payments')
+        .select(_payCols)
+        .eq('warehouse_id', warehouseId)
+        .eq('salary_month', first.toIso8601String().substring(0, 10))
+        .filter('deleted_at', 'is', null)
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((r) => SalaryPaymentModel.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<SalaryPaymentModel>> getPaymentsForEmployeeRemote(
+      String warehouseId, String employeeId) async {
+    final rows = await _sb
+        .from('warehouse_salary_payments')
+        .select(_payCols)
+        .eq('warehouse_id', warehouseId)
+        .eq('employee_id', employeeId)
+        .filter('deleted_at', 'is', null)
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((r) => SalaryPaymentModel.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // MONTHLY STATUS (salary tracking screen)
+  // [remoteWarehouseId] diya ho → Supabase se (accountant), warna local.
+  // ─────────────────────────────────────────────────────────
+  Future<List<EmployeeMonthStatus>> getMonthStatuses(DateTime month,
+      {String? remoteWarehouseId}) async {
+    final first = DateTime(month.year, month.month, 1);
+    final rid = remoteWarehouseId;
     final results = await Future.wait([
-      getAllEmployees(),
-      getPaymentsForMonth(first),
+      rid == null ? getAllEmployees() : getAllEmployeesRemote(rid),
+      rid == null
+          ? getPaymentsForMonth(first)
+          : getPaymentsForMonthRemote(rid, first),
     ]);
     final employees = results[0] as List<EmployeeModel>;
     final payments  = results[1] as List<SalaryPaymentModel>;

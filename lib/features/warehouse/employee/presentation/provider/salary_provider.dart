@@ -1,3 +1,4 @@
+// Updated on 2026-10-02 10:12 AM
 // =============================================================
 // salary_provider.dart — monthly salary tracking + pay/delete
 // =============================================================
@@ -57,7 +58,11 @@ class SalaryState {
 class SalaryNotifier extends StateNotifier<SalaryState> {
   final EmployeeRepository _repo = EmployeeRepository.instance;
 
-  SalaryNotifier()
+  /// Accountant app: selected warehouse — data Supabase se (read-only).
+  /// null = warehouse app (local DB) — pehle jaisa.
+  final String? remoteWarehouseId;
+
+  SalaryNotifier({this.remoteWarehouseId})
       : super(SalaryState(
           month: DateTime(DateTime.now().year, DateTime.now().month, 1),
         )) {
@@ -67,7 +72,8 @@ class SalaryNotifier extends StateNotifier<SalaryState> {
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final list = await _repo.getMonthStatuses(state.month);
+      final list = await _repo.getMonthStatuses(state.month,
+          remoteWarehouseId: remoteWarehouseId);
       state = state.copyWith(statuses: list, isLoading: false);
     } catch (e) {
       state = state.copyWith(
@@ -134,3 +140,8 @@ class SalaryNotifier extends StateNotifier<SalaryState> {
 final salaryProvider =
     StateNotifierProvider<SalaryNotifier, SalaryState>(
         (ref) => SalaryNotifier());
+
+/// Accountant → warehouse salary (read-only, Supabase). Family = warehouseId.
+final remoteSalaryProvider = StateNotifierProvider.autoDispose
+    .family<SalaryNotifier, SalaryState, String>(
+        (ref, warehouseId) => SalaryNotifier(remoteWarehouseId: warehouseId));

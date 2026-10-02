@@ -1,3 +1,4 @@
+// Updated on 2026-10-02 10:12 AM
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import '../../../accountant_stock_transfer_record/presentation/screen/accountant
 import '../../../accountant_warehouse_finance/presentation/screen/accountant_warehouse_finance_screen.dart';
 import '../../../accountant_warehouse_inventory/presentation/screen/accountant_warehouse_inventory_screen.dart';
 import '../../../supplier/presentation/screen/all_supplier_screen.dart';
+import '../../../../warehouse/employee/presentation/screens/salary_tracking_screen.dart';
 import '../../../../warehouse/warehouse_reports/presentation/screens/warehouse_reports_shell.dart';
 import '../../../../warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart'
     show reportsWarehouseIdProvider;
@@ -307,6 +309,34 @@ class _DashboardContent extends ConsumerWidget {
             );
           },
         ),
+      // ── Salary (nav card, sabse aakhir) — warehouse ka salary screen
+      // read-only (Supabase se, selected warehouse). Mobile + web dono.
+      _MetricData(
+        icon: Icons.badge_outlined,
+        iconBg: const Color(0xFFFFF4E5),
+        iconColor: AppColor.warningDark,
+        title: 'Salary',
+        value: '',
+        subLabel: 'Employees salary & advances',
+        subValue: '',
+        subValueColor: AppColor.textDark,
+        isLink: true,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            // ColoredBox — status bar wali patti bhi safed (SafeArea gap)
+            builder: (_) => ColoredBox(
+              color: AppColor.surface,
+              child: SafeArea(
+                child: SalaryTrackingScreen(
+                  remoteWarehouseId: warehouseId,
+                  warehouseName: warehouseName,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     ];
   }
 
