@@ -87,8 +87,10 @@ String? _redirect(Ref ref, GoRouterState state) {
   final desiredPath = Uri.parse(desired).path;
   final user = session.user;
 
-  // Website sab ke liye khuli (logged in ho ya na ho).
-  if (desiredPath == AccPaths.home) return desired == current ? null : desired;
+  // Website sirf logged-out ke liye — login user ko seedha apna account.
+  if (user == null && desiredPath == AccPaths.home) {
+    return desired == current ? null : desired;
+  }
 
   if (user == null) {
     if (path == AccPaths.login) return null;
@@ -100,7 +102,8 @@ String? _redirect(Ref ref, GoRouterState state) {
   }
 
   final home = accountantHomeFor(user);
-  if (desiredPath == AccPaths.login ||
+  if (desiredPath == AccPaths.home ||
+      desiredPath == AccPaths.login ||
       desiredPath == AccPaths.splash ||
       (desiredPath != home && !_isAllowed(user, desiredPath))) {
     desired = home;

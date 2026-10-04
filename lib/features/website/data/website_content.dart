@@ -1,43 +1,40 @@
-// Website ka static data (photos, calculator rules, branches, contact).
+import 'package:flutter/material.dart';
+
+// Website ka static data (icons, calculator rules, branches, contact).
 // Translate hone wala text: website_strings.dart (English / اردو / پښتو).
 // Contact fields khali ('') hon to wo line / button nahi dikhta.
 
 class WebsiteContent {
   WebsiteContent._();
 
-  // Photos (assets/images/website/) — website_strings.dart ke lists ke order
-  // se jurte hain. Photo badalni ho to same naam se file replace kar do.
-  static const _img = 'assets/images/website';
-
-  static const heroImage = '$_img/hero_store.jpg';
-
-  static const highlightImages = <String>[
-    '$_img/hl_shops.jpg',
-    '$_img/hl_household.jpg',
-    '$_img/hl_delivery.jpg',
-    '$_img/hl_installments.jpg',
+  // Icons — website_strings.dart ke lists ke order se jurte hain.
+  static const highlightIcons = <IconData>[
+    Icons.storefront_rounded,
+    Icons.inventory_2_rounded,
+    Icons.local_shipping_rounded,
+    Icons.event_repeat_rounded,
   ];
 
-  static const categoryImages = <String>[
-    '$_img/cat_grocery.jpg',
-    '$_img/cat_cleaning.jpg',
-    '$_img/cat_personal_care.jpg',
-    '$_img/cat_kitchen.jpg',
-    '$_img/cat_snacks.jpg',
-    '$_img/cat_baby.jpg',
+  static const categoryIcons = <IconData>[
+    Icons.rice_bowl_rounded,
+    Icons.cleaning_services_rounded,
+    Icons.spa_rounded,
+    Icons.soup_kitchen_rounded,
+    Icons.local_cafe_rounded,
+    Icons.child_friendly_rounded,
   ];
 
-  static const instStepImages = <String>[
-    '$_img/step_choose.jpg',
-    '$_img/step_advance.jpg',
-    '$_img/step_monthly.jpg',
+  static const instStepIcons = <IconData>[
+    Icons.touch_app_rounded,
+    Icons.payments_rounded,
+    Icons.calendar_month_rounded,
   ];
 
-  static const whyUsImages = <String>[
-    '$_img/why_prices.jpg',
-    '$_img/why_quality.jpg',
-    '$_img/why_installments.jpg',
-    '$_img/why_online.jpg',
+  static const whyUsIcons = <IconData>[
+    Icons.sell_rounded,
+    Icons.verified_rounded,
+    Icons.event_repeat_rounded,
+    Icons.receipt_long_rounded,
   ];
 
   /// Calculator ke fixed rules.
@@ -77,11 +74,10 @@ class WebsiteContent {
 }
 
 class WebsiteItem {
-  /// Asset path (assets/images/website/...).
-  final String image;
+  final IconData icon;
   final String title;
   final String text;
-  const WebsiteItem(this.image, this.title, this.text);
+  const WebsiteItem(this.icon, this.title, this.text);
 }
 
 class WebsiteBranch {
