@@ -50,6 +50,9 @@ double tracking(BuildContext context, double value) =>
 
 extension WebsiteFill on String {
   String fill(Object n) => replaceAll('{n}', '$n');
+
+  /// Doosri jagah (`{a}`) — maslan amount.
+  String fillA(Object a) => replaceAll('{a}', '$a');
 }
 
 typedef TextPair = (String title, String text);
@@ -112,9 +115,20 @@ class WebsiteText {
   final String contactBrand;
   final String calculator;
   final String productPrice;
-  final String chooseAdvance;
-  final String instDuration;
-  final String instCharge;
+  final String advanceLabel;
+  final String ofPrice;
+  final String minAdvanceWarn;
+  final String fullAdvance;
+  final String choosePlan;
+  final String monthsShort;
+  final String tagPopular;
+  final String tagLowest;
+  final String lastInstallment;
+  final String totalWithAdvance;
+  final String priceFixed;
+  final String chargePerMonth;
+  final String fromPct;
+  final String newCalculation;
   final String advancePayment;
   final String remaining;
   final String chargeRow;
@@ -202,9 +216,20 @@ class WebsiteText {
     required this.contactBrand,
     required this.calculator,
     required this.productPrice,
-    required this.chooseAdvance,
-    required this.instDuration,
-    required this.instCharge,
+    required this.advanceLabel,
+    required this.ofPrice,
+    required this.minAdvanceWarn,
+    required this.fullAdvance,
+    required this.choosePlan,
+    required this.monthsShort,
+    required this.tagPopular,
+    required this.tagLowest,
+    required this.lastInstallment,
+    required this.totalWithAdvance,
+    required this.priceFixed,
+    required this.chargePerMonth,
+    required this.fromPct,
+    required this.newCalculation,
     required this.advancePayment,
     required this.remaining,
     required this.chargeRow,
@@ -280,7 +305,7 @@ class WebsiteText {
     contactUs: 'Contact Us',
     trustQuality: 'Quality products',
     trustDelivery: 'Doorstep delivery',
-    trustPlans: '10-month plans',
+    trustPlans: '6 to 24 month plans',
     deliveredDoorstep: 'Delivered right to your doorstep',
     easyInstallments: 'Easy installments',
     perMonth: '{n} / month',
@@ -295,7 +320,7 @@ class WebsiteText {
       ('10,000 shops', 'Our mission across Pakistan'),
       ('Household goods', 'All under one roof'),
       ('Doorstep delivery', 'Right to your home'),
-      ('Easy installments', 'Pay in 10 monthly payments'),
+      ('Easy installments', 'Pay in 6 to 24 monthly payments'),
     ],
     productsEyebrow: 'Products',
     productsTitle: 'What you will find at Jan Ghani',
@@ -332,22 +357,24 @@ class WebsiteText {
       ),
       (
         'Pay Your Advance',
-        'Choose an advance payment such as 30%, 40% or 50%.'
+        'Pay at least 15% of the price in advance — pay more to lower '
+            'your monthly installment.'
       ),
       (
         'Easy Monthly Payments',
-        'Pay the remaining amount through an easy 10-month installment '
-            'plan.'
+        'Pay the remaining amount in 6, 10, 12, 18 or 24 easy monthly '
+            'installments.'
       ),
     ],
     instBenefits: [
       'Any product — even if it is not in our stores',
-      'Choose your advance: 30%, 40% or 50%',
-      'Remaining amount in 10 easy monthly payments',
-      'Installment charge shown upfront — no surprises',
+      'Advance from just 15% of the price',
+      'Choose your plan: 6, 10, 12, 18 or 24 months',
+      'Only 2.5% per month — shown upfront, no surprises',
+      'Price fixed today — no increase later',
     ],
     howItWorks: 'HOW IT WORKS',
-    instHeadline: 'Get it today.\nPay in {n} easy months.',
+    instHeadline: 'Get it today.\nPay in up to {n} easy months.',
     duration: 'Duration',
     charge: 'Charge',
     advance: 'Advance',
@@ -355,9 +382,21 @@ class WebsiteText {
     contactBrand: 'Contact Jan Ghani',
     calculator: 'Installment Calculator',
     productPrice: 'Product Price',
-    chooseAdvance: 'Choose Advance',
-    instDuration: 'Installment Duration',
-    instCharge: 'Installment Charge',
+    advanceLabel: 'Advance Payment',
+    ofPrice: '{n}% of price',
+    minAdvanceWarn: 'A minimum {n}% advance is required: {a}. Plans below '
+        'use the {n}% advance.',
+    fullAdvance: 'Advance equals the full price — no installments needed.',
+    choosePlan: 'Choose Your Plan',
+    monthsShort: 'months',
+    tagPopular: 'Popular',
+    tagLowest: 'Lowest installment',
+    lastInstallment: 'Last installment {n}',
+    totalWithAdvance: 'Total price (incl. advance) {n}',
+    priceFixed: 'Price fixed today — no increase later',
+    chargePerMonth: '{n}% / month',
+    fromPct: 'From {n}%',
+    newCalculation: 'New calculation',
     advancePayment: 'Advance Payment ({n}%)',
     remaining: 'Remaining Amount',
     chargeRow: '{n}% Installment Charge',
@@ -430,7 +469,7 @@ class WebsiteText {
     contactUs: 'ہم سے رابطہ کریں',
     trustQuality: 'معیاری مصنوعات',
     trustDelivery: 'گھر تک ڈیلیوری',
-    trustPlans: '10 ماہ کے پلان',
+    trustPlans: '6 سے 24 ماہ کے پلان',
     deliveredDoorstep: 'سامان سیدھا آپ کی دہلیز تک',
     easyInstallments: 'آسان قسطیں',
     perMonth: '{n} / ماہانہ',
@@ -445,7 +484,7 @@ class WebsiteText {
       ('10,000 دکانیں', 'پورے پاکستان میں ہمارا مشن'),
       ('گھریلو سامان', 'سب کچھ ایک ہی چھت تلے'),
       ('گھر تک ڈیلیوری', 'سیدھا آپ کے گھر تک'),
-      ('آسان قسطیں', '10 ماہانہ قسطوں میں ادائیگی'),
+      ('آسان قسطیں', '6 سے 24 ماہانہ قسطوں میں ادائیگی'),
     ],
     productsEyebrow: 'مصنوعات',
     productsTitle: 'جان غنی پر آپ کو کیا ملے گا',
@@ -486,18 +525,23 @@ class WebsiteText {
       ),
       (
         'ایڈوانس ادا کریں',
-        '30%، 40% یا 50% میں سے ایڈوانس ادائیگی منتخب کریں۔'
+        'قیمت کا کم از کم 15% پیشگی ادا کریں — زیادہ دیں تو ماہانہ قسط کم ہو '
+            'جائے گی۔'
       ),
-      ('آسان ماہانہ قسطیں', 'باقی رقم 10 ماہ کے آسان قسط پلان میں ادا کریں۔'),
+      (
+        'آسان ماہانہ قسطیں',
+        'باقی رقم 6، 10، 12، 18 یا 24 آسان ماہانہ قسطوں میں ادا کریں۔'
+      ),
     ],
     instBenefits: [
       'کوئی بھی چیز — چاہے ہمارے اسٹورز میں نہ ہو',
-      'اپنا ایڈوانس منتخب کریں: 30%، 40% یا 50%',
-      'باقی رقم 10 آسان ماہانہ قسطوں میں',
-      'قسط کا چارج پہلے سے واضح — کوئی چھپی فیس نہیں',
+      'صرف 15% پیشگی سے شروع',
+      'اپنا پلان چنیں: 6، 10، 12، 18 یا 24 ماہ',
+      'صرف 2.5% ماہانہ — پہلے سے واضح، کوئی چھپی فیس نہیں',
+      'قیمت آج ہی طے — بعد میں کوئی اضافہ نہیں',
     ],
     howItWorks: 'یہ کیسے کام کرتا ہے',
-    instHeadline: 'آج ہی حاصل کریں۔\n{n} آسان مہینوں میں ادائیگی کریں۔',
+    instHeadline: 'آج ہی حاصل کریں۔\n{n} آسان مہینوں تک ادائیگی کریں۔',
     duration: 'مدت',
     charge: 'چارج',
     advance: 'ایڈوانس',
@@ -505,9 +549,21 @@ class WebsiteText {
     contactBrand: 'جان غنی سے رابطہ کریں',
     calculator: 'قسط کیلکولیٹر',
     productPrice: 'چیز کی قیمت',
-    chooseAdvance: 'ایڈوانس منتخب کریں',
-    instDuration: 'قسط کی مدت',
-    instCharge: 'قسط کا چارج',
+    advanceLabel: 'پیشگی رقم',
+    ofPrice: 'قیمت کا {n}%',
+    minAdvanceWarn: 'کم از کم {n}% پیشگی ضروری ہے: {a}۔ نیچے قسطیں {n}% '
+        'پیشگی کے حساب سے ہیں۔',
+    fullAdvance: 'پیشگی پوری قیمت کے برابر ہے — قسط کی ضرورت نہیں۔',
+    choosePlan: 'اپنا پلان چنیں',
+    monthsShort: 'مہینے',
+    tagPopular: 'مقبول',
+    tagLowest: 'کم قسط',
+    lastInstallment: 'آخری قسط {n}',
+    totalWithAdvance: 'کل قیمت (پیشگی سمیت) {n}',
+    priceFixed: 'قیمت آج ہی طے — بعد میں کوئی اضافہ نہیں',
+    chargePerMonth: '{n}% ماہانہ',
+    fromPct: '{n}% سے',
+    newCalculation: 'نیا حساب',
     advancePayment: 'ایڈوانس ادائیگی ({n}%)',
     remaining: 'باقی رقم',
     chargeRow: '{n}% قسط چارج',
@@ -581,7 +637,7 @@ class WebsiteText {
     contactUs: 'موږ سره اړیکه ونیسئ',
     trustQuality: 'باکیفیته محصولات',
     trustDelivery: 'تر کوره رسول',
-    trustPlans: '10 میاشتني پلانونه',
+    trustPlans: 'له 6 تر 24 میاشتو پلانونه',
     deliveredDoorstep: 'ستاسو تر دروازې پورې رسول کېږي',
     easyInstallments: 'اسانه قسطونه',
     perMonth: '{n} / میاشت',
@@ -595,7 +651,7 @@ class WebsiteText {
       ('10,000 دوکانونه', 'په ټول پاکستان کې زموږ موخه'),
       ('د کور سامانونه', 'ټول د یوه چت لاندې'),
       ('تر کوره رسول', 'مستقیم ستاسو کور ته'),
-      ('اسانه قسطونه', 'په 10 میاشتنیو قسطونو کې تادیه'),
+      ('اسانه قسطونه', 'له 6 تر 24 میاشتنیو قسطونو کې تادیه'),
     ],
     productsEyebrow: 'محصولات',
     productsTitle: 'په جان غني کې به څه ومومئ',
@@ -628,20 +684,25 @@ class WebsiteText {
         'خپل توکی غوره کړئ',
         'خپل خوښ توکی غوره کړئ، که څه هم اوس مهال په جان غني کې نه وي.'
       ),
-      ('پیشکي ورکړئ', 'پیشکي تادیه لکه 30%، 40% یا 50% غوره کړئ.'),
+      (
+        'پیشکي ورکړئ',
+        'د بیې لږ تر لږه 15% پیشکي ورکړئ — زیات یې ورکړئ نو میاشتنی قسط '
+            'به کم شي.'
+      ),
       (
         'اسانه میاشتنۍ تادیې',
-        'پاتې پیسې د 10 میاشتو په اسانه قسطي پلان کې ورکړئ.'
+        'پاتې پیسې په 6، 10، 12، 18 یا 24 اسانه میاشتنیو قسطونو کې ورکړئ.'
       ),
     ],
     instBenefits: [
       'هر توکی — که څه هم زموږ په پلورنځیو کې نه وي',
-      'خپل پیشکي غوره کړئ: 30%، 40% یا 50%',
-      'پاتې پیسې په 10 اسانه میاشتنیو قسطونو کې',
-      'د قسط فیس له مخکې ښکاره — هېڅ پټ لګښت نشته',
+      'یوازې له 15% پیشکي څخه پیل',
+      'خپل پلان غوره کړئ: 6، 10، 12، 18 یا 24 میاشتې',
+      'یوازې 2.5% په میاشت کې — له مخکې ښکاره، هېڅ پټ لګښت نشته',
+      'بیه نن ټاکل کېږي — وروسته هېڅ زیاتوالی نشته',
     ],
     howItWorks: 'دا څنګه کار کوي',
-    instHeadline: 'نن یې ترلاسه کړئ.\nپه {n} اسانه میاشتو کې یې ورکړئ.',
+    instHeadline: 'نن یې ترلاسه کړئ.\nتر {n} اسانه میاشتو پورې یې ورکړئ.',
     duration: 'موده',
     charge: 'فیس',
     advance: 'پیشکي',
@@ -649,9 +710,21 @@ class WebsiteText {
     contactBrand: 'جان غني سره اړیکه ونیسئ',
     calculator: 'د قسط حساب',
     productPrice: 'د توکي بیه',
-    chooseAdvance: 'پیشکي غوره کړئ',
-    instDuration: 'د قسط موده',
-    instCharge: 'د قسط فیس',
+    advanceLabel: 'پیشکي پیسې',
+    ofPrice: 'د بیې {n}%',
+    minAdvanceWarn: 'لږ تر لږه {n}% پیشکي اړینه ده: {a}. لاندې قسطونه د '
+        '{n}% پیشکي په حساب دي.',
+    fullAdvance: 'پیشکي د ټولې بیې سره برابره ده — قسط ته اړتیا نشته.',
+    choosePlan: 'خپل پلان غوره کړئ',
+    monthsShort: 'میاشتې',
+    tagPopular: 'مشهور',
+    tagLowest: 'کم قسط',
+    lastInstallment: 'وروستی قسط {n}',
+    totalWithAdvance: 'ټوله بیه (د پیشکي سره) {n}',
+    priceFixed: 'بیه نن ټاکل کېږي — وروسته هېڅ زیاتوالی نشته',
+    chargePerMonth: '{n}% په میاشت',
+    fromPct: 'له {n}% څخه',
+    newCalculation: 'نوی حساب',
     advancePayment: 'پیشکي تادیه ({n}%)',
     remaining: 'پاتې پیسې',
     chargeRow: '{n}% د قسط فیس',

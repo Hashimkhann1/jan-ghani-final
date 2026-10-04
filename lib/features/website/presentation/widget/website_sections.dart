@@ -801,11 +801,11 @@ class _HeroVisual extends StatelessWidget {
       ),
     );
 
-    // Floating installment chip (Rs 100,000 @ 30% advance ka example).
-    final example = WebsiteContent.instDefaultPrice *
-        (1 - WebsiteContent.instAdvances.first) *
-        (1 + WebsiteContent.instMarkup) /
-        WebsiteContent.instMonths;
+    // Floating installment chip (default price @ 15% advance, 24 mahine).
+    final example = InstallmentPlan.of(
+      WebsiteContent.instDefaultPrice * (1 - WebsiteContent.instMinAdvance),
+      WebsiteContent.instLowestPlan,
+    ).monthly;
     final chip = Floating(
       amplitude: 8,
       period: const Duration(seconds: 5),

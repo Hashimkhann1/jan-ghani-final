@@ -280,7 +280,7 @@ class _InstallmentInfo extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            t.instHeadline.fill(WebsiteContent.instMonths),
+            t.instHeadline.fill(WebsiteContent.instPlans.last),
             style: TextStyle(
               color: Colors.white,
               fontSize: mobile ? 24 : 30,
@@ -327,11 +327,16 @@ class _InstallmentInfo extends StatelessWidget {
               children: [
                 _Fact(
                     label: t.duration,
-                    value: t.monthsValue.fill(WebsiteContent.instMonths)),
+                    value: t.monthsValue.fill(
+                        '${WebsiteContent.instPlans.first}–${WebsiteContent.instPlans.last}')),
                 _Fact(
                     label: t.charge,
-                    value: '${(WebsiteContent.instMarkup * 100).round()}%'),
-                _Fact(label: t.advance, value: '30–50%'),
+                    value: t.chargePerMonth.fill(InstallmentPlan.pctNum(
+                        WebsiteContent.instRatePerMonth))),
+                _Fact(
+                    label: t.advance,
+                    value: t.fromPct
+                        .fill((WebsiteContent.instMinAdvance * 100).round())),
               ],
             ),
           ),
@@ -373,6 +378,7 @@ class _Fact extends StatelessWidget {
 }
 
 // ── Right: calculator ────────────────────────────────────────────────────────
+// Formula: baqi raqam x (1 + 2.5% x mahine), kam az kam 15% advance.
 class _InstallmentCalculator extends StatefulWidget {
   final bool mobile;
   final ValueChanged<String> onGetInstallment;
@@ -388,27 +394,74 @@ class _InstallmentCalculator extends StatefulWidget {
 class _InstallmentCalculatorState extends State<_InstallmentCalculator> {
   final _priceCtrl = TextEditingController(
       text: _ThousandsFormatter.format(WebsiteContent.instDefaultPrice));
+  final _advanceCtrl = TextEditingController();
   double _price = WebsiteContent.instDefaultPrice.toDouble();
-  double _advancePct = WebsiteContent.instAdvances.first;
+  double _advanceInput = 0;
+
+  /// User ne advance khud likha? Nahi to hamesha 15% auto bharta hai.
+  bool _advanceTouched = false;
+  int _months = WebsiteContent.instPopularPlan;
   int _pulse = 0;
 
-  static const _months = WebsiteContent.instMonths;
-  static const _markup = WebsiteContent.instMarkup;
+  static const _minPct = WebsiteContent.instMinAdvance;
 
-  double get _advance => _price * _advancePct;
-  double get _remaining => _price - _advance;
-  double get _charge => _remaining * _markup;
-  double get _total => _remaining + _charge;
-  double get _monthly => _total / _months;
+  double get _minAdvance => (_price * _minPct).ceilToDouble();
+  bool get _fullAdvance => _price > 0 && _advanceInput >= _price;
+  bool get _tooLow =>
+      _price > 0 && !_fullAdvance && _advanceInput < _minAdvance;
+
+  /// Kam advance par qistein 15% ke hisaab se.
+  double get _advance => _tooLow ? _minAdvance : _advanceInput;
+  double get _remaining => _fullAdvance ? 0 : _price - _advance;
+  bool get _hasPlans => _price > 0 && !_fullAdvance;
+  InstallmentPlan get _plan => InstallmentPlan.of(_remaining, _months);
+
+  @override
+  void initState() {
+    super.initState();
+    _autoAdvance();
+  }
 
   @override
   void dispose() {
     _priceCtrl.dispose();
+    _advanceCtrl.dispose();
     super.dispose();
   }
 
+  static double _parse(String text) =>
+      double.tryParse(text.replaceAll(',', '')) ?? 0;
+
+  void _autoAdvance() {
+    if (_advanceTouched) return;
+    _advanceInput = _minAdvance;
+    _advanceCtrl.text =
+        _price > 0 ? _ThousandsFormatter.format(_advanceInput) : '';
+  }
+
   void _onPrice(String text) {
-    setState(() => _price = double.tryParse(text.replaceAll(',', '')) ?? 0);
+    setState(() {
+      _price = _parse(text);
+      _autoAdvance();
+    });
+  }
+
+  void _onAdvance(String text) {
+    setState(() {
+      _advanceTouched = text.trim().isNotEmpty;
+      _advanceInput = _parse(text);
+      _autoAdvance();
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _priceCtrl.clear();
+      _price = 0;
+      _advanceTouched = false;
+      _months = WebsiteContent.instPopularPlan;
+      _autoAdvance();
+    });
   }
 
   void _calculate() {
@@ -416,16 +469,31 @@ class _InstallmentCalculatorState extends State<_InstallmentCalculator> {
     setState(() => _pulse++);
   }
 
-  String _summary() =>
-      'Assalam o Alaikum Jan Ghani, I want a product on installments.\n'
-      'Product price: ${formatRs(_price)}\n'
-      'Advance (${(_advancePct * 100).round()}%): ${formatRs(_advance)}\n'
-      'Monthly: ${formatRs(_monthly)} x $_months months';
+  String _summary() {
+    final p = _plan;
+    return 'Assalam o Alaikum Jan Ghani, I want a product on installments.\n'
+        'Product price: ${formatRs(_price)}\n'
+        'Advance (${_pctText(_advance)}%): ${formatRs(_advance)}\n'
+        'Plan: ${p.months} months\n'
+        'Monthly: ${formatRs(p.monthly)} x ${p.months} months'
+        '${p.lastDiffers ? ' (last ${formatRs(p.last)})' : ''}\n'
+        'Total (incl. advance): ${formatRs(_advance + p.total)}';
+  }
+
+  String _pctText(double amount) {
+    if (_price <= 0) return '0';
+    final pct = amount / _price * 100;
+    return pct > 0 && pct < 1 ? pct.toStringAsFixed(1) : '${pct.round()}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = WebsiteText.of(context);
     final mobile = widget.mobile;
+    final plan = _plan;
+    final minPctText = '${(_minPct * 100).round()}';
+    final enteredPct = _price > 0 ? _advanceInput / _price : 0.0;
+
     return Container(
       padding: EdgeInsets.all(mobile ? 20 : 32),
       decoration: BoxDecoration(
@@ -447,121 +515,127 @@ class _InstallmentCalculatorState extends State<_InstallmentCalculator> {
             children: [
               const Icon(Icons.calculate_rounded, color: Color(0xFF6C63FF)),
               const SizedBox(width: 8),
-              Text(t.calculator,
-                  style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: WebsiteColors.ink)),
+              Expanded(
+                child: Text(t.calculator,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: WebsiteColors.ink)),
+              ),
+              TextButton.icon(
+                onPressed: _reset,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(t.newCalculation),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF6C63FF),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 22),
           _Label(t.productPrice),
           const SizedBox(height: 8),
-          TextField(
+          _MoneyField(
             controller: _priceCtrl,
             onChanged: _onPrice,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(9),
-              _ThousandsFormatter(),
-            ],
-            style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: WebsiteColors.ink),
-            decoration: InputDecoration(
-              prefixIcon: const Padding(
-                padding: EdgeInsetsDirectional.only(start: 16, end: 8),
-                child: Text('Rs',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF6C63FF))),
-              ),
-              prefixIconConstraints:
-                  const BoxConstraints(minWidth: 0, minHeight: 0),
-              filled: true,
-              fillColor: const Color(0xFFF7F7FB),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: WebsiteColors.line),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide:
-                    const BorderSide(color: Color(0xFF6C63FF), width: 1.8),
-              ),
-            ),
+            fontSize: 20,
           ),
           const SizedBox(height: 20),
-          _Label(t.chooseAdvance),
+          _Label(t.advanceLabel),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              for (final pct in WebsiteContent.instAdvances) ...[
-                Expanded(
-                  child: _AdvanceChip(
-                    pct: pct,
-                    selected: pct == _advancePct,
-                    onTap: () => setState(() => _advancePct = pct),
-                  ),
+          _MoneyField(
+            controller: _advanceCtrl,
+            onChanged: _onAdvance,
+            fontSize: 18,
+            error: _tooLow,
+          ),
+          const SizedBox(height: 10),
+          _PctBar(
+            label: t.ofPrice.fill(_pctText(_advanceInput)),
+            value: enteredPct.clamp(0.0, 1.0),
+          ),
+          if (_tooLow || _fullAdvance) ...[
+            const SizedBox(height: 12),
+            _Warn(
+              _fullAdvance
+                  ? t.fullAdvance
+                  : t.minAdvanceWarn
+                      .fill(minPctText)
+                      .fillA(formatRs(_minAdvance)),
+            ),
+          ],
+          if (_hasPlans) ...[
+            const SizedBox(height: 22),
+            _Label(t.choosePlan),
+            const SizedBox(height: 10),
+            for (final m in WebsiteContent.instPlans)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _PlanTile(
+                  plan: InstallmentPlan.of(_remaining, m),
+                  advance: _advance,
+                  selected: m == _months,
+                  tag: m == WebsiteContent.instPopularPlan
+                      ? t.tagPopular
+                      : m == WebsiteContent.instLowestPlan
+                          ? t.tagLowest
+                          : null,
+                  onTap: () => setState(() => _months = m),
                 ),
-                if (pct != WebsiteContent.instAdvances.last)
-                  const SizedBox(width: 10),
+              ),
+            const SizedBox(height: 12),
+            _BreakdownRow(t.productPrice, _price),
+            _BreakdownRow(t.advancePayment.fill(_pctText(_advance)), _advance),
+            _BreakdownRow(t.remaining, _remaining),
+            _BreakdownRow(
+                '${t.chargeRow.fill(plan.chargePct)} '
+                '(${t.chargePerMonth.fill(InstallmentPlan.pctNum(WebsiteContent.instRatePerMonth))} '
+                '× ${plan.months})',
+                plan.charge),
+            _BreakdownRow(t.totalInstallment, plan.total, bold: true),
+            const SizedBox(height: 18),
+            _MonthlyCard(
+              monthly: plan.monthly,
+              months: plan.months,
+              last: plan.lastDiffers ? plan.last : null,
+              pulse: _pulse,
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                WebButton(
+                  label: t.calculate,
+                  icon: Icons.calculate_rounded,
+                  onTap: _calculate,
+                ),
+                WebButton(
+                  label: t.getOnInstallments,
+                  icon: Icons.shopping_bag_rounded,
+                  style: WebButtonStyle.whatsapp,
+                  onTap: () => widget.onGetInstallment(_summary()),
+                ),
               ],
-            ],
-          ),
-          const SizedBox(height: 20),
+            ),
+          ],
+          const SizedBox(height: 14),
           Row(
             children: [
+              const Icon(Icons.lock_clock_rounded,
+                  size: 16, color: Color(0xFF22C55E)),
+              const SizedBox(width: 6),
               Expanded(
-                child: _InfoTile(
-                  icon: Icons.calendar_month_rounded,
-                  label: t.instDuration,
-                  value: t.monthsValue.fill(_months),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _InfoTile(
-                  icon: Icons.percent_rounded,
-                  label: t.instCharge,
-                  value: '${(_markup * 100).round()}%',
-                ),
+                child: Text(t.priceFixed,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: WebsiteColors.ink)),
               ),
             ],
           ),
-          const SizedBox(height: 22),
-          _BreakdownRow(t.productPrice, _price),
-          _BreakdownRow(
-              t.advancePayment.fill((_advancePct * 100).round()), _advance),
-          _BreakdownRow(t.remaining, _remaining),
-          _BreakdownRow(t.chargeRow.fill((_markup * 100).round()), _charge),
-          _BreakdownRow(t.totalInstallment, _total, bold: true),
-          const SizedBox(height: 18),
-          _MonthlyCard(monthly: _monthly, months: _months, pulse: _pulse),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              WebButton(
-                label: t.calculate,
-                icon: Icons.calculate_rounded,
-                onTap: _calculate,
-              ),
-              WebButton(
-                label: t.getOnInstallments,
-                icon: Icons.shopping_bag_rounded,
-                style: WebButtonStyle.whatsapp,
-                onTap: () => widget.onGetInstallment(_summary()),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Text(
             t.instNote,
             style: const TextStyle(fontSize: 12, color: WebsiteColors.muted),
@@ -584,102 +658,223 @@ class _Label extends StatelessWidget {
           color: WebsiteColors.muted));
 }
 
-class _AdvanceChip extends StatelessWidget {
-  final double pct;
-  final bool selected;
-  final VoidCallback onTap;
-  const _AdvanceChip({
-    required this.pct,
-    required this.selected,
-    required this.onTap,
+class _MoneyField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final double fontSize;
+  final bool error;
+  const _MoneyField({
+    required this.controller,
+    required this.onChanged,
+    required this.fontSize,
+    this.error = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: selected
-                ? const LinearGradient(
-                    colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)])
-                : null,
-            color: selected ? null : const Color(0xFFF7F7FB),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? Colors.transparent : WebsiteColors.line,
-            ),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Text(
-            '${(pct * 100).round()}%',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: selected ? Colors.white : WebsiteColors.ink,
-            ),
-          ),
+    final idle = error ? const Color(0xFFEF4444) : WebsiteColors.line;
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(9),
+        _ThousandsFormatter(),
+      ],
+      style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w800,
+          color: WebsiteColors.ink),
+      decoration: InputDecoration(
+        hintText: '0',
+        prefixIcon: const Padding(
+          padding: EdgeInsetsDirectional.only(start: 16, end: 8),
+          child: Text('Rs',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF6C63FF))),
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        filled: true,
+        fillColor: const Color(0xFFF7F7FB),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: idle, width: error ? 1.8 : 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+              color: error ? idle : const Color(0xFF6C63FF), width: 1.8),
         ),
       ),
     );
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  final IconData icon;
+/// "Qeemat ka 15%" + progress bar.
+class _PctBar extends StatelessWidget {
   final String label;
-  final String value;
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  final double value;
+  const _PctBar({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: WebsiteColors.muted)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 8,
+              backgroundColor: const Color(0xFFEDECF7),
+              color: const Color(0xFF6C63FF),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Warn extends StatelessWidget {
+  final String text;
+  const _Warn(this.text);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F7FB),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFFDE8E8),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: const Color(0xFF6C63FF)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 11.5, color: WebsiteColors.muted)),
-                const SizedBox(height: 2),
-                Text(value,
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: WebsiteColors.ink)),
-              ],
+      child: Text(text,
+          style: const TextStyle(
+              fontSize: 13.5,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFB3202C))),
+    );
+  }
+}
+
+/// Ek plan: mahine + mahana qist + kul qeemat (advance samet).
+class _PlanTile extends StatelessWidget {
+  final InstallmentPlan plan;
+  final double advance;
+  final bool selected;
+  final String? tag;
+  final VoidCallback onTap;
+  const _PlanTile({
+    required this.plan,
+    required this.advance,
+    required this.selected,
+    required this.tag,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = WebsiteText.of(context);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFF4F3FF) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? const Color(0xFF6C63FF) : WebsiteColors.line,
+              width: selected ? 2 : 1.2,
             ),
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)]),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('${plan.months}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            height: 1,
+                            fontWeight: FontWeight.w900)),
+                    Text(t.monthsShort,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 11)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(t.perMonth.fill(formatRs(plan.monthly)),
+                          style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              color: WebsiteColors.ink)),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                        t.totalWithAdvance.fill(formatRs(advance + plan.total)),
+                        style: const TextStyle(
+                            fontSize: 12, color: WebsiteColors.muted)),
+                    if (plan.lastDiffers)
+                      Text(t.lastInstallment.fill(formatRs(plan.last)),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF6C63FF))),
+                  ],
+                ),
+              ),
+              if (tag != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE63946),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(tag!,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -725,10 +920,14 @@ class _BreakdownRow extends StatelessWidget {
 class _MonthlyCard extends StatelessWidget {
   final double monthly;
   final int months;
+
+  /// Aakhri qist alag ho to.
+  final double? last;
   final int pulse;
   const _MonthlyCard({
     required this.monthly,
     required this.months,
+    required this.last,
     required this.pulse,
   });
 
@@ -785,6 +984,14 @@ class _MonthlyCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(t.perMonthFor.fill(months),
                 style: const TextStyle(color: Colors.white, fontSize: 14)),
+            if (last != null) ...[
+              const SizedBox(height: 4),
+              Text(t.lastInstallment.fill(formatRs(last!)),
+                  style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ],
           ],
         ),
       ),

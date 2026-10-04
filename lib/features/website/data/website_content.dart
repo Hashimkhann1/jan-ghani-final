@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 // Website ka static data (icons, calculator rules, branches, contact).
@@ -37,11 +39,15 @@ class WebsiteContent {
     Icons.receipt_long_rounded,
   ];
 
-  /// Calculator ke fixed rules.
-  static const instMonths = 10;
-  static const instMarkup = 0.30;
-  static const instAdvances = <double>[0.30, 0.40, 0.50];
-  static const instDefaultPrice = 100000;
+  /// Calculator ke rules (tracker wale): har mahine ka 2.5% baqi raqam par,
+  /// kam az kam 15% advance, qist Rs 50 tak round.
+  static const instRatePerMonth = 0.025;
+  static const instMinAdvance = 0.15;
+  static const instRoundTo = 50;
+  static const instPlans = <int>[6, 10, 12, 18, 24];
+  static const instPopularPlan = 12;
+  static const instLowestPlan = 24;
+  static const instDefaultPrice = 50000;
 
   // ── Branches ──
   // Branch add karne ke liye: WebsiteBranch('Name', 'Area', lat: .., lng: .., mapUrl: '...')
@@ -71,6 +77,44 @@ class WebsiteContent {
   static const phone = '+92 345 9357032';
   static const email = '';
   static const address = '';
+}
+
+/// Ek qist plan ka hisaab. Qist Rs 50 tak round, aakhri qist farq pura karti hai.
+class InstallmentPlan {
+  final int months;
+  final double financed;
+  final double total;
+  final double monthly;
+  final double last;
+
+  const InstallmentPlan._(
+      this.months, this.financed, this.total, this.monthly, this.last);
+
+  factory InstallmentPlan.of(double financed, int months) {
+    const r = WebsiteContent.instRoundTo;
+    final total = financed * (1 + WebsiteContent.instRatePerMonth * months);
+    var per = math.max(r, (total / months / r + 0.5).floor() * r).toDouble();
+    var last = total - per * (months - 1);
+    if (last <= 0) {
+      per = (total / months).ceilToDouble();
+      last = total - per * (months - 1);
+    }
+    return InstallmentPlan._(
+        months, financed, total, per, last.roundToDouble());
+  }
+
+  double get charge => total - financed;
+
+  /// Kul charge % (2.5% x mahine), maslan 12 mahine → 30.
+  num get chargePct => pctNum(WebsiteContent.instRatePerMonth * months);
+
+  /// 0.025 → 2.5, 0.3 → 30 (float ka kachra hata kar).
+  static num pctNum(double fraction) {
+    final p = (fraction * 1000).round() / 10;
+    return p == p.roundToDouble() ? p.round() : p;
+  }
+
+  bool get lastDiffers => last != monthly;
 }
 
 class WebsiteItem {

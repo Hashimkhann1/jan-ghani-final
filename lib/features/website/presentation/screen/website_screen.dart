@@ -36,7 +36,7 @@ class _WebsiteScreenState extends ConsumerState<WebsiteScreen> {
   };
   bool _dialogOpen = false;
   bool _scrolled = false;
-  WebsiteLang _lang = WebsiteLang.en;
+  WebsiteLang _lang = WebsiteLang.ur;
 
   static const _langKey = 'website_lang';
 
