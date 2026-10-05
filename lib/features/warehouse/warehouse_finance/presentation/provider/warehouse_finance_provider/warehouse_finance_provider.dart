@@ -1,4 +1,4 @@
-// Updated on 2026-09-28 11:46 AM
+// Updated on 2026-10-05 06:26 PM
 // =============================================================
 // warehouse_finance_provider.dart
 // State + Notifier + Provider — supplier_provider.dart jaisa pattern
@@ -20,6 +20,9 @@ class WarehouseFinanceState {
   final String                    activeFilter;  // all / cash_in / purchase / supplier_payment / expense
   final DateTime?                 fromDate;      // date filter — start (inclusive)
   final DateTime?                 toDate;        // date filter — end (inclusive din)
+  final String                    searchQuery;   // client-side (notes / supplier / entry by)
+  final int                       page;          // 0-based
+  final int                       pageSize;
 
   const WarehouseFinanceState({
     this.finance,
@@ -30,12 +33,27 @@ class WarehouseFinanceState {
     this.activeFilter  = 'all',
     this.fromDate,
     this.toDate,
+    this.searchQuery   = '',
+    this.page          = 0,
+    this.pageSize      = 25,
   });
 
-  // Filter apply karo
+  /// Search ke baad (type tab se pehle) — tabs ke counts isi se
+  List<CashTransactionModel> get searchedTransactions {
+    final q = searchQuery.trim().toLowerCase();
+    if (q.isEmpty) return transactions;
+    return transactions.where((t) =>
+        (t.notes?.toLowerCase().contains(q)         ?? false) ||
+        (t.supplierName?.toLowerCase().contains(q)  ?? false) ||
+        (t.createdByName?.toLowerCase().contains(q) ?? false) ||
+        t.entryTypeDisplay.toLowerCase().contains(q)).toList();
+  }
+
+  // Filter apply karo (search + type tab)
   List<CashTransactionModel> get filteredTransactions {
-    if (activeFilter == 'all') return transactions;
-    return transactions
+    final base = searchedTransactions;
+    if (activeFilter == 'all') return base;
+    return base
         .where((t) =>
             t.entryType == activeFilter ||
             // "Supplier Pay" tab mein unki reversals bhi dikhein
@@ -53,6 +71,9 @@ class WarehouseFinanceState {
     String?                   activeFilter,
     DateTime?                 fromDate,
     DateTime?                 toDate,
+    String?                   searchQuery,
+    int?                      page,
+    int?                      pageSize,
   }) {
     return WarehouseFinanceState(
       finance:      finance      ?? this.finance,
@@ -63,6 +84,9 @@ class WarehouseFinanceState {
       activeFilter: activeFilter ?? this.activeFilter,
       fromDate:     fromDate     ?? this.fromDate,
       toDate:       toDate       ?? this.toDate,
+      searchQuery:  searchQuery  ?? this.searchQuery,
+      page:         page         ?? this.page,
+      pageSize:     pageSize     ?? this.pageSize,
     );
   }
 }
@@ -126,11 +150,22 @@ class WarehouseFinanceNotifier
 
   // ── Filter change karo ───────────────────────────────────
   void onFilterChanged(String filter) =>
-      state = state.copyWith(activeFilter: filter);
+      state = state.copyWith(activeFilter: filter, page: 0);
+
+  // ── Search (client-side, loaded list par) ────────────────
+  void onSearchChanged(String q) =>
+      state = state.copyWith(searchQuery: q, page: 0);
+
+  void onPageChanged(int page)     => state = state.copyWith(page: page);
+  void onPageSizeChanged(int size) =>
+      state = state.copyWith(pageSize: size, page: 0);
+
+  // ── Date range wapas default (last 30 din) ───────────────
+  void resetDateRange() => onDateRangeChanged(_defaultFrom(), _today());
 
   // ── Date range change → reload ───────────────────────────
   void onDateRangeChanged(DateTime from, DateTime to) {
-    state = state.copyWith(fromDate: from, toDate: to);
+    state = state.copyWith(fromDate: from, toDate: to, page: 0);
     loadData();
   }
 

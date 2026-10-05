@@ -1,3 +1,4 @@
+// Updated on 2026-10-05 06:40 PM
 // =============================================================
 // purchase_invoice_provider.dart
 // SubTotal ↔ QTY / PRICE model — product ke unit par depend karta hai:
@@ -121,6 +122,7 @@ class PurchaseInvoiceNotifier
       PurchaseOrderModel order, List<PoSupplier> availableSuppliers) {
     _existingOrderId = order.id;
     _existingStatus  = order.status;
+    _notesEdited     = false;
 
     PoSupplier? matchedSupplier;
     if (order.supplierId != null) {
@@ -184,6 +186,7 @@ class PurchaseInvoiceNotifier
       invoiceStatus:    invoiceStatus,
       paidAmount:       order.paidAmount,
       cartItems:        cartItems,
+      notes:            order.notes ?? '', // purana comment field mein
     );
   }
 
@@ -196,6 +199,21 @@ class PurchaseInvoiceNotifier
   // ── Supplier & Type ───────────────────────────────────────
   void selectSupplier(PoSupplier supplier) =>
       state = state.copyWith(selectedSupplier: supplier);
+
+  // ── Comment / Notes ───────────────────────────────────────
+  // _notesEdited: user ne field chhua ya nahi — edit par na chhua ho to
+  // DB wala purana comment hi wapas jata hai (kabhi null nahi hota)
+  bool _notesEdited = false;
+
+  void setNotes(String text) {
+    _notesEdited = true;
+    state = state.copyWith(notes: text);
+  }
+
+  String? get _notesForSave {
+    final t = state.notes.trim();
+    return t.isEmpty ? null : t;
+  }
 
   void setPoType(PoType type) =>
       state = state.copyWith(poType: type);
@@ -346,6 +364,7 @@ class PurchaseInvoiceNotifier
   void clearCart() {
     _existingOrderId = null;
     _existingStatus  = 'draft';
+    _notesEdited     = false;
 
     state = state.copyWith(
       cartItems:             [],
@@ -354,6 +373,7 @@ class PurchaseInvoiceNotifier
       invoiceStatus:         InvoiceStatus.completed,
       paidAmount:            0,
       orderDate:             DateTime.now(),
+      notes:                 '',
       clearDeliveryDate:     true,
       clearSelectedSupplier: true,
     );
@@ -425,6 +445,8 @@ class PurchaseInvoiceNotifier
           totalAmount:     state.grandTotal,
           paidAmount:      state.paidAmount,
           remainingAmount: remaining,
+          // User ne comment na chhua ho to DB wala purana comment (null nahi)
+          notes:           _notesEdited ? _notesForSave : oldPo?.notes,
           updatedBy:       userId,
           updatedByName:   userName,
           oldItems:        oldItems,
@@ -488,6 +510,7 @@ class PurchaseInvoiceNotifier
           totalAmount:           state.grandTotal,
           paidAmount:            state.paidAmount,
           remainingAmount:       remaining,
+          notes:                 _notesForSave,
           createdBy:             userId,
           createdByName:         userName,
           items:                 items,
@@ -574,6 +597,7 @@ class PurchaseInvoiceNotifier
         discountAmount:        state.totalDiscount,
         taxAmount:             state.totalTax,
         totalAmount:           state.grandTotal,
+        notes:                 _notesForSave,
         createdBy:             userId,
         createdByName:         userName,
         items:                 items,

@@ -1,3 +1,4 @@
+// Updated on 2026-10-05 06:40 PM
 // =============================================================
 // po_cart_summary_widget.dart
 // Clean + Beautiful summary
@@ -202,6 +203,12 @@ class PoCartSummaryWidget extends ConsumerWidget {
                 ],
               ],
             ),
+          ),
+
+          // ── Comment / Notes (PO + Return dono) ────────────
+          const Padding(
+            padding: EdgeInsets.fromLTRB(14, 0, 14, 8),
+            child: _NotesField(),
           ),
 
           // ── Validation Warnings ───────────────────────────
@@ -812,6 +819,88 @@ class _SRow extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color:      color ?? AppColor.textPrimary)),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// COMMENT / NOTES FIELD — purchase_orders.notes
+// Controller provider ke saath sync: edit load / clearCart par khud update
+// ─────────────────────────────────────────────────────────────
+class _NotesField extends ConsumerStatefulWidget {
+  const _NotesField();
+
+  @override
+  ConsumerState<_NotesField> createState() => _NotesFieldState();
+}
+
+class _NotesFieldState extends ConsumerState<_NotesField> {
+  late final TextEditingController _controller = TextEditingController(
+      text: ref.read(purchaseInvoiceProvider).notes);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Bahar se notes badle (edit load / save ke baad reset) → field update
+    ref.listen<String>(
+      purchaseInvoiceProvider.select((s) => s.notes),
+      (_, next) {
+        if (next != _controller.text) {
+          _controller.value = TextEditingValue(
+            text:      next,
+            selection: TextSelection.collapsed(offset: next.length),
+          );
+        }
+      },
+    );
+
+    return TextField(
+      controller: _controller,
+      onChanged: (v) {
+        ref.read(purchaseInvoiceProvider.notifier).setNotes(v);
+        setState(() {}); // clear (X) button dikhane/chhupane ke liye
+      },
+      minLines:   1,
+      maxLines:   3,
+      maxLength:  500,
+      style: const TextStyle(fontSize: 12.5, color: AppColor.textPrimary),
+      decoration: InputDecoration(
+        isDense:        true,
+        counterText:    '',
+        hintText:       'Comment / notes (optional)...',
+        hintStyle:      const TextStyle(fontSize: 12.5, color: AppColor.textHint),
+        prefixIcon:     const Icon(Icons.chat_bubble_outline_rounded,
+            size: 16, color: AppColor.grey500),
+        prefixIconConstraints: const BoxConstraints(minWidth: 36),
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+          icon:      const Icon(Icons.close_rounded, size: 16),
+          splashRadius: 16,
+          onPressed: () {
+            _controller.clear();
+            ref.read(purchaseInvoiceProvider.notifier).setNotes('');
+            setState(() {});
+          },
+        )
+            : null,
+        filled:         true,
+        fillColor:      AppColor.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide:   const BorderSide(color: AppColor.grey300)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide:   const BorderSide(color: AppColor.grey300)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide:   const BorderSide(color: AppColor.primary, width: 1.5)),
+      ),
     );
   }
 }

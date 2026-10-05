@@ -1,3 +1,4 @@
+// Updated on 2026-10-05 06:40 PM
 
 // =============================================================
 // purchase_invoice_model.dart
@@ -211,6 +212,7 @@ class PurchaseInvoiceState {
   final List<PoSupplier> suppliers;
   final List<PoProduct>  products;
   final String           searchQuery;
+  final String           notes;        // PO / Return comment (purchase_orders.notes)
 
   const PurchaseInvoiceState({
     required this.poNumber,
@@ -226,6 +228,7 @@ class PurchaseInvoiceState {
     required this.suppliers,
     required this.products,
     this.searchQuery = '',
+    this.notes       = '',
   });
 
   List<PoProduct> get filteredProducts {
@@ -279,6 +282,7 @@ class PurchaseInvoiceState {
     List<PoSupplier>? suppliers,
     List<PoProduct>?  products,
     String?           searchQuery,
+    String?           notes,
     bool              clearDeliveryDate     = false,
     bool              clearSelectedSupplier = false,
   }) {
@@ -298,6 +302,7 @@ class PurchaseInvoiceState {
       suppliers:        suppliers        ?? this.suppliers,
       products:         products         ?? this.products,
       searchQuery:      searchQuery      ?? this.searchQuery,
+      notes:            notes            ?? this.notes,
     );
   }
 }
