@@ -1,3 +1,4 @@
+// Updated on 2026-10-05 03:52 PM
 // =============================================================
 // warehouse_expense_repository.dart
 // Data layer — PostgreSQL queries
@@ -34,7 +35,8 @@ class WarehouseExpenseRepository {
     if (fromDate != null) where.write('\n          AND e.expense_date >= @fromDate');
     if (toDate   != null) where.write('\n          AND e.expense_date <  @toDate');
     if (search != null && search.isNotEmpty) {
-      where.write('\n          AND LOWER(e.expense_head) LIKE LOWER(@search)');
+      where.write('\n          AND (LOWER(e.expense_head) LIKE LOWER(@search)'
+          ' OR LOWER(COALESCE(e.description, \'\')) LIKE LOWER(@search))');
     }
 
     final result = await conn.execute(
@@ -77,7 +79,11 @@ class WarehouseExpenseRepository {
           ), 0)                                                 AS today_total,
           COALESCE(SUM(amount) FILTER (
             WHERE expense_date >= DATE_TRUNC('month', NOW())
-          ), 0)                                                 AS month_total
+          ), 0)                                                 AS month_total,
+          COALESCE(SUM(amount) FILTER (
+            WHERE expense_date >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
+              AND expense_date <  DATE_TRUNC('month', NOW())
+          ), 0)                                                 AS last_month_total
         FROM warehouse_expenses
         WHERE warehouse_id = @wid
           AND deleted_at   IS NULL
@@ -90,6 +96,7 @@ class WarehouseExpenseRepository {
       totalCount:     _toInt(m['total_count']),
       todayTotal:     _toDouble(m['today_total']),
       thisMonthTotal: _toDouble(m['month_total']),
+      lastMonthTotal: _toDouble(m['last_month_total']),
     );
   }
 

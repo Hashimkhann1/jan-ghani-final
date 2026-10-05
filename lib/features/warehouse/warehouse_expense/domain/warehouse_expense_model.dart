@@ -1,3 +1,4 @@
+// Updated on 2026-10-05 03:52 PM
 // =============================================================
 // warehouse_expense_model.dart
 // Domain models for warehouse_expense feature
@@ -63,11 +64,13 @@ class ExpenseStats {
   final int    totalCount;
   final double todayTotal;
   final double thisMonthTotal;
+  final double lastMonthTotal; // "vs last month" ke liye
 
   const ExpenseStats({
     this.totalCount    = 0,
     this.todayTotal    = 0,
     this.thisMonthTotal = 0,
+    this.lastMonthTotal = 0,
   });
 }
 

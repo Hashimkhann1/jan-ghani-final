@@ -1,3 +1,4 @@
+// Updated on 2026-10-05 03:52 PM
 // =============================================================
 // warehouse_expense_provider.dart
 // State + Notifier + Provider
@@ -18,6 +19,9 @@ class WarehouseExpenseState {
   final DateTime?                   fromDate;    // inclusive
   final DateTime?                   toDate;      // inclusive (query converts +1 din)
   final String                      searchQuery;
+  final String?                     filterHead;  // null = sab heads (client-side)
+  final int                         page;        // 0-based
+  final int                         pageSize;
 
   const WarehouseExpenseState({
     this.expenses     = const [],
@@ -27,7 +31,25 @@ class WarehouseExpenseState {
     this.fromDate,
     this.toDate,
     this.searchQuery  = '',
+    this.filterHead,
+    this.page         = 0,
+    this.pageSize     = 25,
   });
+
+  /// Head filter ke baad rows — din ke hisaab se (naye pehle)
+  List<WarehouseExpenseModel> get visibleExpenses {
+    final list = filterHead == null
+        ? [...expenses]
+        : expenses.where((e) => e.expenseHead == filterHead).toList();
+    list.sort((a, b) {
+      final da = a.expenseDate.toLocal(), db = b.expenseDate.toLocal();
+      final dayA = DateTime(da.year, da.month, da.day);
+      final dayB = DateTime(db.year, db.month, db.day);
+      final c = dayB.compareTo(dayA);
+      return c != 0 ? c : b.createdAt.compareTo(a.createdAt);
+    });
+    return list;
+  }
 
   // Loaded rows ka total (date filter + search ke andar)
   double get filteredTotal =>
@@ -41,6 +63,10 @@ class WarehouseExpenseState {
     DateTime?                    fromDate,
     DateTime?                    toDate,
     String?                      searchQuery,
+    String?                      filterHead,
+    bool                         clearHead = false,
+    int?                         page,
+    int?                         pageSize,
   }) {
     return WarehouseExpenseState(
       expenses:     expenses     ?? this.expenses,
@@ -50,6 +76,9 @@ class WarehouseExpenseState {
       fromDate:     fromDate     ?? this.fromDate,
       toDate:       toDate       ?? this.toDate,
       searchQuery:  searchQuery  ?? this.searchQuery,
+      filterHead:   clearHead ? null : (filterHead ?? this.filterHead),
+      page:         page         ?? this.page,
+      pageSize:     pageSize     ?? this.pageSize,
     );
   }
 }
@@ -113,13 +142,26 @@ class WarehouseExpenseNotifier
 
   // ── Date range change ────────────────────────────────────
   void onDateRangeChanged(DateTime from, DateTime to) {
-    state = state.copyWith(fromDate: from, toDate: to);
+    state = state.copyWith(fromDate: from, toDate: to, page: 0);
     loadData();
   }
 
+  // ── Date range wapas default (last 30 din) ───────────────
+  void resetDateRange() =>
+      onDateRangeChanged(_defaultFrom(), _defaultTo());
+
+  // ── Head filter (client-side, loaded list par) ───────────
+  void onHeadChanged(String? head) => state = head == null
+      ? state.copyWith(clearHead: true, page: 0)
+      : state.copyWith(filterHead: head, page: 0);
+
+  void onPageChanged(int page)     => state = state.copyWith(page: page);
+  void onPageSizeChanged(int size) =>
+      state = state.copyWith(pageSize: size, page: 0);
+
   // ── Search change ────────────────────────────────────────
   void onSearchChanged(String query) {
-    state = state.copyWith(searchQuery: query);
+    state = state.copyWith(searchQuery: query, page: 0);
     loadData();
   }
 

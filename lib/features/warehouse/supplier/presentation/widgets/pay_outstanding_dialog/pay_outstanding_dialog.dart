@@ -1,4 +1,4 @@
-// Updated on 2026-09-28 11:15 AM
+// Updated on 2026-10-05 03:37 PM
 // =============================================================
 // pay_outstanding_dialog.dart
 // Supplier ka outstanding balance pay karne ka dialog
@@ -60,6 +60,11 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
   @override
   Widget build(BuildContext context) {
     final s = widget.supplier;
+
+    // supplierDetailProvider autoDispose hai — list screen se khulne par
+    // koi aur listener nahi hota, isliye dialog khula rehne tak zinda rakho
+    // (warna payment ke beech notifier dispose → "used after dispose")
+    ref.listen(supplierDetailProvider, (_, __) {});
 
     return Dialog(
       shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

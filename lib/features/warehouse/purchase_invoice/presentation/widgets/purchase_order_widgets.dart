@@ -1,68 +1,101 @@
+// Updated on 2026-10-05 03:15 PM
 // =============================================================
 // purchase_order_widgets.dart
-// PO screen ke reusable widgets
+// PO screen ke reusable widgets — Stitch "Purchase Orders v2" design
 // =============================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import '../../domain/purchase_order_model.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 // ─────────────────────────────────────────────────────────────
-// PO STAT CARD
+// TABLE COLUMN FLEX — header + row dono yahi use karte hain
+// ─────────────────────────────────────────────────────────────
+
+const int    kPoColPo       = 3;
+const int    kPoColSupplier = 3;
+const int    kPoColItems    = 2;
+const int    kPoColStatus   = 2;
+const int    kPoColTotal    = 2;
+const double kPoColActions  = 120;
+
+// ─────────────────────────────────────────────────────────────
+// PO STAT CARD — label + bara value + rangeen sub-line
 // ─────────────────────────────────────────────────────────────
 
 class PoStatCard extends StatelessWidget {
   final String   label;
   final String   value;
+  final String   subtitle;
   final IconData icon;
   final Color    color;
+  final Color?   subtitleColor;
 
   const PoStatCard({
     super.key,
     required this.label,
     required this.value,
+    required this.subtitle,
     required this.icon,
     required this.color,
+    this.subtitleColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
         decoration: BoxDecoration(
           color:        AppColor.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border:       Border.all(color: AppColor.grey200),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 34, height: 34,
-              decoration: BoxDecoration(
-                color:        color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, color: color, size: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(label.toUpperCase(),
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize:      11,
+                          fontWeight:    FontWeight.w600,
+                          letterSpacing: 0.6,
+                          color:         AppColor.textSecondary)),
+                ),
+                Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(
+                    color:        color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: color, size: 15),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(value,
-                      style: TextStyle(fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary)),
-                  Text(label,
-                      style: TextStyle(fontSize: 11,
-                          color: AppColor.textSecondary)),
-                ],
-              ),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit:       BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value,
+                  style: TextStyle(
+                      fontSize:   22,
+                      fontWeight: FontWeight.w700,
+                      color:      AppColor.textPrimary)),
             ),
+            const SizedBox(height: 2),
+            Text(subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize:   12,
+                    fontWeight: FontWeight.w500,
+                    color:      subtitleColor ?? color)),
           ],
         ),
       ),
@@ -71,19 +104,21 @@ class PoStatCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PO FILTER CHIP
+// PO STATUS TAB — segmented tab + count pill
 // ─────────────────────────────────────────────────────────────
 
-class PoFilterChip extends StatelessWidget {
+class PoStatusTab extends StatelessWidget {
   final String   label;
   final String   value;
+  final int      count;
   final String   selectedValue;
   final ValueChanged<String> onTap;
 
-  const PoFilterChip({
+  const PoStatusTab({
     super.key,
     required this.label,
     required this.value,
+    required this.count,
     required this.selectedValue,
     required this.onTap,
   });
@@ -93,31 +128,48 @@ class PoFilterChip extends StatelessWidget {
     final isSelected = value == selectedValue;
     return InkWell(
       onTap:        () => onTap(value),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(7),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding:  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppColor.primary : AppColor.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? AppColor.primary : AppColor.grey300,
-          ),
+          color:        isSelected ? AppColor.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
         ),
-        child: Text(label,
-            style: TextStyle(
-              fontSize:   12,
-              fontWeight: FontWeight.w500,
-              color: isSelected
-                  ? AppColor.white : AppColor.textSecondary,
-            )),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label,
+                style: TextStyle(
+                  fontSize:   12.5,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? AppColor.white : AppColor.textSecondary,
+                )),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColor.white.withOpacity(0.22)
+                    : AppColor.grey200,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Text('$count',
+                  style: TextStyle(
+                    fontSize:   10.5,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? AppColor.white : AppColor.textSecondary,
+                  )),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// PO STATUS BADGE — user ne width:130 add ki hai, rakhi hai
+// PO STATUS BADGE — dot + label pill
 // ─────────────────────────────────────────────────────────────
 
 class PoStatusBadge extends StatelessWidget {
@@ -126,51 +178,50 @@ class PoStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg, fg, dot;
+    final Color bg, fg;
 
     switch (status) {
       case 'ordered':
         bg = AppColor.infoLight;    fg = AppColor.info;
-        dot = AppColor.info;
         break;
       case 'partial':
-        bg = AppColor.warningLight; fg = AppColor.warning;
-        dot = AppColor.warning;
+        bg = AppColor.warningLight; fg = AppColor.warningDark;
         break;
       case 'received':
         bg = AppColor.successLight; fg = AppColor.success;
-        dot = AppColor.success;
+        break;
+      case 'return': // purchase return — status ki jagah "Return" dikhta hai
+        bg = AppColor.errorLight;   fg = AppColor.error;
         break;
       case 'cancelled':
         bg = AppColor.errorLight;   fg = AppColor.error;
-        dot = AppColor.error;
         break;
       default: // draft
-        bg = AppColor.grey100; fg = AppColor.grey500;
-        dot = AppColor.grey400;
+        bg = AppColor.grey100;      fg = AppColor.grey600;
     }
 
-    return Row(
-      children: [
-        Container(
-          width: 130, // user ka change — rakha hai
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-          decoration: BoxDecoration(
-              color: bg, borderRadius: BorderRadius.circular(5)),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 5, height: 5,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle, color: dot)),
-              const SizedBox(width: 4),
-              Text(status[0].toUpperCase() + status.substring(1),
-                  style: TextStyle(fontSize: 11,
-                      fontWeight: FontWeight.w600, color: fg)),
-            ],
-          ),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color:        bg,
+          borderRadius: BorderRadius.circular(20),
+          border:       Border.all(color: fg.withOpacity(0.25)),
         ),
-      ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 6, height: 6,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle, color: fg)),
+            const SizedBox(width: 5),
+            Text(status[0].toUpperCase() + status.substring(1),
+                style: TextStyle(fontSize: 11.5,
+                    fontWeight: FontWeight.w600, color: fg)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -208,6 +259,13 @@ class _PoTableRowState extends State<PoTableRow> {
   Widget build(BuildContext context) {
     final o           = widget.order;
     final isCancelled = o.status == 'cancelled';
+    final canEdit     = widget.onEdit != null && o.canEdit && !isCancelled;
+
+    final rowBg = _isHovered
+        ? AppColor.primary.withOpacity(0.03)
+        : (o.isReturn
+            ? AppColor.errorLight.withOpacity(0.35)
+            : Colors.transparent);
 
     return MouseRegion(
       hitTestBehavior: HitTestBehavior.opaque,
@@ -218,92 +276,78 @@ class _PoTableRowState extends State<PoTableRow> {
         onTap: widget.onView,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          color: _isHovered
-              ? AppColor.primary.withOpacity(0.03)
-              : Colors.transparent,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 20, vertical: 13),
+          color:    rowBg,
+          padding:  const EdgeInsets.symmetric(horizontal: 20),
           child: Opacity(
             opacity: isCancelled ? 0.55 : 1.0,
             child: Row(
               children: [
-                // PO Number + date
-                // PO Number + date  (PoTableRow ke andar)
+                // ── PO Number + date ──────────────────────
                 Expanded(
-                  flex: 3,
+                  flex: kPoColPo,
                   child: Column(
+                    mainAxisAlignment:  MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Flexible(
                             child: Text(o.poNumber,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 13,
+                                style: TextStyle(
+                                    fontSize:   14,
                                     fontWeight: FontWeight.w600,
                                     color: isCancelled
                                         ? AppColor.textSecondary
-                                        : AppColor.primary,
+                                        : (o.isReturn
+                                            ? AppColor.error
+                                            : AppColor.primary),
                                     decoration: isCancelled
-                                        ? TextDecoration.lineThrough : null)),
+                                        ? TextDecoration.lineThrough
+                                        : null)),
                           ),
                           if (o.isReturn) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColor.errorLight,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                    color: AppColor.error.withOpacity(0.4)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.assignment_return_outlined,
-                                      size: 11, color: AppColor.error),
-                                  const SizedBox(width: 3),
-                                  Text('Return',
-                                      style: TextStyle(fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColor.error)),
-                                ],
-                              ),
-                            ),
+                            const SizedBox(width: 8),
+                            const _ReturnBadge(),
                           ],
                         ],
                       ),
-                      Text("${_fmtDate(o.orderDate)} ${_fmtTime(o.createdAt)}",
-                          style: TextStyle(fontSize: 11,
+                      const SizedBox(height: 2),
+                      Text('${_fmtDate(o.orderDate)} · ${_fmtTime(o.createdAt)}',
+                          style: TextStyle(fontSize: 11.5,
                               color: AppColor.textSecondary)),
-
                     ],
                   ),
                 ),
 
-                // Supplier
+                // ── Supplier ──────────────────────────────
                 Expanded(
-                  flex: 2,
+                  flex: kPoColSupplier,
                   child: Row(
                     children: [
                       _SupplierAvatar(order: o),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Flexible(
                         child: Column(
+                          mainAxisAlignment:  MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (o.supplierCompany != null)
-                              Text(o.supplierCompany!,
-                                  style: TextStyle(fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColor.textPrimary),
-                                  overflow: TextOverflow.ellipsis),
-                            Text(o.supplierName ?? '—',
-                                style: TextStyle(fontSize: 11,
+                            Text(
+                                (o.supplierCompany?.isNotEmpty ?? false)
+                                    ? o.supplierCompany!
+                                    : (o.supplierName ?? '—'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColor.textSecondary),
-                                overflow: TextOverflow.ellipsis),
+                                    color: AppColor.textPrimary)),
+                            if (o.supplierCompany?.isNotEmpty ?? false)
+                              Text(o.supplierName ?? '—',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 11.5,
+                                      color: AppColor.textSecondary)),
                           ],
                         ),
                       ),
@@ -311,131 +355,77 @@ class _PoTableRowState extends State<PoTableRow> {
                   ),
                 ),
 
-                // Destination — user ne width:140 add ki hai
+                // ── Items ─────────────────────────────────
                 Expanded(
-                  flex: 2,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 140, // user ka change — rakha hai
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color:        AppColor.grey100,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.warehouse_outlined,
-                                size: 11, color: AppColor.grey500),
-                            const SizedBox(width: 4),
-                            Text(o.destinationName ?? 'WH-MAIN',
-                                style: TextStyle(fontSize: 11,
-                                    color: AppColor.textSecondary)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Status
-                Expanded(
-                  flex: 2,
-                  child: PoStatusBadge(status: o.status),
-                ),
-
-                // Total + paid
-                Expanded(
-                  flex: 2,
+                  flex: kPoColItems,
                   child: Column(
+                    mainAxisAlignment:  MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Rs ${o.totalAmount.pkrFormat}',
-                          style: TextStyle(fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                      Text('${o.items.length} items',
+                          style: TextStyle(fontSize: 13,
+                              fontWeight: FontWeight.w500,
                               color: AppColor.textPrimary)),
-                      if (!isCancelled)
-                        Text('Paid Rs ${o.paidAmount.pkrFormat}',
-                            style: TextStyle(fontSize: 11,
-                                color: o.paidAmount > 0
-                                    ? AppColor.success
-                                    : AppColor.textSecondary)),
+                      Text('${_fmtQty(_totalQty(o))} qty',
+                          style: TextStyle(fontSize: 11.5,
+                              color: o.isReturn
+                                  ? AppColor.error
+                                  : AppColor.textSecondary)),
                     ],
                   ),
                 ),
 
-                // Remaining + progress
-                // Expanded(
-                //   flex: 2,
-                //   child: isCancelled
-                //       ? Text('—', style: TextStyle(
-                //       color: AppColor.textSecondary, fontSize: 13))
-                //       : Column(
-                //     crossAxisAlignment: CrossAxisAlignment.start,
-                //     children: [
-                //       Text(
-                //         o.isFullyPaid
-                //             ? 'Clear'
-                //             : o.remainingAmount.toStringAsFixed(2),
-                //         style: TextStyle(fontSize: 13,
-                //             fontWeight: FontWeight.w600,
-                //             color: o.isFullyPaid
-                //                 ? AppColor.success
-                //                 : AppColor.error),
-                //       ),
-                //       const SizedBox(height: 5),
-                //       Row(
-                //         children: [
-                //           Expanded(
-                //             child: ClipRRect(
-                //               borderRadius:
-                //               BorderRadius.circular(2),
-                //               child: LinearProgressIndicator(
-                //                 value:           o.paidPercent,
-                //                 minHeight:       4,
-                //                 backgroundColor: AppColor.grey200,
-                //                 valueColor:
-                //                 AlwaysStoppedAnimation<Color>(
-                //                   o.isFullyPaid
-                //                       ? AppColor.success
-                //                       : AppColor.warning,
-                //                 ),
-                //               ),
-                //             ),
-                //           ),
-                //           const SizedBox(width: 5),
-                //           Text(
-                //             '${(o.paidPercent * 100).toInt()}%',
-                //             style: TextStyle(fontSize: 10,
-                //                 color: AppColor.textSecondary),
-                //           ),
-                //         ],
-                //       ),
-                //     ],
-                //   ),
-                // ),
-
-                // Actions
+                // ── Status ────────────────────────────────
                 Expanded(
-                  flex: 1,
+                  flex: kPoColStatus,
+                  child: PoStatusBadge(
+                      status: o.isReturn ? 'return' : o.status),
+                ),
+
+                // ── Total (right aligned) ─────────────────
+                Expanded(
+                  flex: kPoColTotal,
+                  child: Text(
+                    o.isReturn
+                        ? '−Rs ${o.totalAmount.abs().pkrFormat}'
+                        : 'Rs ${o.totalAmount.pkrFormat}',
+                    textAlign: TextAlign.right,
+                    maxLines:  1,
+                    overflow:  TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize:   14,
+                        fontWeight: FontWeight.w600,
+                        color: o.isReturn
+                            ? AppColor.error
+                            : AppColor.textPrimary,
+                        decoration: isCancelled
+                            ? TextDecoration.lineThrough
+                            : null),
+                  ),
+                ),
+
+                // ── Actions ───────────────────────────────
+                SizedBox(
+                  width: kPoColActions,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       _ActionBtn(
-                        icon:  Icons.remove_red_eye_outlined,
-                        color: AppColor.info,
-                        onTap: widget.onView,
+                        icon:    Icons.visibility_outlined,
+                        tooltip: 'Detail',
+                        onTap:   widget.onView,
                       ),
-                      if (widget.onEdit != null && o.canEdit) ...[
-                        const SizedBox(width: 4),
+                      if (canEdit)
                         _ActionBtn(
-                          icon:  Icons.edit_outlined,
-                          color: AppColor.primary,
-                          onTap: widget.onEdit!,
+                          icon:    Icons.edit_outlined,
+                          tooltip: 'Edit',
+                          onTap:   widget.onEdit!,
                         ),
-                      ],
+                      _MoreMenu(
+                        order:  o,
+                        onView: widget.onView,
+                        onEdit: canEdit ? widget.onEdit : null,
+                      ),
                     ],
                   ),
                 ),
@@ -447,11 +437,19 @@ class _PoTableRowState extends State<PoTableRow> {
     );
   }
 
+  static double _totalQty(PurchaseOrderModel o) =>
+      o.items.fold(0.0, (sum, i) => sum + i.quantityOrdered);
+
+  static String _fmtQty(double q) => q == q.roundToDouble()
+      ? q.toInt().toString()
+      : q.toStringAsFixed(2);
+
   String _fmtDate(DateTime dt) {
     final local  = dt.toLocal();
-    final months = ['Jan','Feb','Mar','Apr','May','Jun',
+    const months = ['Jan','Feb','Mar','Apr','May','Jun',
       'Jul','Aug','Sep','Oct','Nov','Dec'];
-    return '${local.day} ${months[local.month - 1]} ${local.year}';
+    return '${local.day.toString().padLeft(2, '0')} '
+        '${months[local.month - 1]} ${local.year}';
   }
 
   String _fmtTime(DateTime dt) {
@@ -463,16 +461,35 @@ class _PoTableRowState extends State<PoTableRow> {
     final hour12 = h % 12 == 0 ? 12 : h % 12;
     return '$hour12:$m $period';
   }
+}
 
-  String _fmt(double v) {
-    if (v >= 100000) return 'Rs ${(v / 100000).toStringAsFixed(1)}L';
-    if (v >= 1000)   return 'Rs ${(v / 1000).toStringAsFixed(0)}K';
-    return 'Rs ${v.toStringAsFixed(0)}';
+// ─────────────────────────────────────────────────────────────
+// RETURN BADGE
+// ─────────────────────────────────────────────────────────────
+
+class _ReturnBadge extends StatelessWidget {
+  const _ReturnBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color:        AppColor.errorLight,
+        borderRadius: BorderRadius.circular(4),
+        border:       Border.all(color: AppColor.error.withOpacity(0.4)),
+      ),
+      child: Text('RETURN',
+          style: TextStyle(fontSize: 9.5,
+              fontWeight:    FontWeight.w700,
+              letterSpacing: 0.5,
+              color:         AppColor.error)),
+    );
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// SUPPLIER AVATAR
+// SUPPLIER AVATAR — gol initials
 // ─────────────────────────────────────────────────────────────
 
 class _SupplierAvatar extends StatelessWidget {
@@ -501,10 +518,10 @@ class _SupplierAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final initials = order.supplierInitials;
     return Container(
-      width: 30, height: 30,
+      width: 32, height: 32,
       decoration: BoxDecoration(
-        color:        _avatarColor(initials),
-        borderRadius: BorderRadius.circular(7),
+        color: _avatarColor(initials),
+        shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
       child: Text(initials,
@@ -516,36 +533,100 @@ class _SupplierAvatar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ACTION BUTTON
+// ACTION BUTTON — ghost icon
 // ─────────────────────────────────────────────────────────────
 
 class _ActionBtn extends StatelessWidget {
   final IconData     icon;
-  final Color        color;
+  final String       tooltip;
   final VoidCallback onTap;
 
   const _ActionBtn({
     required this.icon,
-    required this.color,
+    required this.tooltip,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap:        onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        width: 28, height: 28,
-        decoration: BoxDecoration(
-          color:        color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6),
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap:        onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          width: 32, height: 32,
+          child: Icon(icon, size: 18, color: AppColor.grey600),
         ),
-        alignment: Alignment.center,
-        child: Icon(icon, size: 14, color: color),
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// MORE (⋯) MENU
+// ─────────────────────────────────────────────────────────────
+
+class _MoreMenu extends StatelessWidget {
+  final PurchaseOrderModel order;
+  final VoidCallback       onView;
+  final VoidCallback?      onEdit;
+
+  const _MoreMenu({
+    required this.order,
+    required this.onView,
+    this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 32, height: 32,
+      child: PopupMenuButton<String>(
+        tooltip:   'More',
+        padding:   EdgeInsets.zero,
+        iconSize:  18,
+        icon:      Icon(Icons.more_vert_rounded, color: AppColor.grey600),
+        color:     AppColor.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: AppColor.grey200)),
+        onSelected: (v) {
+          switch (v) {
+            case 'view': onView(); break;
+            case 'edit': onEdit?.call(); break;
+            case 'copy':
+              Clipboard.setData(ClipboardData(text: order.poNumber));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content:  Text('${order.poNumber} copy ho gaya'),
+                duration: const Duration(seconds: 2),
+              ));
+              break;
+          }
+        },
+        itemBuilder: (_) => [
+          _item('view', Icons.visibility_outlined, 'Detail dekhein'),
+          if (onEdit != null)
+            _item('edit', Icons.edit_outlined, 'Edit karein'),
+          _item('copy', Icons.copy_rounded, 'PO number copy'),
+        ],
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _item(String v, IconData icon, String label) =>
+      PopupMenuItem<String>(
+        value:  v,
+        height: 38,
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: AppColor.textSecondary),
+            const SizedBox(width: 10),
+            Text(label,
+                style: TextStyle(fontSize: 13, color: AppColor.textPrimary)),
+          ],
+        ),
+      );
 }
 
 // ─────────────────────────────────────────────────────────────

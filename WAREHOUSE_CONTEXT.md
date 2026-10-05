@@ -1,4 +1,4 @@
-<!-- Updated on 2026-10-02 10:16 AM -->
+<!-- Updated on 2026-10-05 04:00 PM -->
 
 # Jan Ghani POS — Project Context
 
@@ -454,6 +454,9 @@ SectionCard(headerIcon, title, headerTrailing, children, footerLeft, footerRight
 | `purchaseReportProvider` | `warehouse_reports/purchase/.../purchase_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | 7 queries; desktop=local, web=Supabase RPC |
 | `cashFlowReportProvider` | `warehouse_reports/cash_flow/.../cash_flow_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | 5 queries; desktop=local, web=Supabase raw+compute |
 | `expenseReportProvider` | `warehouse_reports/expense/.../expense_report_provider.dart` | `StateNotifierProvider.autoDispose<...>` | ⭐ S7 — summary(+prev period)+category breakdown; desktop=local, web=Supabase raw+compute |
+| `purchaseOrderProvider` | `purchase_invoice/presentation/provider/purchase_order_provider.dart` | `StateNotifierProvider` | ⭐ S19 — PO list: search/status/type/supplier/date filters + pagination + `statusCounts` |
+| `supplierProvider` | `supplier/presentation/provider/supplier_provider/supplier_provider.dart` | `StateNotifierProvider` | ⭐ S19 — supplier list: status/balance filter + sort (default baqaya) + pagination |
+| `warehouseExpenseProvider` | `warehouse_expense/presentation/provider/warehouse_expense_provider.dart` | `StateNotifierProvider` | ⭐ S19 — expenses: date range (default 30 din) + search (server) + head filter/pagination (client) |
 | `companyProvider` | `company/presentation/provider/company_provider.dart` | `StateNotifierProvider<CompanyNotifier, CompanyState>` | ⭐ S7 — companies CRUD (Category pattern) |
 | `employeeProvider` | `employee/presentation/provider/employee_provider.dart` | `StateNotifierProvider<EmployeeNotifier, EmployeeState>` | ⭐ S7 — employees master CRUD |
 | `salaryProvider` | `employee/presentation/provider/salary_provider.dart` | `StateNotifierProvider<SalaryNotifier, SalaryState>` | ⭐ S7 — monthly salary tracking + pay/delete (month state) |
@@ -1466,6 +1469,65 @@ Store counting (Supabase inventory_counting)
 - **Warehouse app par asar: zero** — sidebar ka `SalaryTrackingScreen()` (bina params) pehle jaisa local DB + Pay/Employees.
 - **Supabase verify (read-only):** dono tables + saare columns mojood, **RLS OFF** (suppliers jaisa — accountant pehle se padhta), data mojood (11 employees, 52 payments).
 - Pay accountant se **mumkin nahi/design se band** — payment warehouse ke local cash (`warehouse_cash_transactions` + trigger) se hoti hai.
+
+---
+
+## Session 19 — Purchase Orders · Suppliers · Expenses list screens redesign (Stitch) ⭐⭐
+
+> **Maqsad:** Teen list screens ko Stitch design ke mutabiq naya UI diya — **DB/save/edit logic bilkul nahi badli** (sirf UI + client-side filters/pagination). Stitch project `9155843749988575711`: screens "Jan Ghani — Purchase Orders v2", "Jan Ghani — Suppliers v2", "Jan Ghani — Expenses".
+> **Common pattern (teeno):** TopBar (40px purple-tint icon + title/subtitle + actions, bottom border) · KPI cards (uppercase label + icon square + bara value + rangeen sub-line) · toolbar card · table card (`#F8FAFC` uppercase header, fixed row height, hover purple tint, `minWidth` + horizontal scroll) · footer (Showing x–y of N · filtered summary pill · Show 25/50/100 + pager `1 … p-1 p p+1 … last`). Background `AppColor.grey100`. Spinner sirf pehli load par (`isLoading && list.isEmpty`) — refresh par screen nahi chhupti. Stitch ka 90px sidebar code mein NAHI — app ka apna sidebar hi.
+
+### 1. Purchase Orders (`purchase_invoice/`)
+| File | Change |
+|---|---|
+| `presentation/screens/purchase_order_screen.dart` | Rewrite — TopBar: **Purchase Return** (outlined red) + **New Purchase Order**; 5 KPI cards; toolbar; table; footer |
+| `presentation/widgets/purchase_order_widgets.dart` | Rewrite — `PoStatCard(subtitle)`, `PoStatusTab` (count pill), `PoStatusBadge` (pill; **`'return'` case** laal), `PoTableRow`, `_MoreMenu`, `PoEmptyState`; column flex consts `kPoCol*` |
+| `presentation/provider/purchase_order_provider.dart` | State: `filterType` (all/purchase/return), `filterSupplierId`, `fromDate/toDate` (null = sab dates), `page/pageSize`, cached `statusCounts`; `pagedOrders`, `pageCount`, `hasActiveFilters`; methods `onTypeChanged/onSupplierChanged/onDateRangeChanged/onPageChanged/onPageSizeChanged` (sab `page: 0`) |
+
+- **KPI values** pehle wali `getStats()` DB query se (unchanged); **sub-lines** loaded `allOrders` se Dart mein (is mahine count, Draft/Ordered/Partial, % complete, vs last month `order_date`, outstanding suppliers — DB filter ka mirror `status NOT IN (cancelled, received)`).
+- **Toolbar:** search + status tabs (counts = status ke ilawa baaqi filters ke baad) + Type + date range (order date, local din, ✕ clear) + Supplier (sirf jin ke PO hain). `≥1420px` ek line, warna 2 lines (tabs scrollable).
+- **Table:** PO Number (+date·time, return = laal `PR-` + RETURN badge) · Supplier · Items (`N items` + qty) · Status · Total (right; return `−Rs`) · Actions (view, edit, ⋮: Detail / Edit / PO number copy). **Payment column hataya** (user request). Return row ki **Status = "Return"** badge (DB mein status `received` hi — isliye Received tab count mein shamil).
+- Edit sirf `canEdit && !cancelled`. Footer summary = sirf purchase (return/cancelled nahi): Total · Paid · Baaki.
+- **Purchase Return button:** `purchaseInvoiceProvider.setPoType(PoType.purchaseReturn)` phir naya invoice. **New PO** ab hamesha `PoType.purchase` set karta hai (cart preserve pehle jaisa).
+- Ctrl+K badge NAHI (sidebar search ka shortcut hai).
+
+### 2. Suppliers (`supplier/`)
+| File | Change |
+|---|---|
+| `presentation/screens/all_supplier_screen/all_supplier_screen.dart` | Rewrite — 4 KPI · toolbar · table · ⋮ menu · footer (delete confirm dialog + add/edit dialogs wahi purane) |
+| `presentation/provider/supplier_provider/supplier_provider.dart` | State: `filterBalance` (all/due/clear), `sortBy` (**default `due_desc`**; `purchase_desc`, `name`, `newest`), `page/pageSize`; `filteredSuppliers` ab sort bhi karta; `statusCounts`; methods `onBalanceFilterChanged/onSortChanged/onPageChanged/onPageSizeChanged` |
+| `presentation/widgets/pay_outstanding_dialog/pay_outstanding_dialog.dart` | `build()` mein `ref.listen(supplierDetailProvider, (_, __) {})` — **autoDispose provider ko dialog khula rehne tak zinda** rakhta hai (list screen se kholne par koi listener nahi hota → payment ke beech "used after dispose") |
+
+- **KPI:** Total (+naye is mahine `createdAt`), Active (+inactive), Total Purchase (+Σ `totalOrders`), Total Due (laal tint card, +suppliers with due). Values purane getters se.
+- **Table:** Supplier (initials avatar + company + `person • address` ek line) · Phone & Code · Orders · Total Purchase · Balance (due laal + "BAQAYA DUE" / 0 = green "Clear ✓" / negative = neela "ADVANCE") · Status · **sirf ⋮**. **Terms column hataya** (user request). Inactive row 60% opacity. Row tap = detail screen (wapsi par `loadSuppliers()`).
+- **⋮ menu:** **Pay karein** (sirf `hasDue`, wahi `PayOutstandingDialog`) · Detail / Ledger dekhein · Edit karein · Delete (laal, purana confirm dialog).
+
+### 3. Expenses (`warehouse_expense/`)
+| File | Change |
+|---|---|
+| `presentation/screens/warehouse_expense_screen.dart` | Rewrite — 4 KPI · "Har rupya kahan gaya" strip · toolbar · din-wise grouped table · ⋮ · footer · `_ExpenseDetailDialog` (read-only) |
+| `presentation/provider/warehouse_expense_provider.dart` | State: `filterHead` (client-side), `page/pageSize`; `visibleExpenses` (head filter + din desc, phir `createdAt` desc); methods `onHeadChanged`, `resetDateRange()` (last 30 din), `onPageChanged/onPageSizeChanged` |
+| `data/warehouse_expense_repository.dart` | `getAll` search ab **head OR description** (`COALESCE(description,'')`); `getStats` mein read-only `last_month_total` |
+| `domain/warehouse_expense_model.dart` | `ExpenseStats.lastMonthTotal` (default 0) |
+
+- **KPI:** Selected Period (`filteredTotal` + entries + range) · Today (`stats.todayTotal` + aaj ki entries, sirf jab range mein aaj ho) · This Month (vs last month — kam = green, zyada = laal) · Top Head (loaded list se, % of period).
+- **Strip:** top 5 heads + Others proportion bar (`Container` segments — `ColoredBox` bina child height 0 deta) + clickable legend chips (head filter toggle).
+- **Toolbar:** search (server-side, har keystroke `loadData`) · head chips count ke saath (horizontal scroll, selected head hamesha dikhe) · date range (default last 30 din; custom par ✕ = reset).
+- **Table:** day separator "AAJ / KAL · DD MMM YYYY (N expenses) — Day Total" (total poori filtered list ka) · Date + time (`createdAt`) · Head (icon + rang, `_headColor/_headIcon`; Salary par "SALARY" tag) · Description · Added By · Amount.
+- **⋮ menu:** Detail dekhein · Edit karein. **Salary rows (`expenseHead == 'Salary'`) par Edit band** + hint "Salary screen se badlein" (expense edit salary_payment ko update nahi karta → mismatch).
+- **Delete jaan-bujh kar NAHI** — `deleteExpense()` sirf expense soft-delete karta, linked cash_txn reverse NAHI → cash/expense mismatch. Pehle bhi button comment-out tha. Delete chahiye to pehle cash-reversal logic (Known Issue A wala reversal pattern).
+
+### ⚠️ Session 19 lessons
+1. **Golden test mein popup/elevation ka shadow solid KAALA border** dikhta hai (`debugDisableShadows`) — code ka masla nahi. Border color badal kar verify kiya.
+2. **`ColoredBox()` bina child** Row ke andar loose height par **0 height** — rangeen bar ke liye `Container(color:)` ya `SizedBox.expand`.
+3. **autoDispose provider + `ref.read` in dialog** — agar koi listener nahi (doosri screen se khula), async beech mein dispose → `ref.listen(...)` se dialog lifetime tak zinda rakho.
+4. Visual verify: temp widget test (fake notifier subclass jo `load*()` override kare, Arial as Roboto, MaterialIcons font load) → golden PNG dekho → test file delete.
+5. Stitch `generate_screen_from_text` aksar timeout deta hai — generation chalti rehti hai, `list_screens`/`get_screen` se poll karo (dobara generate NAHI).
+
+### Files (Session 19)
+**Purchase:** `purchase_order_screen.dart` · `purchase_order_widgets.dart` · `purchase_order_provider.dart`
+**Supplier:** `all_supplier_screen.dart` · `supplier_provider.dart` · `pay_outstanding_dialog.dart`
+**Expense:** `warehouse_expense_screen.dart` · `warehouse_expense_provider.dart` · `warehouse_expense_repository.dart` · `warehouse_expense_model.dart`
 
 ---
 

@@ -1,4 +1,4 @@
-// Updated on 2026-09-28 11:15 AM
+// Updated on 2026-10-05 03:37 PM
 // =============================================================
 // supplier_provider.dart
 // =============================================================
@@ -11,22 +11,31 @@ class SupplierState {
   final List<SupplierModel> allSuppliers;
   final String              searchQuery;
   final String              filterStatus;
+  final String              filterBalance; // 'all' | 'due' | 'clear'
+  final String              sortBy;        // 'due_desc' | 'name' | 'purchase_desc' | 'newest'
+  final int                 page;          // 0-based
+  final int                 pageSize;
   final bool                isLoading;
   final String?             errorMessage;
 
   const SupplierState({
-    this.allSuppliers = const [],
-    this.searchQuery  = '',
-    this.filterStatus = 'all',
-    this.isLoading    = false,
+    this.allSuppliers  = const [],
+    this.searchQuery   = '',
+    this.filterStatus  = 'all',
+    this.filterBalance = 'all',
+    this.sortBy        = 'due_desc',
+    this.page          = 0,
+    this.pageSize      = 25,
+    this.isLoading     = false,
     this.errorMessage,
   });
 
-  List<SupplierModel> get filteredSuppliers {
+  /// Status ke ilawa saare filters (search + balance) — tabs ke counts isi se
+  List<SupplierModel> get _baseSuppliers {
     return allSuppliers.where((s) {
       if (s.deletedAt != null) return false;
-      if (filterStatus == 'active'   && !s.isActive) return false;
-      if (filterStatus == 'inactive' &&  s.isActive) return false;
+      if (filterBalance == 'due'   && !s.hasDue) return false;
+      if (filterBalance == 'clear' &&  s.hasDue) return false;
       if (searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
         return s.name.toLowerCase().contains(q) ||
@@ -39,6 +48,41 @@ class SupplierState {
     }).toList();
   }
 
+  List<SupplierModel> get filteredSuppliers {
+    final list = _baseSuppliers.where((s) {
+      if (filterStatus == 'active'   && !s.isActive) return false;
+      if (filterStatus == 'inactive' &&  s.isActive) return false;
+      return true;
+    }).toList();
+
+    switch (sortBy) {
+      case 'due_desc':
+        list.sort((a, b) => b.outstandingBalance.compareTo(a.outstandingBalance));
+        break;
+      case 'name':
+        list.sort((a, b) => _label(a).compareTo(_label(b)));
+        break;
+      case 'purchase_desc':
+        list.sort((a, b) => b.totalPurchaseAmount.compareTo(a.totalPurchaseAmount));
+        break;
+      case 'newest':
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+    }
+    return list;
+  }
+
+  static String _label(SupplierModel s) =>
+      ((s.companyName?.isNotEmpty ?? false) ? s.companyName! : s.name)
+          .toLowerCase();
+
+  /// Tabs ke counts — search + balance filter ke baad
+  Map<String, int> get statusCounts {
+    final base   = _baseSuppliers;
+    final active = base.where((s) => s.isActive).length;
+    return {'all': base.length, 'active': active, 'inactive': base.length - active};
+  }
+
   int    get totalCount       => allSuppliers.where((s) => s.deletedAt == null).length;
   int    get activeCount      => allSuppliers.where((s) => s.isActive && s.deletedAt == null).length;
   double get totalPurchased   => allSuppliers.fold(0, (sum, s) => sum + s.totalPurchaseAmount);
@@ -48,16 +92,24 @@ class SupplierState {
     List<SupplierModel>? allSuppliers,
     String?              searchQuery,
     String?              filterStatus,
+    String?              filterBalance,
+    String?              sortBy,
+    int?                 page,
+    int?                 pageSize,
     bool?                isLoading,
     String?              errorMessage,
     bool                 clearError = false, // true → errorMessage null (?? se null set nahi hota)
   }) {
     return SupplierState(
-      allSuppliers: allSuppliers ?? this.allSuppliers,
-      searchQuery:  searchQuery  ?? this.searchQuery,
-      filterStatus: filterStatus ?? this.filterStatus,
-      isLoading:    isLoading    ?? this.isLoading,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      allSuppliers:  allSuppliers  ?? this.allSuppliers,
+      searchQuery:   searchQuery   ?? this.searchQuery,
+      filterStatus:  filterStatus  ?? this.filterStatus,
+      filterBalance: filterBalance ?? this.filterBalance,
+      sortBy:        sortBy        ?? this.sortBy,
+      page:          page          ?? this.page,
+      pageSize:      pageSize      ?? this.pageSize,
+      isLoading:     isLoading     ?? this.isLoading,
+      errorMessage:  clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
@@ -78,8 +130,12 @@ class SupplierNotifier extends StateNotifier<SupplierState> {
     }
   }
 
-  void onSearchChanged(String query) => state = state.copyWith(searchQuery: query);
-  void onFilterChanged(String filter) => state = state.copyWith(filterStatus: filter);
+  void onSearchChanged(String query) => state = state.copyWith(searchQuery: query, page: 0);
+  void onFilterChanged(String filter) => state = state.copyWith(filterStatus: filter, page: 0);
+  void onBalanceFilterChanged(String v) => state = state.copyWith(filterBalance: v, page: 0);
+  void onSortChanged(String v)          => state = state.copyWith(sortBy: v, page: 0);
+  void onPageChanged(int page)          => state = state.copyWith(page: page);
+  void onPageSizeChanged(int size)      => state = state.copyWith(pageSize: size, page: 0);
 
   Future<void> addSupplier(SupplierModel supplier, {double openingBalance = 0}) async {
     state = state.copyWith(isLoading: true, clearError: true);
