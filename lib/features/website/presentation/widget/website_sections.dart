@@ -729,7 +729,15 @@ class _HeroVisual extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: AspectRatio(
+              aspectRatio: 3 / 2,
+              child: Image.asset('assets/images/home.jpg', fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(height: 16),
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
