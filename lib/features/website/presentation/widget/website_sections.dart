@@ -684,197 +684,25 @@ class _HeroVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = WebsiteText.of(context);
-    final cats = t.categoryItems.take(4).toList();
-    final card = Container(
-      constraints: const BoxConstraints(maxWidth: 460),
-      padding: EdgeInsets.all(compact ? 20 : 28),
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 520),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColor.primary, AppColor.primaryDark],
-        ),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(compact ? 22 : 30),
         boxShadow: [
           BoxShadow(
-            color: AppColor.primary.withValues(alpha: 0.32),
-            blurRadius: 50,
-            offset: const Offset(0, 24),
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const AppLogo(size: 56, radius: 14),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(t.brand,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 2),
-                    Text(t.tagline,
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: AspectRatio(
-              aspectRatio: 3 / 2,
-              child: Image.asset('assets/images/home.jpg', fit: BoxFit.cover),
-            ),
-          ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: compact ? 1.35 : 1.5,
-            children: [
-              for (final c in cats)
-                HoverLift(
-                  lift: 4,
-                  builder: (_, hovered) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color:
-                          Colors.white.withValues(alpha: hovered ? 0.20 : 0.12),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        AnimatedScale(
-                          scale: hovered ? 1.15 : 1,
-                          duration: const Duration(milliseconds: 220),
-                          alignment: AlignmentDirectional.topStart
-                              .resolve(Directionality.of(context)),
-                          child: Icon(c.icon, color: Colors.white, size: 26),
-                        ),
-                        Text(c.title,
-                            maxLines: 2,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                height: 1.2)),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.local_shipping_rounded,
-                    color: AppColor.cashIn, size: 22),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(t.deliveredDoorstep,
-                      style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: WebsiteColors.ink)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-
-    // Floating installment chip (default price @ 15% advance, 24 mahine).
-    final example = InstallmentPlan.of(
-      WebsiteContent.instDefaultPrice * (1 - WebsiteContent.instMinAdvance),
-      WebsiteContent.instLowestPlan,
-    ).monthly;
-    final chip = Floating(
-      amplitude: 8,
-      period: const Duration(seconds: 5),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 24,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9FBF2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.event_repeat_rounded,
-                  color: AppColor.cashIn, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(t.easyInstallments,
-                    style: const TextStyle(
-                        fontSize: 11.5, color: WebsiteColors.muted)),
-                Text(t.perMonth.fill(formatRs(example)),
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        color: WebsiteColors.ink)),
-              ],
-            ),
-          ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(compact ? 22 : 30),
+        child: AspectRatio(
+          aspectRatio: 3 / 2,
+          child: Image.asset('assets/images/home.jpg', fit: BoxFit.cover),
         ),
       ),
-    );
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(bottom: compact ? 30 : 0),
-          child: card,
-        ),
-        PositionedDirectional(
-          start: compact ? 12 : -36,
-          bottom: compact ? 0 : -28,
-          child: chip,
-        ),
-      ],
     );
   }
 }
