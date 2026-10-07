@@ -13,12 +13,12 @@ class StatusToggle extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isActive
-            ? const Color(0xFFEEF2FF)
+            ? const Color(0xFFFFEEEF)
             : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isActive
-              ? const Color(0xFF6366F1).withOpacity(0.3)
+              ? const Color(0xFFED0015).withOpacity(0.3)
               : const Color(0xFFE5E7EB),
         ),
       ),
@@ -27,7 +27,7 @@ class StatusToggle extends StatelessWidget {
           Icon(
             isActive ? Icons.check_circle_rounded : Icons.cancel_rounded,
             size: 20,
-            color: isActive ? const Color(0xFF6366F1) : const Color(0xFF9CA3AF),
+            color: isActive ? const Color(0xFFED0015) : const Color(0xFF9CA3AF),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -40,7 +40,7 @@ class StatusToggle extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: isActive
-                        ? const Color(0xFF6366F1)
+                        ? const Color(0xFFED0015)
                         : const Color(0xFF6C7280),
                   ),
                 ),
@@ -56,7 +56,7 @@ class StatusToggle extends StatelessWidget {
           Switch(
             value: isActive,
             onChanged: onChanged,
-            activeColor: const Color(0xFF6366F1),
+            activeColor: const Color(0xFFED0015),
           ),
         ],
       ),

@@ -74,8 +74,8 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
             icon:  const Icon(Icons.add_rounded, size: 18),
             label: const Text("Add Product"),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF6366F1),
-              backgroundColor: const Color(0xFFEEF2FF),
+              foregroundColor: const Color(0xFFED0015),
+              backgroundColor: const Color(0xFFFFEEEF),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -93,7 +93,7 @@ class WarehouseStockInventoryScreen extends ConsumerWidget {
             Row(
               spacing: 12,
               children: [
-                SummaryCard(title: "Total Products", value: "${state.totalCount}", icon: Icons.inventory_2_rounded, color: const Color(0xFF6366F1)),
+                SummaryCard(title: "Total Products", value: "${state.totalCount}", icon: Icons.inventory_2_rounded, color: const Color(0xFFED0015)),
                 SummaryCard(title: "Active", value: "${state.activeCount}", icon: Icons.check_circle_outline_rounded, color: const Color(0xFF10B981)),
                 SummaryCard(title: "Low Stock", value: "${state.lowStockCount}", icon: Icons.warning_amber_rounded, color: const Color(0xFFF59E0B)),
                 SummaryCard(title: "Out of Stock", value: "${products.where((p) => p.isOutOfStock).length}", icon: Icons.remove_shopping_cart_rounded, color: const Color(0xFFEF4444)),
@@ -348,7 +348,7 @@ class _ProductRow extends StatelessWidget {
           duration: const Duration(milliseconds: 120),
           // ✅ Sirf yeh line rebuild hoti hai hover par
           color: hovered
-              ? const Color(0xFFEEF2FF)
+              ? const Color(0xFFFFEEEF)
               : isEven ? Colors.white : const Color(0xFFFAFAFC),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           child: child, // ✅ child rebuild nahi hoga
@@ -364,7 +364,7 @@ class _ProductRow extends StatelessWidget {
                   width:  24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color:        const Color(0xFFEEF2FF),
+                    color:        const Color(0xFFFFEEEF),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Center(
@@ -373,7 +373,7 @@ class _ProductRow extends StatelessWidget {
                       style: const TextStyle(
                         fontSize:   10,
                         fontWeight: FontWeight.w700,
-                        color:      Color(0xFF6366F1),
+                        color:      Color(0xFFED0015),
                       ),
                     ),
                   ),
@@ -415,8 +415,8 @@ class _ProductRow extends StatelessWidget {
                     label: (p.categoryName?.length ?? 0) > 10
                         ? p.categoryName!.substring(0, 10)
                         : p.categoryName ?? '—',
-                    bg:        const Color(0xFFEEF2FF),
-                    textColor: const Color(0xFF6366F1),
+                    bg:        const Color(0xFFFFEEEF),
+                    textColor: const Color(0xFFED0015),
                   ),
                 ),
               ),
@@ -534,7 +534,7 @@ class _ProductRow extends StatelessWidget {
                   PopupMenuItem(
                     value: 'edit',
                     child: ListTile(
-                      leading: const Icon(Icons.edit_rounded, color: Color(0xFF6366F1)),
+                      leading: const Icon(Icons.edit_rounded, color: Color(0xFFED0015)),
                       title: const Text("Edit"),
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -653,9 +653,9 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF6366F1) : Colors.white,
+          color: selected ? const Color(0xFFED0015) : Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: selected ? const Color(0xFF6366F1) : const Color(0xFFE5E7EB)),
+          border: Border.all(color: selected ? const Color(0xFFED0015) : const Color(0xFFE5E7EB)),
         ),
         child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? Colors.white : const Color(0xFF6C7280))),
       ),
@@ -682,8 +682,8 @@ class _CategoryFilterDropdown extends StatelessWidget {
       items:       categories.map((c) => (id: c.id, name: c.name)).toList(),
       selectedId:  selectedCategoryId,
       onChanged:   onChanged,
-      activeColor: const Color(0xFF6366F1),
-      clearBg:     const Color(0xFFEEF2FF),
+      activeColor: const Color(0xFFED0015),
+      clearBg:     const Color(0xFFFFEEEF),
     );
   }
 }
@@ -1077,7 +1077,7 @@ class _SearchFieldState extends State<_SearchField> {
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(
-                  color: Color(0xFF6366F1), width: 1.5)),
+                  color: Color(0xFFED0015), width: 1.5)),
         ),
       ),
     );

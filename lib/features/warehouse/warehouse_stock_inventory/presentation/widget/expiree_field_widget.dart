@@ -40,7 +40,7 @@ class ExpiryField extends StatelessWidget {
                   Icons.calendar_today_rounded,
                   size: 16,
                   color: date != null
-                      ? const Color(0xFF6366F1)
+                      ? const Color(0xFFED0015)
                       : const Color(0xFF9CA3AF),
                 ),
                 const SizedBox(width: 10),

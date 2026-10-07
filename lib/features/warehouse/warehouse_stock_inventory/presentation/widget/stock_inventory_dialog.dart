@@ -572,7 +572,7 @@ class _BarcodesSection extends StatelessWidget {
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(
-                            color: Color(0xFF6366F1), width: 1.5)),
+                            color: Color(0xFFED0015), width: 1.5)),
                   ),
                   onFieldSubmitted: (_) => onAdd(),
                 ),
@@ -588,7 +588,7 @@ class _BarcodesSection extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6366F1),
+                      color: const Color(0xFFED0015),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.add_rounded,
@@ -607,13 +607,13 @@ class _BarcodesSection extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEF2FF),
+                      color: const Color(0xFFFFEEEF),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color: const Color(0xFF6366F1).withOpacity(0.3)),
+                          color: const Color(0xFFED0015).withOpacity(0.3)),
                     ),
                     child: const Icon(Icons.refresh_rounded,
-                        size: 18, color: Color(0xFF6366F1)),
+                        size: 18, color: Color(0xFFED0015)),
                   ),
                 ),
               ),
@@ -660,12 +660,12 @@ class _BarcodeChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isPrimary
-            ? const Color(0xFFEEF2FF)
+            ? const Color(0xFFFFEEEF)
             : const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isPrimary
-              ? const Color(0xFF6366F1).withOpacity(0.4)
+              ? const Color(0xFFED0015).withOpacity(0.4)
               : const Color(0xFFE5E7EB),
         ),
       ),
@@ -676,7 +676,7 @@ class _BarcodeChip extends StatelessWidget {
             Icons.qr_code_rounded,
             size:  13,
             color: isPrimary
-                ? const Color(0xFF6366F1)
+                ? const Color(0xFFED0015)
                 : const Color(0xFF6C7280),
           ),
           const SizedBox(width: 6),
@@ -686,7 +686,7 @@ class _BarcodeChip extends StatelessWidget {
               fontSize:   12,
               fontWeight: FontWeight.w600,
               color:      isPrimary
-                  ? const Color(0xFF6366F1)
+                  ? const Color(0xFFED0015)
                   : const Color(0xFF374151),
             ),
           ),
@@ -696,7 +696,7 @@ class _BarcodeChip extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF6366F1),
+                color: const Color(0xFFED0015),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
@@ -715,7 +715,7 @@ class _BarcodeChip extends StatelessWidget {
               Icons.close_rounded,
               size:  14,
               color: isPrimary
-                  ? const Color(0xFF6366F1)
+                  ? const Color(0xFFED0015)
                   : const Color(0xFF9CA3AF),
             ),
           ),
@@ -766,13 +766,13 @@ class _CategoryDropdown extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: const [
                   Icon(Icons.add_circle_outline_rounded,
-                      size: 13, color: Color(0xFF6366F1)),
+                      size: 13, color: Color(0xFFED0015)),
                   SizedBox(width: 3),
                   Text('New Category',
                       style: TextStyle(
                           fontSize:   11,
                           fontWeight: FontWeight.w600,
-                          color:      Color(0xFF6366F1))),
+                          color:      Color(0xFFED0015))),
                 ],
               ),
             ),
@@ -810,7 +810,7 @@ class _CategoryDropdown extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(
-                      color: Color(0xFF6366F1), width: 1.5)),
+                      color: Color(0xFFED0015), width: 1.5)),
             ),
           ),
           popupProps: PopupProps.menu(
@@ -875,13 +875,13 @@ class _CompanyDropdown extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: const [
                   Icon(Icons.add_circle_outline_rounded,
-                      size: 13, color: Color(0xFF6366F1)),
+                      size: 13, color: Color(0xFFED0015)),
                   SizedBox(width: 3),
                   Text('New Company',
                       style: TextStyle(
                           fontSize:   11,
                           fontWeight: FontWeight.w600,
-                          color:      Color(0xFF6366F1))),
+                          color:      Color(0xFFED0015))),
                 ],
               ),
             ),
@@ -919,7 +919,7 @@ class _CompanyDropdown extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(
-                      color: Color(0xFF6366F1), width: 1.5)),
+                      color: Color(0xFFED0015), width: 1.5)),
             ),
           ),
           popupProps: PopupProps.menu(
@@ -1000,7 +1000,7 @@ class _UnitDropdown extends StatelessWidget {
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(
-                    color: Color(0xFF6366F1), width: 1.5)),
+                    color: Color(0xFFED0015), width: 1.5)),
           ),
           items: _units.map((u) => DropdownMenuItem(
             value: u['value'],
@@ -1143,7 +1143,7 @@ class _AutoGenField extends StatelessWidget {
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: const BorderSide(
-                          color: Color(0xFF6366F1), width: 1.5)),
+                          color: Color(0xFFED0015), width: 1.5)),
                   errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide:
@@ -1161,13 +1161,13 @@ class _AutoGenField extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEF2FF),
+                      color: const Color(0xFFFFEEEF),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: const Color(0xFF6366F1).withOpacity(0.3)),
+                          color: const Color(0xFFED0015).withOpacity(0.3)),
                     ),
                     child: const Icon(Icons.refresh_rounded,
-                        size: 18, color: Color(0xFF6366F1)),
+                        size: 18, color: Color(0xFFED0015)),
                   ),
                 ),
               ),

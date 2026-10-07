@@ -155,11 +155,11 @@ class _HeaderCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color:        const Color(0xFFEEF2FF),
+                  color:        const Color(0xFFFFEEEF),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.receipt_long_rounded,
-                    color: Color(0xFF6366F1), size: 20),
+                    color: Color(0xFFED0015), size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -173,7 +173,7 @@ class _HeaderCard extends StatelessWidget {
                         style: const TextStyle(
                             fontSize:   16,
                             fontWeight: FontWeight.w800,
-                            color:      Color(0xFF6366F1))),
+                            color:      Color(0xFFED0015))),
                   ],
                 ),
               ),
@@ -280,13 +280,13 @@ class _FromToCard extends StatelessWidget {
               children: [
                 const Row(children: [
                   Icon(Icons.warehouse_rounded,
-                      size: 13, color: Color(0xFF6366F1)),
+                      size: 13, color: Color(0xFFED0015)),
                   SizedBox(width: 6),
                   Text("FROM",
                       style: TextStyle(
                           fontSize:      10,
                           fontWeight:    FontWeight.w700,
-                          color:         Color(0xFF6366F1),
+                          color:         Color(0xFFED0015),
                           letterSpacing: 1)),
                 ]),
                 const SizedBox(height: 6),
@@ -301,11 +301,11 @@ class _FromToCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color:        const Color(0xFFEEF2FF),
+              color:        const Color(0xFFFFEEEF),
               borderRadius: BorderRadius.circular(50),
             ),
             child: const Icon(Icons.arrow_forward_rounded,
-                size: 14, color: Color(0xFF6366F1)),
+                size: 14, color: Color(0xFFED0015)),
           ),
           Expanded(
             child: Column(
@@ -363,7 +363,7 @@ class _InvoiceTable extends StatelessWidget {
             child: Row(
               children: [
                 const Icon(Icons.shopping_bag_rounded,
-                    size: 15, color: Color(0xFF6366F1)),
+                    size: 15, color: Color(0xFFED0015)),
                 const SizedBox(width: 8),
                 const Text("Product List",
                     style: TextStyle(
@@ -375,14 +375,14 @@ class _InvoiceTable extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color:        const Color(0xFFEEF2FF),
+                    color:        const Color(0xFFFFEEEF),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text("${transfer.items.length} items",
                       style: const TextStyle(
                           fontSize:   11,
                           fontWeight: FontWeight.w600,
-                          color:      Color(0xFF6366F1))),
+                          color:      Color(0xFFED0015))),
                 ),
               ],
             ),
@@ -472,7 +472,7 @@ class _InvoiceTable extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color:        const Color(0xFFEEF2FF),
+                        color:        const Color(0xFFFFEEEF),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(_fmtQty(item.quantitySent),
@@ -480,7 +480,7 @@ class _InvoiceTable extends StatelessWidget {
                           style: const TextStyle(
                               fontSize:   12,
                               fontWeight: FontWeight.w700,
-                              color:      Color(0xFF6366F1))),
+                              color:      Color(0xFFED0015))),
                     ),
                   ),
                   // Purchase Price
@@ -567,7 +567,7 @@ class _InvoiceTable extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
-                        color:        const Color(0xFF6366F1),
+                        color:        const Color(0xFFED0015),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -756,7 +756,7 @@ class _BottomBar extends ConsumerWidget {
               label: const Text("Accept & Add to Stock",
                   style: TextStyle(fontWeight: FontWeight.w700)),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
+                backgroundColor: const Color(0xFFED0015),
                 minimumSize:     const Size(0, 52),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
@@ -776,10 +776,10 @@ class _BottomBar extends ConsumerWidget {
         message:
             "${transfer.items.length} products (${transfer.totalItems} units) will be added to your branch stock.\n\nFrom: ${transfer.assignedByName ?? 'Warehouse'}",
         confirmLabel: "Yes, Accept",
-        confirmColor: const Color(0xFF6366F1),
+        confirmColor: const Color(0xFFED0015),
         icon:         Icons.inventory_rounded,
-        iconBg:       const Color(0xFFEEF2FF),
-        iconColor:    const Color(0xFF6366F1),
+        iconBg:       const Color(0xFFFFEEEF),
+        iconColor:    const Color(0xFFED0015),
       ),
     );
 

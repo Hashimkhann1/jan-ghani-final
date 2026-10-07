@@ -122,7 +122,7 @@ class _AccountantBranchInventoryReportScreenState
                 _FilterChip(
                   label: 'Diet Product',
                   selected: state.deadStockOnly,
-                  color: const Color(0xFF8B5CF6),
+                  color: const Color(0xFFC00012),
                   onTap: notifier.toggleDeadStockOnly,
                 ),
               ],
@@ -396,7 +396,7 @@ class _DesktopLayout extends StatelessWidget {
                 label: 'Diet Product',
                 value: '${state.summary.deadStock}',
                 icon: 'ic_sale_price_trend',
-                color: const Color(0xFF8B5CF6),
+                color: const Color(0xFFC00012),
                 selected: state.deadStockOnly,
                 onTap: notifier.toggleDeadStockOnly,
               ),
@@ -601,7 +601,7 @@ class _TableRow extends StatelessWidget {
             child: Row(
               children: [
                 if (item.isDeadStock) ...[
-                  const AppIcon('ic_sale_price_trend', size: 13, color: Color(0xFF8B5CF6)),
+                  const AppIcon('ic_sale_price_trend', size: 13, color: Color(0xFFC00012)),
                   const SizedBox(width: 4),
                 ],
                 Expanded(
@@ -638,7 +638,7 @@ class _TableRow extends StatelessWidget {
             flex: 3,
             child: Text(fmtAmt(item.purchasePrice),
                 textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6))),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFC00012))),
           ),
           Expanded(
             flex: 3,
@@ -792,7 +792,7 @@ class _MobileLayout extends StatelessWidget {
                       label: 'Diet Product',
                       value: '${state.summary.deadStock}',
                       icon: 'ic_sale_price_trend',
-                      color: const Color(0xFF8B5CF6),
+                      color: const Color(0xFFC00012),
                       selected: state.deadStockOnly,
                       onTap: notifier.toggleDeadStockOnly,
                     ),
@@ -934,7 +934,7 @@ class _ValuesRow extends StatelessWidget {
     final String qtyLabel;
 
     if (deadStockOnly) {
-      accentColor = const Color(0xFF8B5CF6);
+      accentColor = const Color(0xFFC00012);
       qtyLabel = 'Diet Product Qty';
     } else {
       switch (stockFilter) {
@@ -959,7 +959,7 @@ class _ValuesRow extends StatelessWidget {
     return Row(children: [
       Expanded(child: _ValueCard(label: qtyLabel, value: fmtQty(qty), icon: 'ic_total_quantity', color: accentColor)),
       const SizedBox(width: 8),
-      Expanded(child: _ValueCard(label: 'Purchase Value', value: fmtAmt(purchaseVal), icon: 'ic_purchase_price', color: const Color(0xFF8B5CF6))),
+      Expanded(child: _ValueCard(label: 'Purchase Value', value: fmtAmt(purchaseVal), icon: 'ic_purchase_price', color: const Color(0xFFC00012))),
       const SizedBox(width: 8),
       Expanded(child: _ValueCard(label: 'Sale Value', value: fmtAmt(saleVal), icon: 'ic_sale_price_trend', color: AppColor.primary)),
     ]);
@@ -1060,7 +1060,7 @@ class _InventoryCard extends StatelessWidget {
                       Row(
                         children: [
                           if (item.isDeadStock) ...[
-                            const AppIcon('ic_sale_price_trend', size: 13, color: Color(0xFF8B5CF6)),
+                            const AppIcon('ic_sale_price_trend', size: 13, color: Color(0xFFC00012)),
                             const SizedBox(width: 4),
                           ],
                           Expanded(
@@ -1137,9 +1137,9 @@ class _InventoryCard extends StatelessWidget {
                 if (item.isDeadStock)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: const Color(0xFF8B5CF6).withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+                    decoration: BoxDecoration(color: const Color(0xFFC00012).withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
                     child: const Text('No sale today',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF8B5CF6))),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFC00012))),
                   ),
                 const Spacer(),
                 if (item.minStock > 0 || item.maxStock > 0)
@@ -1156,7 +1156,7 @@ class _InventoryCard extends StatelessWidget {
             decoration: BoxDecoration(color: const Color(0xFFF5F6FA), borderRadius: BorderRadius.circular(10)),
             child: IntrinsicHeight(
               child: Row(children: [
-                Expanded(child: _PriceTile(icon: 'ic_purchase_price', label: 'Purchase', value: fmtAmt(item.purchasePrice), color: const Color(0xFF8B5CF6))),
+                Expanded(child: _PriceTile(icon: 'ic_purchase_price', label: 'Purchase', value: fmtAmt(item.purchasePrice), color: const Color(0xFFC00012))),
                 VerticalDivider(width: 1, thickness: 1, color: Colors.grey.shade200),
                 Expanded(child: _PriceTile(icon: 'ic_sale_price_trend', label: 'Sale', value: fmtAmt(item.salePrice), color: AppColor.primary)),
                 VerticalDivider(width: 1, thickness: 1, color: Colors.grey.shade200),

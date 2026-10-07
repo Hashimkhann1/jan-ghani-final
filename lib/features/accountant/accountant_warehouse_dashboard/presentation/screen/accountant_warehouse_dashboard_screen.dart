@@ -321,7 +321,7 @@ class _CashCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF6C63FF), Color(0xFF9D97FF)],
+          colors: [Color(0xFFED0015), Color(0xFFFF5C6C)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

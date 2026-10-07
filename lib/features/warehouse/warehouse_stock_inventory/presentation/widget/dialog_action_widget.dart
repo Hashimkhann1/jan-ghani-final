@@ -44,7 +44,7 @@ class DialogActions extends StatelessWidget {
           child: FilledButton(
             onPressed: isSaving ? null : onSave,
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFFED0015),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),

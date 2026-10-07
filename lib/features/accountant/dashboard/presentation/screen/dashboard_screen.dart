@@ -331,7 +331,7 @@ class _Sidebar extends ConsumerWidget {
   };
 
   Color _roleColor(String role) => switch (role) {
-    'owner'             => const Color(0xFF6C63FF),
+    'owner'             => const Color(0xFFED0015),
     'manager'           => const Color(0xFF1D9E75),
     'accountant'        => const Color(0xFF378ADD),
     'warehouse_manager' => const Color(0xFFBA7517),
@@ -1094,7 +1094,7 @@ class _CashCard extends ConsumerWidget {
           width: double.infinity,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF5B54E8), AppColor.primary, Color(0xFF8A83FF)],
+              colors: [Color(0xFFED0015), AppColor.primary, Color(0xFF8A83FF)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

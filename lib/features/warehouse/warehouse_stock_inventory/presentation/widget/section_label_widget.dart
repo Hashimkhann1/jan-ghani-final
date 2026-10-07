@@ -10,14 +10,14 @@ class SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF6366F1)),
+        Icon(icon, size: 16, color: const Color(0xFFED0015)),
         const SizedBox(width: 8),
         Text(
           label,
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF6366F1),
+            color: Color(0xFFED0015),
             letterSpacing: 0.3,
           ),
         ),

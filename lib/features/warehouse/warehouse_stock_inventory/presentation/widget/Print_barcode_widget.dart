@@ -315,7 +315,7 @@ class _PrintBarcodeWidgetState extends State<PrintBarcodeWidget> {
                           fontWeight: FontWeight.w700, fontSize: 14),
                     ),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
+                      backgroundColor: const Color(0xFFED0015),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
@@ -342,11 +342,11 @@ class _Header extends StatelessWidget {
       Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFFEEF2FF),
+          color: const Color(0xFFFFEEEF),
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Icon(Icons.barcode_reader,
-            color: Color(0xFF6366F1), size: 22),
+            color: Color(0xFFED0015), size: 22),
       ),
       const SizedBox(width: 12),
       Expanded(
@@ -392,7 +392,7 @@ class _CopiesRow extends StatelessWidget {
       ),
       child: Row(children: [
         const Icon(Icons.content_copy_rounded,
-            size: 18, color: Color(0xFF6366F1)),
+            size: 18, color: Color(0xFFED0015)),
         const SizedBox(width: 10),
         const Expanded(
           child: Text('Har barcode ki copies',
@@ -426,7 +426,7 @@ class _CopiesRow extends StatelessWidget {
                   borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1))),
+                  borderSide: const BorderSide(color: Color(0xFFED0015))),
               filled: true,
               fillColor: Colors.white,
             ),
@@ -472,10 +472,10 @@ class _CountBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: const Color(0xFFEEF2FF),
+          color: const Color(0xFFFFEEEF),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Icon(icon, size: 16, color: const Color(0xFF6366F1)),
+        child: Icon(icon, size: 16, color: const Color(0xFFED0015)),
       ),
     );
   }
@@ -511,14 +511,14 @@ class _BarcodeRow extends StatelessWidget {
             height: 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF2FF),
+              color: const Color(0xFFFFEEEF),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text('${index + 1}',
                 style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF6366F1))),
+                    color: Color(0xFFED0015))),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -583,12 +583,12 @@ class _BarcodeRow extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
+                  color: const Color(0xFFFFEEEF),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE0E7FF)),
+                  border: Border.all(color: const Color(0xFFFFD6DA)),
                 ),
                 child: const Icon(Icons.print_rounded,
-                    size: 20, color: Color(0xFF6366F1)),
+                    size: 20, color: Color(0xFFED0015)),
               ),
             ),
           ),
@@ -910,7 +910,7 @@ class _BarcodeRow extends StatelessWidget {
 //                           fontWeight: FontWeight.w700, fontSize: 14),
 //                     ),
 //                     style: FilledButton.styleFrom(
-//                       backgroundColor: const Color(0xFF6366F1),
+//                       backgroundColor: const Color(0xFFED0015),
 //                       padding: const EdgeInsets.symmetric(vertical: 14),
 //                       shape: RoundedRectangleBorder(
 //                           borderRadius: BorderRadius.circular(12)),
@@ -937,11 +937,11 @@ class _BarcodeRow extends StatelessWidget {
 //       Container(
 //         padding: const EdgeInsets.all(10),
 //         decoration: BoxDecoration(
-//           color: const Color(0xFFEEF2FF),
+//           color: const Color(0xFFFFEEEF),
 //           borderRadius: BorderRadius.circular(12),
 //         ),
 //         child: const Icon(Icons.barcode_reader,
-//             color: Color(0xFF6366F1), size: 22),
+//             color: Color(0xFFED0015), size: 22),
 //       ),
 //       const SizedBox(width: 12),
 //       Expanded(
@@ -987,7 +987,7 @@ class _BarcodeRow extends StatelessWidget {
 //       ),
 //       child: Row(children: [
 //         const Icon(Icons.content_copy_rounded,
-//             size: 18, color: Color(0xFF6366F1)),
+//             size: 18, color: Color(0xFFED0015)),
 //         const SizedBox(width: 10),
 //         const Expanded(
 //           child: Text('Har barcode ki copies',
@@ -1021,7 +1021,7 @@ class _BarcodeRow extends StatelessWidget {
 //                   borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
 //               focusedBorder: OutlineInputBorder(
 //                   borderRadius: BorderRadius.circular(8),
-//                   borderSide: const BorderSide(color: Color(0xFF6366F1))),
+//                   borderSide: const BorderSide(color: Color(0xFFED0015))),
 //               filled: true,
 //               fillColor: Colors.white,
 //             ),
@@ -1067,10 +1067,10 @@ class _BarcodeRow extends StatelessWidget {
 //       child: Container(
 //         padding: const EdgeInsets.all(4),
 //         decoration: BoxDecoration(
-//           color: const Color(0xFFEEF2FF),
+//           color: const Color(0xFFFFEEEF),
 //           borderRadius: BorderRadius.circular(6),
 //         ),
-//         child: Icon(icon, size: 16, color: const Color(0xFF6366F1)),
+//         child: Icon(icon, size: 16, color: const Color(0xFFED0015)),
 //       ),
 //     );
 //   }
@@ -1106,14 +1106,14 @@ class _BarcodeRow extends StatelessWidget {
 //             height: 24,
 //             alignment: Alignment.center,
 //             decoration: BoxDecoration(
-//               color: const Color(0xFFEEF2FF),
+//               color: const Color(0xFFFFEEEF),
 //               borderRadius: BorderRadius.circular(6),
 //             ),
 //             child: Text('${index + 1}',
 //                 style: const TextStyle(
 //                     fontSize: 11,
 //                     fontWeight: FontWeight.w700,
-//                     color: Color(0xFF6366F1))),
+//                     color: Color(0xFFED0015))),
 //           ),
 //           const SizedBox(width: 12),
 //           Expanded(
@@ -1178,12 +1178,12 @@ class _BarcodeRow extends StatelessWidget {
 //               child: Container(
 //                 padding: const EdgeInsets.all(10),
 //                 decoration: BoxDecoration(
-//                   color: const Color(0xFFEEF2FF),
+//                   color: const Color(0xFFFFEEEF),
 //                   borderRadius: BorderRadius.circular(10),
-//                   border: Border.all(color: const Color(0xFFE0E7FF)),
+//                   border: Border.all(color: const Color(0xFFFFD6DA)),
 //                 ),
 //                 child: const Icon(Icons.print_rounded,
-//                     size: 20, color: Color(0xFF6366F1)),
+//                     size: 20, color: Color(0xFFED0015)),
 //               ),
 //             ),
 //           ),

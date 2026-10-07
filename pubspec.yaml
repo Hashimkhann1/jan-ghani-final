@@ -53,22 +53,22 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/jan_ghani.png"
+  adaptive_icon_foreground: "assets/images/web-logo.jpg"
   ios: true
   remove_alpha_ios: true
   background_color_ios: "#FFFFFF"
-  image_path: "assets/images/jan_ghani.png"
+  image_path: "assets/images/web-logo.jpg"
   min_sdk_android: 23
   windows:
     generate: true
-    image_path: "assets/images/jan_ghani.png"
+    image_path: "assets/images/web-logo.jpg"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/images/jan_ghani.png"
+    image_path: "assets/images/web-logo.jpg"
   web:
     generate: true
-    image_path: "assets/images/jan_ghani.png"
+    image_path: "assets/images/web-logo.jpg"
 
 flutter:
   uses-material-design: true

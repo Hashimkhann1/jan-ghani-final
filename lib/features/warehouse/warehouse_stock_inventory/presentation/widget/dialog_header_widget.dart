@@ -19,12 +19,12 @@ class DialogHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withOpacity(0.1),
+              color: const Color(0xFFED0015).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               isEditMode ? Icons.edit_rounded : Icons.add_rounded,
-              color: const Color(0xFF6366F1),
+              color: const Color(0xFFED0015),
               size: 22,
             ),
           ),

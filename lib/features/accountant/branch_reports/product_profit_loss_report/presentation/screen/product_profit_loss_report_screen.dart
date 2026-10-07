@@ -15,7 +15,7 @@ import '../provider/product_profit_loss_provider.dart';
 const _kBg      = Color(0xFFF5F6FA);
 const _kInk     = Color(0xFF1A1D23);
 const _kBorder  = Color(0xFFEEEEEE);
-const _kPurple  = Color(0xFF8B5CF6);
+const _kPurple  = Color(0xFFC00012);
 const _kBlue    = Color(0xFF0EA5E9);
 
 final _amtFmt  = NumberFormat('#,##,###.##', 'en_IN');

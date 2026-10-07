@@ -55,11 +55,11 @@ class _ProductAuditDialogState extends State<ProductAuditDialog> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6366F1).withOpacity(0.1),
+                      color: const Color(0xFFED0015).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.history_rounded,
-                        color: Color(0xFF6366F1), size: 20),
+                        color: Color(0xFFED0015), size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -159,7 +159,7 @@ class _AuditLogItemState extends State<_AuditLogItem> {
   Color get _typeColor {
     switch (widget.log.changeType) {
       case 'create': return const Color(0xFF10B981);
-      case 'update': return const Color(0xFF6366F1);
+      case 'update': return const Color(0xFFED0015);
       case 'delete': return const Color(0xFFEF4444);
       default:       return const Color(0xFF6C7280);
     }
@@ -268,14 +268,14 @@ class _AuditLogItemState extends State<_AuditLogItem> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEF2FF),
+                        color: const Color(0xFFFFEEEF),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text('${changes.length} changes',
                           style: const TextStyle(
                               fontSize:   11,
                               fontWeight: FontWeight.w600,
-                              color:      Color(0xFF6366F1))),
+                              color:      Color(0xFFED0015))),
                     ),
                     const SizedBox(width: 8),
                     Icon(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// App brand logo — `assets/images/jan_ghani.png` ek rounded tile ke andar.
+/// App brand logo — `assets/images/web_logo.png` ek rounded tile ke andar.
 ///
-/// Logo ka background transparent hai, isliye tile white rakhi gayi hai
+/// Logo ka background white hai, isliye tile bhi white rakhi gayi hai
 /// (halka border ke saath) taake har jagah ek "app icon" ki tarah dikhe.
 /// Sidebar, login screen waghera har jagah yahi widget use hota hai.
 class AppLogo extends StatelessWidget {
@@ -24,7 +24,7 @@ class AppLogo extends StatelessWidget {
     final image = Padding(
       padding: EdgeInsets.all(size * 0.10),
       child: Image.asset(
-        'assets/images/jan_ghani.png',
+        'assets/images/web_logo.png',
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
       ),

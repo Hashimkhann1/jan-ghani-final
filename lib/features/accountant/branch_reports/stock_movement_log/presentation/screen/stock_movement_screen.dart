@@ -277,7 +277,7 @@ Color _typeColor(StockMovementType t) {
     case StockMovementType.saleReturn:      return const Color(0xFF16A34A);
     case StockMovementType.purchase:        return const Color(0xFF0891B2);
     case StockMovementType.damage:          return AppColor.error;
-    case StockMovementType.adjustment:      return const Color(0xFF7C3AED);
+    case StockMovementType.adjustment:      return const Color(0xFFED0015);
     case StockMovementType.countCorrection: return const Color(0xFFD97706);
   }
 }

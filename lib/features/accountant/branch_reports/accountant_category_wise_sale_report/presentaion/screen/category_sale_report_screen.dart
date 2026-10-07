@@ -262,7 +262,7 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
                         label: 'Qty',
                         value: _fmtQty(summary.totalQuantity),
                         icon:  'ic_total_quantity',
-                        color: const Color(0xFF6366F1),
+                        color: const Color(0xFFED0015),
                       ),
                     ]),
                   ),
@@ -459,7 +459,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                             ),
                             _Chip(
                               label: 'Qty: ${widget.fmtQty(widget.report.totalQuantity)}',
-                              color: const Color(0xFF6366F1),
+                              color: const Color(0xFFED0015),
                             ),
                             _Chip(
                               label: 'Profit: ${profitPct.toStringAsFixed(1)}%',

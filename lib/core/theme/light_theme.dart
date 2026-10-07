@@ -7,10 +7,10 @@ class LightTheme {
   // ─────────────────────────────────────────
   // COLORS
   // ─────────────────────────────────────────
-  static const Color _primary       = Color(0xFF6C63FF);
-  static const Color _primaryLight  = Color(0xFF9D97FF);
-  static const Color _primaryDark   = Color(0xFF3D35CC);
-  static const Color _secondary     = Color(0xFF03DAC6);
+  static const Color _primary       = Color(0xFFED0015);
+  static const Color _primaryLight  = Color(0xFFFF5C6C);
+  static const Color _primaryDark   = Color(0xFFC00012);
+  static const Color _secondary     = Color(0xFF000000);
   static const Color _background    = Color(0xFFF5F5F5);
   static const Color _surface       = Color(0xFFFFFFFF);
   static const Color _error         = Color(0xFFE53935);

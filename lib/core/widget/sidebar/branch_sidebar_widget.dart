@@ -31,7 +31,7 @@ import '../../../features/branch/store_user/presentation/screen/user_screen.dart
 const _kGrey     = Color(0xFFD3D3D3);
 const _kBg       = Color(0xFFF8F8F8);
 const _kDark     = Color(0xFF333333);
-const _kPrimary  = Color(0xFF6366F1);
+const _kPrimary  = Color(0xFFED0015);
 const _kMid      = Color(0xFF64748B);
 const _kSection  = Color(0xFF94A3B8);
 

@@ -188,7 +188,7 @@ class _SendCashDialogState extends ConsumerState<SendCashDialog> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF6C63FF), Color(0xFF9D97FF)],
+                  colors: [Color(0xFFED0015), Color(0xFFFF5C6C)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),

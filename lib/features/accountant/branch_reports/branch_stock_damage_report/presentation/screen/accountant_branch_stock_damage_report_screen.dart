@@ -439,7 +439,7 @@ class _DesktopLayout extends StatelessWidget {
                     label: 'Purchase Loss',
                     value: fmtAmt(state.summary.totalPurchaseLoss),
                     icon: 'ic_purchase_price',
-                    color: const Color(0xFF8B5CF6),
+                    color: const Color(0xFFC00012),
                   ),
                   const SizedBox(width: 10),
                   _DeskSummaryCard(
@@ -635,7 +635,7 @@ class _TableRow extends StatelessWidget {
             flex: 3,
             child: Text(fmtAmt(item.purchasePrice),
                 textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6))),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFC00012))),
           ),
           Expanded(
             flex: 3,
@@ -738,7 +738,7 @@ class _MobileLayout extends StatelessWidget {
                   label: 'Purchase Loss',
                   value: fmtAmt(state.summary.totalPurchaseLoss),
                   icon: 'ic_purchase_price',
-                  color: const Color(0xFF8B5CF6),
+                  color: const Color(0xFFC00012),
                 ),
               ),
               const SizedBox(width: 8),
@@ -950,7 +950,7 @@ class _DamageCard extends StatelessWidget {
             decoration: BoxDecoration(color: const Color(0xFFF5F6FA), borderRadius: BorderRadius.circular(10)),
             child: IntrinsicHeight(
               child: Row(children: [
-                Expanded(child: _PriceTile(icon: 'ic_purchase_price', label: 'Purchase Loss', value: fmtAmt(item.purchaseLoss), color: const Color(0xFF8B5CF6))),
+                Expanded(child: _PriceTile(icon: 'ic_purchase_price', label: 'Purchase Loss', value: fmtAmt(item.purchaseLoss), color: const Color(0xFFC00012))),
                 VerticalDivider(width: 1, thickness: 1, color: Colors.grey.shade200),
                 Expanded(child: _PriceTile(icon: 'ic_sale_price_trend', label: 'Sale Loss', value: fmtAmt(item.saleLoss), color: AppColor.error)),
               ]),

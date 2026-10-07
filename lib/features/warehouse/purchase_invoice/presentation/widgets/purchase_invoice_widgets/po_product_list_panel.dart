@@ -231,7 +231,7 @@ class _ProductListItemState extends State<_ProductListItem>
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isInCart
-                  ? const Color(0xFF6366F1)  // purple border
+                  ? const Color(0xFFED0015)  // purple border
                   : AppColor.grey200,
               width: isInCart ? 1.5 : 1.0,
             ),

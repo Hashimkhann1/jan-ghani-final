@@ -214,13 +214,13 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                             mainAxisSize: MainAxisSize.min,
                             children: const [
                               Icon(Icons.add_circle_outline_rounded,
-                                  size: 13, color: Color(0xFF6366F1)),
+                                  size: 13, color: Color(0xFFED0015)),
                               SizedBox(width: 3),
                               Text('New Supplier',
                                   style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF6366F1))),
+                                      color: Color(0xFFED0015))),
                             ],
                           ),
                         ),

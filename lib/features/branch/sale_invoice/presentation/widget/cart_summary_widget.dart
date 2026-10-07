@@ -103,7 +103,7 @@ class CartSummaryWidget extends ConsumerWidget {
             iconAsset: 'ic_print',
             label:     'Print',
             enabled:   hasItems,
-            color:     const Color(0xFF6366F1),
+            color:     const Color(0xFFED0015),
             filled:    false,
             onTap:     () => showPaymentDialog(context, ref),        // ← payment dialog
           ),

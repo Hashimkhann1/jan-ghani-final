@@ -187,9 +187,9 @@ class _PnlSplashScreenState extends State<PnlSplashScreen> with TickerProviderSt
   late final Animation<double>   _progressAnim;
 
   // ── Theme palette (aligned with app's LightTheme primary purple) ──
-  static const _accent      = Color(0xFF6C63FF); // LightTheme primary
-  static const _accentDark  = Color(0xFF3D35CC); // LightTheme primaryDark
-  static const _accentSoft  = Color(0xFF9D97FF); // LightTheme primaryLight
+  static const _accent      = Color(0xFFED0015); // LightTheme primary
+  static const _accentDark  = Color(0xFF8E000D); // LightTheme primaryDark
+  static const _accentSoft  = Color(0xFFFF5C6C); // LightTheme primaryLight
   static const _greenText   = Color(0xFF27500A);
   static const _bg          = Color(0xFFF5F5F5);
   static const _card        = Color(0xFFFFFFFF);

@@ -100,7 +100,7 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       iconAsset: 'sidebar_icons/branch_stock',
       label:    'Inventory Report',
       subtitle: 'Stock and items list',
-      color:    Color(0xFF8B5CF6),
+      color:    Color(0xFFC00012),
     ),
     _ReportItem(
       slug:     'cash-counter',
@@ -156,14 +156,14 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       iconAsset: 'sidebar_icons/stock_damage',
       label:    'Inventory Stock Damage Report',
       subtitle: 'Show All damage Stock',
-      color:    Color(0xFF8B5CF6),
+      color:    Color(0xFFC00012),
     ),
     _ReportItem(
       slug:     'pareto',
       iconAsset: 'ic_top_customers',
       label:    'Pareto Principle Report',
       subtitle: 'Top 20% products, customers & balance',
-      color:    Color(0xFF8B5CF6),
+      color:    Color(0xFFC00012),
     ),
     _ReportItem(
       slug:     'cash-difference',
@@ -177,7 +177,7 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       iconAsset: 'sidebar_icons/customer_account',
       label:    'Customer Logs',
       subtitle: 'Customer balance change history',
-      color:    Color(0xFF7C3AED),
+      color:    Color(0xFFED0015),
     ),
     _ReportItem(
       slug:     'stock-logs',
