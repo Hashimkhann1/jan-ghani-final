@@ -35,7 +35,7 @@ class InstallmentSection extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFF4F3FF), WebsiteColors.page],
+          colors: [WebsiteColors.tint, WebsiteColors.page],
         ),
       ),
       child: Stack(
@@ -45,7 +45,7 @@ class InstallmentSection extends StatelessWidget {
             top: 40,
             child: Floating(
               amplitude: 14,
-              child: DecorBlob(size: 260, color: Color(0x1A6C63FF)),
+              child: DecorBlob(size: 260, color: Color(0x1AED0015)),
             ),
           ),
           const Positioned(
@@ -54,7 +54,7 @@ class InstallmentSection extends StatelessWidget {
             child: Floating(
               amplitude: 10,
               phase: 0.5,
-              child: DecorBlob(size: 200, color: Color(0x1422C55E)),
+              child: DecorBlob(size: 200, color: Color(0x10000000)),
             ),
           ),
           Contained(
@@ -117,12 +117,12 @@ class _MottoPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)],
+          colors: [WebsiteColors.red, WebsiteColors.redDark],
         ),
         borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6C63FF).withValues(alpha: 0.25),
+            color: WebsiteColors.red.withValues(alpha: 0.25),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -187,11 +187,11 @@ class _StepCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: hovered ? const Color(0xFFCFCBFF) : WebsiteColors.line,
+            color: hovered ? const Color(0xFFFFB8BD) : WebsiteColors.line,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6C63FF)
+              color: WebsiteColors.red
                   .withValues(alpha: hovered ? 0.14 : 0.04),
               blurRadius: hovered ? 30 : 14,
               offset: Offset(0, hovered ? 16 : 6),
@@ -213,7 +213,7 @@ class _StepCard extends StatelessWidget {
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)],
+                        colors: [WebsiteColors.red, WebsiteColors.redDark],
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -228,8 +228,8 @@ class _StepCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1,
                     color: hovered
-                        ? const Color(0xFFCFCBFF)
-                        : const Color(0xFFE9E8F5),
+                        ? const Color(0xFFFFB8BD)
+                        : const Color(0xFFEDEDED),
                   ),
                 ),
               ],
@@ -272,7 +272,7 @@ class _InstallmentInfo extends StatelessWidget {
           Text(
             t.howItWorks,
             style: TextStyle(
-              color: const Color(0xFFB7B2FF),
+              color: const Color(0xFFFF8A93),
               fontSize: 12,
               letterSpacing: tracking(context, 1.6),
               fontWeight: FontWeight.w700,
@@ -300,7 +300,7 @@ class _InstallmentInfo extends StatelessWidget {
                     margin: const EdgeInsets.only(top: 1),
                     padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF22C55E),
+                      color: WebsiteColors.red,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.check_rounded,
@@ -502,7 +502,7 @@ class _InstallmentCalculatorState extends State<_InstallmentCalculator> {
         border: Border.all(color: WebsiteColors.line),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6C63FF).withValues(alpha: 0.10),
+            color: WebsiteColors.red.withValues(alpha: 0.10),
             blurRadius: 40,
             offset: const Offset(0, 18),
           ),
@@ -513,7 +513,7 @@ class _InstallmentCalculatorState extends State<_InstallmentCalculator> {
         children: [
           Row(
             children: [
-              const Icon(Icons.calculate_rounded, color: Color(0xFF6C63FF)),
+              const Icon(Icons.calculate_rounded, color: WebsiteColors.red),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(t.calculator,
@@ -527,7 +527,7 @@ class _InstallmentCalculatorState extends State<_InstallmentCalculator> {
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(t.newCalculation),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF6C63FF),
+                  foregroundColor: WebsiteColors.red,
                   textStyle: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -624,7 +624,7 @@ class _InstallmentCalculatorState extends State<_InstallmentCalculator> {
           Row(
             children: [
               const Icon(Icons.lock_clock_rounded,
-                  size: 16, color: Color(0xFF22C55E)),
+                  size: 16, color: WebsiteColors.red),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(t.priceFixed,
@@ -694,11 +694,11 @@ class _MoneyField extends StatelessWidget {
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF6C63FF))),
+                  color: WebsiteColors.red)),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled: true,
-        fillColor: const Color(0xFFF7F7FB),
+        fillColor: WebsiteColors.page,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         enabledBorder: OutlineInputBorder(
@@ -708,7 +708,7 @@ class _MoneyField extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-              color: error ? idle : const Color(0xFF6C63FF), width: 1.8),
+              color: error ? idle : WebsiteColors.red, width: 1.8),
         ),
       ),
     );
@@ -737,8 +737,8 @@ class _PctBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: value,
               minHeight: 8,
-              backgroundColor: const Color(0xFFEDECF7),
-              color: const Color(0xFF6C63FF),
+              backgroundColor: const Color(0xFFEEEEEE),
+              color: WebsiteColors.red,
             ),
           ),
         ),
@@ -796,10 +796,10 @@ class _PlanTile extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFF4F3FF) : Colors.white,
+            color: selected ? WebsiteColors.tint : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: selected ? const Color(0xFF6C63FF) : WebsiteColors.line,
+              color: selected ? WebsiteColors.red : WebsiteColors.line,
               width: selected ? 2 : 1.2,
             ),
           ),
@@ -810,7 +810,7 @@ class _PlanTile extends StatelessWidget {
                 height: 58,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                      colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)]),
+                      colors: [WebsiteColors.red, WebsiteColors.redDark]),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
@@ -852,7 +852,7 @@ class _PlanTile extends StatelessWidget {
                           style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF6C63FF))),
+                              color: WebsiteColors.red)),
                   ],
                 ),
               ),
@@ -862,7 +862,7 @@ class _PlanTile extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE63946),
+                    color: WebsiteColors.red,
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Text(tag!,
@@ -948,12 +948,12 @@ class _MonthlyCard extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF6C63FF), Color(0xFF3D35CC)],
+            colors: [WebsiteColors.red, WebsiteColors.redDeep],
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6C63FF).withValues(alpha: 0.35),
+              color: WebsiteColors.red.withValues(alpha: 0.35),
               blurRadius: 28,
               offset: const Offset(0, 14),
             ),

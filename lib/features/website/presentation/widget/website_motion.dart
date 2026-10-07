@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'website_sections.dart';
+
 // Website ke halke animations — koi extra package nahi.
 
 final _rs = NumberFormat('#,##0', 'en_US');
@@ -125,14 +127,14 @@ class _WebButtonState extends State<WebButton> {
 
   @override
   Widget build(BuildContext context) {
-    const primary = Color(0xFF6C63FF);
+    const primary = WebsiteColors.red;
     final (Color bg, Color fg, Color? border, Color glow) =
         switch (widget.style) {
       WebButtonStyle.primary => (primary, Colors.white, null, primary),
       WebButtonStyle.outline => (
           Colors.white,
-          const Color(0xFF12112B),
-          const Color(0xFFE2E2EC),
+          WebsiteColors.ink,
+          const Color(0xFFE2E2E2),
           Colors.black
         ),
       WebButtonStyle.light => (

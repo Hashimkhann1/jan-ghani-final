@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
-import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/widget/accountant_login_form.dart';
+
+import 'website_sections.dart';
 
 /// Website ka login popup — accountant / owner / customer sab isi se login
 /// karte hain. Login hone par WebsiteScreen popup band karke account
@@ -33,13 +33,13 @@ class _WebsiteLoginDialog extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const AppLogo(size: 48, radius: 12),
+                  const WebsiteLogo(height: 56),
                   const Spacer(),
                   IconButton(
                     tooltip: 'Close',
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded,
-                        color: AppColor.textMuted),
+                        color: WebsiteColors.muted),
                   ),
                 ],
               ),

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
-import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/website_content.dart';
@@ -24,12 +22,34 @@ String _sectionLabel(WebsiteText t, WebsiteSection s) => switch (s) {
 
 class WebsiteColors {
   WebsiteColors._();
-  static const page = Color(0xFFF7F7FB);
-  static const ink = Color(0xFF12112B);
-  static const muted = Color(0xFF5F6175);
-  static const line = Color(0xFFE8E8F0);
-  static const tint = Color(0xFFEFEEFF);
-  static const darkBg = Color(0xFF14123A);
+  // Jan Ghani brand colors.
+  static const red = Color(0xFFED0015);
+  static const black = Color(0xFF000000);
+  static const white = Color(0xFFFFFFFF);
+
+  static const redDark = Color(0xFFC00012);
+  static const redDeep = Color(0xFF8E000D);
+  static const page = Color(0xFFF7F7F7);
+  static const ink = black;
+  static const muted = Color(0xFF5E5E5E);
+  static const line = Color(0xFFE6E6E6);
+  static const tint = Color(0xFFFFEEEF);
+  static const darkBg = black;
+}
+
+/// Website ka brand logo (`assets/images/web_logo.png`) — naam bhi isi mein
+/// hai, isliye saath alag text ki zarurat nahi.
+class WebsiteLogo extends StatelessWidget {
+  final double height;
+  const WebsiteLogo({super.key, this.height = 44});
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+        'assets/images/web_logo.png',
+        height: height,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+      );
 }
 
 const double _maxContent = 1180;
@@ -114,7 +134,7 @@ class SectionHeader extends StatelessWidget {
               fontSize: 11.5,
               fontWeight: FontWeight.w800,
               letterSpacing: tracking(context, 1.6),
-              color: light ? const Color(0xFFB7B2FF) : AppColor.primary,
+              color: light ? const Color(0xFFFF8A93) : WebsiteColors.red,
             ),
           ),
         ),
@@ -200,17 +220,7 @@ class WebsiteNavBar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const AppLogo(size: 42, radius: 10),
-                    const SizedBox(width: 10),
-                    Text(
-                      t.brand,
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: tracking(context, -0.3),
-                        color: WebsiteColors.ink,
-                      ),
-                    ),
+                    WebsiteLogo(height: mobile ? 44 : 52),
                   ],
                 ),
               ),
@@ -290,7 +300,7 @@ class WebsiteLanguageButton extends StatelessWidget {
                   width: 22,
                   child: l == locale.lang
                       ? const Icon(Icons.check_rounded,
-                          size: 18, color: AppColor.primary)
+                          size: 18, color: WebsiteColors.red)
                       : null,
                 ),
                 const SizedBox(width: 8),
@@ -315,7 +325,7 @@ class WebsiteLanguageButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.translate_rounded,
-                size: 18, color: AppColor.primary),
+                size: 18, color: WebsiteColors.red),
             const SizedBox(width: 6),
             Text(locale.lang.label,
                 style: const TextStyle(
@@ -361,7 +371,7 @@ class _NavLinkState extends State<_NavLink> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: _hovered ? AppColor.primary : WebsiteColors.muted,
+                  color: _hovered ? WebsiteColors.red : WebsiteColors.muted,
                 ),
                 child: Text(widget.label),
               ),
@@ -371,7 +381,7 @@ class _NavLinkState extends State<_NavLink> {
                 height: 2,
                 width: _hovered ? 18 : 0,
                 decoration: BoxDecoration(
-                  color: AppColor.primary,
+                  color: WebsiteColors.red,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -420,13 +430,7 @@ class WebsiteDrawer extends StatelessWidget {
           children: [
             Row(
               children: [
-                const AppLogo(size: 40, radius: 10),
-                const SizedBox(width: 10),
-                Text(t.brand,
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: WebsiteColors.ink)),
+                const WebsiteLogo(height: 56),
               ],
             ),
             const SizedBox(height: 20),
@@ -436,7 +440,7 @@ class WebsiteDrawer extends StatelessWidget {
                 child: ListTile(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  leading: Icon(_icons[s], color: AppColor.primary),
+                  leading: Icon(_icons[s], color: WebsiteColors.red),
                   title: Text(_sectionLabel(t, s),
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
@@ -507,7 +511,7 @@ class HeroSection extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.flag_rounded,
-                    size: 15, color: AppColor.primary),
+                    size: 15, color: WebsiteColors.red),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
@@ -533,7 +537,7 @@ class HeroSection extends StatelessWidget {
           child: ShaderMask(
             blendMode: BlendMode.srcIn,
             shaderCallback: (r) => const LinearGradient(
-              colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6), Color(0xFF22A06B)],
+              colors: [WebsiteColors.red, WebsiteColors.redDark, WebsiteColors.black],
             ).createShader(r),
             child: Text(t.heroTitle2, textAlign: align, style: titleStyle),
           ),
@@ -601,7 +605,7 @@ class HeroSection extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF1F0FF), Color(0xFFF8F8FC), Color(0xFFEAF7F1)],
+          colors: [WebsiteColors.tint, Color(0xFFF8F8F8), Color(0xFFF4F4F4)],
         ),
       ),
       child: Stack(
@@ -612,7 +616,7 @@ class HeroSection extends StatelessWidget {
             child: Floating(
               amplitude: 16,
               period: Duration(seconds: 8),
-              child: DecorBlob(size: 280, color: Color(0x146C63FF)),
+              child: DecorBlob(size: 280, color: Color(0x14ED0015)),
             ),
           ),
           const Positioned(
@@ -621,7 +625,7 @@ class HeroSection extends StatelessWidget {
             child: Floating(
               amplitude: 12,
               phase: 0.4,
-              child: DecorBlob(size: 180, color: Color(0x1A22C55E)),
+              child: DecorBlob(size: 180, color: Color(0x12000000)),
             ),
           ),
           Contained(
@@ -667,7 +671,7 @@ class _TrustPoint extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: AppColor.cashIn),
+          Icon(icon, size: 18, color: WebsiteColors.red),
           const SizedBox(width: 6),
           Text(label,
               style: const TextStyle(
@@ -761,11 +765,11 @@ class _InfoCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: hovered ? const Color(0xFFCFCBFF) : WebsiteColors.line,
+            color: hovered ? const Color(0xFFFFB8BD) : WebsiteColors.line,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColor.primary.withValues(alpha: hovered ? 0.13 : 0.03),
+              color: WebsiteColors.red.withValues(alpha: hovered ? 0.13 : 0.03),
               blurRadius: hovered ? 30 : 12,
               offset: Offset(0, hovered ? 16 : 4),
             ),
@@ -784,7 +788,7 @@ class _InfoCard extends StatelessWidget {
                     ? const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)])
+                        colors: [WebsiteColors.red, WebsiteColors.redDark])
                     : null,
                 color: hovered ? null : WebsiteColors.tint,
                 borderRadius: BorderRadius.circular(16),
@@ -793,7 +797,7 @@ class _InfoCard extends StatelessWidget {
                 scale: hovered ? 1.12 : 1,
                 duration: const Duration(milliseconds: 240),
                 child: Icon(item.icon,
-                    color: hovered ? Colors.white : AppColor.primary, size: 27),
+                    color: hovered ? Colors.white : WebsiteColors.red, size: 27),
               ),
             ),
             const SizedBox(height: 18),
@@ -994,11 +998,11 @@ class _BranchCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: hovered ? const Color(0xFFCFCBFF) : WebsiteColors.line,
+            color: hovered ? const Color(0xFFFFB8BD) : WebsiteColors.line,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColor.primary.withValues(alpha: hovered ? 0.12 : 0.03),
+              color: WebsiteColors.red.withValues(alpha: hovered ? 0.12 : 0.03),
               blurRadius: hovered ? 28 : 12,
               offset: Offset(0, hovered ? 14 : 4),
             ),
@@ -1016,7 +1020,7 @@ class _BranchCard extends StatelessWidget {
               padding: const EdgeInsets.all(22),
               child: Row(
                 children: [
-                  const AppLogo(size: 48, radius: 12),
+                  const WebsiteLogo(height: 48),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -1063,7 +1067,7 @@ class _IconLine extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 15, color: AppColor.primary),
+            Icon(icon, size: 15, color: WebsiteColors.red),
             const SizedBox(width: 6),
             Expanded(
               child: Text(text,
@@ -1091,7 +1095,7 @@ class _NearestBranchCard extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF6C63FF), Color(0xFF8B5CF6)],
+            colors: [WebsiteColors.red, WebsiteColors.redDark],
           ),
           borderRadius: BorderRadius.circular(24),
         ),
@@ -1221,7 +1225,7 @@ class ContactSection extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child:
-                          Icon(icon, color: const Color(0xFFB7B2FF), size: 20),
+                          Icon(icon, color: const Color(0xFFFF8A93), size: 20),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -1276,7 +1280,7 @@ class ContactSection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF6C63FF), Color(0xFF3D35CC)],
+          colors: [WebsiteColors.red, WebsiteColors.redDeep],
         ),
         borderRadius: BorderRadius.circular(26),
       ),
@@ -1372,17 +1376,13 @@ class WebsiteFooter extends StatelessWidget {
       crossAxisAlignment:
           mobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const AppLogo(size: 40, radius: 10),
-            const SizedBox(width: 10),
-            Text(t.brand,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
-          ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: WebsiteColors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const WebsiteLogo(height: 56),
         ),
         const SizedBox(height: 12),
         Text(
