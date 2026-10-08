@@ -6,7 +6,7 @@ import '../model/inventory_countting_model.dart';
 class InventoryCountingRemoteDatasource {
   final SupabaseClient _client = Supabase.instance.client;
 
-  static const int _pageSize = 120;
+  static const int _pageSize = 300;
   // counted_date > CURRENT_DATE - _cooldownDays  → aaj + last 6 din exclude,
   // 7ve din product dobara list mein aa jata hai.
   static const int _cooldownDays = 7;

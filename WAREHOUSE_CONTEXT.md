@@ -1,4 +1,4 @@
-<!-- Updated on 2026-10-05 04:00 PM -->
+<!-- Updated on 2026-10-08 09:25 AM -->
 
 # Jan Ghani POS — Project Context
 
@@ -457,6 +457,7 @@ SectionCard(headerIcon, title, headerTrailing, children, footerLeft, footerRight
 | `purchaseOrderProvider` | `purchase_invoice/presentation/provider/purchase_order_provider.dart` | `StateNotifierProvider` | ⭐ S19 — PO list: search/status/type/supplier/date filters + pagination + `statusCounts` |
 | `supplierProvider` | `supplier/presentation/provider/supplier_provider/supplier_provider.dart` | `StateNotifierProvider` | ⭐ S19 — supplier list: status/balance filter + sort (default baqaya) + pagination |
 | `warehouseExpenseProvider` | `warehouse_expense/presentation/provider/warehouse_expense_provider.dart` | `StateNotifierProvider` | ⭐ S19 — expenses: date range (default 30 din) + search (server) + head filter/pagination (client) |
+| `warehouseFinanceProvider` | `warehouse_finance/presentation/provider/warehouse_finance_provider/warehouse_finance_provider.dart` | `StateNotifierProvider` | ⭐ S20 — finance: date range (default 30 din, server) + search / type tab / pagination (client) |
 | `companyProvider` | `company/presentation/provider/company_provider.dart` | `StateNotifierProvider<CompanyNotifier, CompanyState>` | ⭐ S7 — companies CRUD (Category pattern) |
 | `employeeProvider` | `employee/presentation/provider/employee_provider.dart` | `StateNotifierProvider<EmployeeNotifier, EmployeeState>` | ⭐ S7 — employees master CRUD |
 | `salaryProvider` | `employee/presentation/provider/salary_provider.dart` | `StateNotifierProvider<SalaryNotifier, SalaryState>` | ⭐ S7 — monthly salary tracking + pay/delete (month state) |
@@ -1528,6 +1529,75 @@ Store counting (Supabase inventory_counting)
 **Purchase:** `purchase_order_screen.dart` · `purchase_order_widgets.dart` · `purchase_order_provider.dart`
 **Supplier:** `all_supplier_screen.dart` · `supplier_provider.dart` · `pay_outstanding_dialog.dart`
 **Expense:** `warehouse_expense_screen.dart` · `warehouse_expense_provider.dart` · `warehouse_expense_repository.dart` · `warehouse_expense_model.dart`
+
+---
+
+## Session 20 — Finance redesign · PO/Return comment field · Stock Inventory redesign · Delta Calculator · Stitch designs ⭐⭐
+
+> Same Session 19 pattern (TopBar · KPI cards · toolbar · table · footer + pager, `AppColor` tokens only, spinner sirf pehli load par). Stitch project `9155843749988575711` — naye screens: "Jan Ghani — Finance", "Jan Ghani — New Purchase Invoice" + "v2" (sirf design, code NAHI hua), "Jan Ghani — Stock Inventory" + "v2" (Level column ke baghair — v2 do copies ban gayin, dono same).
+
+### 1. Finance screen redesign (`warehouse_finance/`)
+| File | Change |
+|---|---|
+| `presentation/screens/warehouse_finance_screen/warehouse_finance_screen.dart` | Rewrite — Header (refresh · **Cash Requests** outlined + laal count badge · green **+ Cash In**) · Cash-in-hand hero (purple tint, minus = laal, "Last entry") + 3 cards (Aaj In / Aaj Out + entries, Suppliers Outstanding) · **Selected period strip** · toolbar · din-wise grouped table · footer |
+| `presentation/provider/warehouse_finance_provider/warehouse_finance_provider.dart` | `searchQuery` (client-side: notes / supplier / entry by / type), `page/pageSize`, `searchedTransactions` (tab counts), `filteredTransactions` = search + type tab; `onSearchChanged`, `onPageChanged/onPageSizeChanged`, `resetDateRange()` |
+
+- **Period math (`_Totals`):** cash_in = In; baaqi out; **`supplier_payment_reversal` cash OUT se minus** (In nahi) aur supplier breakdown se minus (S15 rule). Net = In − Out. Strip mein out-breakdown bar (Supplier/Expense/Salary/Purchase/Other %) — **<1080px par chhupti** (overflow).
+- Table: Date+time · Type (rang/icon; reversal neela + "REVERSAL" tag) · Detail (supplier naam upar, note neeche) · Amount (+green / −laal / reversal neela) · Balance (after bold + "pehle Rs") · Entry by. Day separator: "AAJ/KAL · date (N entries) — In +Rs · Out −Rs".
+- **Reserved chip NAHI** (warehouse cash mein reserve concept nahi). Suppliers count nahi (naya query chahiye tha).
+- Load logic (`getOrCreate` / `getTransactions` limit 1000 / `getSummary`) + Cash In dialog **unchanged**.
+
+### 2. PO + Purchase Return — Comment / Notes field (`purchase_invoice/`)
+- DB column `purchase_orders.notes text` **pehle se** tha; `create()` / `updatePO()` / `createReturn()` pehle se `notes` lete the — app bhejti nahi thi. **Migration / datasource change NAHI.**
+| File | Change |
+|---|---|
+| `data/purchase_invoice_model.dart` | `PurchaseInvoiceState.notes` (String, default `''`) + `copyWith` |
+| `presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart` | `setNotes()` (`_notesEdited = true`), `_notesForSave` (trim, khaali → null); create + createReturn → `_notesForSave`; **updatePO → `_notesEdited ? _notesForSave : oldPo?.notes`**; `loadFromExistingOrder` → `notes: order.notes ?? ''`; `clearCart` → notes `''` + flag reset |
+| `presentation/widgets/purchase_invoice_widgets/po_cart_summary_widget.dart` | `_NotesField` (ConsumerStatefulWidget, 1–3 lines, max 500, clear X) totals ke neeche; `ref.listen(select notes)` se controller sync |
+- ⚠️ `updatePO` SQL `notes = @notes` — notes na bheje to comment mit jata; isliye untouched edit par DB wala purana comment wapas.
+- Display: PO detail dialog + supplier PO dialog ka "Notes" section pehle se tha.
+
+### 3. Stock Inventory redesign (`warehouse_stock_inventory/`)
+| File | Change |
+|---|---|
+| `presentation/screen/warehouse_stock_inventory_screen.dart` | Rewrite (ConsumerStatefulWidget) — TopBar · 5 cards · toolbar · table · footer. Dialog helpers (`_showDialog`, `_showDeleteDialog`) + `_MenuSearchBody` **verbatim** rakhe |
+
+- **`productProvider` UNCHANGED** (dashboard / reports / assign / PO bhi use karte). **Sort + pagination sirf screen ka local state** (`_sortBy` default Naam A–Z, `_page`, `_pageSize`); filter/search badle → page 0 (`ref.listen`).
+- **Cards:** Total (active · inactive) · **Inventory Value** (active, `max(qty,0) × purchase`) · In Stock (`qty > 0` + %) · Low (`lowStockCount`) · Out (`isOutOfStock`, **ab poore catalog se** — pehle filtered list se ginta tha). In/Low/Out card click = `onFilterStatusChanged` toggle; selected card rangeen border.
+- **Toolbar:** search (name/SKU/barcode) · tabs All / In Stock / Low / Out (counts = search+category+company ke baad, provider `_computeFiltered` ka mirror status chhod kar) · "Category: All" / "Company: All" (purana searchable menu, filtered par ✕) · Sort.
+- **Table:** Product (initials box + naam + "SKU · barcode") · Category chip · Company chip · Purchase · Sale (+margin %) · Stock (out laal / low amber / minus "−12", reserved "x free · y reserved") · Status pill (`FittedBox` — Poppins par 1.4px overflow tha) · ⋮ (Edit / Stock history / Print QR / Delete). **Level column NAHI** (user ne hatwaya). Inactive row 60% opacity.
+- **Margin %** = `(sale − purchase) ÷ purchase × 100` (markup on cost); green +, laal −; koi price 0 ho to nahi dikhta.
+- **Initials box ka rang = sirf decoration** — pehle harf ke `codeUnit % 6` se; stock/status/category se koi talluq nahi.
+- **Hover fix:** pehle StatelessWidget mein `ValueNotifier` hover — rebuild par **atak jata, kai rows neeli** reh jati thin. Ab `_HoverRow` StatefulWidget (MouseRegion + setState + deactivate reset), rang **`AppColor.grey100`**, ek waqt mein ek row.
+- Low filter mein out-of-stock bhi aate hain (purani `isLowStock` logic — nahi badli).
+
+### 4. Sirf design / sirf jawab (code NAHI)
+- **New Purchase Invoice** Stitch design (v2): products panel (stock pills, "In cart"), invoice details 2 rows (Type toggle, Supplier + baqaya, PO no, dates, Status), cart table (sab inputs editable), summary bar (comment, totals, Grand Total, Clear / Save). Code abhi nahi.
+- **Branch counting batch 120 → 300** sirf batana tha: asal jagah `branch/inventory_management/data/datasource/inventory_counting_datasource.dart:9` `_pageSize` (RPC `p_limit`); labels screen 54/104/109. Aaj ka batch nahi badalta (agle din se). Branch code = doosre developer ka.
+
+### 5. Inventory Balance — Delta Calculator (`inventory_balance/`)
+| File | Change |
+|---|---|
+| `presentation/screens/inventory_balance_screen.dart` | Top bar mein (tabs ke left) **calculator icon** (`Icons.calculate_outlined`) → `_DeltaCalculatorDialog` (+ `_NumField`) |
+
+- Fields: **System Stock**, **Counted Stock** (decimal + minus allowed, `FilteringTextInputFormatter` `^-?\d*\.?\d*`).
+- **Delta = Counted − System** (Create Request ka hi semantic) — green `+` = stock barhega, laal `−` = kam hoga, 0 = farq nahi.
+- **"Apply ke baad stock" = System + Delta** (is dialog mein hamesha = Counted). Asal apply live stock par hona chahiye (ginti ke baad sales/transfer ho sakte) — aur store abhi absolute set karta hai (Known Issue B).
+- **Sirf manual calculator** — koi provider / DB / panel nahi chhoota, kuch save nahi hota. Clear / Close buttons.
+- Render test nahi hua (screen ke panels Supabase mangte) — `flutter analyze` clean.
+
+### ⚠️ Session 20 lessons
+1. **StatelessWidget mein `ValueNotifier` field = har build naya notifier** → hover state atakti hai. Hover ke liye hamesha StatefulWidget (`bool _hover` + `deactivate` reset).
+2. **Golden test asal theme (`LightTheme.theme`, font `Poppins`) ke saath bhi chalao** — Arial-as-Roboto par jo fit tha, Poppins par 1.4px overflow aaya. Poppins naam se FontLoader load karo (warna Ahem).
+3. Hover test: `tester.createGesture(kind: PointerDeviceKind.mouse)` → `addPointer` → `moveTo` rows par → golden.
+4. Stitch: ek request timeout ke baad dobara bheji to **dono** screens ban gayin — retry se pehle `list_screens` / `get_project` 5–8 min tak check karo.
+5. **Brand colors:** commit `0f78358` (Shahabmustafa) ne `AppColor.primary` brand red (`#ED0015`) kiya; local `app_color.dart` mein uncommitted revert (purple) para hai — naye screens sirf `AppColor.*` use karte, jo bhi primary ho wahi lagega.
+
+### Files (Session 20)
+**Finance:** `warehouse_finance_screen.dart` · `warehouse_finance_provider.dart`
+**Purchase invoice:** `purchase_invoice_model.dart` · `purchase_invoice_provider.dart` · `po_cart_summary_widget.dart`
+**Stock:** `warehouse_stock_inventory_screen.dart`
+**Inventory balance:** `inventory_balance_screen.dart` (Delta Calculator)
 
 ---
 
