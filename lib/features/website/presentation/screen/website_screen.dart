@@ -115,14 +115,12 @@ class _WebsiteScreenState extends ConsumerState<WebsiteScreen> {
 
   void _call() => launchUrl(Uri(scheme: 'tel', path: WebsiteContent.phone));
 
-  /// WhatsApp → phone → warna contact section par scroll.
+  /// WhatsApp → warna phone call.
   void _contact([String? message]) {
     if (_hasWhatsApp) {
       _openWhatsApp(message);
     } else if (_hasPhone) {
       _call();
-    } else {
-      _scrollTo(WebsiteSection.contact);
     }
   }
 
@@ -186,30 +184,16 @@ class _WebsiteScreenState extends ConsumerState<WebsiteScreen> {
                         _scrollTo(WebsiteSection.installments),
                     onContact: _contact,
                   ),
-                  AboutSection(
-                      key: _sectionKeys[WebsiteSection.about], mobile: mobile),
-                  ProductsSection(
-                      key: _sectionKeys[WebsiteSection.products],
-                      mobile: mobile),
                   InstallmentSection(
                     key: _sectionKeys[WebsiteSection.installments],
                     mobile: mobile,
                     onContact: _contact,
                     onGetInstallment: _contact,
                   ),
-                  WhyUsSection(mobile: mobile),
                   BranchesSection(
                     key: _sectionKeys[WebsiteSection.branches],
                     mobile: mobile,
                     onContact: _contact,
-                  ),
-                  ContactSection(
-                    key: _sectionKeys[WebsiteSection.contact],
-                    mobile: mobile,
-                    accountLabel: accountLabel,
-                    onAccount: onAccount,
-                    onWhatsApp: _hasWhatsApp ? _openWhatsApp : null,
-                    onCall: _hasPhone ? _call : null,
                   ),
                   WebsiteFooter(mobile: mobile, onSection: _scrollTo),
                 ],

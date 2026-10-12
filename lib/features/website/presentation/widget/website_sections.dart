@@ -9,15 +9,12 @@ import 'website_motion.dart';
 // Website ke sections — content: data/website_content.dart
 // Installment section alag file mein: installment_section.dart
 
-enum WebsiteSection { home, about, products, installments, branches, contact }
+enum WebsiteSection { home, installments, branches }
 
 String _sectionLabel(WebsiteText t, WebsiteSection s) => switch (s) {
       WebsiteSection.home => t.navHome,
-      WebsiteSection.about => t.navAbout,
-      WebsiteSection.products => t.navProducts,
       WebsiteSection.installments => t.navInstallments,
       WebsiteSection.branches => t.navBranches,
-      WebsiteSection.contact => t.navContact,
     };
 
 class WebsiteColors {
@@ -407,11 +404,8 @@ class WebsiteDrawer extends StatelessWidget {
 
   static const _icons = {
     WebsiteSection.home: Icons.home_rounded,
-    WebsiteSection.about: Icons.info_rounded,
-    WebsiteSection.products: Icons.category_rounded,
     WebsiteSection.installments: Icons.event_repeat_rounded,
     WebsiteSection.branches: Icons.storefront_rounded,
-    WebsiteSection.contact: Icons.support_agent_rounded,
   };
 
   @override
@@ -537,7 +531,11 @@ class HeroSection extends StatelessWidget {
           child: ShaderMask(
             blendMode: BlendMode.srcIn,
             shaderCallback: (r) => const LinearGradient(
-              colors: [WebsiteColors.red, WebsiteColors.redDark, WebsiteColors.black],
+              colors: [
+                WebsiteColors.red,
+                WebsiteColors.redDark,
+                WebsiteColors.black
+              ],
             ).createShader(r),
             child: Text(t.heroTitle2, textAlign: align, style: titleStyle),
           ),
@@ -706,211 +704,6 @@ class _HeroVisual extends StatelessWidget {
           aspectRatio: 3 / 2,
           child: Image.asset('assets/images/home.jpg', fit: BoxFit.cover),
         ),
-      ),
-    );
-  }
-}
-
-// ── Cards grid (About highlights / Products / Why us) ────────────────────────
-class _CardGrid extends StatelessWidget {
-  final List<WebsiteItem> items;
-  final int columns;
-  final bool centered;
-  const _CardGrid({
-    required this.items,
-    required this.columns,
-    this.centered = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, c) {
-      final cols = c.maxWidth >= 900
-          ? columns
-          : c.maxWidth >= 520
-              ? 2
-              : 1;
-      const gap = 20.0;
-      final w = (c.maxWidth - gap * (cols - 1)) / cols;
-      return Wrap(
-        spacing: gap,
-        runSpacing: gap,
-        children: [
-          for (int i = 0; i < items.length; i++)
-            SizedBox(
-              width: w,
-              child: Reveal(
-                delay: Duration(milliseconds: 80 * (i % cols)),
-                child: _InfoCard(item: items[i], centered: centered),
-              ),
-            ),
-        ],
-      );
-    });
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  final WebsiteItem item;
-  final bool centered;
-  const _InfoCard({required this.item, this.centered = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return HoverLift(
-      builder: (_, hovered) => AnimatedContainer(
-        duration: const Duration(milliseconds: 240),
-        padding: const EdgeInsets.all(26),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: hovered ? const Color(0xFFFFB8BD) : WebsiteColors.line,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: WebsiteColors.red.withValues(alpha: hovered ? 0.13 : 0.03),
-              blurRadius: hovered ? 30 : 12,
-              offset: Offset(0, hovered ? 16 : 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment:
-              centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 240),
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: hovered
-                    ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [WebsiteColors.red, WebsiteColors.redDark])
-                    : null,
-                color: hovered ? null : WebsiteColors.tint,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: AnimatedScale(
-                scale: hovered ? 1.12 : 1,
-                duration: const Duration(milliseconds: 240),
-                child: Icon(item.icon,
-                    color: hovered ? Colors.white : WebsiteColors.red, size: 27),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              item.title,
-              textAlign: centered ? TextAlign.center : TextAlign.start,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: WebsiteColors.ink,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.text,
-              textAlign: centered ? TextAlign.center : TextAlign.start,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.55,
-                color: WebsiteColors.muted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── About ────────────────────────────────────────────────────────────────────
-class AboutSection extends StatelessWidget {
-  final bool mobile;
-  const AboutSection({super.key, required this.mobile});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = WebsiteText.of(context);
-    return Contained(
-      color: Colors.white,
-      padding: sectionPadding(mobile),
-      child: Column(
-        children: [
-          Reveal(
-            child: SectionHeader(
-              eyebrow: t.aboutEyebrow,
-              title: t.aboutTitle,
-              text: t.aboutText,
-              mobile: mobile,
-            ),
-          ),
-          SizedBox(height: mobile ? 36 : 56),
-          _CardGrid(
-            items: t.highlightItems,
-            columns: 4,
-            centered: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Products (categories) ────────────────────────────────────────────────────
-class ProductsSection extends StatelessWidget {
-  final bool mobile;
-  const ProductsSection({super.key, required this.mobile});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = WebsiteText.of(context);
-    return Contained(
-      padding: sectionPadding(mobile),
-      child: Column(
-        children: [
-          Reveal(
-            child: SectionHeader(
-              eyebrow: t.productsEyebrow,
-              title: t.productsTitle,
-              text: t.productsText,
-              mobile: mobile,
-            ),
-          ),
-          SizedBox(height: mobile ? 36 : 56),
-          _CardGrid(items: t.categoryItems, columns: 3),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Why us ───────────────────────────────────────────────────────────────────
-class WhyUsSection extends StatelessWidget {
-  final bool mobile;
-  const WhyUsSection({super.key, required this.mobile});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = WebsiteText.of(context);
-    return Contained(
-      color: Colors.white,
-      padding: sectionPadding(mobile),
-      child: Column(
-        children: [
-          Reveal(
-            child: SectionHeader(
-              eyebrow: t.whyEyebrow,
-              title: t.whyTitle,
-              mobile: mobile,
-            ),
-          ),
-          SizedBox(height: mobile ? 36 : 56),
-          _CardGrid(items: t.whyUsItems, columns: 4),
-        ],
       ),
     );
   }
@@ -1149,212 +942,6 @@ class _NearestBranchCard extends StatelessWidget {
               const SizedBox(width: 28),
               button,
             ]),
-    );
-  }
-}
-
-// ── Contact + account ────────────────────────────────────────────────────────
-class ContactSection extends StatelessWidget {
-  final bool mobile;
-  final String accountLabel;
-  final VoidCallback onAccount;
-  final VoidCallback? onWhatsApp;
-  final VoidCallback? onCall;
-
-  const ContactSection({
-    super.key,
-    required this.mobile,
-    required this.accountLabel,
-    required this.onAccount,
-    this.onWhatsApp,
-    this.onCall,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = WebsiteText.of(context);
-    final contacts = <(IconData, String, String)>[
-      if (WebsiteContent.whatsapp.isNotEmpty)
-        (
-          Icons.chat_rounded,
-          t.whatsapp,
-          WebsiteContent.phone.isNotEmpty
-              ? WebsiteContent.phone
-              : '+${WebsiteContent.whatsapp}'
-        ),
-      if (WebsiteContent.phone.isNotEmpty)
-        (Icons.phone_rounded, t.phone, WebsiteContent.phone),
-      if (WebsiteContent.email.isNotEmpty)
-        (Icons.mail_rounded, t.email, WebsiteContent.email),
-      if (WebsiteContent.address.isNotEmpty)
-        (Icons.location_on_rounded, t.address, WebsiteContent.address),
-    ];
-
-    final contactCard = Container(
-      padding: EdgeInsets.all(mobile ? 24 : 36),
-      decoration: BoxDecoration(
-        color: WebsiteColors.darkBg,
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(t.getInTouch,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          Text(t.getInTouchText,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 15, height: 1.5)),
-          const SizedBox(height: 24),
-          if (contacts.isEmpty)
-            Text(t.visitNearest,
-                style: const TextStyle(color: Colors.white, fontSize: 15))
-          else
-            for (final (icon, label, value) in contacts)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child:
-                          Icon(icon, color: const Color(0xFFFF8A93), size: 20),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(label,
-                              style: const TextStyle(
-                                  color: Colors.white60, fontSize: 12)),
-                          Text(value,
-                              textDirection: TextDirection.ltr,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          if (onWhatsApp != null || onCall != null) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                if (onWhatsApp != null)
-                  WebButton(
-                    label: t.chatWhatsApp,
-                    icon: Icons.chat_rounded,
-                    style: WebButtonStyle.whatsapp,
-                    onTap: onWhatsApp!,
-                  ),
-                if (onCall != null)
-                  WebButton(
-                    label: t.callUs,
-                    icon: Icons.phone_rounded,
-                    style: WebButtonStyle.light,
-                    onTap: onCall!,
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-
-    final accountCard = Container(
-      padding: EdgeInsets.all(mobile ? 24 : 36),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [WebsiteColors.red, WebsiteColors.redDeep],
-        ),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.account_circle_rounded,
-                color: Colors.white, size: 28),
-          ),
-          const SizedBox(height: 18),
-          Text(t.accountTitle,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          Text(t.accountText,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 14.5, height: 1.55)),
-          const SizedBox(height: 24),
-          WebButton(
-            label: accountLabel,
-            icon: Icons.login_rounded,
-            style: WebButtonStyle.outline,
-            onTap: onAccount,
-          ),
-        ],
-      ),
-    );
-
-    return Contained(
-      color: Colors.white,
-      padding: sectionPadding(mobile),
-      child: Column(
-        children: [
-          Reveal(
-            child: SectionHeader(
-              eyebrow: t.contactEyebrow,
-              title: t.contactTitle,
-              mobile: mobile,
-            ),
-          ),
-          SizedBox(height: mobile ? 36 : 56),
-          if (mobile)
-            Column(children: [
-              Reveal(child: contactCard),
-              const SizedBox(height: 20),
-              Reveal(child: accountCard),
-            ])
-          else
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(flex: 3, child: Reveal(child: contactCard)),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    flex: 2,
-                    child: Reveal(
-                      delay: const Duration(milliseconds: 120),
-                      child: accountCard,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

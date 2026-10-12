@@ -10,33 +10,10 @@ class WebsiteContent {
   WebsiteContent._();
 
   // Icons — website_strings.dart ke lists ke order se jurte hain.
-  static const highlightIcons = <IconData>[
-    Icons.storefront_rounded,
-    Icons.inventory_2_rounded,
-    Icons.local_shipping_rounded,
-    Icons.event_repeat_rounded,
-  ];
-
-  static const categoryIcons = <IconData>[
-    Icons.rice_bowl_rounded,
-    Icons.cleaning_services_rounded,
-    Icons.spa_rounded,
-    Icons.soup_kitchen_rounded,
-    Icons.local_cafe_rounded,
-    Icons.child_friendly_rounded,
-  ];
-
   static const instStepIcons = <IconData>[
     Icons.touch_app_rounded,
     Icons.payments_rounded,
     Icons.calendar_month_rounded,
-  ];
-
-  static const whyUsIcons = <IconData>[
-    Icons.sell_rounded,
-    Icons.verified_rounded,
-    Icons.event_repeat_rounded,
-    Icons.receipt_long_rounded,
   ];
 
   /// Calculator ke rules (tracker wale): har mahine ka 2.5% baqi raqam par,
@@ -75,8 +52,6 @@ class WebsiteContent {
   /// WhatsApp number, country code ke saath, maslan '923001234567'.
   static const whatsapp = '923459357032';
   static const phone = '+92 345 9357032';
-  static const email = '';
-  static const address = '';
 }
 
 /// Ek qist plan ka hisaab. Qist Rs 50 tak round, aakhri qist farq pura karti hai.

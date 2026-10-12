@@ -63,11 +63,8 @@ class WebsiteText {
 
   // ── Nav ──
   final String navHome;
-  final String navAbout;
-  final String navProducts;
   final String navInstallments;
   final String navBranches;
-  final String navContact;
   final String login;
   final String myAccount;
   final String menu;
@@ -87,17 +84,6 @@ class WebsiteText {
   final String easyInstallments;
   final String perMonth;
 
-  // ── About ──
-  final String aboutEyebrow;
-  final String aboutTitle;
-  final String aboutText;
-  final List<TextPair> highlights;
-
-  // ── Products ──
-  final String productsEyebrow;
-  final String productsTitle;
-  final String productsText;
-  final List<TextPair> categories;
 
   // ── Installments ──
   final String instEyebrow;
@@ -139,11 +125,6 @@ class WebsiteText {
   final String monthlyPayment;
   final String perMonthFor;
 
-  // ── Why us ──
-  final String whyEyebrow;
-  final String whyTitle;
-  final List<TextPair> whyUs;
-
   // ── Branches ──
   final String branchesEyebrow;
   final String branchesTitle;
@@ -152,31 +133,14 @@ class WebsiteText {
   final String nearestTitle;
   final String nearestText;
 
-  // ── Contact / account ──
-  final String contactEyebrow;
-  final String contactTitle;
-  final String getInTouch;
-  final String getInTouchText;
-  final String visitNearest;
-  final String whatsapp;
-  final String phone;
-  final String email;
-  final String address;
-  final String chatWhatsApp;
-  final String callUs;
-  final String accountTitle;
-  final String accountText;
   final String copyright;
 
   const WebsiteText({
     required this.brand,
     required this.tagline,
     required this.navHome,
-    required this.navAbout,
-    required this.navProducts,
     required this.navInstallments,
     required this.navBranches,
-    required this.navContact,
     required this.login,
     required this.myAccount,
     required this.menu,
@@ -193,14 +157,6 @@ class WebsiteText {
     required this.deliveredDoorstep,
     required this.easyInstallments,
     required this.perMonth,
-    required this.aboutEyebrow,
-    required this.aboutTitle,
-    required this.aboutText,
-    required this.highlights,
-    required this.productsEyebrow,
-    required this.productsTitle,
-    required this.productsText,
-    required this.categories,
     required this.instEyebrow,
     required this.instTitle,
     required this.instText,
@@ -239,28 +195,12 @@ class WebsiteText {
     required this.instNote,
     required this.monthlyPayment,
     required this.perMonthFor,
-    required this.whyEyebrow,
-    required this.whyTitle,
-    required this.whyUs,
     required this.branchesEyebrow,
     required this.branchesTitle,
     required this.branchesText,
     required this.directions,
     required this.nearestTitle,
     required this.nearestText,
-    required this.contactEyebrow,
-    required this.contactTitle,
-    required this.getInTouch,
-    required this.getInTouchText,
-    required this.visitNearest,
-    required this.whatsapp,
-    required this.phone,
-    required this.email,
-    required this.address,
-    required this.chatWhatsApp,
-    required this.callUs,
-    required this.accountTitle,
-    required this.accountText,
     required this.copyright,
   });
 
@@ -268,13 +208,8 @@ class WebsiteText {
       WebsiteLocale.of(context).lang.text;
 
   // Icons website_content.dart mein — text yahan; dono order se jurte hain.
-  List<WebsiteItem> get highlightItems =>
-      _items(WebsiteContent.highlightIcons, highlights);
-  List<WebsiteItem> get categoryItems =>
-      _items(WebsiteContent.categoryIcons, categories);
   List<WebsiteItem> get instStepItems =>
       _items(WebsiteContent.instStepIcons, instSteps);
-  List<WebsiteItem> get whyUsItems => _items(WebsiteContent.whyUsIcons, whyUs);
 
   static List<WebsiteItem> _items(List<IconData> icons, List<TextPair> pairs) =>
       [
@@ -287,11 +222,8 @@ class WebsiteText {
     brand: 'Jan Ghani',
     tagline: 'Household goods for every family',
     navHome: 'Home',
-    navAbout: 'About',
-    navProducts: 'Products',
     navInstallments: 'Installments',
     navBranches: 'Branches',
-    navContact: 'Contact',
     login: 'Login',
     myAccount: 'My Account',
     menu: 'Menu',
@@ -309,40 +241,6 @@ class WebsiteText {
     deliveredDoorstep: 'Delivered right to your doorstep',
     easyInstallments: 'Easy installments',
     perMonth: '{n} / month',
-    aboutEyebrow: 'About us',
-    aboutTitle: 'A store for every home',
-    aboutText: 'Jan Ghani started with a simple idea: every family deserves '
-        'easy access to the things they use every day. Our branches and '
-        'warehouses work together so shelves stay stocked and prices stay '
-        'fair. We are growing step by step towards our mission of 10,000 '
-        'shops across Pakistan.',
-    highlights: [
-      ('10,000 shops', 'Our mission across Pakistan'),
-      ('Household goods', 'All under one roof'),
-      ('Doorstep delivery', 'Right to your home'),
-      ('Easy installments', 'Pay in 6 to 24 monthly payments'),
-    ],
-    productsEyebrow: 'Products',
-    productsTitle: 'What you will find at Jan Ghani',
-    productsText: 'Everyday household goods, organised the way your home uses '
-        'them. Visit your nearest branch to shop.',
-    categories: [
-      (
-        'Grocery & Staples',
-        'Flour, rice, pulses, oil, sugar and daily kitchen staples.'
-      ),
-      (
-        'Cleaning & Laundry',
-        'Detergents, dishwash, floor and surface cleaners.'
-      ),
-      ('Personal Care', 'Soaps, shampoos, oral care and everyday hygiene.'),
-      ('Kitchen Essentials', 'Spices, tea, cooking needs and pantry items.'),
-      ('Beverages & Snacks', 'Juices, drinks, biscuits and family snacks.'),
-      (
-        'Baby & Family Care',
-        'Baby care, tissues and home care for the whole family.'
-      ),
-    ],
     instEyebrow: 'Installments',
     instTitle: 'Buy Anything on Easy Installments',
     instText: "Need a product that isn't available at Jan Ghani? Choose the "
@@ -407,17 +305,6 @@ class WebsiteText {
         'confirmed by the Jan Ghani team.',
     monthlyPayment: 'Your Monthly Payment',
     perMonthFor: '/per month for {n} months',
-    whyEyebrow: 'Why Jan Ghani',
-    whyTitle: 'Made for Pakistani families',
-    whyUs: [
-      ('Fair prices', 'Honest pricing on everyday goods, every day.'),
-      ('Quality products', 'Trusted brands, checked stock and proper storage.'),
-      ('Easy installments', 'Get what you need now and pay in monthly parts.'),
-      (
-        'Your account online',
-        'See your invoices, returns and balance from anywhere.'
-      ),
-    ],
     branchesEyebrow: 'Branches',
     branchesTitle: 'Visit a Jan Ghani store',
     branchesText: 'We are growing every day towards our mission of 10,000 '
@@ -427,22 +314,6 @@ class WebsiteText {
     nearestText: 'Our branches stock everyday household goods and can help '
         'you set up an installment plan. Get in touch and we will guide you '
         'to the store closest to you.',
-    contactEyebrow: 'Contact',
-    contactTitle: "We're here to help",
-    getInTouch: 'Get in touch',
-    getInTouchText: 'Questions about products or installments? Talk to the '
-        'Jan Ghani team.',
-    visitNearest: 'Visit your nearest Jan Ghani branch to talk to our team.',
-    whatsapp: 'WhatsApp',
-    phone: 'Phone',
-    email: 'Email',
-    address: 'Address',
-    chatWhatsApp: 'Chat on WhatsApp',
-    callUs: 'Call us',
-    accountTitle: 'Your Jan Ghani account',
-    accountText: 'Customers can log in to see their invoices, returns and '
-        'current balance. Our team logs in to view branch and warehouse '
-        'reports.',
     copyright: '© {n} Jan Ghani. All rights reserved.',
   );
 
@@ -451,11 +322,8 @@ class WebsiteText {
     brand: 'جان غنی',
     tagline: 'ہر گھرانے کے لیے گھریلو سامان',
     navHome: 'ہوم',
-    navAbout: 'ہمارے بارے میں',
-    navProducts: 'مصنوعات',
     navInstallments: 'قسطیں',
     navBranches: 'برانچز',
-    navContact: 'رابطہ',
     login: 'لاگ اِن',
     myAccount: 'میرا اکاؤنٹ',
     menu: 'مینو',
@@ -473,46 +341,6 @@ class WebsiteText {
     deliveredDoorstep: 'سامان سیدھا آپ کی دہلیز تک',
     easyInstallments: 'آسان قسطیں',
     perMonth: '{n} / ماہانہ',
-    aboutEyebrow: 'ہمارے بارے میں',
-    aboutTitle: 'ہر گھر کے لیے ایک اسٹور',
-    aboutText: 'جان غنی کا آغاز ایک سادہ سوچ سے ہوا: ہر خاندان کو روزمرہ '
-        'استعمال کی چیزوں تک آسان رسائی ملنی چاہیے۔ ہماری برانچز اور گودام مل '
-        'کر کام کرتے ہیں تاکہ شیلف ہمیشہ بھرے رہیں اور قیمتیں مناسب رہیں۔ ہم '
-        'قدم بہ قدم پورے پاکستان میں 10,000 دکانوں کے اپنے مشن کی طرف بڑھ رہے '
-        'ہیں۔',
-    highlights: [
-      ('10,000 دکانیں', 'پورے پاکستان میں ہمارا مشن'),
-      ('گھریلو سامان', 'سب کچھ ایک ہی چھت تلے'),
-      ('گھر تک ڈیلیوری', 'سیدھا آپ کے گھر تک'),
-      ('آسان قسطیں', '6 سے 24 ماہانہ قسطوں میں ادائیگی'),
-    ],
-    productsEyebrow: 'مصنوعات',
-    productsTitle: 'جان غنی پر آپ کو کیا ملے گا',
-    productsText: 'روزمرہ کا گھریلو سامان، ویسے ہی ترتیب دیا گیا جیسے آپ کا '
-        'گھر استعمال کرتا ہے۔ خریداری کے لیے اپنی قریبی برانچ تشریف لائیں۔',
-    categories: [
-      (
-        'گروسری اور بنیادی اشیاء',
-        'آٹا، چاول، دالیں، تیل، چینی اور روزمرہ کچن کی اشیاء۔'
-      ),
-      (
-        'صفائی اور دھلائی',
-        'ڈیٹرجنٹ، برتن دھونے کا سامان، فرش اور سطح صاف کرنے والے کلینر۔'
-      ),
-      (
-        'ذاتی نگہداشت',
-        'صابن، شیمپو، دانتوں کی صفائی اور روزمرہ صفائی ستھرائی۔'
-      ),
-      (
-        'کچن کی ضروریات',
-        'مصالحے، چائے، کھانا پکانے کا سامان اور پینٹری اشیاء۔'
-      ),
-      ('مشروبات اور اسنیکس', 'جوس، مشروبات، بسکٹ اور فیملی اسنیکس۔'),
-      (
-        'بچوں اور خاندان کی نگہداشت',
-        'بچوں کی نگہداشت، ٹشوز اور پورے خاندان کے لیے گھریلو صفائی کا سامان۔'
-      ),
-    ],
     instEyebrow: 'قسطیں',
     instTitle: 'کوئی بھی چیز آسان قسطوں پر خریدیں',
     instText: 'کوئی ایسی چیز چاہیے جو جان غنی پر دستیاب نہیں؟ کہیں سے بھی اپنی '
@@ -574,17 +402,6 @@ class WebsiteText {
         'غنی کی ٹیم کرتی ہے۔',
     monthlyPayment: 'آپ کی ماہانہ قسط',
     perMonthFor: 'فی ماہ، {n} ماہ کے لیے',
-    whyEyebrow: 'جان غنی کیوں',
-    whyTitle: 'پاکستانی خاندانوں کے لیے',
-    whyUs: [
-      ('مناسب قیمتیں', 'روزمرہ اشیاء پر ہر دن ایماندارانہ قیمتیں۔'),
-      (
-        'معیاری مصنوعات',
-        'قابلِ اعتماد برانڈز، جانچا ہوا اسٹاک اور مناسب ذخیرہ۔'
-      ),
-      ('آسان قسطیں', 'ضرورت کی چیز ابھی لیں اور ماہانہ حصوں میں ادائیگی کریں۔'),
-      ('آن لائن اکاؤنٹ', 'اپنی انوائسز، واپسیاں اور بیلنس کہیں سے بھی دیکھیں۔'),
-    ],
     branchesEyebrow: 'برانچز',
     branchesTitle: 'جان غنی اسٹور تشریف لائیں',
     branchesText: 'ہم پورے پاکستان میں 10,000 دکانوں کے اپنے مشن کی طرف روز '
@@ -594,23 +411,6 @@ class WebsiteText {
     nearestText: 'ہماری برانچز میں روزمرہ کا گھریلو سامان دستیاب ہے اور وہ قسط '
         'پلان بنانے میں بھی آپ کی مدد کر سکتی ہیں۔ ہم سے رابطہ کریں، ہم آپ کو '
         'قریبی اسٹور تک رہنمائی کریں گے۔',
-    contactEyebrow: 'رابطہ',
-    contactTitle: 'ہم آپ کی مدد کے لیے حاضر ہیں',
-    getInTouch: 'رابطہ کریں',
-    getInTouchText: 'مصنوعات یا قسطوں کے بارے میں سوالات؟ جان غنی کی ٹیم سے '
-        'بات کریں۔',
-    visitNearest: 'ہماری ٹیم سے بات کرنے کے لیے اپنی قریبی جان غنی برانچ '
-        'تشریف لائیں۔',
-    whatsapp: 'واٹس ایپ',
-    phone: 'فون',
-    email: 'ای میل',
-    address: 'پتہ',
-    chatWhatsApp: 'واٹس ایپ پر بات کریں',
-    callUs: 'ہمیں کال کریں',
-    accountTitle: 'آپ کا جان غنی اکاؤنٹ',
-    accountText: 'کسٹمرز لاگ اِن کر کے اپنی انوائسز، واپسیاں اور موجودہ بیلنس '
-        'دیکھ سکتے ہیں۔ ہماری ٹیم برانچ اور گودام کی رپورٹس دیکھنے کے لیے لاگ '
-        'اِن کرتی ہے۔',
     copyright: '© {n} جان غنی۔ جملہ حقوق محفوظ ہیں۔',
   );
 
@@ -619,11 +419,8 @@ class WebsiteText {
     brand: 'جان غني',
     tagline: 'د هرې کورنۍ لپاره د کور سامانونه',
     navHome: 'کور',
-    navAbout: 'زموږ په اړه',
-    navProducts: 'محصولات',
     navInstallments: 'قسطونه',
     navBranches: 'څانګې',
-    navContact: 'اړیکه',
     login: 'ننوتل',
     myAccount: 'زما حساب',
     menu: 'مینو',
@@ -641,39 +438,6 @@ class WebsiteText {
     deliveredDoorstep: 'ستاسو تر دروازې پورې رسول کېږي',
     easyInstallments: 'اسانه قسطونه',
     perMonth: '{n} / میاشت',
-    aboutEyebrow: 'زموږ په اړه',
-    aboutTitle: 'د هر کور لپاره یو پلورنځی',
-    aboutText: 'جان غني له یوه ساده فکر څخه پیل شو: هره کورنۍ باید هغو شیانو '
-        'ته اسانه لاسرسی ولري چې هره ورځ یې کاروي. زموږ څانګې او ګودامونه '
-        'یوځای کار کوي ترڅو المارۍ ډکې پاتې شي او بیې مناسبې وي. موږ ګام په '
-        'ګام په ټول پاکستان کې د 10,000 دوکانونو د خپلې موخې پر لور روان یو.',
-    highlights: [
-      ('10,000 دوکانونه', 'په ټول پاکستان کې زموږ موخه'),
-      ('د کور سامانونه', 'ټول د یوه چت لاندې'),
-      ('تر کوره رسول', 'مستقیم ستاسو کور ته'),
-      ('اسانه قسطونه', 'له 6 تر 24 میاشتنیو قسطونو کې تادیه'),
-    ],
-    productsEyebrow: 'محصولات',
-    productsTitle: 'په جان غني کې به څه ومومئ',
-    productsText: 'د ورځني ژوند د کور سامانونه، په هماغه ترتیب چې ستاسو کور '
-        'یې کاروي. د پېرود لپاره خپلې نږدې څانګې ته راشئ.',
-    categories: [
-      (
-        'خوراکي او اړین توکي',
-        'اوړه، وریجې، دالې، غوړي، بوره او د پخلنځي ورځني توکي.'
-      ),
-      (
-        'پاکول او مینځل',
-        'ډیټرجنټ، د لوښو مینځلو توکي، د فرش او سطحې پاکوونکي.'
-      ),
-      ('شخصي پاملرنه', 'صابون، شامپو، د غاښونو پاملرنه او ورځنۍ پاکي.'),
-      ('د پخلنځي اړتیاوې', 'مصالحې، چای، د پخلي توکي او د ذخیرې شیان.'),
-      ('څښاک او سنیکس', 'جوسونه، څښاکونه، بسکټ او کورني سنیکس.'),
-      (
-        'د ماشومانو او کورنۍ پاملرنه',
-        'د ماشومانو پاملرنه، ټشوګانې او د ټولې کورنۍ لپاره د کور پاکولو توکي.'
-      ),
-    ],
     instEyebrow: 'قسطونه',
     instTitle: 'هر شی په اسانه قسطونو واخلئ',
     instText: 'داسې توکي ته اړتیا لرئ چې په جان غني کې نشته؟ له هر ځای څخه '
@@ -735,20 +499,6 @@ class WebsiteText {
         'تاییدوي.',
     monthlyPayment: 'ستاسو میاشتنی قسط',
     perMonthFor: 'په میاشت کې، د {n} میاشتو لپاره',
-    whyEyebrow: 'ولې جان غني',
-    whyTitle: 'د پاکستاني کورنیو لپاره',
-    whyUs: [
-      ('مناسبې بیې', 'د ورځنیو توکو لپاره هره ورځ صادقانه بیې.'),
-      ('باکیفیته محصولات', 'باوري برانډونه، کتل شوی سټاک او سمه ساتنه.'),
-      (
-        'اسانه قسطونه',
-        'هغه څه چې اړتیا ورته لرئ اوس یې واخلئ او په میاشتنیو برخو یې ورکړئ.'
-      ),
-      (
-        'آنلاین حساب',
-        'خپل بلونه، بېرته راګرځول شوي توکي او بیلانس له هر ځای وګورئ.'
-      ),
-    ],
     branchesEyebrow: 'څانګې',
     branchesTitle: 'د جان غني پلورنځي ته راشئ',
     branchesText: 'موږ هره ورځ په ټول پاکستان کې د 10,000 دوکانونو د خپلې '
@@ -758,22 +508,6 @@ class WebsiteText {
     nearestText: 'زموږ څانګې د ورځني ژوند د کور سامانونه لري او د قسطي پلان په '
         'جوړولو کې هم مرسته کولی شي. موږ سره اړیکه ونیسئ، موږ به تاسو ته د '
         'نږدې پلورنځي لارښوونه وکړو.',
-    contactEyebrow: 'اړیکه',
-    contactTitle: 'موږ ستاسو د مرستې لپاره دلته یو',
-    getInTouch: 'اړیکه ونیسئ',
-    getInTouchText: 'د محصولاتو یا قسطونو په اړه پوښتنې لرئ؟ د جان غني له ټیم '
-        'سره خبرې وکړئ.',
-    visitNearest: 'زموږ له ټیم سره د خبرو لپاره د جان غني نږدې څانګې ته راشئ.',
-    whatsapp: 'واټس اپ',
-    phone: 'تلیفون',
-    email: 'برېښنالیک',
-    address: 'پته',
-    chatWhatsApp: 'په واټس اپ خبرې وکړئ',
-    callUs: 'موږ ته زنګ ووهئ',
-    accountTitle: 'ستاسو د جان غني حساب',
-    accountText: 'پېرودونکي کولی شي ننوځي او خپل بلونه، بېرته راګرځول شوي '
-        'توکي او اوسنی بیلانس وګوري. زموږ ټیم د څانګو او ګودامونو د راپورونو '
-        'لیدو لپاره ننوځي.',
     copyright: '© {n} جان غني. ټول حقونه خوندي دي.',
   );
 }

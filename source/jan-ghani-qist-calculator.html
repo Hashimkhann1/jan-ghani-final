@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e63946">
+<title>Jan Ghani Qist Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@500;700&family=Baloo+Bhaijaan+2:wght@500;600;700;800&display=swap">
+<style>
+/* Layout: one phone-width column — red header, floating input card, plan cards, navy action bar. Single committed light look in Jan Ghani colours. */
+:root{
+  --red:#e63946; --red-ink:#b3202c; --yellow:#ffd60a; --purple:#6d28d9; --navy:#1d3557;
+  --ground:#fff8e7; --card:#ffffff; --line:#f1e3b8; --muted:#5a4a22; --warn-bg:#fde8e8;
+  --nastaliq:"Noto Nastaliq Urdu",serif; --body:"Baloo Bhaijaan 2",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ground);color:var(--navy)}
+body{margin:0;font-family:var(--body);padding-inline:0;padding-block:0}
+.app{max-width:440px;width:100%;overflow-x:hidden;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--ground)}
+header{background:var(--red);color:#fff;padding:20px 20px 30px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+header .brand{font-family:var(--nastaliq);font-size:26px;font-weight:700;line-height:1.9}
+header .sub{font-family:var(--nastaliq);font-size:16px;line-height:1.9}
+.reset{background:rgba(255,255,255,.18);color:#fff;border:1.5px solid rgba(255,255,255,.6);border-radius:999px;font:700 15px var(--body);padding:6px 14px;min-height:40px;cursor:pointer;white-space:nowrap}
+.card{margin:-16px 16px 0;background:var(--card);border-radius:18px;box-shadow:0 6px 18px rgba(29,53,87,.12);padding:18px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.card>*{min-width:0}
+label{font-family:var(--nastaliq);font-size:16px;line-height:2}
+.field{display:flex;align-items:center;gap:8px;border-radius:12px;padding:4px 14px}
+.field.price{background:var(--yellow)}
+.field.dep{border:2px solid var(--yellow)}
+.field.bad{border-color:var(--red)}
+.field input{flex:1 1 0;width:100%;min-width:0;border:0;background:transparent;font-family:var(--body);font-weight:800;color:var(--navy);direction:ltr;text-align:right;outline:none;padding:4px 0}
+.field.price input{font-size:30px}
+.field.dep input{font-size:24px}
+.field span{font-weight:700;font-size:17px}
+.field:focus-within{box-shadow:0 0 0 3px rgba(109,40,217,.35)}
+.pct{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--muted)}
+.pct b{font-size:20px;color:var(--navy)}
+.bar{flex:1;height:8px;border-radius:999px;background:#f3ead0;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--purple);width:0;transition:width .2s}
+.warn{background:var(--warn-bg);color:var(--red-ink);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:600;line-height:1.6}
+.remain{font-size:15px;color:var(--muted)}
+.remain b{font-size:18px;color:var(--navy)}
+h2{padding:20px 16px 6px;margin:0;font-family:var(--nastaliq);font-size:18px;font-weight:700;line-height:2}
+.plans{padding:0 16px;display:grid;gap:10px}
+.plan{background:var(--card);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;border:2px solid var(--line)}
+.plan.hi{border-color:var(--red)}
+.m{width:64px;height:64px;flex-shrink:0;border-radius:12px;background:var(--purple);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.m b{font-size:26px;font-weight:800;line-height:1}
+.m small{font-size:13px}
+.info{flex:1;min-width:0;display:flex;flex-direction:column}
+.info .lbl{font-size:13px;color:var(--muted)}
+.info .amt{font-size:26px;font-weight:800;line-height:1.25;font-variant-numeric:tabular-nums}
+.info .amt span{font-size:15px;font-weight:600}
+.info .tot{font-size:13px;color:var(--muted);line-height:1.6}
+.info .last{font-size:13px;color:var(--purple);font-weight:600}
+bdi{unicode-bidi:isolate}
+.tag{background:var(--red);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.empty{margin:0 16px;padding:22px 16px;border:2px dashed var(--line);border-radius:14px;text-align:center;color:var(--muted);font-size:16px;line-height:1.8}
+.promise{padding:14px 20px;font-size:14px;color:var(--muted);text-align:center}
+footer{margin-top:auto;background:var(--navy);padding:16px;display:flex;gap:10px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+footer a{flex:1;min-height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:17px;text-decoration:none}
+footer .call{background:var(--yellow);color:var(--navy)}
+footer .visit{border:2px solid var(--yellow);color:#fff}
+.shopinfo{background:var(--navy);color:#c8d3e6;font-size:13px;text-align:center;padding:0 16px 12px}
+button:focus-visible,a:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app" dir="rtl" lang="ur">
+  <header>
+    <div>
+      <div class="brand">جان غنی</div>
+      <div class="sub">آسان قسطوں کا حساب</div>
+    </div>
+    <button class="reset" id="reset" type="button">نیا حساب</button>
+  </header>
+
+  <div class="card">
+    <label for="price">چیز کی قیمت</label>
+    <div class="field price">
+      <input id="price" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="remain">
+      <span>روپے</span>
+    </div>
+
+    <label for="dep">پیشگی رقم</label>
+    <div class="field dep" id="depField">
+      <input id="dep" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="pctText">
+      <span>روپے</span>
+    </div>
+    <div class="pct" id="pctRow"><span id="pctText">قیمت کا <b>0%</b></span><div class="bar" aria-hidden="true"><i id="pctBar"></i></div></div>
+    <div class="warn" id="warn" hidden></div>
+    <div class="remain" id="remain"></div>
+  </div>
+
+  <h2>اپنا پلان چنیں</h2>
+  <div class="plans" id="plans"></div>
+  <div class="empty" id="empty">اوپر چیز کی قیمت لکھیں —<br>تمام قسط پلان یہاں نظر آئیں گے</div>
+  <div class="promise">قیمت آج ہی طے — بعد میں کوئی اضافہ نہیں</div>
+
+  <footer>
+    <a class="call" href="tel:[SHOP-PHONE]">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+      کال کریں
+    </a>
+    <a class="visit" href="#shop">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      دکان پر آئیں
+    </a>
+  </footer>
+  <div class="shopinfo" id="shop">[SHOP PHONE] · [SHOP ADDRESS]</div>
+</div>
+
+<script>
+// ---- settings (match the tracker) ----
+var RATE_PER_MONTH = 0.025;   // 2.5% of financed amount per month of plan
+var MIN_DEPOSIT = 0.15;       // 15%
+var ROUND_TO = 50;            // monthly rounded to nearest Rs 50
+var PLANS = [6, 10, 12, 18, 24];
+var TAGS = { 12: 'مقبول', 24: 'کم قسط' };
+
+var $ = function (id) { return document.getElementById(id); };
+var priceEl = $('price'), depEl = $('dep');
+var depTouched = false;
+
+function digits(s) { return parseInt(String(s).replace(/[^0-9]/g, ''), 10) || 0; }
+function fmt(n) { return Math.round(n).toLocaleString('en-IN'); } // 1,25,000 style
+function setFormatted(el, n) { el.value = n ? fmt(n) : ''; }
+
+// Same rule as the tracker: installments rounded to nearest 50, last one absorbs the difference.
+function schedule(financed, months) {
+  var total = financed * (1 + RATE_PER_MONTH * months);
+  var per = Math.max(ROUND_TO, Math.floor(total / months / ROUND_TO + 0.5) * ROUND_TO);
+  var last = total - per * (months - 1);
+  if (last <= 0) { per = Math.ceil(total / months); last = total - per * (months - 1); }
+  return { total: total, per: per, last: Math.round(last) };
+}
+
+function render() {
+  var price = digits(priceEl.value);
+  var dep = digits(depEl.value);
+  var minDep = Math.ceil(price * MIN_DEPOSIT);
+  if (!depTouched) { dep = minDep; setFormatted(depEl, price ? dep : 0); }
+
+  var pct = price ? dep / price * 100 : 0;
+  var pctShown = pct > 0 && pct < 1 ? pct.toFixed(1) : Math.round(pct);
+  $('pctText').innerHTML = 'قیمت کا <b><bdi dir="ltr">' + pctShown + '%</bdi></b>';
+  $('pctBar').style.width = Math.min(100, pct) + '%';
+
+  var warn = $('warn'), plansEl = $('plans'), empty = $('empty');
+  var useDep = dep;
+  warn.hidden = true; $('depField').classList.remove('bad');
+
+  if (!price) {
+    plansEl.innerHTML = ''; empty.hidden = false; $('remain').textContent = ''; return;
+  }
+  if (dep >= price) {
+    warn.hidden = false; warn.textContent = 'پیشگی پوری قیمت کے برابر ہے — قسط کی ضرورت نہیں۔';
+    plansEl.innerHTML = ''; empty.hidden = true; $('remain').textContent = ''; return;
+  }
+  if (dep < minDep) {
+    useDep = minDep;
+    $('depField').classList.add('bad');
+    warn.hidden = false;
+    warn.innerHTML = 'کم از کم <bdi dir="ltr">15%</bdi> پیشگی ضروری ہے: ' + fmt(minDep) + ' روپے۔ نیچے قسطیں <bdi dir="ltr">15%</bdi> پیشگی کے حساب سے ہیں۔';
+  }
+
+  var financed = price - useDep;
+  $('remain').innerHTML = 'باقی رقم قسطوں میں: <b>' + fmt(financed) + '</b> روپے';
+  empty.hidden = true;
+
+  plansEl.innerHTML = PLANS.map(function (m) {
+    var s = schedule(financed, m);
+    var tag = TAGS[m] ? '<div class="tag">' + TAGS[m] + '</div>' : '';
+    var lastNote = s.last !== s.per ? '<div class="last">آخری قسط ' + fmt(s.last) + ' روپے</div>' : '';
+    return '<div class="plan' + (m === 12 ? ' hi' : '') + '">' +
+      '<div class="m"><b>' + m + '</b><small>مہینے</small></div>' +
+      '<div class="info"><div class="lbl">ماہانہ قسط</div>' +
+      '<div class="amt">' + fmt(s.per) + ' <span>روپے</span></div>' +
+      '<div class="tot">کل قیمت (پیشگی سمیت) ' + fmt(useDep + s.total) + ' روپے</div>' + lastNote + '</div>' +
+      tag + '</div>';
+  }).join('');
+}
+
+priceEl.addEventListener('input', function () { setFormatted(priceEl, digits(priceEl.value)); render(); });
+depEl.addEventListener('input', function () {
+  depTouched = depEl.value.trim() !== '';
+  setFormatted(depEl, digits(depEl.value)); render();
+});
+$('reset').addEventListener('click', function () {
+  priceEl.value = ''; depEl.value = ''; depTouched = false; render(); priceEl.focus();
+});
+
+// open in a realistic state: example price
+priceEl.value = '50,000';
+render();
+</script>
+
+</body>
+</html>
