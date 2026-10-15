@@ -1,4 +1,4 @@
-// Updated on 2026-10-05 03:15 PM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // purchase_order_widgets.dart
 // PO screen ke reusable widgets — Stitch "Purchase Orders v2" design
@@ -6,7 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import '../../domain/purchase_order_model.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
@@ -49,9 +49,9 @@ class PoStatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
         decoration: BoxDecoration(
-          color:        AppColor.surface,
+          color:        WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(14),
-          border:       Border.all(color: AppColor.grey200),
+          border:       Border.all(color: WarehouseAppColor.grey200),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,7 +65,7 @@ class PoStatCard extends StatelessWidget {
                           fontSize:      11,
                           fontWeight:    FontWeight.w600,
                           letterSpacing: 0.6,
-                          color:         AppColor.textSecondary)),
+                          color:         WarehouseAppColor.textSecondary)),
                 ),
                 Container(
                   width: 28, height: 28,
@@ -86,7 +86,7 @@ class PoStatCard extends StatelessWidget {
                   style: TextStyle(
                       fontSize:   22,
                       fontWeight: FontWeight.w700,
-                      color:      AppColor.textPrimary)),
+                      color:      WarehouseAppColor.textPrimary)),
             ),
             const SizedBox(height: 2),
             Text(subtitle,
@@ -133,7 +133,7 @@ class PoStatusTab extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding:  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color:        isSelected ? AppColor.primary : Colors.transparent,
+          color:        isSelected ? WarehouseAppColor.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(7),
         ),
         child: Row(
@@ -143,22 +143,22 @@ class PoStatusTab extends StatelessWidget {
                 style: TextStyle(
                   fontSize:   12.5,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? AppColor.white : AppColor.textSecondary,
+                  color: isSelected ? WarehouseAppColor.white : WarehouseAppColor.textSecondary,
                 )),
             const SizedBox(width: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColor.white.withOpacity(0.22)
-                    : AppColor.grey200,
+                    ? WarehouseAppColor.white.withOpacity(0.22)
+                    : WarehouseAppColor.grey200,
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Text('$count',
                   style: TextStyle(
                     fontSize:   10.5,
                     fontWeight: FontWeight.w600,
-                    color: isSelected ? AppColor.white : AppColor.textSecondary,
+                    color: isSelected ? WarehouseAppColor.white : WarehouseAppColor.textSecondary,
                   )),
             ),
           ],
@@ -182,22 +182,22 @@ class PoStatusBadge extends StatelessWidget {
 
     switch (status) {
       case 'ordered':
-        bg = AppColor.infoLight;    fg = AppColor.info;
+        bg = WarehouseAppColor.infoLight;    fg = WarehouseAppColor.info;
         break;
       case 'partial':
-        bg = AppColor.warningLight; fg = AppColor.warningDark;
+        bg = WarehouseAppColor.warningLight; fg = WarehouseAppColor.warningDark;
         break;
       case 'received':
-        bg = AppColor.successLight; fg = AppColor.success;
+        bg = WarehouseAppColor.successLight; fg = WarehouseAppColor.success;
         break;
       case 'return': // purchase return — status ki jagah "Return" dikhta hai
-        bg = AppColor.errorLight;   fg = AppColor.error;
+        bg = WarehouseAppColor.errorLight;   fg = WarehouseAppColor.error;
         break;
       case 'cancelled':
-        bg = AppColor.errorLight;   fg = AppColor.error;
+        bg = WarehouseAppColor.errorLight;   fg = WarehouseAppColor.error;
         break;
       default: // draft
-        bg = AppColor.grey100;      fg = AppColor.grey600;
+        bg = WarehouseAppColor.grey100;      fg = WarehouseAppColor.grey600;
     }
 
     return Align(
@@ -262,9 +262,9 @@ class _PoTableRowState extends State<PoTableRow> {
     final canEdit     = widget.onEdit != null && o.canEdit && !isCancelled;
 
     final rowBg = _isHovered
-        ? AppColor.primary.withOpacity(0.03)
+        ? WarehouseAppColor.primary.withOpacity(0.03)
         : (o.isReturn
-            ? AppColor.errorLight.withOpacity(0.35)
+            ? WarehouseAppColor.errorLight.withOpacity(0.35)
             : Colors.transparent);
 
     return MouseRegion(
@@ -299,10 +299,10 @@ class _PoTableRowState extends State<PoTableRow> {
                                     fontSize:   14,
                                     fontWeight: FontWeight.w600,
                                     color: isCancelled
-                                        ? AppColor.textSecondary
+                                        ? WarehouseAppColor.textSecondary
                                         : (o.isReturn
-                                            ? AppColor.error
-                                            : AppColor.primary),
+                                            ? WarehouseAppColor.error
+                                            : WarehouseAppColor.primary),
                                     decoration: isCancelled
                                         ? TextDecoration.lineThrough
                                         : null)),
@@ -316,7 +316,7 @@ class _PoTableRowState extends State<PoTableRow> {
                       const SizedBox(height: 2),
                       Text('${_fmtDate(o.orderDate)} · ${_fmtTime(o.createdAt)}',
                           style: TextStyle(fontSize: 11.5,
-                              color: AppColor.textSecondary)),
+                              color: WarehouseAppColor.textSecondary)),
                     ],
                   ),
                 ),
@@ -341,13 +341,13 @@ class _PoTableRowState extends State<PoTableRow> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColor.textPrimary)),
+                                    color: WarehouseAppColor.textPrimary)),
                             if (o.supplierCompany?.isNotEmpty ?? false)
                               Text(o.supplierName ?? '—',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(fontSize: 11.5,
-                                      color: AppColor.textSecondary)),
+                                      color: WarehouseAppColor.textSecondary)),
                           ],
                         ),
                       ),
@@ -365,12 +365,12 @@ class _PoTableRowState extends State<PoTableRow> {
                       Text('${o.items.length} items',
                           style: TextStyle(fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: AppColor.textPrimary)),
+                              color: WarehouseAppColor.textPrimary)),
                       Text('${_fmtQty(_totalQty(o))} qty',
                           style: TextStyle(fontSize: 11.5,
                               color: o.isReturn
-                                  ? AppColor.error
-                                  : AppColor.textSecondary)),
+                                  ? WarehouseAppColor.error
+                                  : WarehouseAppColor.textSecondary)),
                     ],
                   ),
                 ),
@@ -396,8 +396,8 @@ class _PoTableRowState extends State<PoTableRow> {
                         fontSize:   14,
                         fontWeight: FontWeight.w600,
                         color: o.isReturn
-                            ? AppColor.error
-                            : AppColor.textPrimary,
+                            ? WarehouseAppColor.error
+                            : WarehouseAppColor.textPrimary,
                         decoration: isCancelled
                             ? TextDecoration.lineThrough
                             : null),
@@ -475,15 +475,15 @@ class _ReturnBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color:        AppColor.errorLight,
+        color:        WarehouseAppColor.errorLight,
         borderRadius: BorderRadius.circular(4),
-        border:       Border.all(color: AppColor.error.withOpacity(0.4)),
+        border:       Border.all(color: WarehouseAppColor.error.withOpacity(0.4)),
       ),
       child: Text('RETURN',
           style: TextStyle(fontSize: 9.5,
               fontWeight:    FontWeight.w700,
               letterSpacing: 0.5,
-              color:         AppColor.error)),
+              color:         WarehouseAppColor.error)),
     );
   }
 }
@@ -556,7 +556,7 @@ class _ActionBtn extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         child: SizedBox(
           width: 32, height: 32,
-          child: Icon(icon, size: 18, color: AppColor.grey600),
+          child: Icon(icon, size: 18, color: WarehouseAppColor.grey600),
         ),
       ),
     );
@@ -586,11 +586,11 @@ class _MoreMenu extends StatelessWidget {
         tooltip:   'More',
         padding:   EdgeInsets.zero,
         iconSize:  18,
-        icon:      Icon(Icons.more_vert_rounded, color: AppColor.grey600),
-        color:     AppColor.surface,
+        icon:      Icon(Icons.more_vert_rounded, color: WarehouseAppColor.grey600),
+        color:     WarehouseAppColor.surface,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: AppColor.grey200)),
+            side: BorderSide(color: WarehouseAppColor.grey200)),
         onSelected: (v) {
           switch (v) {
             case 'view': onView(); break;
@@ -620,10 +620,10 @@ class _MoreMenu extends StatelessWidget {
         height: 38,
         child: Row(
           children: [
-            Icon(icon, size: 16, color: AppColor.textSecondary),
+            Icon(icon, size: 16, color: WarehouseAppColor.textSecondary),
             const SizedBox(width: 10),
             Text(label,
-                style: TextStyle(fontSize: 13, color: AppColor.textPrimary)),
+                style: TextStyle(fontSize: 13, color: WarehouseAppColor.textPrimary)),
           ],
         ),
       );
@@ -647,7 +647,7 @@ class PoEmptyState extends StatelessWidget {
             isSearching
                 ? Icons.search_off_rounded
                 : Icons.receipt_long_outlined,
-            size: 52, color: AppColor.grey300,
+            size: 52, color: WarehouseAppColor.grey300,
           ),
           const SizedBox(height: 12),
           Text(
@@ -656,7 +656,7 @@ class PoEmptyState extends StatelessWidget {
                 : 'Abhi tak koi purchase order nahi',
             style: TextStyle(fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary),
+                color: WarehouseAppColor.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(
@@ -664,7 +664,7 @@ class PoEmptyState extends StatelessWidget {
                 ? 'Search ya filter change karein'
                 : 'New PO button se pehla order banao',
             style: TextStyle(fontSize: 13,
-                color: AppColor.textHint),
+                color: WarehouseAppColor.textHint),
           ),
         ],
       ),

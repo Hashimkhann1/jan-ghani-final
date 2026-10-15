@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // supplier_info_dialog.dart
 // Supplier name click karne pe khulne wala dialog
@@ -5,7 +7,7 @@
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 
 class SupplierInfoDialog extends StatelessWidget {
@@ -28,7 +30,7 @@ class SupplierInfoDialog extends StatelessWidget {
 
     return Dialog(
       shape:             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor:   AppColor.surface,
+      backgroundColor:   WarehouseAppColor.surface,
       child: SizedBox(
         width: 480,
         child: Column(
@@ -84,14 +86,14 @@ class SupplierInfoDialog extends StatelessWidget {
                     icon:       Icons.schedule_outlined,
                     label:      'Payment terms',
                     value:      '${s.paymentTerms} days credit',
-                    valueColor: AppColor.info,
+                    valueColor: WarehouseAppColor.info,
                   ),
                   if (s.code != null)
                     _InfoRow(
                       icon:       Icons.tag_rounded,
                       label:      'Supplier code',
                       value:      s.code!,
-                      valueColor: AppColor.primary,
+                      valueColor: WarehouseAppColor.primary,
                     ),
                   if (s.notes != null)
                     _InfoRow(
@@ -151,7 +153,7 @@ class _DialogHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
@@ -159,14 +161,14 @@ class _DialogHeader extends StatelessWidget {
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color:        AppColor.primary.withOpacity(0.1),
+              color:        WarehouseAppColor.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
             child: Text(
               supplier.name.isNotEmpty ? supplier.name[0].toUpperCase() : '?',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
-                  color: AppColor.primary),
+                  color: WarehouseAppColor.primary),
             ),
           ),
           const SizedBox(width: 12),
@@ -178,7 +180,7 @@ class _DialogHeader extends StatelessWidget {
               children: [
                 Text(supplier.name,
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                        color: AppColor.textPrimary)),
+                        color: WarehouseAppColor.textPrimary)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -188,13 +190,13 @@ class _DialogHeader extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color:        AppColor.primary.withOpacity(0.08),
+                          color:        WarehouseAppColor.primary.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(supplier.code!,
                             style: TextStyle(fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: AppColor.primary)),
+                                color: WarehouseAppColor.primary)),
                       ),
                       const SizedBox(width: 6),
                     ],
@@ -204,7 +206,7 @@ class _DialogHeader extends StatelessWidget {
                           horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: supplier.isActive
-                            ? AppColor.successLight : AppColor.grey200,
+                            ? WarehouseAppColor.successLight : WarehouseAppColor.grey200,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -215,7 +217,7 @@ class _DialogHeader extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: supplier.isActive
-                                  ? AppColor.success : AppColor.grey400,
+                                  ? WarehouseAppColor.success : WarehouseAppColor.grey400,
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -225,7 +227,7 @@ class _DialogHeader extends StatelessWidget {
                               fontSize:   10,
                               fontWeight: FontWeight.w600,
                               color: supplier.isActive
-                                  ? AppColor.success : AppColor.grey600,
+                                  ? WarehouseAppColor.success : WarehouseAppColor.grey600,
                             ),
                           ),
                         ],
@@ -244,11 +246,11 @@ class _DialogHeader extends StatelessWidget {
             child: Container(
               width: 30, height: 30,
               decoration: BoxDecoration(
-                color:        AppColor.grey100,
+                color:        WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.close_rounded, size: 16,
-                  color: AppColor.textSecondary),
+                  color: WarehouseAppColor.textSecondary),
             ),
           ),
         ],
@@ -283,7 +285,7 @@ class _InfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : Border(bottom: BorderSide(color: AppColor.grey100)),
+            : Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
       ),
       child: Row(
         children: [
@@ -291,10 +293,10 @@ class _InfoRow extends StatelessWidget {
           Container(
             width: 28, height: 28,
             decoration: BoxDecoration(
-              color:        AppColor.grey100,
+              color:        WarehouseAppColor.grey100,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 14, color: AppColor.grey500),
+            child: Icon(icon, size: 14, color: WarehouseAppColor.grey500),
           ),
           const SizedBox(width: 12),
 
@@ -302,7 +304,7 @@ class _InfoRow extends StatelessWidget {
           SizedBox(
             width: 120,
             child: Text(label,
-                style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
           ),
 
           // Value
@@ -311,7 +313,7 @@ class _InfoRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize:   13,
                   fontWeight: FontWeight.w500,
-                  color:      valueColor ?? AppColor.textPrimary,
+                  color:      valueColor ?? WarehouseAppColor.textPrimary,
                 ),
                 overflow: TextOverflow.ellipsis),
           ),
@@ -336,7 +338,7 @@ class _DialogFooter extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: AppColor.grey200)),
+        border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -348,17 +350,17 @@ class _DialogFooter extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color:        AppColor.primary.withOpacity(0.08),
+                color:        WarehouseAppColor.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.edit_outlined, size: 14, color: AppColor.primary),
+                  Icon(Icons.edit_outlined, size: 14, color: WarehouseAppColor.primary),
                   const SizedBox(width: 6),
                   Text('Edit supplier',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                          color: AppColor.primary)),
+                          color: WarehouseAppColor.primary)),
                 ],
               ),
             ),
@@ -372,18 +374,18 @@ class _DialogFooter extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color:        AppColor.error.withOpacity(0.08),
+                color:        WarehouseAppColor.error.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.delete_outline_rounded, size: 14,
-                      color: AppColor.error),
+                      color: WarehouseAppColor.error),
                   const SizedBox(width: 6),
                   Text('Delete',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                          color: AppColor.error)),
+                          color: WarehouseAppColor.error)),
                 ],
               ),
             ),

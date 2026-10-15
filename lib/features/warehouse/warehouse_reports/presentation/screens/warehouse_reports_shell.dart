@@ -1,5 +1,7 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/screens/inventory_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/presentation/screens/cash_flow_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/expense/presentation/screens/expense_report_screen.dart';
@@ -153,7 +155,7 @@ class _WarehouseReportsShellState extends State<WarehouseReportsShell> {
         ),
 
         // ── Divider ──────────────────────────────────────────
-        Container(width: 1, color: AppColor.grey200),
+        Container(width: 1, color: WarehouseAppColor.grey200),
 
         // ── Report content ───────────────────────────────────
         Expanded(
@@ -195,7 +197,7 @@ class _CollapsedRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColor.white,
+      color: WarehouseAppColor.white,
       child: Column(
         children: [
           const SizedBox(height: 12),
@@ -203,13 +205,13 @@ class _CollapsedRail extends StatelessWidget {
           // Open drawer button
           _RailIcon(
             icon: Icons.menu_rounded,
-            color: AppColor.grey600,
+            color: WarehouseAppColor.grey600,
             tooltip: 'Open reports menu',
             onTap: onToggle,
           ),
           const SizedBox(height: 4),
 
-          Container(height: 1, color: AppColor.grey100, margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8)),
+          Container(height: 1, color: WarehouseAppColor.grey100, margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8)),
 
           // Report icons
           ...reports.asMap().entries.map((e) => Padding(
@@ -217,10 +219,10 @@ class _CollapsedRail extends StatelessWidget {
                 child: _RailIcon(
                   icon: e.value.icon,
                   color: e.key == selectedIndex
-                      ? AppColor.primary
+                      ? WarehouseAppColor.primary
                       : e.value.isComingSoon
-                          ? AppColor.grey300
-                          : AppColor.grey500,
+                          ? WarehouseAppColor.grey300
+                          : WarehouseAppColor.grey500,
                   tooltip: e.value.label,
                   selected: e.key == selectedIndex,
                   onTap: e.value.isComingSoon
@@ -234,7 +236,7 @@ class _CollapsedRail extends StatelessWidget {
           // Back (Dashboard / accountant dashboard — caller decide karta hai)
           _RailIcon(
             icon: backIcon,
-            color: AppColor.grey500,
+            color: WarehouseAppColor.grey500,
             tooltip: backLabel,
             onTap: onBack,
           ),
@@ -272,7 +274,7 @@ class _RailIcon extends StatelessWidget {
           height: 36,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: selected ? AppColor.primary.withOpacity(0.1) : Colors.transparent,
+            color: selected ? WarehouseAppColor.primary.withOpacity(0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
           ),
           alignment: Alignment.center,
@@ -307,7 +309,7 @@ class _ExpandedDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColor.white,
+      color: WarehouseAppColor.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -316,7 +318,7 @@ class _ExpandedDrawer extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColor.grey200)),
+              border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,20 +332,20 @@ class _ExpandedDrawer extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 7, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColor.grey100,
+                          color: WarehouseAppColor.grey100,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.arrow_back_ios_rounded,
-                                size: 10, color: AppColor.grey600),
+                                size: 10, color: WarehouseAppColor.grey600),
                             const SizedBox(width: 3),
                             Text(backLabel,
                                 style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w500,
-                                    color: AppColor.grey600)),
+                                    color: WarehouseAppColor.grey600)),
                           ],
                         ),
                       ),
@@ -355,12 +357,12 @@ class _ExpandedDrawer extends StatelessWidget {
                       child: Container(
                         width: 24, height: 24,
                         decoration: BoxDecoration(
-                          color: AppColor.grey100,
+                          color: WarehouseAppColor.grey100,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         alignment: Alignment.center,
                         child: const Icon(Icons.chevron_left_rounded,
-                            size: 15, color: AppColor.grey600),
+                            size: 15, color: WarehouseAppColor.grey600),
                       ),
                     ),
                   ],
@@ -370,13 +372,13 @@ class _ExpandedDrawer extends StatelessWidget {
                 const Row(
                   children: [
                     Icon(Icons.bar_chart_rounded,
-                        size: 15, color: AppColor.primary),
+                        size: 15, color: WarehouseAppColor.primary),
                     SizedBox(width: 7),
                     Text('Reports',
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: AppColor.textPrimary)),
+                            color: WarehouseAppColor.textPrimary)),
                   ],
                 ),
               ],
@@ -401,10 +403,10 @@ class _ExpandedDrawer extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: 12, vertical: 8),
             decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppColor.grey100)),
+              border: Border(top: BorderSide(color: WarehouseAppColor.grey100)),
             ),
             child: const Text('Warehouse Reports',
-                style: TextStyle(fontSize: 9, color: AppColor.textHint)),
+                style: TextStyle(fontSize: 9, color: WarehouseAppColor.textHint)),
           ),
         ],
       ),
@@ -436,11 +438,11 @@ class _DrawerTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColor.primary.withOpacity(0.08)
+              ? WarehouseAppColor.primary.withOpacity(0.08)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(9),
           border: isSelected
-              ? Border.all(color: AppColor.primary.withOpacity(0.2))
+              ? Border.all(color: WarehouseAppColor.primary.withOpacity(0.2))
               : null,
         ),
         child: Row(
@@ -449,8 +451,8 @@ class _DrawerTile extends StatelessWidget {
               width: 26, height: 26,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColor.primary.withOpacity(0.12)
-                    : AppColor.grey100,
+                    ? WarehouseAppColor.primary.withOpacity(0.12)
+                    : WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(7),
               ),
               alignment: Alignment.center,
@@ -458,10 +460,10 @@ class _DrawerTile extends StatelessWidget {
                 item.icon,
                 size: 13,
                 color: isSelected
-                    ? AppColor.primary
+                    ? WarehouseAppColor.primary
                     : item.isComingSoon
-                        ? AppColor.grey300
-                        : AppColor.grey600,
+                        ? WarehouseAppColor.grey300
+                        : WarehouseAppColor.grey600,
               ),
             ),
             const SizedBox(width: 8),
@@ -477,16 +479,16 @@ class _DrawerTile extends StatelessWidget {
                           ? FontWeight.w700
                           : FontWeight.w500,
                       color: isSelected
-                          ? AppColor.primary
+                          ? WarehouseAppColor.primary
                           : item.isComingSoon
-                              ? AppColor.grey400
-                              : AppColor.textPrimary,
+                              ? WarehouseAppColor.grey400
+                              : WarehouseAppColor.textPrimary,
                     ),
                   ),
                   if (item.isComingSoon)
                     const Text('Soon',
                         style: TextStyle(
-                            fontSize: 9, color: AppColor.textHint)),
+                            fontSize: 9, color: WarehouseAppColor.textHint)),
                 ],
               ),
             ),
@@ -494,7 +496,7 @@ class _DrawerTile extends StatelessWidget {
               Container(
                 width: 5, height: 5,
                 decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: AppColor.primary),
+                    shape: BoxShape.circle, color: WarehouseAppColor.primary),
               ),
           ],
         ),
@@ -514,7 +516,7 @@ class _ComingSoonScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -522,44 +524,44 @@ class _ComingSoonScreen extends StatelessWidget {
             Container(
               width: 64, height: 64,
               decoration: BoxDecoration(
-                color: AppColor.primary.withOpacity(0.08),
+                color: WarehouseAppColor.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(18),
               ),
               alignment: Alignment.center,
-              child: Icon(report.icon, size: 30, color: AppColor.primary),
+              child: Icon(report.icon, size: 30, color: WarehouseAppColor.primary),
             ),
             const SizedBox(height: 16),
             Text('${report.label} Report',
                 style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
             const SizedBox(height: 6),
             Text(report.description,
                 style: const TextStyle(
-                    fontSize: 13, color: AppColor.textSecondary),
+                    fontSize: 13, color: WarehouseAppColor.textSecondary),
                 textAlign: TextAlign.center),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColor.primary.withOpacity(0.08),
+                color: WarehouseAppColor.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: AppColor.primary.withOpacity(0.2)),
+                    color: WarehouseAppColor.primary.withOpacity(0.2)),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.construction_rounded,
-                      size: 13, color: AppColor.primary),
+                      size: 13, color: WarehouseAppColor.primary),
                   SizedBox(width: 6),
                   Text('Coming Soon',
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.primary)),
+                          color: WarehouseAppColor.primary)),
                 ],
               ),
             ),

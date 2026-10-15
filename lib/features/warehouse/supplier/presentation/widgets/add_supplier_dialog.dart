@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // add_supplier_dialog.dart
 // =============================================================
@@ -5,7 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
@@ -77,11 +79,11 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color:        AppColor.primary.withOpacity(0.1),
+                        color:        WarehouseAppColor.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(Icons.person_add_outlined,
-                          color: AppColor.primary, size: 20),
+                          color: WarehouseAppColor.primary, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -91,11 +93,11 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                             style: TextStyle(
                                 fontSize:   16,
                                 fontWeight: FontWeight.w700,
-                                color:      AppColor.textPrimary)),
+                                color:      WarehouseAppColor.textPrimary)),
                         Text('Supplier ki details bharein',
                             style: TextStyle(
                                 fontSize: 12,
-                                color:    AppColor.textSecondary)),
+                                color:    WarehouseAppColor.textSecondary)),
                       ],
                     ),
                     const Spacer(),
@@ -103,13 +105,13 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                       onPressed: () => Navigator.of(context).pop(),
                       icon:  const Icon(Icons.close_rounded),
                       style: IconButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary),
+                          foregroundColor: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 20),
-                Divider(color: AppColor.grey200),
+                Divider(color: WarehouseAppColor.grey200),
                 const SizedBox(height: 16),
 
                 // ── Required Info ─────────────────────────────
@@ -251,13 +253,13 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                               style: TextStyle(
                                   fontSize:   13,
                                   fontWeight: FontWeight.w500,
-                                  color:      AppColor.textPrimary)),
+                                  color:      WarehouseAppColor.textPrimary)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<int>(
                             value: _paymentTerms,
                             decoration: InputDecoration(
                               filled:    true,
-                              fillColor: AppColor.grey100,
+                              fillColor: WarehouseAppColor.grey100,
                               contentPadding:
                               const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 12),
@@ -265,17 +267,17 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                                   borderRadius:
                                   BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                      color: AppColor.grey200)),
+                                      color: WarehouseAppColor.grey200)),
                               enabledBorder: OutlineInputBorder(
                                   borderRadius:
                                   BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                      color: AppColor.grey200)),
+                                      color: WarehouseAppColor.grey200)),
                               focusedBorder: OutlineInputBorder(
                                   borderRadius:
                                   BorderRadius.circular(8),
                                   borderSide: BorderSide(
-                                      color:  AppColor.primary,
+                                      color:  WarehouseAppColor.primary,
                                       width:  1.5)),
                             ),
                             items: [7, 15, 30, 45, 60, 90]
@@ -304,16 +306,16 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColor.warning.withOpacity(0.08),
+                          color: WarehouseAppColor.warning.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                               color:
-                              AppColor.warning.withOpacity(0.3)),
+                              WarehouseAppColor.warning.withOpacity(0.3)),
                         ),
                         child: Row(
                           children: [
                             Icon(Icons.info_outline_rounded,
-                                size: 16, color: AppColor.warning),
+                                size: 16, color: WarehouseAppColor.warning),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -322,7 +324,7 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                                     'opening entry ban jaye gi',
                                 style: TextStyle(
                                     fontSize: 12,
-                                    color:    AppColor.warning),
+                                    color:    WarehouseAppColor.warning),
                               ),
                             ),
                           ],
@@ -343,7 +345,7 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(error,
                         style: TextStyle(
-                            color: AppColor.error, fontSize: 12)),
+                            color: WarehouseAppColor.error, fontSize: 12)),
                   );
                 }),
 
@@ -353,8 +355,8 @@ class _AddSupplierDialogState extends ConsumerState<AddSupplierDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: AppColor.white,
+                      backgroundColor: WarehouseAppColor.primary,
+                      foregroundColor: WarehouseAppColor.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -445,7 +447,7 @@ class _SectionLabel extends StatelessWidget {
         style: TextStyle(
             fontSize:      12,
             fontWeight:    FontWeight.w600,
-            color:         AppColor.textSecondary,
+            color:         WarehouseAppColor.textSecondary,
             letterSpacing: 0.5));
   }
 }
@@ -484,7 +486,7 @@ class _Field extends StatelessWidget {
             style: TextStyle(
                 fontSize:   13,
                 fontWeight: FontWeight.w500,
-                color:      AppColor.textPrimary)),
+                color:      WarehouseAppColor.textPrimary)),
         const SizedBox(height: 6),
         TextFormField(
           controller:      controller,
@@ -492,31 +494,31 @@ class _Field extends StatelessWidget {
           validator:       validator,
           inputFormatters: inputFormatters,
           maxLines:        maxLines,
-          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          style: TextStyle(fontSize: 14, color: WarehouseAppColor.textPrimary),
           decoration: InputDecoration(
             hintText:    hint,
             hintStyle:   TextStyle(
-                color: AppColor.textHint, fontSize: 13),
+                color: WarehouseAppColor.textHint, fontSize: 13),
             helperText:  helperText,
             helperStyle: TextStyle(
-                color: AppColor.textSecondary, fontSize: 11),
+                color: WarehouseAppColor.textSecondary, fontSize: 11),
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14, vertical: 12),
             filled:    true,
-            fillColor: AppColor.grey100,
+            fillColor: WarehouseAppColor.grey100,
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide:   BorderSide(color: AppColor.grey200)),
+                borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide:   BorderSide(color: AppColor.grey200)),
+                borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide:
-                BorderSide(color: AppColor.primary, width: 1.5)),
+                BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
             errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide:   BorderSide(color: AppColor.error)),
+                borderSide:   BorderSide(color: WarehouseAppColor.error)),
           ),
         ),
       ],

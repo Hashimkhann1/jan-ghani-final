@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // po_cart_panel.dart
 // FIX: _invoiceStatus aur _poType ab provider state se sync hote hain
@@ -8,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/add_supplier_dialog.dart';
@@ -63,7 +65,7 @@ class _PoCartPanelState extends ConsumerState<PoCartPanel> {
     _prevCount = state.cartItems.length;
 
     return Container(
-      color: AppColor.background,
+      color: WarehouseAppColor.background,
       child: Column(
         children: [
           const PoInvoiceHeaderWidget(),
@@ -175,8 +177,8 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: const BoxDecoration(
-        color: AppColor.white,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color: WarehouseAppColor.white,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Column(
         children: [
@@ -207,7 +209,7 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                             style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: AppColor.textSecondary)),
+                                color: WarehouseAppColor.textSecondary)),
                         GestureDetector(
                           onTap: () => showPOAddSupplierDialog(context),
                           child: Row(
@@ -253,9 +255,9 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                         decoration: InputDecoration(
                           hintText: 'Select Supplier',
                           prefixIcon: Icon(Icons.person_outline,
-                              size: 16, color: AppColor.grey500),
+                              size: 16, color: WarehouseAppColor.grey500),
                           filled: true,
-                          fillColor: AppColor.grey100,
+                          fillColor: WarehouseAppColor.grey100,
                           contentPadding:
                               EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           border: OutlineInputBorder(
@@ -264,12 +266,12 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.all(Radius.circular(8)),
-                            borderSide: BorderSide(color: AppColor.grey200),
+                            borderSide: BorderSide(color: WarehouseAppColor.grey200),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.all(Radius.circular(8)),
                             borderSide:
-                                BorderSide(color: AppColor.primary, width: 1.5),
+                                BorderSide(color: WarehouseAppColor.primary, width: 1.5),
                           ),
                         ),
                       ),
@@ -282,7 +284,7 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                             hintText: 'Search supplier...',
                             prefixIcon: const Icon(Icons.search, size: 18),
                             filled: true,
-                            fillColor: AppColor.grey100,
+                            fillColor: WarehouseAppColor.grey100,
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                             border: InputBorder.none,
@@ -295,12 +297,12 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                             ListTile(
                           leading: CircleAvatar(
                             radius: 14,
-                            backgroundColor: AppColor.primary.withOpacity(0.1),
+                            backgroundColor: WarehouseAppColor.primary.withOpacity(0.1),
                             child: Text(s.initials,
                                 style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColor.primary)),
+                                    color: WarehouseAppColor.primary)),
                           ),
                           title: Text(s.company,
                               style: TextStyle(
@@ -309,8 +311,8 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                                       ? FontWeight.w600
                                       : FontWeight.w600,
                                   color: isSelected
-                                      ? AppColor.primary
-                                      : AppColor.textPrimary)),
+                                      ? WarehouseAppColor.primary
+                                      : WarehouseAppColor.textPrimary)),
                           subtitle: Text.rich(
                             TextSpan(
                               children: [
@@ -322,7 +324,7 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                                     fontSize: 12,
                                     color: s.hasDue
                                         ? const Color(0xFFEF4444)
-                                        : AppColor.textSecondary,
+                                        : WarehouseAppColor.textSecondary,
                                   ),
                                 ),
                               ],
@@ -330,11 +332,11 @@ class _PoInvoiceHeaderWidgetState extends ConsumerState<PoInvoiceHeaderWidget> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: 10, color: AppColor.textSecondary),
+                                fontSize: 10, color: WarehouseAppColor.textSecondary),
                           ),
                           trailing: isSelected
                               ? const Icon(Icons.check_circle,
-                                  size: 16, color: AppColor.primary)
+                                  size: 16, color: WarehouseAppColor.primary)
                               : null,
                         ),
                         fit: FlexFit.loose,
@@ -454,7 +456,7 @@ class _InvoiceStatusDropdown extends StatelessWidget {
           style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: AppColor.textSecondary),
+              color: WarehouseAppColor.textSecondary),
         ),
         const SizedBox(height: 4),
         DropdownButtonFormField<InvoiceStatus>(
@@ -481,7 +483,7 @@ class _InvoiceStatusDropdown extends StatelessWidget {
           ),
           style: TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600, color: value.color),
-          dropdownColor: AppColor.white,
+          dropdownColor: WarehouseAppColor.white,
           icon: Icon(Icons.expand_more_rounded, size: 18, color: value.color),
           items: InvoiceStatus.values
               .where((s) => isLocked ? s == InvoiceStatus.completed : true)
@@ -534,10 +536,10 @@ class _DatePickerField extends StatelessWidget {
     final hasDate = date != null;
     final showWarn = isRequired && !hasDate;
     final borderColor =
-        showWarn ? AppColor.warning.withOpacity(0.5) : AppColor.grey200;
+        showWarn ? WarehouseAppColor.warning.withOpacity(0.5) : WarehouseAppColor.grey200;
     final iconColor = hasDate
-        ? AppColor.primary
-        : (showWarn ? AppColor.warning : AppColor.grey400);
+        ? WarehouseAppColor.primary
+        : (showWarn ? WarehouseAppColor.warning : WarehouseAppColor.grey400);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,13 +550,13 @@ class _DatePickerField extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppColor.textSecondary)),
+                    color: WarehouseAppColor.textSecondary)),
             if (isRequired && !hasDate) ...[
               const SizedBox(width: 4),
               Text('*required',
                   style: TextStyle(
                       fontSize: 9,
-                      color: AppColor.warning,
+                      color: WarehouseAppColor.warning,
                       fontWeight: FontWeight.w500)),
             ],
           ],
@@ -567,8 +569,8 @@ class _DatePickerField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             decoration: BoxDecoration(
               color: showWarn
-                  ? AppColor.warning.withOpacity(0.05)
-                  : AppColor.grey100,
+                  ? WarehouseAppColor.warning.withOpacity(0.05)
+                  : WarehouseAppColor.grey100,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: borderColor),
             ),
@@ -582,11 +584,11 @@ class _DatePickerField extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 12,
                         color:
-                            hasDate ? AppColor.textPrimary : AppColor.textHint),
+                            hasDate ? WarehouseAppColor.textPrimary : WarehouseAppColor.textHint),
                   ),
                 ),
                 Icon(Icons.expand_more_rounded,
-                    size: 16, color: AppColor.grey400),
+                    size: 16, color: WarehouseAppColor.grey400),
               ],
             ),
           ),
@@ -628,7 +630,7 @@ class _PaidAmountField extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppColor.textSecondary)),
+                    color: WarehouseAppColor.textSecondary)),
             const Spacer(),
             if (grandTotal > 0)
               Text(
@@ -636,7 +638,7 @@ class _PaidAmountField extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: isFullPay ? AppColor.success : AppColor.warning),
+                    color: isFullPay ? WarehouseAppColor.success : WarehouseAppColor.warning),
               ),
           ],
         ),
@@ -655,14 +657,14 @@ class _PaidAmountField extends StatelessWidget {
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
                 ],
                 style:
-                    const TextStyle(fontSize: 13, color: AppColor.textPrimary),
+                    const TextStyle(fontSize: 13, color: WarehouseAppColor.textPrimary),
                 cursorHeight: 14,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.payments_outlined,
-                      size: 16, color: AppColor.grey500),
+                      size: 16, color: WarehouseAppColor.grey500),
                   hintText: '0',
                   filled: true,
-                  fillColor: AppColor.grey100,
+                  fillColor: WarehouseAppColor.grey100,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                   border: OutlineInputBorder(
@@ -671,11 +673,11 @@ class _PaidAmountField extends StatelessWidget {
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColor.grey200),
+                    borderSide: BorderSide(color: WarehouseAppColor.grey200),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColor.primary, width: 1.5),
+                    borderSide: BorderSide(color: WarehouseAppColor.primary, width: 1.5),
                   ),
                 ),
               ),
@@ -690,8 +692,8 @@ class _PaidAmountField extends StatelessWidget {
                     onChanged(controller.text);
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.success,
-                    side: BorderSide(color: AppColor.success),
+                    foregroundColor: WarehouseAppColor.success,
+                    side: BorderSide(color: WarehouseAppColor.success),
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                     shape: RoundedRectangleBorder(
@@ -729,21 +731,21 @@ class _EmptyCart extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.06),
+              color: WarehouseAppColor.primary.withOpacity(0.06),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.inventory_2_outlined,
-                size: 40, color: AppColor.primary),
+                size: 40, color: WarehouseAppColor.primary),
           ),
           const SizedBox(height: 12),
           const Text('No items added',
               style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColor.textSecondary)),
+                  color: WarehouseAppColor.textSecondary)),
           const SizedBox(height: 4),
           const Text('Double tap a product to add it',
-              style: TextStyle(fontSize: 12, color: AppColor.textHint)),
+              style: TextStyle(fontSize: 12, color: WarehouseAppColor.textHint)),
         ],
       ),
     );

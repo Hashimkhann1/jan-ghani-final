@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // cash_in_dialog.dart
 // Widget: Cash In Dialog
@@ -5,7 +7,7 @@
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 
 class CashInDialog extends StatefulWidget {
@@ -50,25 +52,25 @@ class _CashInDialogState extends State<CashInDialog> {
   InputDecoration _inputDeco(String hint) {
     return InputDecoration(
       hintText:  hint,
-      hintStyle: const TextStyle(color: AppColor.textHint),
+      hintStyle: const TextStyle(color: WarehouseAppColor.textHint),
       filled:    true,
-      fillColor: AppColor.grey100,
+      fillColor: WarehouseAppColor.grey100,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColor.border),
+        borderSide: const BorderSide(color: WarehouseAppColor.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColor.border),
+        borderSide: const BorderSide(color: WarehouseAppColor.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(
-            color: AppColor.borderFocused, width: 1.5),
+            color: WarehouseAppColor.borderFocused, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColor.error),
+        borderSide: const BorderSide(color: WarehouseAppColor.error),
       ),
     );
   }
@@ -76,7 +78,7 @@ class _CashInDialogState extends State<CashInDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColor.surface,
+      backgroundColor: WarehouseAppColor.surface,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12)),
       child: SizedBox(
@@ -95,11 +97,11 @@ class _CashInDialogState extends State<CashInDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withOpacity(0.1),
+                        color: WarehouseAppColor.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.add_rounded,
-                          color: AppColor.primary, size: 20),
+                          color: WarehouseAppColor.primary, size: 20),
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -107,14 +109,14 @@ class _CashInDialogState extends State<CashInDialog> {
                       style: TextStyle(
                         fontSize:   18,
                         fontWeight: FontWeight.w700,
-                        color:      AppColor.textPrimary,
+                        color:      WarehouseAppColor.textPrimary,
                       ),
                     ),
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close_rounded,
-                          color: AppColor.textSecondary, size: 20),
+                          color: WarehouseAppColor.textSecondary, size: 20),
                     ),
                   ],
                 ),
@@ -126,7 +128,7 @@ class _CashInDialogState extends State<CashInDialog> {
                   style: TextStyle(
                     fontSize:   13,
                     fontWeight: FontWeight.w500,
-                    color:      AppColor.textPrimary,
+                    color:      WarehouseAppColor.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -135,11 +137,11 @@ class _CashInDialogState extends State<CashInDialog> {
                   keyboardType: const TextInputType
                       .numberWithOptions(decimal: true),
                   style: const TextStyle(
-                      fontSize: 15, color: AppColor.textPrimary),
+                      fontSize: 15, color: WarehouseAppColor.textPrimary),
                   decoration: _inputDeco('0.00').copyWith(
                     prefixText:  'Rs. ',
                     prefixStyle: const TextStyle(
-                        color:      AppColor.primary,
+                        color:      WarehouseAppColor.primary,
                         fontWeight: FontWeight.w600),
                   ),
                   validator: (v) {
@@ -160,7 +162,7 @@ class _CashInDialogState extends State<CashInDialog> {
                   style: TextStyle(
                     fontSize:   13,
                     fontWeight: FontWeight.w500,
-                    color:      AppColor.textPrimary,
+                    color:      WarehouseAppColor.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -168,7 +170,7 @@ class _CashInDialogState extends State<CashInDialog> {
                   controller: _notesCtrl,
                   maxLines:   3,
                   style: const TextStyle(
-                      fontSize: 14, color: AppColor.textPrimary),
+                      fontSize: 14, color: WarehouseAppColor.textPrimary),
                   decoration: _inputDeco(
                       'Jaise: Opening cash, Investment...'),
                 ),
@@ -181,7 +183,7 @@ class _CashInDialogState extends State<CashInDialog> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColor.border),
+                          side: const BorderSide(color: WarehouseAppColor.border),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8)),
@@ -189,7 +191,7 @@ class _CashInDialogState extends State<CashInDialog> {
                         child: const Text(
                           'Cancel',
                           style: TextStyle(
-                            color:      AppColor.textSecondary,
+                            color:      WarehouseAppColor.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -200,8 +202,8 @@ class _CashInDialogState extends State<CashInDialog> {
                       child: ElevatedButton(
                         onPressed: _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.primary,
-                          foregroundColor: AppColor.white,
+                          backgroundColor: WarehouseAppColor.primary,
+                          foregroundColor: WarehouseAppColor.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(

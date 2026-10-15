@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // add_expense_dialog.dart
 // Location: features/warehouse_expense/presentation/widgets/
@@ -5,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/domain/warehouse_expense_model.dart';
 
@@ -111,33 +113,33 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
 
   InputDecoration _deco(String hint) => InputDecoration(
     hintText:  hint,
-    hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
+    hintStyle: const TextStyle(color: WarehouseAppColor.textHint, fontSize: 13),
     filled:    true,
-    fillColor: AppColor.grey100,
+    fillColor: WarehouseAppColor.grey100,
     contentPadding: const EdgeInsets.symmetric(
         horizontal: 14, vertical: 13),
     border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColor.border)),
+        borderSide: const BorderSide(color: WarehouseAppColor.border)),
     enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColor.border)),
+        borderSide: const BorderSide(color: WarehouseAppColor.border)),
     focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(
-            color: AppColor.borderFocused, width: 1.5)),
+            color: WarehouseAppColor.borderFocused, width: 1.5)),
     errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColor.error)),
+        borderSide: const BorderSide(color: WarehouseAppColor.error)),
     focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColor.error, width: 1.5)),
+        borderSide: const BorderSide(color: WarehouseAppColor.error, width: 1.5)),
   );
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColor.surface,
+      backgroundColor: WarehouseAppColor.surface,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
@@ -157,11 +159,11 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withOpacity(0.1),
+                        color: WarehouseAppColor.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(Icons.receipt_outlined,
-                          color: AppColor.primary, size: 20),
+                          color: WarehouseAppColor.primary, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -171,7 +173,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                             style: const TextStyle(
                               fontSize:   17,
                               fontWeight: FontWeight.w700,
-                              color:      AppColor.textPrimary,
+                              color:      WarehouseAppColor.textPrimary,
                             )),
                         Text(
                             _isEdit
@@ -179,7 +181,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                 : 'Expense ki details bharein',
                             style: const TextStyle(
                                 fontSize: 11,
-                                color:    AppColor.textSecondary)),
+                                color:    WarehouseAppColor.textSecondary)),
                       ],
                     ),
                     const Spacer(),
@@ -189,11 +191,11 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                       child: Container(
                         width: 30, height: 30,
                         decoration: BoxDecoration(
-                          color:        AppColor.grey100,
+                          color:        WarehouseAppColor.grey100,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.close_rounded,
-                            size: 16, color: AppColor.textSecondary),
+                            size: 16, color: WarehouseAppColor.textSecondary),
                       ),
                     ),
                   ],
@@ -206,12 +208,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     style: TextStyle(
                         fontSize:   13,
                         fontWeight: FontWeight.w500,
-                        color:      AppColor.textPrimary)),
+                        color:      WarehouseAppColor.textPrimary)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _headCtrl,
                   style: const TextStyle(
-                      fontSize: 14, color: AppColor.textPrimary),
+                      fontSize: 14, color: WarehouseAppColor.textPrimary),
                   decoration: _deco('e.g. Rent, Salary...'),
                   onChanged: (_) => setState(() {}),
                   validator: (v) => (v == null || v.trim().isEmpty)
@@ -225,7 +227,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     style: TextStyle(
                         fontSize:   11,
                         fontWeight: FontWeight.w500,
-                        color:      AppColor.textSecondary)),
+                        color:      WarehouseAppColor.textSecondary)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing:   8,
@@ -242,13 +244,13 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                             horizontal: 14, vertical: 7),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColor.primary
-                              : AppColor.grey100,
+                              ? WarehouseAppColor.primary
+                              : WarehouseAppColor.grey100,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isSelected
-                                ? AppColor.primary
-                                : AppColor.grey300,
+                                ? WarehouseAppColor.primary
+                                : WarehouseAppColor.grey300,
                           ),
                         ),
                         child: Text(
@@ -257,8 +259,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                             fontSize:   12,
                             fontWeight: FontWeight.w500,
                             color: isSelected
-                                ? AppColor.white
-                                : AppColor.textSecondary,
+                                ? WarehouseAppColor.white
+                                : WarehouseAppColor.textSecondary,
                           ),
                         ),
                       ),
@@ -273,7 +275,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     style: TextStyle(
                         fontSize:   13,
                         fontWeight: FontWeight.w500,
-                        color:      AppColor.textPrimary)),
+                        color:      WarehouseAppColor.textPrimary)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller:   _amountCtrl,
@@ -286,13 +288,13 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColor.textPrimary),
+                      color: WarehouseAppColor.textPrimary),
                   decoration: _deco('0').copyWith(
                     prefixText:  'Rs ',
                     prefixStyle: const TextStyle(
                         fontSize:   14,
                         fontWeight: FontWeight.w600,
-                        color:      AppColor.primary),
+                        color:      WarehouseAppColor.primary),
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty)
@@ -311,13 +313,13 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     style: TextStyle(
                         fontSize:   13,
                         fontWeight: FontWeight.w500,
-                        color:      AppColor.textPrimary)),
+                        color:      WarehouseAppColor.textPrimary)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _notesCtrl,
                   maxLines:   3,
                   style: const TextStyle(
-                      fontSize: 13, color: AppColor.textPrimary),
+                      fontSize: 13, color: WarehouseAppColor.textPrimary),
                   decoration: _deco('Kam se kam 10 characters likhein...'),
                   validator: (v) {
                     final t = v?.trim() ?? '';
@@ -338,8 +340,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: AppColor.white,
+                      backgroundColor: WarehouseAppColor.primary,
+                      foregroundColor: WarehouseAppColor.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -349,7 +351,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                         width: 20, height: 20,
                         child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColor.white))
+                            color: WarehouseAppColor.white))
                         : Text(_isEdit ? 'Update Expense' : 'Save Expense',
                         style: const TextStyle(
                             fontSize:   14,

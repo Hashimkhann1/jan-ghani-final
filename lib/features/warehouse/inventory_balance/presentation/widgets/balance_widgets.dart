@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // balance_widgets.dart
 // Reusable small widgets for Inventory Balance feature:
@@ -8,7 +10,7 @@
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
 import '../../domain/balance_status.dart';
@@ -58,20 +60,20 @@ class HighVarianceBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color:        AppColor.errorLight,
+        color:        WarehouseAppColor.errorLight,
         borderRadius: BorderRadius.circular(6),
-        border:       Border.all(color: AppColor.error.withOpacity(0.4)),
+        border:       Border.all(color: WarehouseAppColor.error.withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 12, color: AppColor.error),
+          const Icon(Icons.warning_amber_rounded, size: 12, color: WarehouseAppColor.error),
           const SizedBox(width: 4),
           Text('High variance · Rs ${rupeeImpact.pkrFormat}',
               style: const TextStyle(
                 fontSize:   10.5,
                 fontWeight: FontWeight.w700,
-                color:      AppColor.error,
+                color:      WarehouseAppColor.error,
               )),
         ],
       ),
@@ -96,7 +98,7 @@ class DeltaText extends StatelessWidget {
       style: TextStyle(
         fontSize:   fontSize ?? 13,
         fontWeight: weight   ?? FontWeight.w700,
-        color:      positive ? AppColor.success : AppColor.error,
+        color:      positive ? WarehouseAppColor.success : WarehouseAppColor.error,
       ),
     );
   }
@@ -125,7 +127,7 @@ class FourNumberRow extends StatelessWidget {
         children: [
           Text(label,
               style: const TextStyle(
-                fontSize: 10, color: AppColor.textSecondary,
+                fontSize: 10, color: WarehouseAppColor.textSecondary,
                 fontWeight: FontWeight.w600,
               )),
           const SizedBox(height: 3),
@@ -142,19 +144,19 @@ class FourNumberRow extends StatelessWidget {
         cell('SYS @ COUNT', Text(fmt(systemAtCount),
             style: const TextStyle(
               fontSize: 14, fontWeight: FontWeight.w700,
-              color: AppColor.textPrimary,
+              color: WarehouseAppColor.textPrimary,
             ))),
         cell('PHYSICAL', Text(fmt(physical),
             style: const TextStyle(
               fontSize: 14, fontWeight: FontWeight.w700,
-              color: AppColor.textPrimary,
+              color: WarehouseAppColor.textPrimary,
             ))),
         cell('DELTA', DeltaText(delta: delta, fontSize: 14)),
         if (currentSystemNow != null)
           cell('SYS NOW', Text(fmt(currentSystemNow!),
               style: const TextStyle(
                 fontSize: 14, fontWeight: FontWeight.w700,
-                color: AppColor.textPrimary,
+                color: WarehouseAppColor.textPrimary,
               ))),
       ],
     );

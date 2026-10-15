@@ -1,6 +1,8 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_report_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/widgets/assign_stock_cart_panel.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/widgets/assign_stock_product_list_panel.dart';
@@ -11,7 +13,7 @@ class AssignStockScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -20,9 +22,9 @@ class AssignStockScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColor.surface,
+              color: WarehouseAppColor.surface,
               border: Border(
-                  bottom: BorderSide(color: AppColor.grey200)),
+                  bottom: BorderSide(color: WarehouseAppColor.grey200)),
             ),
             child: Row(
               children: [
@@ -37,12 +39,12 @@ class AssignStockScreen extends ConsumerWidget {
                 //   child: Container(
                 //     padding: const EdgeInsets.all(8),
                 //     decoration: BoxDecoration(
-                //       color: AppColor.grey100,
+                //       color: WarehouseAppColor.grey100,
                 //       borderRadius: BorderRadius.circular(8),
-                //       border: Border.all(color: AppColor.grey200),
+                //       border: Border.all(color: WarehouseAppColor.grey200),
                 //     ),
                 //     child: const Icon(Icons.arrow_back_rounded,
-                //         size: 18, color: AppColor.textPrimary),
+                //         size: 18, color: WarehouseAppColor.textPrimary),
                 //   ),
                 // ),
                 const SizedBox(width: 12),
@@ -54,13 +56,13 @@ class AssignStockScreen extends ConsumerWidget {
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary),
+                          color: WarehouseAppColor.textPrimary),
                     ),
                     Text(
                       'Store select karo aur products add karo',
                       style: TextStyle(
                           fontSize: 13,
-                          color: AppColor.textSecondary),
+                          color: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -73,7 +75,7 @@ class AssignStockScreen extends ConsumerWidget {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 12,vertical: 5),
                     decoration: BoxDecoration(
-                      color: AppColor.primary,
+                      color: WarehouseAppColor.primary,
                       borderRadius: BorderRadius.circular(12)
                     ),
                     child: Text("Assigned Stock Report",style: TextStyle(fontSize: 15,color: Colors.white),)

@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 09:49 AM
+// Updated on 2026-10-15 10:28 AM
 // =============================================================
 // nav_tile_widget.dart — warehouse sidebar ka ek menu item
 //   • Expanded (248px): icon + label
@@ -7,7 +7,7 @@
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/widget/sidebar/sidebar_widget.dart';
 
 class NavTile extends StatefulWidget {
@@ -34,10 +34,10 @@ class _NavTileState extends State<NavTile> {
   @override
   Widget build(BuildContext context) {
     final sel   = widget.selected;
-    final color = sel ? AppColor.primary : AppColor.textSecondary;
+    final color = sel ? WarehouseAppColor.primary : WarehouseAppColor.textSecondary;
     final bg    = sel
-        ? AppColor.primary.withOpacity(0.10)
-        : (_hover ? AppColor.grey100 : AppColor.transparent);
+        ? WarehouseAppColor.primary.withOpacity(0.10)
+        : (_hover ? WarehouseAppColor.grey100 : WarehouseAppColor.transparent);
 
     final icon = Icon(widget.item.icon, size: 20, color: color);
 
@@ -63,7 +63,7 @@ class _NavTileState extends State<NavTile> {
                   child: Container(
                     width: 3,
                     decoration: BoxDecoration(
-                      color:        AppColor.primary,
+                      color:        WarehouseAppColor.primary,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -85,7 +85,7 @@ class _NavTileState extends State<NavTile> {
                           style: TextStyle(
                             fontSize:   14,
                             fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
-                            color:      sel ? AppColor.primary : AppColor.textPrimary,
+                            color:      sel ? WarehouseAppColor.primary : WarehouseAppColor.textPrimary,
                           ),
                         ),
                       ),

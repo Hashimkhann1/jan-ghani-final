@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // linked_store_product_row.dart
 // Single product row — linked store inventory list ke liye.
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/link_stores/inventory/data/models/linked_store_product_model.dart';
 
@@ -24,18 +26,18 @@ class LinkedStoreProductRow extends StatelessWidget {
     final Color color;
     final Color bg;
     if (p.isOut) {
-      badge = 'Out';  color = AppColor.error;   bg = AppColor.errorLight;
+      badge = 'Out';  color = WarehouseAppColor.error;   bg = WarehouseAppColor.errorLight;
     } else if (p.isLow) {
-      badge = 'Low';  color = AppColor.warning; bg = AppColor.warningLight;
+      badge = 'Low';  color = WarehouseAppColor.warning; bg = WarehouseAppColor.warningLight;
     } else {
-      badge = 'OK';   color = AppColor.success;  bg = AppColor.successLight;
+      badge = 'OK';   color = WarehouseAppColor.success;  bg = WarehouseAppColor.successLight;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
       decoration: BoxDecoration(
-        color: AppColor.surface,
-        border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100)),
+        color: WarehouseAppColor.surface,
+        border: isLast ? null : const Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
       ),
       child: Row(
         children: [
@@ -46,11 +48,11 @@ class LinkedStoreProductRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(p.productName,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text('SKU: ${p.sku ?? '—'}',
-                    style: const TextStyle(fontSize: 10, color: AppColor.textHint),
+                    style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textHint),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
@@ -67,12 +69,12 @@ class LinkedStoreProductRow extends StatelessWidget {
                     TextSpan(text: _qty(p.stock),
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
                     TextSpan(text: p.unit == null ? '' : ' ${p.unit}',
-                        style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+                        style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textHint)),
                   ]),
                 ),
                 const SizedBox(height: 2),
                 Text('Min: ${_qty(p.minStock)}',
-                    style: const TextStyle(fontSize: 9, color: AppColor.textSecondary)),
+                    style: const TextStyle(fontSize: 9, color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -82,7 +84,7 @@ class LinkedStoreProductRow extends StatelessWidget {
             flex: 3,
             child: Text('Rs ${p.salePrice.pkrFormat}',
                 textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
           ),
           const SizedBox(width: 8),
           // Status badge

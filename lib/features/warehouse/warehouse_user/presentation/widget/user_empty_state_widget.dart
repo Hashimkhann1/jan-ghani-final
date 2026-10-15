@@ -1,5 +1,7 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 class UserEmptyStateWidget extends StatelessWidget {
   final bool isSearching;
@@ -16,7 +18,7 @@ class UserEmptyStateWidget extends StatelessWidget {
                 ? Icons.search_off_rounded
                 : Icons.people_outline_rounded,
             size:  64,
-            color: AppColor.grey300,
+            color: WarehouseAppColor.grey300,
           ),
           const SizedBox(height: 16),
           Text(
@@ -24,7 +26,7 @@ class UserEmptyStateWidget extends StatelessWidget {
             style: const TextStyle(
                 fontSize:   16,
                 fontWeight: FontWeight.w600,
-                color:      AppColor.textSecondary),
+                color:      WarehouseAppColor.textSecondary),
           ),
           const SizedBox(height: 6),
           Text(
@@ -32,7 +34,7 @@ class UserEmptyStateWidget extends StatelessWidget {
                 ? 'Search query change karein'
                 : 'New User button se user add karein',
             style: const TextStyle(
-                fontSize: 13, color: AppColor.textHint),
+                fontSize: 13, color: WarehouseAppColor.textHint),
           ),
         ],
       ),

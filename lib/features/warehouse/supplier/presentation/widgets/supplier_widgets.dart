@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // supplier_widgets.dart
 // Reusable small widgets — sirf supplier feature ke liye
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -57,12 +59,12 @@ class SupplierStatCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize:   18,
                     fontWeight: FontWeight.w700,
-                    color:      AppColor.textPrimary,
+                    color:      WarehouseAppColor.textPrimary,
                   ),
                 ),
                 Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: AppColor.textSecondary),
+                  style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary),
                 ),
               ],
             ),
@@ -101,10 +103,10 @@ class SupplierFilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color:        isSelected ? AppColor.primary : AppColor.surface,
+          color:        isSelected ? WarehouseAppColor.primary : WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? AppColor.primary : AppColor.grey300,
+            color: isSelected ? WarehouseAppColor.primary : WarehouseAppColor.grey300,
           ),
         ),
         child: Text(
@@ -112,7 +114,7 @@ class SupplierFilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize:   13,
             fontWeight: FontWeight.w500,
-            color:      isSelected ? AppColor.white : AppColor.textSecondary,
+            color:      isSelected ? WarehouseAppColor.white : WarehouseAppColor.textSecondary,
           ),
         ),
       ),
@@ -131,8 +133,8 @@ class SupplierStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? AppColor.success : AppColor.grey400;
-    final bgColor = isActive ? AppColor.successLight : AppColor.grey200;
+    final color = isActive ? WarehouseAppColor.success : WarehouseAppColor.grey400;
+    final bgColor = isActive ? WarehouseAppColor.successLight : WarehouseAppColor.grey200;
     final label = isActive ? 'Active' : 'Inactive';
 
     return Container(
@@ -185,9 +187,9 @@ class SupplierBalanceBadge extends StatelessWidget {
     //  isClear → grey (kuch nahi banta)
     final Color badgeColor;
     if (supplier.hasDue) {
-      badgeColor = AppColor.error;
+      badgeColor = WarehouseAppColor.error;
     } else {
-      badgeColor = AppColor.grey500;
+      badgeColor = WarehouseAppColor.grey500;
     }
 
     return Container(
@@ -261,7 +263,7 @@ class SupplierAvatar extends StatelessWidget {
       width:  38,
       height: 38,
       decoration: BoxDecoration(
-        color:        AppColor.primary.withOpacity(0.1),
+        color:        WarehouseAppColor.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,
@@ -269,7 +271,7 @@ class SupplierAvatar extends StatelessWidget {
         name.isNotEmpty ? name[0].toUpperCase() : '?',
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          color:      AppColor.primary,
+          color:      WarehouseAppColor.primary,
           fontSize:   15,
         ),
       ),
@@ -291,7 +293,7 @@ class PaymentTermsBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color:        AppColor.infoLight,
+        color:        WarehouseAppColor.infoLight,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -300,7 +302,7 @@ class PaymentTermsBadge extends StatelessWidget {
         style: TextStyle(
           fontSize:   11,
           fontWeight: FontWeight.w500,
-          color:      AppColor.info,
+          color:      WarehouseAppColor.info,
         ),
       ),
     );
@@ -327,7 +329,7 @@ class SupplierEmptyState extends StatelessWidget {
                 ? Icons.search_off_rounded
                 : Icons.people_outline_rounded,
             size:  56,
-            color: AppColor.grey300,
+            color: WarehouseAppColor.grey300,
           ),
           const SizedBox(height: 12),
           Text(
@@ -335,7 +337,7 @@ class SupplierEmptyState extends StatelessWidget {
             style: TextStyle(
               fontSize:   16,
               fontWeight: FontWeight.w600,
-              color:      AppColor.textSecondary,
+              color:      WarehouseAppColor.textSecondary,
             ),
           ),
           const SizedBox(height: 4),
@@ -343,7 +345,7 @@ class SupplierEmptyState extends StatelessWidget {
             isSearching
                 ? 'Search ya filter change karein'
                 : 'New Supplier button se add karein',
-            style: TextStyle(fontSize: 13, color: AppColor.textHint),
+            style: TextStyle(fontSize: 13, color: WarehouseAppColor.textHint),
           ),
         ],
       ),

@@ -1,6 +1,8 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/helper/password_helper.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/data/model/user_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/provider/user_provider.dart';
@@ -110,13 +112,13 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                          color: AppColor.primary.withValues(alpha: 0.1),
+                          color: WarehouseAppColor.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8)),
                       child: Icon(
                         _isEdit
                             ? Icons.edit_outlined
                             : Icons.person_add_outlined,
-                        color: AppColor.primary, size: 20,
+                        color: WarehouseAppColor.primary, size: 20,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -130,7 +132,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                         const Text('User ki details bharein',
                             style: TextStyle(
                                 fontSize: 12,
-                                color:    AppColor.textSecondary)),
+                                color:    WarehouseAppColor.textSecondary)),
                       ],
                     ),
                     const Spacer(),
@@ -140,13 +142,13 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                           : () => Navigator.of(context).pop(),
                       icon:  const Icon(Icons.close_rounded),
                       style: IconButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary),
+                          foregroundColor: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 20),
-                const Divider(color: AppColor.grey200),
+                const Divider(color: WarehouseAppColor.grey200),
                 const SizedBox(height: 16),
 
                 // ── Required ─────────────────────────────
@@ -196,7 +198,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                   controller:  _password,
                   obscureText: !_showPass,
                   style: const TextStyle(
-                      fontSize: 14, color: AppColor.textPrimary),
+                      fontSize: 14, color: WarehouseAppColor.textPrimary),
                   validator: (v) {
                     if (!_isEdit && (v == null || v.isEmpty))
                       return 'Password required hai';
@@ -209,9 +211,9 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                         ? 'Naya password (optional)'
                         : '••••••••',
                     hintStyle: const TextStyle(
-                        color: AppColor.textHint, fontSize: 13),
+                        color: WarehouseAppColor.textHint, fontSize: 13),
                     filled:    true,
-                    fillColor: AppColor.grey100,
+                    fillColor: WarehouseAppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                     suffixIcon: IconButton(
@@ -219,7 +221,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                         _showPass
                             ? Icons.visibility_off_outlined
                             : Icons.visibility_outlined,
-                        size: 18, color: AppColor.grey400,
+                        size: 18, color: WarehouseAppColor.grey400,
                       ),
                       onPressed: () =>
                           setState(() => _showPass = !_showPass),
@@ -227,19 +229,19 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.grey200)),
+                            color: WarehouseAppColor.grey200)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.grey200)),
+                            color: WarehouseAppColor.grey200)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
+                            color: WarehouseAppColor.primary, width: 1.5)),
                     errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.error)),
+                            color: WarehouseAppColor.error)),
                   ),
                 ),
 
@@ -265,21 +267,21 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                   value: _role,
                   decoration: InputDecoration(
                     filled:    true,
-                    fillColor: AppColor.grey100,
+                    fillColor: WarehouseAppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.grey200)),
+                            color: WarehouseAppColor.grey200)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.grey200)),
+                            color: WarehouseAppColor.grey200)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
+                            color: WarehouseAppColor.primary, width: 1.5)),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -306,24 +308,24 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 4),
                   decoration: BoxDecoration(
-                    color:        AppColor.grey100,
+                    color:        WarehouseAppColor.grey100,
                     borderRadius: BorderRadius.circular(8),
-                    border:       Border.all(color: AppColor.grey200),
+                    border:       Border.all(color: WarehouseAppColor.grey200),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.toggle_on_outlined,
-                          size: 18, color: AppColor.textSecondary),
+                          size: 18, color: WarehouseAppColor.textSecondary),
                       const SizedBox(width: 8),
                       const Text('Active User',
                           style: TextStyle(
                               fontSize:   13,
                               fontWeight: FontWeight.w500,
-                              color:      AppColor.textPrimary)),
+                              color:      WarehouseAppColor.textPrimary)),
                       const Spacer(),
                       Switch(
                         value:       _isActive,
-                        activeColor: AppColor.primary,
+                        activeColor: WarehouseAppColor.primary,
                         onChanged:   (v) =>
                             setState(() => _isActive = v),
                       ),
@@ -339,10 +341,10 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: AppColor.white,
+                      backgroundColor: WarehouseAppColor.primary,
+                      foregroundColor: WarehouseAppColor.white,
                       disabledBackgroundColor:
-                      AppColor.primary.withValues(alpha: 0.6),
+                      WarehouseAppColor.primary.withValues(alpha: 0.6),
                       padding: const EdgeInsets.symmetric(
                           vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -382,7 +384,7 @@ class _Label extends StatelessWidget {
       style: const TextStyle(
           fontSize:      12,
           fontWeight:    FontWeight.w600,
-          color:         AppColor.textSecondary,
+          color:         WarehouseAppColor.textSecondary,
           letterSpacing: 0.5));
 }
 
@@ -412,7 +414,7 @@ class _Field extends StatelessWidget {
             style: const TextStyle(
                 fontSize:   13,
                 fontWeight: FontWeight.w500,
-                color:      AppColor.textPrimary)),
+                color:      WarehouseAppColor.textPrimary)),
         const SizedBox(height: 6),
         TextFormField(
           controller:   controller,
@@ -422,37 +424,37 @@ class _Field extends StatelessWidget {
           style: TextStyle(
               fontSize: 14,
               color:    enabled
-                  ? AppColor.textPrimary
-                  : AppColor.textSecondary),
+                  ? WarehouseAppColor.textPrimary
+                  : WarehouseAppColor.textSecondary),
           decoration: InputDecoration(
             hintText:  hint,
             hintStyle: const TextStyle(
-                color: AppColor.textHint, fontSize: 13),
+                color: WarehouseAppColor.textHint, fontSize: 13),
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14, vertical: 12),
             filled:    true,
             fillColor: enabled
-                ? AppColor.grey100 : AppColor.grey200,
+                ? WarehouseAppColor.grey100 : WarehouseAppColor.grey200,
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                    color: AppColor.grey200)),
+                    color: WarehouseAppColor.grey200)),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                    color: AppColor.grey200)),
+                    color: WarehouseAppColor.grey200)),
             disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                    color: AppColor.grey200)),
+                    color: WarehouseAppColor.grey200)),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                    color: AppColor.primary, width: 1.5)),
+                    color: WarehouseAppColor.primary, width: 1.5)),
             errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                    color: AppColor.error)),
+                    color: WarehouseAppColor.error)),
           ),
         ),
       ],

@@ -1,4 +1,4 @@
-// Updated on 2026-09-28 11:49 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // supplier_detail_widgets.dart
 // Detail screen ke reusable widgets:
@@ -10,7 +10,7 @@
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_detail_models.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens/po_invoice_screen/po_invoice_screen.dart';
@@ -64,10 +64,10 @@ class DetailStatCard extends StatelessWidget {
                   Text(value,
                       style: TextStyle(fontSize: 17,
                           fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                   Text(label,
                       style: TextStyle(fontSize: 12,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
                   if (subtitle != null)
                     Text(subtitle!,
                         style: TextStyle(fontSize: 11, color: color,
@@ -112,7 +112,7 @@ class DetailTabButton extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding:  const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
         decoration: BoxDecoration(
-          color:        isActive ? AppColor.primary : Colors.transparent,
+          color:        isActive ? WarehouseAppColor.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -122,22 +122,22 @@ class DetailTabButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize:   13,
                   fontWeight: FontWeight.w600,
-                  color: isActive ? AppColor.white : AppColor.textSecondary,
+                  color: isActive ? WarehouseAppColor.white : WarehouseAppColor.textSecondary,
                 )),
             const SizedBox(width: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               decoration: BoxDecoration(
                 color: isActive
-                    ? AppColor.white.withOpacity(0.25)
-                    : AppColor.grey200,
+                    ? WarehouseAppColor.white.withOpacity(0.25)
+                    : WarehouseAppColor.grey200,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text('$count',
                   style: TextStyle(
                     fontSize:   11,
                     fontWeight: FontWeight.w600,
-                    color: isActive ? AppColor.white : AppColor.textSecondary,
+                    color: isActive ? WarehouseAppColor.white : WarehouseAppColor.textSecondary,
                   )),
             ),
           ],
@@ -183,23 +183,23 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
     final IconData typeIcon;
     switch (e.entryType) {
       case 'purchase':
-        typeColor = AppColor.error;
+        typeColor = WarehouseAppColor.error;
         typeIcon  = Icons.shopping_cart_outlined;
         break;
       case 'payment':
-        typeColor = AppColor.success;
+        typeColor = WarehouseAppColor.success;
         typeIcon  = Icons.payments_outlined;
         break;
       case 'return':
-        typeColor = AppColor.info;
+        typeColor = WarehouseAppColor.info;
         typeIcon  = Icons.keyboard_return_rounded;
         break;
       case 'payment_reversal':
-        typeColor = AppColor.info;
+        typeColor = WarehouseAppColor.info;
         typeIcon  = Icons.undo_rounded;
         break;
       default: // adjustment / opening
-        typeColor = AppColor.warning;
+        typeColor = WarehouseAppColor.warning;
         typeIcon  = Icons.tune_rounded;
     }
 
@@ -207,7 +207,7 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
     final String amountStr  = isCredit
         ? '- Rs ${e.amount.abs().pkrFormat}'
         : '+ Rs ${e.amount.pkrFormat}';
-    final Color  amountColor = isCredit ? AppColor.success : AppColor.error;
+    final Color  amountColor = isCredit ? WarehouseAppColor.success : WarehouseAppColor.error;
 
     // Reversed payment — row halki + amount par line-through (history mehfooz)
     return Opacity(
@@ -219,7 +219,7 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         color:    _isHovered
-            ? AppColor.primary.withOpacity(0.03) : Colors.transparent,
+            ? WarehouseAppColor.primary.withOpacity(0.03) : Colors.transparent,
         padding:  const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
         child: Row(
           children: [
@@ -261,20 +261,20 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
-                            color:        AppColor.grey200,
+                            color:        WarehouseAppColor.grey200,
                             borderRadius: BorderRadius.circular(5),
                           ),
                           child: Text('REVERSED',
                               style: TextStyle(fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColor.grey600)),
+                                  color: WarehouseAppColor.grey600)),
                         ),
                     ],
                   ),
                   const SizedBox(height: 3),
                   Text(_fmtDate(e.createdAt),
                       style: TextStyle(fontSize: 11,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
                 ],
               ),
             ),
@@ -284,7 +284,7 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
               flex: 3,
               child: Text(e.notes ?? '—',
                   style: TextStyle(fontSize: 13,
-                      color: AppColor.textSecondary),
+                      color: WarehouseAppColor.textSecondary),
                   overflow: TextOverflow.ellipsis),
             ),
 
@@ -304,7 +304,7 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
               child: Text(
                 'Rs ${e.balanceAfter.pkrFormat}',
                 style: TextStyle(fontSize: 13,
-                    fontWeight: FontWeight.w500, color: AppColor.textPrimary),
+                    fontWeight: FontWeight.w500, color: WarehouseAppColor.textPrimary),
               ),
             ),
 
@@ -313,7 +313,7 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
               flex: 2,
               child: Text(e.createdByName ?? '—',
                   style: TextStyle(fontSize: 12,
-                      color: AppColor.textSecondary),
+                      color: WarehouseAppColor.textSecondary),
                   overflow: TextOverflow.ellipsis),
             ),
 
@@ -334,18 +334,18 @@ class _LedgerEntryRowState extends State<LedgerEntryRow> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                  color: AppColor.error.withOpacity(0.35)),
+                                  color: WarehouseAppColor.error.withOpacity(0.35)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.undo_rounded,
-                                    size: 13, color: AppColor.error),
+                                    size: 13, color: WarehouseAppColor.error),
                                 const SizedBox(width: 4),
                                 Text('Reverse',
                                     style: TextStyle(fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColor.error)),
+                                        color: WarehouseAppColor.error)),
                               ],
                             ),
                           ),
@@ -400,11 +400,11 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
 
     final Color statusColor;
     switch (o.status) {
-      case 'received':  statusColor = AppColor.success; break;
-      case 'ordered':   statusColor = AppColor.info;    break;
-      case 'partial':   statusColor = AppColor.warning; break;
-      case 'cancelled': statusColor = AppColor.error;   break;
-      default:          statusColor = AppColor.grey500; // draft
+      case 'received':  statusColor = WarehouseAppColor.success; break;
+      case 'ordered':   statusColor = WarehouseAppColor.info;    break;
+      case 'partial':   statusColor = WarehouseAppColor.warning; break;
+      case 'cancelled': statusColor = WarehouseAppColor.error;   break;
+      default:          statusColor = WarehouseAppColor.grey500; // draft
     }
 
     return MouseRegion(
@@ -418,7 +418,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           color:    _isHovered
-              ? AppColor.primary.withOpacity(0.05) : Colors.transparent,
+              ? WarehouseAppColor.primary.withOpacity(0.05) : Colors.transparent,
           padding:  const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
           child: Row(
             children: [
@@ -427,7 +427,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
                 flex: 2,
                 child: Text(o.poNumber,
                     style: TextStyle(fontSize: 13,
-                        fontWeight: FontWeight.w600, color: AppColor.primary)),
+                        fontWeight: FontWeight.w600, color: WarehouseAppColor.primary)),
               ),
 
               // Order date
@@ -435,7 +435,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
                 flex: 2,
                 child: Text(_fmtDate(o.orderDate),
                     style: TextStyle(fontSize: 13,
-                        color: AppColor.textSecondary)),
+                        color: WarehouseAppColor.textSecondary)),
               ),
 
               // Expected date
@@ -444,7 +444,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
                 child: Text(
                   o.expectedDate != null ? _fmtDate(o.expectedDate!) : '—',
                   style: TextStyle(fontSize: 13,
-                      color: AppColor.textSecondary),
+                      color: WarehouseAppColor.textSecondary),
                 ),
               ),
 
@@ -490,7 +490,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
                 child: Text('Rs ${o.totalAmount.pkrFormat}',
                     style: TextStyle(fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary)),
+                        color: WarehouseAppColor.textPrimary)),
               ),
 
               // Paid
@@ -498,7 +498,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
                 flex: 2,
                 child: Text('Rs ${o.paidAmount.pkrFormat}',
                     style: TextStyle(fontSize: 13,
-                        color: AppColor.success,
+                        color: WarehouseAppColor.success,
                         fontWeight: FontWeight.w500)),
               ),
 
@@ -510,7 +510,7 @@ class _PurchaseOrderRowState extends State<PurchaseOrderRow> {
                   style: TextStyle(
                     fontSize:   13,
                     fontWeight: FontWeight.w600,
-                    color: o.isFullyPaid ? AppColor.success : AppColor.error,
+                    color: o.isFullyPaid ? WarehouseAppColor.success : WarehouseAppColor.error,
                   ),
                 ),
               ),
@@ -547,8 +547,8 @@ class TableHeaderRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
       decoration: BoxDecoration(
-        color:  AppColor.grey100,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.grey100,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: columns.map((col) => Expanded(
@@ -556,7 +556,7 @@ class TableHeaderRow extends StatelessWidget {
           child: Text(col.label,
               style: TextStyle(fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppColor.textSecondary,
+                  color: WarehouseAppColor.textSecondary,
                   letterSpacing: 0.4)),
         )).toList(),
       ),

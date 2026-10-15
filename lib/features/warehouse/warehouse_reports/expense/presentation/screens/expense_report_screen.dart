@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // expense_report_screen.dart
 //
@@ -13,7 +15,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/expense/data/datasources/expense_report_local_datasource.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/expense/presentation/providers/expense_report_provider.dart';
@@ -57,7 +59,7 @@ class ExpenseReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
           _TopBar(),
@@ -105,7 +107,7 @@ class _TopBarState extends ConsumerState<_TopBar> {
       initialDateRange: DateTimeRange(start: start, end: end),
       builder: (context, child) => Theme(
         data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColor.primary),
+          colorScheme: const ColorScheme.light(primary: WarehouseAppColor.primary),
         ),
         child: child!,
       ),
@@ -128,12 +130,12 @@ class _TopBarState extends ConsumerState<_TopBar> {
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            color: AppColor.error.withOpacity(0.10),
+            color: WarehouseAppColor.error.withOpacity(0.10),
             borderRadius: BorderRadius.circular(9),
           ),
           alignment: Alignment.center,
           child: const Icon(Icons.account_balance_wallet_outlined,
-              size: 18, color: AppColor.error),
+              size: 18, color: WarehouseAppColor.error),
         ),
         const SizedBox(width: 12),
         const Column(
@@ -144,9 +146,9 @@ class _TopBarState extends ConsumerState<_TopBar> {
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
             Text('Category-wise kharcha breakdown',
-                style: TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                style: TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
           ],
         ),
       ],
@@ -176,8 +178,8 @@ class _TopBarState extends ConsumerState<_TopBar> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
-        color:  AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: LayoutBuilder(
         builder: (context, c) {
@@ -225,19 +227,19 @@ class _Body extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColor.error, size: 36),
+            const Icon(Icons.error_outline, color: WarehouseAppColor.error, size: 36),
             const SizedBox(height: 12),
             const Text('Data load nahi hua',
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Text(state.error!,
                   style: const TextStyle(
-                      fontSize: 11, color: AppColor.textSecondary),
+                      fontSize: 11, color: WarehouseAppColor.textSecondary),
                   textAlign: TextAlign.center),
             ),
             const SizedBox(height: 16),
@@ -247,11 +249,11 @@ class _Body extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                    color: AppColor.primary,
+                    color: WarehouseAppColor.primary,
                     borderRadius: BorderRadius.circular(8)),
                 child: const Text('Retry',
                     style: TextStyle(
-                        color: AppColor.white,
+                        color: WarehouseAppColor.white,
                         fontSize: 12,
                         fontWeight: FontWeight.w600)),
               ),
@@ -349,9 +351,9 @@ class _TotalExpenseCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: LayoutBuilder(
         builder: (context, c) {
@@ -367,7 +369,7 @@ class _TotalExpenseCard extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
-                    color: AppColor.textSecondary,
+                    color: WarehouseAppColor.textSecondary,
                   )),
               const SizedBox(height: 10),
               FittedBox(
@@ -381,14 +383,14 @@ class _TotalExpenseCard extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
-                            color: AppColor.textSecondary),
+                            color: WarehouseAppColor.textSecondary),
                       ),
                       TextSpan(
                         text: total.pkrFormat,
                         style: const TextStyle(
                             fontSize: 42,
                             fontWeight: FontWeight.w800,
-                            color: AppColor.textPrimary,
+                            color: WarehouseAppColor.textPrimary,
                             letterSpacing: -0.5),
                       ),
                     ],
@@ -400,14 +402,14 @@ class _TotalExpenseCard extends StatelessWidget {
                 RichText(
                   text: TextSpan(
                     style: const TextStyle(
-                        fontSize: 13, color: AppColor.textSecondary),
+                        fontSize: 13, color: WarehouseAppColor.textSecondary),
                     children: [
                       const TextSpan(text: 'Rozana average ≈  '),
                       TextSpan(
                         text: 'PKR ${avg.pkrFormat}',
                         style: const TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: AppColor.success),
+                            color: WarehouseAppColor.success),
                       ),
                       const TextSpan(text: '  / active day'),
                     ],
@@ -415,7 +417,7 @@ class _TotalExpenseCard extends StatelessWidget {
                 )
               else
                 const Text('Is period mein koi kharcha nahi',
-                    style: TextStyle(fontSize: 13, color: AppColor.textHint)),
+                    style: TextStyle(fontSize: 13, color: WarehouseAppColor.textHint)),
             ],
           );
 
@@ -426,7 +428,7 @@ class _TotalExpenseCard extends StatelessWidget {
                 children: [
                   Text('$entries entries  ·  $days active days',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary)),
+                          fontSize: 12, color: WarehouseAppColor.textSecondary)),
                   if (pct != null) ...[
                     const SizedBox(height: 8),
                     _ComparisonChip(pct: pct),
@@ -441,14 +443,14 @@ class _TotalExpenseCard extends StatelessWidget {
                         RichText(
                           text: TextSpan(
                             style: const TextStyle(
-                                fontSize: 13, color: AppColor.textSecondary),
+                                fontSize: 13, color: WarehouseAppColor.textSecondary),
                             children: [
                               const TextSpan(text: 'Sabse zyada:  '),
                               TextSpan(
                                 text: top.head,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: AppColor.textPrimary),
+                                    color: WarehouseAppColor.textPrimary),
                               ),
                               TextSpan(
                                   text:
@@ -498,7 +500,7 @@ class _ComparisonChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final up    = pct >= 0;
-    final color = up ? AppColor.error : AppColor.success;
+    final color = up ? WarehouseAppColor.error : WarehouseAppColor.success;
     final icon  = up
         ? Icons.arrow_upward_rounded
         : Icons.arrow_downward_rounded;
@@ -537,9 +539,9 @@ class _CategoryBreakdown extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       padding: const EdgeInsets.all(18),
       child: LayoutBuilder(
@@ -553,17 +555,17 @@ class _CategoryBreakdown extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1,
-                      color: AppColor.success)),
+                      color: WarehouseAppColor.success)),
               const SizedBox(height: 4),
               const Text('Category-wise kharcha',
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppColor.textPrimary)),
+                      color: WarehouseAppColor.textPrimary)),
               const SizedBox(height: 16),
 
               if (wide) _wideHeader(),
-              if (wide) const Divider(height: 16, color: AppColor.grey200),
+              if (wide) const Divider(height: 16, color: WarehouseAppColor.grey200),
 
               ...List.generate(categories.length, (i) {
                 final row = categories[i];
@@ -573,7 +575,7 @@ class _CategoryBreakdown extends StatelessWidget {
                     : _NarrowRow(row: row, share: share, color: _catColor(i));
               }),
 
-              const Divider(height: 20, color: AppColor.grey300),
+              const Divider(height: 20, color: WarehouseAppColor.grey300),
               // TOTAL row
               _TotalRow(
                 total: total,
@@ -615,7 +617,7 @@ class _HCell extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
-          color: AppColor.textSecondary));
+          color: WarehouseAppColor.textSecondary));
 }
 
 // Wide (desktop/web) — table row
@@ -644,7 +646,7 @@ class _WideRow extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                 ),
               ],
             ),
@@ -656,14 +658,14 @@ class _WideRow extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
           ),
           Expanded(
             flex: 2,
             child: Text('${row.entries}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    fontSize: 13, color: AppColor.textSecondary)),
+                    fontSize: 13, color: WarehouseAppColor.textSecondary)),
           ),
           Expanded(
             flex: 4,
@@ -678,7 +680,7 @@ class _WideRow extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
                 ),
               ],
             ),
@@ -714,14 +716,14 @@ class _NarrowRow extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary)),
+                        color: WarehouseAppColor.textPrimary)),
               ),
               const SizedBox(width: 8),
               Text('PKR ${row.amount.pkrFormat}',
                   style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppColor.textPrimary)),
+                      color: WarehouseAppColor.textPrimary)),
             ],
           ),
           const SizedBox(height: 6),
@@ -733,13 +735,13 @@ class _NarrowRow extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text('${row.entries} entries',
                     style: const TextStyle(
-                        fontSize: 11, color: AppColor.textHint)),
+                        fontSize: 11, color: WarehouseAppColor.textHint)),
                 const SizedBox(width: 8),
                 Text('${share.toStringAsFixed(1)}%',
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColor.textSecondary)),
+                        color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -767,7 +769,7 @@ class _TotalRow extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
           ),
           Expanded(
             flex: 3,
@@ -776,7 +778,7 @@ class _TotalRow extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColor.success)),
+                    color: WarehouseAppColor.success)),
           ),
           Expanded(
             flex: 2,
@@ -785,7 +787,7 @@ class _TotalRow extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
           ),
           const Expanded(
             flex: 4,
@@ -794,7 +796,7 @@ class _TotalRow extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
           ),
         ],
       );
@@ -805,16 +807,16 @@ class _TotalRow extends StatelessWidget {
             style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: AppColor.textPrimary)),
+                color: WarehouseAppColor.textPrimary)),
         const Spacer(),
         Text('$entries entries',
-            style: const TextStyle(fontSize: 11, color: AppColor.textHint)),
+            style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textHint)),
         const SizedBox(width: 10),
         Text('PKR ${total.pkrFormat}',
             style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: AppColor.success)),
+                color: WarehouseAppColor.success)),
       ],
     );
   }
@@ -832,7 +834,7 @@ class _ShareBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
       child: Container(
         height: 7,
-        color: AppColor.grey200,
+        color: WarehouseAppColor.grey200,
         child: FractionallySizedBox(
           alignment: Alignment.centerLeft,
           widthFactor: f == 0 ? 0.02 : f, // tiny bhi thora nazar aaye
@@ -867,9 +869,9 @@ class _ProportionView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -880,7 +882,7 @@ class _ProportionView extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
-                  color: AppColor.textSecondary)),
+                  color: WarehouseAppColor.textSecondary)),
           const SizedBox(height: 14),
 
           // Stacked bar
@@ -918,11 +920,11 @@ class _ProportionView extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                   const SizedBox(width: 5),
                   Text('${share.toStringAsFixed(1)}%',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary)),
+                          fontSize: 12, color: WarehouseAppColor.textSecondary)),
                 ],
               );
             }),
@@ -943,17 +945,17 @@ class _EmptyBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(48),
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: const Column(
         children: [
           Icon(Icons.receipt_long_outlined,
-              size: 48, color: AppColor.grey300),
+              size: 48, color: WarehouseAppColor.grey300),
           SizedBox(height: 12),
           Text('Is period mein koi expense nahi',
-              style: TextStyle(fontSize: 15, color: AppColor.textHint)),
+              style: TextStyle(fontSize: 15, color: WarehouseAppColor.textHint)),
         ],
       ),
     );
@@ -979,16 +981,16 @@ class _FilterPill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? AppColor.primary : AppColor.grey100,
+          color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: selected ? AppColor.primary : AppColor.grey200),
+              color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey200),
         ),
         child: Text(label,
             style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: selected ? AppColor.white : AppColor.grey600)),
+                color: selected ? WarehouseAppColor.white : WarehouseAppColor.grey600)),
       ),
     );
   }
@@ -1020,16 +1022,16 @@ class _CustomPill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? AppColor.primary : AppColor.grey100,
+          color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: selected ? AppColor.primary : AppColor.grey200),
+              color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey200),
         ),
         child: Text(_label,
             style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: selected ? AppColor.white : AppColor.grey600)),
+                color: selected ? WarehouseAppColor.white : WarehouseAppColor.grey600)),
       ),
     );
   }
@@ -1045,20 +1047,20 @@ class _RefreshBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColor.grey100,
+          color: WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColor.grey200),
+          border: Border.all(color: WarehouseAppColor.grey200),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.refresh_rounded, size: 13, color: AppColor.grey600),
+            Icon(Icons.refresh_rounded, size: 13, color: WarehouseAppColor.grey600),
             SizedBox(width: 5),
             Text('Refresh',
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: AppColor.grey700)),
+                    color: WarehouseAppColor.grey700)),
           ],
         ),
       ),

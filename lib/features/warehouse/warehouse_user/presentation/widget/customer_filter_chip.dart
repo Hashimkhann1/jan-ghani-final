@@ -1,5 +1,7 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 class CustomerFilterChip extends StatelessWidget {
   final String label;
@@ -25,17 +27,17 @@ class CustomerFilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color:        isSelected ? AppColor.primary : AppColor.surface,
+          color:        isSelected ? WarehouseAppColor.primary : WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(8),
           border:       Border.all(
-              color: isSelected ? AppColor.primary : AppColor.grey300),
+              color: isSelected ? WarehouseAppColor.primary : WarehouseAppColor.grey300),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize:   13,
             fontWeight: FontWeight.w500,
-            color: isSelected ? AppColor.white : AppColor.textSecondary,
+            color: isSelected ? WarehouseAppColor.white : WarehouseAppColor.textSecondary,
           ),
         ),
       ),

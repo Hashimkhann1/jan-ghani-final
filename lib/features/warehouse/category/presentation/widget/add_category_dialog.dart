@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // add_category_dialog.dart — Add + Edit dono handle karta hai
 // =============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/category/presentation/provider/category_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -133,14 +135,14 @@ class _AddCategoryDialogState
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withOpacity(0.1),
+                        color: WarehouseAppColor.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         _isEdit
                             ? Icons.edit_outlined
                             : Icons.category_outlined,
-                        color: AppColor.primary, size: 20,
+                        color: WarehouseAppColor.primary, size: 20,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -154,13 +156,13 @@ class _AddCategoryDialogState
                           style: TextStyle(
                               fontSize:   16,
                               fontWeight: FontWeight.w700,
-                              color:      AppColor.textPrimary),
+                              color:      WarehouseAppColor.textPrimary),
                         ),
                         Text(
                           'Category ki details bharein',
                           style: TextStyle(
                               fontSize: 12,
-                              color:    AppColor.textSecondary),
+                              color:    WarehouseAppColor.textSecondary),
                         ),
                       ],
                     ),
@@ -171,13 +173,13 @@ class _AddCategoryDialogState
                           : () => Navigator.of(context).pop(),
                       icon:  const Icon(Icons.close_rounded),
                       style: IconButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary),
+                          foregroundColor: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 20),
-                Divider(color: AppColor.grey200),
+                Divider(color: WarehouseAppColor.grey200),
                 const SizedBox(height: 16),
 
                 // ── Name ─────────────────────────────────
@@ -186,7 +188,7 @@ class _AddCategoryDialogState
                 TextFormField(
                   controller: _name,
                   style: TextStyle(
-                      fontSize: 14, color: AppColor.textPrimary),
+                      fontSize: 14, color: WarehouseAppColor.textPrimary),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty)
                           ? 'Name required hai'
@@ -203,7 +205,7 @@ class _AddCategoryDialogState
                   controller: _description,
                   maxLines:   3,
                   style: TextStyle(
-                      fontSize: 14, color: AppColor.textPrimary),
+                      fontSize: 14, color: WarehouseAppColor.textPrimary),
                   decoration: _inputDec(
                       hint: 'Category ke baare mein kuch likho...'),
                 ),
@@ -233,7 +235,7 @@ class _AddCategoryDialogState
                           shape:  BoxShape.circle,
                           border: Border.all(
                             color: selected
-                                ? AppColor.textPrimary
+                                ? WarehouseAppColor.textPrimary
                                 : Colors.transparent,
                             width: 2.5,
                           ),
@@ -269,7 +271,7 @@ class _AddCategoryDialogState
                       Text(_selectedColor!,
                           style: TextStyle(
                               fontSize: 12,
-                              color:    AppColor.textSecondary)),
+                              color:    WarehouseAppColor.textSecondary)),
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () =>
@@ -277,7 +279,7 @@ class _AddCategoryDialogState
                         child: Text('Clear',
                             style: TextStyle(
                                 fontSize: 12,
-                                color:    AppColor.error)),
+                                color:    WarehouseAppColor.error)),
                       ),
                     ],
                   ),
@@ -290,24 +292,24 @@ class _AddCategoryDialogState
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 4),
                   decoration: BoxDecoration(
-                    color:        AppColor.grey100,
+                    color:        WarehouseAppColor.grey100,
                     borderRadius: BorderRadius.circular(8),
-                    border:       Border.all(color: AppColor.grey200),
+                    border:       Border.all(color: WarehouseAppColor.grey200),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.toggle_on_outlined,
-                          size: 18, color: AppColor.textSecondary),
+                          size: 18, color: WarehouseAppColor.textSecondary),
                       const SizedBox(width: 8),
                       Text('Active',
                           style: TextStyle(
                               fontSize:   13,
                               fontWeight: FontWeight.w500,
-                              color:      AppColor.textPrimary)),
+                              color:      WarehouseAppColor.textPrimary)),
                       const Spacer(),
                       Switch(
                         value:       _isActive,
-                        activeColor: AppColor.primary,
+                        activeColor: WarehouseAppColor.primary,
                         onChanged:   (v) =>
                             setState(() => _isActive = v),
                       ),
@@ -326,7 +328,7 @@ class _AddCategoryDialogState
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(error,
                         style: TextStyle(
-                            color: AppColor.error, fontSize: 12)),
+                            color: WarehouseAppColor.error, fontSize: 12)),
                   );
                 }),
 
@@ -336,8 +338,8 @@ class _AddCategoryDialogState
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: AppColor.white,
+                      backgroundColor: WarehouseAppColor.primary,
+                      foregroundColor: WarehouseAppColor.white,
                       padding: const EdgeInsets.symmetric(
                           vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -372,24 +374,24 @@ class _AddCategoryDialogState
     return InputDecoration(
       hintText:  hint,
       hintStyle: TextStyle(
-          color: AppColor.textHint, fontSize: 13),
+          color: WarehouseAppColor.textHint, fontSize: 13),
       contentPadding: const EdgeInsets.symmetric(
           horizontal: 14, vertical: 12),
       filled:    true,
-      fillColor: AppColor.grey100,
+      fillColor: WarehouseAppColor.grey100,
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide(color: AppColor.grey200)),
+          borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide(color: AppColor.grey200)),
+          borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
       focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide:
-              BorderSide(color: AppColor.primary, width: 1.5)),
+              BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
       errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide(color: AppColor.error)),
+          borderSide:   BorderSide(color: WarehouseAppColor.error)),
     );
   }
 
@@ -408,5 +410,5 @@ class _FieldLabel extends StatelessWidget {
       style: TextStyle(
           fontSize:   13,
           fontWeight: FontWeight.w500,
-          color:      AppColor.textPrimary));
+          color:      WarehouseAppColor.textPrimary));
 }

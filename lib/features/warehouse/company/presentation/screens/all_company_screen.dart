@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // all_company_screen.dart
 // =============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import '../../data/model/company_model.dart';
 import '../provider/company_provider.dart';
 import '../widget/add_company_dialog.dart';
@@ -23,7 +25,7 @@ class AllCompanyScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:         Text(next.errorMessage!),
-            backgroundColor: AppColor.error,
+            backgroundColor: WarehouseAppColor.error,
             behavior:        SnackBarBehavior.floating,
             action: SnackBarAction(
               label:     'OK',
@@ -37,7 +39,7 @@ class AllCompanyScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
 
@@ -45,7 +47,7 @@ class AllCompanyScreen extends ConsumerWidget {
           Container(
             width:   double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            color: AppColor.surface,
+            color: WarehouseAppColor.surface,
             child: Row(
               children: [
                 const Column(
@@ -55,10 +57,10 @@ class AllCompanyScreen extends ConsumerWidget {
                         style: TextStyle(
                             fontSize:   22,
                             fontWeight: FontWeight.w700,
-                            color:      AppColor.textPrimary)),
+                            color:      WarehouseAppColor.textPrimary)),
                     Text('Product companies manage karein',
                         style: TextStyle(
-                            fontSize: 13, color: AppColor.textSecondary)),
+                            fontSize: 13, color: WarehouseAppColor.textSecondary)),
                   ],
                 ),
                 const Spacer(),
@@ -67,8 +69,8 @@ class AllCompanyScreen extends ConsumerWidget {
                   icon:  const Icon(Icons.add_rounded, size: 18),
                   label: const Text('New Company'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: AppColor.white,
+                    backgroundColor: WarehouseAppColor.primary,
+                    foregroundColor: WarehouseAppColor.white,
                     minimumSize: const Size(160, 48),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 13),
@@ -83,7 +85,7 @@ class AllCompanyScreen extends ConsumerWidget {
 
           // ── Stats ─────────────────────────────────────────
           Container(
-            color:   AppColor.surface,
+            color:   WarehouseAppColor.surface,
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
             child: Row(
               children: [
@@ -91,14 +93,14 @@ class AllCompanyScreen extends ConsumerWidget {
                   label: 'Total',
                   value: '${state.totalCount}',
                   icon:  Icons.business_outlined,
-                  color: AppColor.primary,
+                  color: WarehouseAppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 _StatCard(
                   label: 'Active',
                   value: '${state.activeCount}',
                   icon:  Icons.check_circle_outline_rounded,
-                  color: AppColor.success,
+                  color: WarehouseAppColor.success,
                 ),
               ],
             ),
@@ -117,23 +119,23 @@ class AllCompanyScreen extends ConsumerWidget {
                     decoration: InputDecoration(
                       hintText:  'Company name se search...',
                       hintStyle: const TextStyle(
-                          color: AppColor.textHint, fontSize: 13),
+                          color: WarehouseAppColor.textHint, fontSize: 13),
                       prefixIcon: const Icon(Icons.search_rounded,
-                          color: AppColor.grey400, size: 20),
+                          color: WarehouseAppColor.grey400, size: 20),
                       filled:    true,
-                      fillColor: AppColor.surface,
+                      fillColor: WarehouseAppColor.surface,
                       contentPadding: const EdgeInsets.symmetric(
                           vertical: 0, horizontal: 16),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColor.grey200)),
+                          borderSide: BorderSide(color: WarehouseAppColor.grey200)),
                       enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColor.grey200)),
+                          borderSide: BorderSide(color: WarehouseAppColor.grey200)),
                       focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
-                              color: AppColor.primary, width: 1.5)),
+                              color: WarehouseAppColor.primary, width: 1.5)),
                     ),
                   ),
                 ),
@@ -190,29 +192,29 @@ class AllCompanyScreen extends ConsumerWidget {
                 Container(
                   padding:    const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color:        AppColor.error.withOpacity(0.1),
+                    color:        WarehouseAppColor.error.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(50),
                   ),
                   child: const Icon(Icons.delete_outline_rounded,
-                      color: AppColor.error, size: 28),
+                      color: WarehouseAppColor.error, size: 28),
                 ),
                 const SizedBox(height: 16),
                 const Text('Company Delete Karen?',
                     style: TextStyle(
                         fontSize:   17,
                         fontWeight: FontWeight.w700,
-                        color:      AppColor.textPrimary)),
+                        color:      WarehouseAppColor.textPrimary)),
                 const SizedBox(height: 8),
                 Text('"${c.name}"',
                     style: const TextStyle(
                         fontSize:   14,
                         fontWeight: FontWeight.w600,
-                        color:      AppColor.error)),
+                        color:      WarehouseAppColor.error)),
                 const SizedBox(height: 6),
                 const Text(
                   'Delete karne ke baad products is company\nse unlink ho jayenge.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: AppColor.textSecondary),
+                  style: TextStyle(fontSize: 13, color: WarehouseAppColor.textSecondary),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -221,8 +223,8 @@ class AllCompanyScreen extends ConsumerWidget {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary,
-                          side: BorderSide(color: AppColor.grey300),
+                          foregroundColor: WarehouseAppColor.textSecondary,
+                          side: BorderSide(color: WarehouseAppColor.grey300),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
@@ -240,7 +242,7 @@ class AllCompanyScreen extends ConsumerWidget {
                               .deleteCompany(c.id);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.error,
+                          backgroundColor: WarehouseAppColor.error,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -330,15 +332,15 @@ class _CompanyCardState extends State<_CompanyCard> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color:        AppColor.surface,
+          color:        WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: _hovered
-                  ? AppColor.primary.withOpacity(0.4)
-                  : AppColor.grey200),
+                  ? WarehouseAppColor.primary.withOpacity(0.4)
+                  : WarehouseAppColor.grey200),
           boxShadow: _hovered
               ? [BoxShadow(
-                  color:      AppColor.primary.withOpacity(0.1),
+                  color:      WarehouseAppColor.primary.withOpacity(0.1),
                   blurRadius: 8,
                   offset:     const Offset(0, 2))]
               : null,
@@ -351,11 +353,11 @@ class _CompanyCardState extends State<_CompanyCard> {
                 Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: AppColor.primary.withOpacity(0.1),
+                    color: WarehouseAppColor.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.business_rounded,
-                      size: 15, color: AppColor.primary),
+                      size: 15, color: WarehouseAppColor.primary),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -363,7 +365,7 @@ class _CompanyCardState extends State<_CompanyCard> {
                       style: const TextStyle(
                           fontSize:   14,
                           fontWeight: FontWeight.w600,
-                          color:      AppColor.textPrimary),
+                          color:      WarehouseAppColor.textPrimary),
                       overflow: TextOverflow.ellipsis),
                 ),
                 Container(
@@ -371,8 +373,8 @@ class _CompanyCardState extends State<_CompanyCard> {
                       horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: c.isActive
-                        ? AppColor.successLight
-                        : AppColor.grey200,
+                        ? WarehouseAppColor.successLight
+                        : WarehouseAppColor.grey200,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -381,8 +383,8 @@ class _CompanyCardState extends State<_CompanyCard> {
                         fontSize:   10,
                         fontWeight: FontWeight.w600,
                         color:      c.isActive
-                            ? AppColor.success
-                            : AppColor.grey500),
+                            ? WarehouseAppColor.success
+                            : WarehouseAppColor.grey500),
                   ),
                 ),
               ],
@@ -397,14 +399,14 @@ class _CompanyCardState extends State<_CompanyCard> {
                 children: [
                   _ActionBtn(
                     icon:    Icons.edit_outlined,
-                    color:   AppColor.info,
+                    color:   WarehouseAppColor.info,
                     tooltip: 'Edit',
                     onTap:   widget.onEdit,
                   ),
                   const SizedBox(width: 6),
                   _ActionBtn(
                     icon:    Icons.delete_outline_rounded,
-                    color:   AppColor.error,
+                    color:   WarehouseAppColor.error,
                     tooltip: 'Delete',
                     onTap:   widget.onDelete,
                   ),
@@ -462,10 +464,10 @@ class _StatCard extends StatelessWidget {
                   style: const TextStyle(
                       fontSize:   20,
                       fontWeight: FontWeight.w700,
-                      color:      AppColor.textPrimary)),
+                      color:      WarehouseAppColor.textPrimary)),
               Text(label,
                   style: const TextStyle(
-                      fontSize: 12, color: AppColor.textSecondary)),
+                      fontSize: 12, color: WarehouseAppColor.textSecondary)),
             ],
           ),
         ],
@@ -497,17 +499,17 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? AppColor.primary : AppColor.surface,
+          color: selected ? WarehouseAppColor.primary : WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-              color: selected ? AppColor.primary : AppColor.grey300),
+              color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey300),
         ),
         child: Text(label,
             style: TextStyle(
                 fontSize:   13,
                 fontWeight: FontWeight.w500,
                 color:      selected
-                    ? AppColor.white : AppColor.textSecondary)),
+                    ? WarehouseAppColor.white : WarehouseAppColor.textSecondary)),
       ),
     );
   }
@@ -561,7 +563,7 @@ class _EmptyState extends StatelessWidget {
                 ? Icons.search_off_rounded
                 : Icons.business_outlined,
             size:  56,
-            color: AppColor.grey300,
+            color: WarehouseAppColor.grey300,
           ),
           const SizedBox(height: 12),
           Text(
@@ -571,14 +573,14 @@ class _EmptyState extends StatelessWidget {
             style: const TextStyle(
                 fontSize:   16,
                 fontWeight: FontWeight.w600,
-                color:      AppColor.textSecondary),
+                color:      WarehouseAppColor.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(
             isSearching
                 ? 'Search change karein'
                 : 'New Company button se add karein',
-            style: const TextStyle(fontSize: 13, color: AppColor.textHint),
+            style: const TextStyle(fontSize: 13, color: WarehouseAppColor.textHint),
           ),
         ],
       ),

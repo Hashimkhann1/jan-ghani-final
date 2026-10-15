@@ -1,9 +1,11 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // po_disable_text_field.dart
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 class PoDisabledTextField extends StatelessWidget {
   final String   label, value;
@@ -25,24 +27,24 @@ class PoDisabledTextField extends StatelessWidget {
             style: const TextStyle(
                 fontSize:   10,
                 fontWeight: FontWeight.w600,
-                color:      AppColor.textSecondary)),
+                color:      WarehouseAppColor.textSecondary)),
         const SizedBox(height: 4),
         TextFormField(
           initialValue: value,
           enabled:      false,
           style: const TextStyle(
-              fontSize: 12, color: AppColor.textSecondary),
+              fontSize: 12, color: WarehouseAppColor.textSecondary),
           decoration: InputDecoration(
             prefixIcon: Icon(icon,
-                size: 16, color: AppColor.grey400),
+                size: 16, color: WarehouseAppColor.grey400),
             filled:    true,
-            fillColor: AppColor.grey100,
+            fillColor: WarehouseAppColor.grey100,
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: 8, vertical: 10),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide:
-                  const BorderSide(color: AppColor.grey200),
+                  const BorderSide(color: WarehouseAppColor.grey200),
             ),
           ),
         ),

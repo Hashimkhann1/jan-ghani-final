@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 10:04 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // employees_screen.dart — employee master list
 // Mobile (< 700px): "New" icon-only, chips Wrap + search full width,
@@ -7,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import '../../domain/employee_model.dart';
 import '../provider/employee_provider.dart';
@@ -25,7 +25,7 @@ class EmployeesScreen extends ConsumerWidget {
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(next.errorMessage!),
-          backgroundColor: AppColor.error,
+          backgroundColor: WarehouseAppColor.error,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
               label: 'OK', textColor: Colors.white,
@@ -36,9 +36,9 @@ class EmployeesScreen extends ConsumerWidget {
 
     final chips = [
       _StatChip(label: 'Total', value: '${state.totalCount}',
-          icon: Icons.people_outline, color: AppColor.primary),
+          icon: Icons.people_outline, color: WarehouseAppColor.primary),
       _StatChip(label: 'Active', value: '${state.activeCount}',
-          icon: Icons.check_circle_outline_rounded, color: AppColor.success),
+          icon: Icons.check_circle_outline_rounded, color: WarehouseAppColor.success),
       _StatChip(label: 'Monthly Total', value: 'Rs ${state.totalMonthly.pkrFormat}',
           icon: Icons.payments_outlined, color: const Color(0xFF5C6BC0)),
     ];
@@ -47,26 +47,26 @@ class EmployeesScreen extends ConsumerWidget {
       onChanged: notifier.onSearch,
       decoration: InputDecoration(
         hintText: 'Name ya phone se search...',
-        hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
+        hintStyle: const TextStyle(color: WarehouseAppColor.textHint, fontSize: 13),
         prefixIcon: const Icon(Icons.search_rounded,
-            color: AppColor.grey400, size: 20),
-        filled: true, fillColor: AppColor.grey100,
+            color: WarehouseAppColor.grey400, size: 20),
+        filled: true, fillColor: WarehouseAppColor.grey100,
         contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 14),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: AppColor.grey200)),
+            borderSide: BorderSide(color: WarehouseAppColor.grey200)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: AppColor.grey200)),
+            borderSide: BorderSide(color: WarehouseAppColor.grey200)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
+            borderSide: const BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
       ),
     );
 
     final newBtnStyle = ElevatedButton.styleFrom(
-      backgroundColor: AppColor.primary,
-      foregroundColor: AppColor.white,
+      backgroundColor: WarehouseAppColor.primary,
+      foregroundColor: WarehouseAppColor.white,
       elevation: 0,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -79,11 +79,11 @@ class EmployeesScreen extends ConsumerWidget {
       final hPad   = narrow ? 16.0 : 24.0;
 
       return Scaffold(
-        backgroundColor: AppColor.background,
+        backgroundColor: WarehouseAppColor.background,
         appBar: AppBar(
-          backgroundColor: AppColor.surface,
+          backgroundColor: WarehouseAppColor.surface,
           elevation: 0,
-          foregroundColor: AppColor.textPrimary,
+          foregroundColor: WarehouseAppColor.textPrimary,
           title: const Text('Employees',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
           actions: [
@@ -97,8 +97,8 @@ class EmployeesScreen extends ConsumerWidget {
                         child: ElevatedButton(
                           onPressed: () => AddEmployeeDialog.show(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColor.primary,
-                            foregroundColor: AppColor.white,
+                            backgroundColor: WarehouseAppColor.primary,
+                            foregroundColor: WarehouseAppColor.white,
                             elevation: 0,
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
@@ -123,7 +123,7 @@ class EmployeesScreen extends ConsumerWidget {
         body: Column(children: [
           // Stats + search
           Container(
-            color: AppColor.surface,
+            color: WarehouseAppColor.surface,
             padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 14),
             child: narrow
                 ? Column(
@@ -186,7 +186,7 @@ class EmployeesScreen extends ConsumerWidget {
               ref.read(employeeProvider.notifier).deleteEmployee(e.id);
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.error, foregroundColor: Colors.white),
+                backgroundColor: WarehouseAppColor.error, foregroundColor: Colors.white),
             child: const Text('Delete'),
           ),
         ],
@@ -208,19 +208,19 @@ class _EmployeeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Row(children: [
         Container(
           width: 42, height: 42,
           decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.1), shape: BoxShape.circle),
+              color: WarehouseAppColor.primary.withOpacity(0.1), shape: BoxShape.circle),
           alignment: Alignment.center,
           child: Text(e.name.isEmpty ? '?' : e.name[0].toUpperCase(),
               style: const TextStyle(
-                  fontWeight: FontWeight.w700, color: AppColor.primary)),
+                  fontWeight: FontWeight.w700, color: WarehouseAppColor.primary)),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -235,7 +235,7 @@ class _EmployeeCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w600,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                 ),
                 const SizedBox(width: 8),
                 // Mobile par badge salary wali line par (naam ko jagah mile)
@@ -247,7 +247,7 @@ class _EmployeeCard extends StatelessWidget {
                     if (e.phone != null) e.phone,
                     if (e.address != null) e.address,
                   ].whereType<String>().join(' · '),
-                  style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
+                  style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary),
                   overflow: TextOverflow.ellipsis),
               // Mobile: salary + advance naam ke neeche
               if (compact) ...[
@@ -264,11 +264,11 @@ class _EmployeeCard extends StatelessWidget {
                               TextSpan(text: 'Rs ${e.monthlySalary.pkrFormat}',
                                   style: const TextStyle(
                                       fontSize: 13, fontWeight: FontWeight.w700,
-                                      color: AppColor.textPrimary)),
+                                      color: WarehouseAppColor.textPrimary)),
                               TextSpan(
                                   text: '  ·  Max advance ${e.maxAdvancePercent.toStringAsFixed(0)}%',
                                   style: const TextStyle(
-                                      fontSize: 10, color: AppColor.textHint)),
+                                      fontSize: 10, color: WarehouseAppColor.textHint)),
                             ]),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -279,7 +279,7 @@ class _EmployeeCard extends StatelessWidget {
                             child: Text('Rs ${e.monthlySalary.pkrFormat}',
                                 style: const TextStyle(
                                     fontSize: 13, fontWeight: FontWeight.w700,
-                                    color: AppColor.textPrimary)),
+                                    color: WarehouseAppColor.textPrimary)),
                           ),
                   ),
                   if (!e.isActive) ...[
@@ -299,9 +299,9 @@ class _EmployeeCard extends StatelessWidget {
               Text('Rs ${e.monthlySalary.pkrFormat}',
                   style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.w700,
-                      color: AppColor.textPrimary)),
+                      color: WarehouseAppColor.textPrimary)),
               Text('Max advance ${e.maxAdvancePercent.toStringAsFixed(0)}%',
-                  style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+                  style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textHint)),
             ],
           ),
           const SizedBox(width: 8),
@@ -310,11 +310,11 @@ class _EmployeeCard extends StatelessWidget {
             onPressed: onEdit,
             // Mobile: compact (kam jagah) — desktop pehle jaisa
             visualDensity: compact ? VisualDensity.compact : null,
-            icon: const Icon(Icons.edit_outlined, size: 18, color: AppColor.info)),
+            icon: const Icon(Icons.edit_outlined, size: 18, color: WarehouseAppColor.info)),
         IconButton(
             onPressed: onDelete,
             visualDensity: compact ? VisualDensity.compact : null,
-            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColor.error)),
+            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: WarehouseAppColor.error)),
       ]),
     );
   }
@@ -322,11 +322,11 @@ class _EmployeeCard extends StatelessWidget {
   static final _inactiveBadge = Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
-        color: AppColor.grey200,
+        color: WarehouseAppColor.grey200,
         borderRadius: BorderRadius.circular(5)),
     child: const Text('Inactive',
         style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600,
-            color: AppColor.grey600)),
+            color: WarehouseAppColor.grey600)),
   );
 }
 
@@ -358,9 +358,9 @@ class _StatChip extends StatelessWidget {
             Text(value,
                 style: const TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
             Text(label,
-                style: const TextStyle(fontSize: 10, color: AppColor.textSecondary)),
+                style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textSecondary)),
           ],
         ),
       ]),
@@ -374,14 +374,14 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.badge_outlined, size: 56, color: AppColor.grey300),
+        const Icon(Icons.badge_outlined, size: 56, color: WarehouseAppColor.grey300),
         const SizedBox(height: 12),
         const Text('Abhi tak koi employee nahi',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary)),
+                color: WarehouseAppColor.textSecondary)),
         const SizedBox(height: 4),
         const Text('New Employee button se add karein',
-            style: TextStyle(fontSize: 13, color: AppColor.textHint)),
+            style: TextStyle(fontSize: 13, color: WarehouseAppColor.textHint)),
       ]),
     );
   }

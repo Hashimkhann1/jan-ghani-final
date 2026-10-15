@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // po_invoice_screen.dart
 // Purchase Order ka print invoice screen
@@ -15,7 +17,7 @@ import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_mode
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 class PoInvoiceScreen extends StatelessWidget {
   final SupplierPurchaseOrder order;
@@ -38,7 +40,7 @@ class PoInvoiceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
           // ── Top action bar ─────────────────────────────
@@ -115,8 +117,8 @@ class _InvoiceTopBar extends StatelessWidget {
       width:   double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
-        color:  AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.max,
@@ -128,37 +130,37 @@ class _InvoiceTopBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                border:       Border.all(color: AppColor.grey200),
+                border:       Border.all(color: WarehouseAppColor.grey200),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 13, color: AppColor.textSecondary),
+                      size: 13, color: WarehouseAppColor.textSecondary),
                   const SizedBox(width: 6),
                   Text('Back',
                       style: TextStyle(fontSize: 13,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
                 ],
               ),
             ),
           ),
 
           const SizedBox(width: 16),
-          Container(width: 1, height: 20, color: AppColor.grey200),
+          Container(width: 1, height: 20, color: WarehouseAppColor.grey200),
           const SizedBox(width: 16),
 
           // PO icon + number
           Container(
             width: 32, height: 32,
             decoration: BoxDecoration(
-              color:        AppColor.info.withOpacity(0.1),
+              color:        WarehouseAppColor.info.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
             child: Icon(Icons.receipt_long_outlined,
-                size: 15, color: AppColor.info),
+                size: 15, color: WarehouseAppColor.info),
           ),
           const SizedBox(width: 10),
           Column(
@@ -167,10 +169,10 @@ class _InvoiceTopBar extends StatelessWidget {
             children: [
               Text(poNumber,
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                      color: AppColor.textPrimary)),
+                      color: WarehouseAppColor.textPrimary)),
               Text('Invoice Preview',
                   style: TextStyle(fontSize: 11,
-                      color: AppColor.textSecondary)),
+                      color: WarehouseAppColor.textSecondary)),
             ],
           ),
 
@@ -183,20 +185,20 @@ class _InvoiceTopBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
               decoration: BoxDecoration(
-                border:       Border.all(color: AppColor.grey300),
+                border:       Border.all(color: WarehouseAppColor.grey300),
                 borderRadius: BorderRadius.circular(8),
-                color:        AppColor.surface,
+                color:        WarehouseAppColor.surface,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.download_outlined, size: 15,
-                      color: AppColor.textSecondary),
+                      color: WarehouseAppColor.textSecondary),
                   const SizedBox(width: 6),
                   Text('Save PDF',
                       style: TextStyle(fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
                 ],
               ),
             ),
@@ -210,8 +212,8 @@ class _InvoiceTopBar extends StatelessWidget {
             icon:       const Icon(Icons.print_rounded, size: 15),
             label:      const Text('Print Invoice'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.primary,
-              foregroundColor: AppColor.white,
+              backgroundColor: WarehouseAppColor.primary,
+              foregroundColor: WarehouseAppColor.white,
               padding:         const EdgeInsets.symmetric(
                   horizontal: 18, vertical: 16),
               minimumSize:     Size.zero,
@@ -242,9 +244,9 @@ class _InvoiceCard extends StatelessWidget {
     return Container(
       width:  760,
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,17 +290,17 @@ class _InvHeader extends StatelessWidget {
     final Color statusColor;
     final Color statusBg;
     switch (order.status) {
-      case 'received':  statusColor = AppColor.success; statusBg = AppColor.successLight; break;
-      case 'ordered':   statusColor = AppColor.info;    statusBg = AppColor.infoLight;    break;
-      case 'partial':   statusColor = AppColor.warning; statusBg = AppColor.warningLight; break;
-      case 'cancelled': statusColor = AppColor.error;   statusBg = AppColor.errorLight;   break;
-      default:          statusColor = AppColor.grey500; statusBg = AppColor.grey200;
+      case 'received':  statusColor = WarehouseAppColor.success; statusBg = WarehouseAppColor.successLight; break;
+      case 'ordered':   statusColor = WarehouseAppColor.info;    statusBg = WarehouseAppColor.infoLight;    break;
+      case 'partial':   statusColor = WarehouseAppColor.warning; statusBg = WarehouseAppColor.warningLight; break;
+      case 'cancelled': statusColor = WarehouseAppColor.error;   statusBg = WarehouseAppColor.errorLight;   break;
+      default:          statusColor = WarehouseAppColor.grey500; statusBg = WarehouseAppColor.grey200;
     }
 
     return Container(
       padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,12 +311,12 @@ class _InvHeader extends StatelessWidget {
             children: [
               Text('Jan Ghani',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700,
-                      color: AppColor.textPrimary)),
+                      color: WarehouseAppColor.textPrimary)),
               const SizedBox(height: 4),
               Text('General Store / Kiryana Shop',
-                  style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                  style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
               Text('Hall Road, Lahore  •  0300-1234567',
-                  style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                  style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
             ],
           ),
 
@@ -326,10 +328,10 @@ class _InvHeader extends StatelessWidget {
             children: [
               Text(order.poNumber,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700,
-                      color: AppColor.info)),
+                      color: WarehouseAppColor.info)),
               const SizedBox(height: 4),
               Text('Invoice date: ${_fmtDate(order.orderDate)}',
-                  style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                  style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -380,7 +382,7 @@ class _InvParties extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(32, 20, 32, 20),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,17 +439,17 @@ class _PartyBox extends StatelessWidget {
       children: [
         Text(label,
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary, letterSpacing: 0.5)),
+                color: WarehouseAppColor.textSecondary, letterSpacing: 0.5)),
         const SizedBox(height: 8),
         Text(name,
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-                color: AppColor.textPrimary)),
+                color: WarehouseAppColor.textPrimary)),
         const SizedBox(height: 4),
         ...details.map((d) => Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Text(d,
               style: TextStyle(fontSize: 12,
-                  color: AppColor.textSecondary)),
+                  color: WarehouseAppColor.textSecondary)),
         )),
       ],
     );
@@ -466,7 +468,7 @@ class _InvDates extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-      color:   AppColor.grey100,
+      color:   WarehouseAppColor.grey100,
       child: Row(
         children: [
           _DateItem(label: 'ORDER DATE',
@@ -480,7 +482,7 @@ class _InvDates extends StatelessWidget {
               value:      order.receivedDate != null
                   ? _fmtDate(order.receivedDate!) : '—',
               valueColor: order.receivedDate != null
-                  ? AppColor.success : null),
+                  ? WarehouseAppColor.success : null),
         ],
       ),
     );
@@ -507,11 +509,11 @@ class _DateItem extends StatelessWidget {
         children: [
           Text(label,
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
-                  color: AppColor.textSecondary, letterSpacing: 0.4)),
+                  color: WarehouseAppColor.textSecondary, letterSpacing: 0.4)),
           const SizedBox(height: 4),
           Text(value,
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                  color: valueColor ?? AppColor.textPrimary)),
+                  color: valueColor ?? WarehouseAppColor.textPrimary)),
         ],
       ),
     );
@@ -536,7 +538,7 @@ class _InvProducts extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColor.grey300)),
+              border: Border(bottom: BorderSide(color: WarehouseAppColor.grey300)),
             ),
             child: Row(
               children: [
@@ -556,14 +558,14 @@ class _InvProducts extends StatelessWidget {
             final index    = e.key;
             final isLast   = index == order.items.length - 1;
             final pct      = item.receivedPercent;
-            final pctColor = pct >= 1.0 ? AppColor.success
-                : pct > 0 ? AppColor.warning : AppColor.error;
+            final pctColor = pct >= 1.0 ? WarehouseAppColor.success
+                : pct > 0 ? WarehouseAppColor.warning : WarehouseAppColor.error;
 
             return Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 border: isLast ? null
-                    : Border(bottom: BorderSide(color: AppColor.grey100)),
+                    : Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -578,7 +580,7 @@ class _InvProducts extends StatelessWidget {
                           width: 20,
                           child: Text('${index + 1}',
                               style: TextStyle(fontSize: 11,
-                                  color: AppColor.textSecondary)),
+                                  color: WarehouseAppColor.textSecondary)),
                         ),
                         const SizedBox(width: 8),
                         Column(
@@ -587,11 +589,11 @@ class _InvProducts extends StatelessWidget {
                             Text(item.productName,
                                 style: TextStyle(fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColor.textPrimary)),
+                                    color: WarehouseAppColor.textPrimary)),
                             if (item.sku != null)
                               Text(item.sku!,
                                   style: TextStyle(fontSize: 11,
-                                      color: AppColor.textSecondary)),
+                                      color: WarehouseAppColor.textSecondary)),
                           ],
                         ),
                       ],
@@ -603,7 +605,7 @@ class _InvProducts extends StatelessWidget {
                     flex: 1,
                     child: Text('${item.quantityOrdered.toInt()}',
                         style: TextStyle(fontSize: 13,
-                            color: AppColor.textPrimary)),
+                            color: WarehouseAppColor.textPrimary)),
                   ),
 
                   // Received — colored
@@ -619,7 +621,7 @@ class _InvProducts extends StatelessWidget {
                     flex: 1,
                     child: Text('Rs ${item.unitCost.toStringAsFixed(0)}',
                         style: TextStyle(fontSize: 13,
-                            color: AppColor.textSecondary)),
+                            color: WarehouseAppColor.textSecondary)),
                   ),
 
                   // Total
@@ -628,7 +630,7 @@ class _InvProducts extends StatelessWidget {
                     child: Text('Rs ${item.totalCost.toStringAsFixed(0)}',
                         style: TextStyle(fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColor.textPrimary)),
+                            color: WarehouseAppColor.textPrimary)),
                   ),
 
                   // // Progress bar + %
@@ -672,7 +674,7 @@ class _InvProducts extends StatelessWidget {
     flex: flex,
     child: Text(label,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
-            color: AppColor.textSecondary, letterSpacing: 0.4)),
+            color: WarehouseAppColor.textSecondary, letterSpacing: 0.4)),
   );
 }
 
@@ -689,7 +691,7 @@ class _InvTotals extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(32, 20, 32, 20),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: AppColor.grey200)),
+        border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -704,7 +706,7 @@ class _InvTotals extends StatelessWidget {
                   _TotalRow(
                     label:      'Discount',
                     value:      '- ${_fmt(order.discountAmount)}',
-                    valueColor: AppColor.success,
+                    valueColor: WarehouseAppColor.success,
                   ),
                 if (order.taxAmount > 0)
                   _TotalRow(label: 'Tax', value: _fmt(order.taxAmount)),
@@ -712,7 +714,7 @@ class _InvTotals extends StatelessWidget {
                 // Divider
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Divider(height: 1, color: AppColor.grey300),
+                  child: Divider(height: 1, color: WarehouseAppColor.grey300),
                 ),
 
                 // Total bold
@@ -724,12 +726,12 @@ class _InvTotals extends StatelessWidget {
                 _TotalRow(
                   label:      'Paid',
                   value:      _fmt(order.paidAmount),
-                  valueColor: AppColor.success,
+                  valueColor: WarehouseAppColor.success,
                 ),
 
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Divider(height: 1, color: AppColor.grey300),
+                  child: Divider(height: 1, color: WarehouseAppColor.grey300),
                 ),
 
                 // Remaining
@@ -738,9 +740,9 @@ class _InvTotals extends StatelessWidget {
                   value:      order.isFullyPaid
                       ? 'Clear' : _fmt(order.remainingAmount),
                   labelColor: order.isFullyPaid
-                      ? AppColor.success : AppColor.error,
+                      ? WarehouseAppColor.success : WarehouseAppColor.error,
                   valueColor: order.isFullyPaid
-                      ? AppColor.success : AppColor.error,
+                      ? WarehouseAppColor.success : WarehouseAppColor.error,
                   isBold:     true,
                 ),
               ],
@@ -784,13 +786,13 @@ class _TotalRow extends StatelessWidget {
               style: TextStyle(
                 fontSize:   isBold ? 14 : 13,
                 fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
-                color:      labelColor ?? AppColor.textSecondary,
+                color:      labelColor ?? WarehouseAppColor.textSecondary,
               )),
           Text(value,
               style: TextStyle(
                 fontSize:   isBold ? 14 : 13,
                 fontWeight: isBold ? FontWeight.w600 : FontWeight.w500,
-                color:      valueColor ?? AppColor.textPrimary,
+                color:      valueColor ?? WarehouseAppColor.textPrimary,
               )),
         ],
       ),
@@ -815,18 +817,18 @@ class _InvNotes extends StatelessWidget {
         children: [
           Text('NOTES',
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
-                  color: AppColor.textSecondary, letterSpacing: 0.5)),
+                  color: WarehouseAppColor.textSecondary, letterSpacing: 0.5)),
           const SizedBox(height: 6),
           Container(
             width:   double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color:        AppColor.grey100,
+              color:        WarehouseAppColor.grey100,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(notes,
                 style: TextStyle(fontSize: 12,
-                    color: AppColor.textSecondary, height: 1.7)),
+                    color: WarehouseAppColor.textSecondary, height: 1.7)),
           ),
         ],
       ),
@@ -846,7 +848,7 @@ class _InvFooter extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(32, 14, 32, 16),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: AppColor.grey200)),
+        border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -856,14 +858,14 @@ class _InvFooter extends StatelessWidget {
             children: [
               Text('Shukriya — Jan Ghani ke saath kaam karne ka.',
                   style: TextStyle(fontSize: 11,
-                      color: AppColor.textSecondary)),
+                      color: WarehouseAppColor.textSecondary)),
               Text('Koi masla ho to rabta karein: 0300-1234567',
                   style: TextStyle(fontSize: 11,
-                      color: AppColor.textSecondary)),
+                      color: WarehouseAppColor.textSecondary)),
             ],
           ),
           Text('Jan Ghani POS  •  Generated automatically',
-              style: TextStyle(fontSize: 11, color: AppColor.grey400)),
+              style: TextStyle(fontSize: 11, color: WarehouseAppColor.grey400)),
         ],
       ),
     );

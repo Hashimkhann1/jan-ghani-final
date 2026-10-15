@@ -1,4 +1,4 @@
-// Updated on 2026-10-05 03:08 PM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // purchase_order_screen.dart
 // Stitch "Jan Ghani — Purchase Orders v2" design:
@@ -10,7 +10,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/domain/purchase_order_model.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart';
@@ -81,7 +81,7 @@ class _PurchaseOrderScreenState
     final notifier = ref.read(purchaseOrderProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppColor.grey100,
+      backgroundColor: WarehouseAppColor.grey100,
       body: state.isLoading && state.allOrders.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -150,20 +150,20 @@ class _TopBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
-        color:  AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color:        AppColor.primary.withOpacity(0.1),
+              color:        WarehouseAppColor.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
             child: const Icon(Icons.shopping_cart_outlined,
-                size: 20, color: AppColor.primary),
+                size: 20, color: WarehouseAppColor.primary),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -174,12 +174,12 @@ class _TopBar extends StatelessWidget {
                     style: TextStyle(
                         fontSize:   22,
                         fontWeight: FontWeight.w700,
-                        color:      AppColor.textPrimary)),
+                        color:      WarehouseAppColor.textPrimary)),
                 Text('Supplier se aane wale orders aur returns',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 13,
-                        color:    AppColor.textSecondary)),
+                        color:    WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -189,8 +189,8 @@ class _TopBar extends StatelessWidget {
             icon:  const Icon(Icons.keyboard_return_rounded, size: 18),
             label: const Text('Purchase Return'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColor.error,
-              side: BorderSide(color: AppColor.error.withOpacity(0.35)),
+              foregroundColor: WarehouseAppColor.error,
+              side: BorderSide(color: WarehouseAppColor.error.withOpacity(0.35)),
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 16),
               minimumSize:   Size.zero,
@@ -205,8 +205,8 @@ class _TopBar extends StatelessWidget {
             icon:  const Icon(Icons.add_rounded, size: 18),
             label: const Text('New Purchase Order'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.primary,
-              foregroundColor: AppColor.white,
+              backgroundColor: WarehouseAppColor.primary,
+              foregroundColor: WarehouseAppColor.white,
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 16),
               minimumSize:   Size.zero,
@@ -271,12 +271,12 @@ class _StatsRow extends StatelessWidget {
     final Color  monthColor;
     if (lastMonthTotal <= 0) {
       monthSub   = 'Pichle mahine koi PO nahi';
-      monthColor = AppColor.textSecondary;
+      monthColor = WarehouseAppColor.textSecondary;
     } else {
       final pct = ((s.thisMonthTotal - lastMonthTotal) * 100 / lastMonthTotal)
           .round();
       monthSub   = '${pct >= 0 ? '↑' : '↓'} ${pct.abs()}% vs last month';
-      monthColor = AppColor.info;
+      monthColor = WarehouseAppColor.info;
     }
 
     return Row(
@@ -286,29 +286,29 @@ class _StatsRow extends StatelessWidget {
             value:    '${s.totalPOs}',
             subtitle: '$thisMonthCount is mahine',
             icon:     Icons.receipt_long_outlined,
-            color:    AppColor.primary),
+            color:    WarehouseAppColor.primary),
         const SizedBox(width: 14),
         PoStatCard(
             label:    'Pending',
             value:    '${s.pendingCount}',
             subtitle: 'Draft $draft · Ordered $ordered · Partial $partial',
             icon:     Icons.pending_actions_outlined,
-            color:    AppColor.warning,
-            subtitleColor: AppColor.warningDark),
+            color:    WarehouseAppColor.warning,
+            subtitleColor: WarehouseAppColor.warningDark),
         const SizedBox(width: 14),
         PoStatCard(
             label:    'Received',
             value:    '${s.receivedCount}',
             subtitle: '$receivedPct% complete',
             icon:     Icons.check_circle_outline_rounded,
-            color:    AppColor.success),
+            color:    WarehouseAppColor.success),
         const SizedBox(width: 14),
         PoStatCard(
             label:    'This month',
             value:    'Rs ${s.thisMonthTotal.pkrFormat}',
             subtitle: monthSub,
             icon:     Icons.calendar_month_outlined,
-            color:    AppColor.info,
+            color:    WarehouseAppColor.info,
             subtitleColor: monthColor),
         const SizedBox(width: 14),
         PoStatCard(
@@ -318,7 +318,7 @@ class _StatsRow extends StatelessWidget {
                 ? 'Koi baqaya nahi'
                 : '${dueSuppliers.length} suppliers ko dena hai',
             icon:     Icons.account_balance_wallet_outlined,
-            color:    AppColor.error),
+            color:    WarehouseAppColor.error),
       ],
     );
   }
@@ -366,9 +366,9 @@ class _Toolbar extends StatelessWidget {
         style:      const TextStyle(fontSize: 13),
         decoration: InputDecoration(
           hintText:  'PO number, supplier, company se search...',
-          hintStyle: TextStyle(color: AppColor.textHint, fontSize: 13),
+          hintStyle: TextStyle(color: WarehouseAppColor.textHint, fontSize: 13),
           prefixIcon: Icon(Icons.search_rounded,
-              color: AppColor.grey400, size: 18),
+              color: WarehouseAppColor.grey400, size: 18),
           suffixIcon: controller.text.isNotEmpty
               ? IconButton(
             icon: const Icon(Icons.close_rounded, size: 16),
@@ -379,18 +379,18 @@ class _Toolbar extends StatelessWidget {
           )
               : null,
           filled:         true,
-          fillColor:      AppColor.surface,
+          fillColor:      WarehouseAppColor.surface,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14),
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide:   BorderSide(color: AppColor.grey300)),
+              borderSide:   BorderSide(color: WarehouseAppColor.grey300)),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide:   BorderSide(color: AppColor.grey300)),
+              borderSide:   BorderSide(color: WarehouseAppColor.grey300)),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(
-                  color: AppColor.primary, width: 1.5)),
+                  color: WarehouseAppColor.primary, width: 1.5)),
         ),
       ),
     );
@@ -398,7 +398,7 @@ class _Toolbar extends StatelessWidget {
     final tabs = Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color:        AppColor.grey100,
+        color:        WarehouseAppColor.grey100,
         borderRadius: BorderRadius.circular(9),
       ),
       child: Row(
@@ -438,9 +438,9 @@ class _Toolbar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: LayoutBuilder(
         builder: (context, c) {
@@ -505,17 +505,17 @@ class _FieldShell extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color:        active
-            ? AppColor.primary.withOpacity(0.05) : AppColor.surface,
+            ? WarehouseAppColor.primary.withOpacity(0.05) : WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
             color: active
-                ? AppColor.primary.withOpacity(0.5) : AppColor.grey300),
+                ? WarehouseAppColor.primary.withOpacity(0.5) : WarehouseAppColor.grey300),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (leading != null) ...[
-            Icon(leading, size: 16, color: AppColor.textSecondary),
+            Icon(leading, size: 16, color: WarehouseAppColor.textSecondary),
             const SizedBox(width: 8),
           ],
           ConstrainedBox(
@@ -526,12 +526,12 @@ class _FieldShell extends StatelessWidget {
                 style: TextStyle(
                     fontSize:   13,
                     fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                    color: active ? AppColor.primary : AppColor.textPrimary)),
+                    color: active ? WarehouseAppColor.primary : WarehouseAppColor.textPrimary)),
           ),
           const SizedBox(width: 6),
           trailing ??
               Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 18, color: AppColor.textSecondary),
+                  size: 18, color: WarehouseAppColor.textSecondary),
         ],
       ),
     );
@@ -557,10 +557,10 @@ class _TypeDropdown extends StatelessWidget {
       tooltip:     'Type filter',
       onSelected:  onChanged,
       offset:      const Offset(0, 44),
-      color:       AppColor.surface,
+      color:       WarehouseAppColor.surface,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: AppColor.grey200)),
+          side: BorderSide(color: WarehouseAppColor.grey200)),
       itemBuilder: (_) => [
         for (final e in _labels.entries)
           CheckedPopupMenuItem<String>(
@@ -624,7 +624,7 @@ class _DateRangeField extends StatelessWidget {
           onTap:        () => onChanged(null, null),
           borderRadius: BorderRadius.circular(10),
           child: Icon(Icons.close_rounded,
-              size: 16, color: AppColor.primary),
+              size: 16, color: WarehouseAppColor.primary),
         )
             : null,
       ),
@@ -666,11 +666,11 @@ class _SupplierDropdown extends StatelessWidget {
       tooltip:     'Supplier filter',
       onSelected:  (v) => onChanged(v == _allKey ? null : v),
       offset:      const Offset(0, 44),
-      color:       AppColor.surface,
+      color:       WarehouseAppColor.surface,
       constraints: const BoxConstraints(maxHeight: 420, minWidth: 220),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: AppColor.grey200)),
+          side: BorderSide(color: WarehouseAppColor.grey200)),
       itemBuilder: (_) => [
         CheckedPopupMenuItem<String>(
           value:   _allKey,
@@ -734,9 +734,9 @@ class _OrdersTableState extends State<_OrdersTable> {
 
     return Container(
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
@@ -786,7 +786,7 @@ class _OrdersTableState extends State<_OrdersTable> {
                                           ),
                                         ),
                                       ),
-                                      Divider(height: 1, color: AppColor.grey100),
+                                      Divider(height: 1, color: WarehouseAppColor.grey100),
                                     ],
                                   ),
                                 ),
@@ -825,7 +825,7 @@ class _TableHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color:  const Color(0xFFF8FAFC),
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: const Row(
         children: [
@@ -860,7 +860,7 @@ class _TH extends StatelessWidget {
   static const style = TextStyle(
       fontSize:      11,
       fontWeight:    FontWeight.w600,
-      color:         AppColor.textSecondary,
+      color:         WarehouseAppColor.textSecondary,
       letterSpacing: 0.6);
 
   @override
@@ -903,14 +903,14 @@ class _TableFooter extends StatelessWidget {
       sumDue   += o.remainingAmount;
     }
 
-    final muted = TextStyle(fontSize: 12.5, color: AppColor.textSecondary);
+    final muted = TextStyle(fontSize: 12.5, color: WarehouseAppColor.textSecondary);
     final bold  = TextStyle(fontSize: 12.5,
-        fontWeight: FontWeight.w700, color: AppColor.textPrimary);
+        fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: AppColor.grey200))),
+          border: Border(top: BorderSide(color: WarehouseAppColor.grey200))),
       child: LayoutBuilder(
         builder: (context, c) {
           final countText = Text.rich(TextSpan(style: muted, children: [
@@ -924,19 +924,19 @@ class _TableFooter extends StatelessWidget {
           final summary = Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color:        AppColor.grey100,
+              color:        WarehouseAppColor.grey100,
               borderRadius: BorderRadius.circular(20),
-              border:       Border.all(color: AppColor.grey200),
+              border:       Border.all(color: WarehouseAppColor.grey200),
             ),
             child: Text.rich(TextSpan(style: muted, children: [
               const TextSpan(text: 'Total '),
               TextSpan(text: 'Rs ${sumTotal.pkrFormat}', style: bold),
               const TextSpan(text: '   ·   Paid '),
               TextSpan(text: 'Rs ${sumPaid.pkrFormat}',
-                  style: bold.copyWith(color: AppColor.success)),
+                  style: bold.copyWith(color: WarehouseAppColor.success)),
               const TextSpan(text: '   ·   Baaki '),
               TextSpan(text: 'Rs ${sumDue.pkrFormat}',
-                  style: bold.copyWith(color: AppColor.error)),
+                  style: bold.copyWith(color: WarehouseAppColor.error)),
             ])),
           );
 
@@ -992,7 +992,7 @@ class _PageSizeMenu extends StatelessWidget {
     return PopupMenuButton<int>(
       tooltip:    'Rows per page',
       onSelected: onChanged,
-      color:      AppColor.surface,
+      color:      WarehouseAppColor.surface,
       itemBuilder: (_) => [
         for (final n in const [25, 50, 100])
           CheckedPopupMenuItem<int>(
@@ -1006,7 +1006,7 @@ class _PageSizeMenu extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(7),
-          border:       Border.all(color: AppColor.grey300),
+          border:       Border.all(color: WarehouseAppColor.grey300),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1014,7 +1014,7 @@ class _PageSizeMenu extends StatelessWidget {
             Text('$value', style: const TextStyle(fontSize: 13)),
             const SizedBox(width: 4),
             Icon(Icons.keyboard_arrow_down_rounded,
-                size: 16, color: AppColor.textSecondary),
+                size: 16, color: WarehouseAppColor.textSecondary),
           ],
         ),
       ),
@@ -1061,7 +1061,7 @@ class _Pager extends StatelessWidget {
               ? Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text('…',
-                style: TextStyle(color: AppColor.textSecondary)),
+                style: TextStyle(color: WarehouseAppColor.textSecondary)),
           )
               : _PageBtn(
             label:    '${p + 1}',
@@ -1104,19 +1104,19 @@ class _PageBtn extends StatelessWidget {
           padding:     const EdgeInsets.symmetric(horizontal: 8),
           alignment:   Alignment.center,
           decoration: BoxDecoration(
-            color:        selected ? AppColor.primary : AppColor.surface,
+            color:        selected ? WarehouseAppColor.primary : WarehouseAppColor.surface,
             borderRadius: BorderRadius.circular(7),
             border: Border.all(
-                color: selected ? AppColor.primary : AppColor.grey300),
+                color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey300),
           ),
           child: icon != null
               ? Icon(icon, size: 18,
-              color: disabled ? AppColor.grey400 : AppColor.textPrimary)
+              color: disabled ? WarehouseAppColor.grey400 : WarehouseAppColor.textPrimary)
               : Text(label!,
               style: TextStyle(
                   fontSize:   13,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: selected ? AppColor.white : AppColor.textPrimary)),
+                  color: selected ? WarehouseAppColor.white : WarehouseAppColor.textPrimary)),
         ),
       ),
     );

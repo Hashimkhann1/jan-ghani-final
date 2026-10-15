@@ -1,4 +1,4 @@
-// Updated on 2026-10-08 09:24 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // inventory_balance_screen.dart
 // Warehouse-side Inventory Balance shell — 2 tabs:
@@ -8,7 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 import '../widgets/balance_report_panel.dart';
 import '../widgets/create_batch_panel.dart';
@@ -48,20 +48,20 @@ class _InventoryBalanceScreenState extends State<InventoryBalanceScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: const BoxDecoration(
-            color: AppColor.surface,
-            border: Border(bottom: BorderSide(color: AppColor.grey200)),
+            color: WarehouseAppColor.surface,
+            border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           child: Row(
             children: [
               Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(
-                  color:        AppColor.primary.withOpacity(0.1),
+                  color:        WarehouseAppColor.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
                 child: const Icon(Icons.rule_folder_outlined,
-                    size: 19, color: AppColor.primary),
+                    size: 19, color: WarehouseAppColor.primary),
               ),
               const SizedBox(width: 12),
               const Column(
@@ -71,11 +71,11 @@ class _InventoryBalanceScreenState extends State<InventoryBalanceScreen>
                   Text('Inventory Balance',
                       style: TextStyle(
                         fontSize: 15.5, fontWeight: FontWeight.w800,
-                        color: AppColor.textPrimary,
+                        color: WarehouseAppColor.textPrimary,
                       )),
                   SizedBox(height: 2),
                   Text('Weekly balance requests · owner-only',
-                      style: TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                      style: TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
                 ],
               ),
               const Spacer(),
@@ -88,13 +88,13 @@ class _InventoryBalanceScreenState extends State<InventoryBalanceScreen>
                   child: Container(
                     width: 40, height: 40,
                     decoration: BoxDecoration(
-                      color:        AppColor.surface,
+                      color:        WarehouseAppColor.surface,
                       borderRadius: BorderRadius.circular(10),
-                      border:       Border.all(color: AppColor.grey300),
+                      border:       Border.all(color: WarehouseAppColor.grey300),
                     ),
                     alignment: Alignment.center,
                     child: const Icon(Icons.calculate_outlined,
-                        size: 20, color: AppColor.primary),
+                        size: 20, color: WarehouseAppColor.primary),
                   ),
                 ),
               ),
@@ -147,7 +147,7 @@ class _SegmentedTabs extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -181,11 +181,11 @@ class _SegmentButton extends StatelessWidget {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        color: active ? AppColor.primary : Colors.transparent,
+        color: active ? WarehouseAppColor.primary : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         boxShadow: active
             ? [BoxShadow(
-                color: AppColor.primary.withOpacity(0.25),
+                color: WarehouseAppColor.primary.withOpacity(0.25),
                 blurRadius: 8, offset: const Offset(0, 2),
               )]
             : null,
@@ -203,7 +203,7 @@ class _SegmentButton extends StatelessWidget {
                 Icon(
                   spec.icon,
                   size: 15,
-                  color: active ? Colors.white : AppColor.textSecondary,
+                  color: active ? Colors.white : WarehouseAppColor.textSecondary,
                 ),
                 const SizedBox(width: 7),
                 Text(
@@ -211,7 +211,7 @@ class _SegmentButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color: active ? Colors.white : AppColor.textPrimary,
+                    color: active ? Colors.white : WarehouseAppColor.textPrimary,
                     letterSpacing: 0.1,
                   ),
                 ),
@@ -276,8 +276,8 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
     final after   = delta == null ? null : system! + delta;
 
     final Color deltaColor = delta == null || delta == 0
-        ? AppColor.textSecondary
-        : (delta > 0 ? AppColor.success : AppColor.error);
+        ? WarehouseAppColor.textSecondary
+        : (delta > 0 ? WarehouseAppColor.success : WarehouseAppColor.error);
     final String deltaText = delta == null
         ? '—'
         : delta > 0 ? '+${_fmt(delta)}' : (delta < 0 ? '−${_fmt(-delta)}' : '0');
@@ -288,7 +288,7 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
             : delta < 0 ? 'Stock kam hoga (kam gina gaya)' : 'Koi farq nahi';
 
     return Dialog(
-      backgroundColor: AppColor.surface,
+      backgroundColor: WarehouseAppColor.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: 380,
@@ -304,12 +304,12 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
                   Container(
                     width: 34, height: 34,
                     decoration: BoxDecoration(
-                      color:        AppColor.primary.withOpacity(0.1),
+                      color:        WarehouseAppColor.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(9),
                     ),
                     alignment: Alignment.center,
                     child: const Icon(Icons.calculate_outlined,
-                        size: 18, color: AppColor.primary),
+                        size: 18, color: WarehouseAppColor.primary),
                   ),
                   const SizedBox(width: 10),
                   const Expanded(
@@ -317,12 +317,12 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
                         style: TextStyle(
                             fontSize:   16,
                             fontWeight: FontWeight.w700,
-                            color:      AppColor.textPrimary)),
+                            color:      WarehouseAppColor.textPrimary)),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded,
-                        size: 20, color: AppColor.textSecondary),
+                        size: 20, color: WarehouseAppColor.textSecondary),
                   ),
                 ],
               ),
@@ -357,7 +357,7 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
                             fontSize:      11,
                             fontWeight:    FontWeight.w600,
                             letterSpacing: 0.6,
-                            color:         AppColor.textSecondary)),
+                            color:         WarehouseAppColor.textSecondary)),
                     const SizedBox(height: 4),
                     Text(deltaText,
                         style: TextStyle(
@@ -375,9 +375,9 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
-                  color:        AppColor.grey100,
+                  color:        WarehouseAppColor.grey100,
                   borderRadius: BorderRadius.circular(12),
-                  border:       Border.all(color: AppColor.grey200),
+                  border:       Border.all(color: WarehouseAppColor.grey200),
                 ),
                 child: Row(
                   children: [
@@ -390,11 +390,11 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
                                   fontSize:      11,
                                   fontWeight:    FontWeight.w600,
                                   letterSpacing: 0.6,
-                                  color:         AppColor.textSecondary)),
+                                  color:         WarehouseAppColor.textSecondary)),
                           SizedBox(height: 2),
                           Text('System + Delta',
                               style: TextStyle(
-                                  fontSize: 11.5, color: AppColor.textHint)),
+                                  fontSize: 11.5, color: WarehouseAppColor.textHint)),
                         ],
                       ),
                     ),
@@ -406,7 +406,7 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
                           fontSize:   22,
                           fontWeight: FontWeight.w800,
                           color: after != null && after < 0
-                              ? AppColor.error : AppColor.textPrimary),
+                              ? WarehouseAppColor.error : WarehouseAppColor.textPrimary),
                     ),
                   ],
                 ),
@@ -419,8 +419,8 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
                     child: OutlinedButton(
                       onPressed: _clear,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColor.textSecondary,
-                        side: const BorderSide(color: AppColor.grey300),
+                        foregroundColor: WarehouseAppColor.textSecondary,
+                        side: const BorderSide(color: WarehouseAppColor.grey300),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
@@ -433,8 +433,8 @@ class _DeltaCalculatorDialogState extends State<_DeltaCalculatorDialog> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.primary,
-                        foregroundColor: AppColor.white,
+                        backgroundColor: WarehouseAppColor.primary,
+                        foregroundColor: WarehouseAppColor.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -476,7 +476,7 @@ class _NumField extends StatelessWidget {
                 fontSize:      11,
                 fontWeight:    FontWeight.w600,
                 letterSpacing: 0.5,
-                color:         AppColor.textSecondary)),
+                color:         WarehouseAppColor.textSecondary)),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
@@ -493,18 +493,18 @@ class _NumField extends StatelessWidget {
             isDense:   true,
             hintText:  '0',
             filled:    true,
-            fillColor: AppColor.surface,
+            fillColor: WarehouseAppColor.surface,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColor.grey300)),
+                borderSide: const BorderSide(color: WarehouseAppColor.grey300)),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColor.grey300)),
+                borderSide: const BorderSide(color: WarehouseAppColor.grey300)),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
+                borderSide: const BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
           ),
         ),
       ],

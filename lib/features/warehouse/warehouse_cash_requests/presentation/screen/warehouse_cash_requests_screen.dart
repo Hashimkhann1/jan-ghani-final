@@ -1,6 +1,8 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import '../../data/model/warehouse_cash_request_model.dart';
 import '../provider/warehouse_cash_requests_provider.dart';
 
@@ -49,23 +51,23 @@ class _WarehouseCashRequestsScreenState
     final requestsAsync = ref.watch(pendingCashRequestsProvider);
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColor.textDark),
+        iconTheme: const IconThemeData(color: WarehouseAppColor.textDark),
         title: const Text(
           'Cash Requests',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColor.textDark,
+            color: WarehouseAppColor.textDark,
           ),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: AppColor.primary,
+          color: WarehouseAppColor.primary,
           onRefresh: () async => ref.invalidate(pendingCashRequestsProvider),
           child: requestsAsync.when(
             data: (list) {
@@ -76,7 +78,7 @@ class _WarehouseCashRequestsScreenState
                     Center(
                       child: Text(
                         'Koi pending cash request nahi',
-                        style: TextStyle(color: AppColor.textMuted),
+                        style: TextStyle(color: WarehouseAppColor.textMuted),
                       ),
                     ),
                   ],
@@ -89,7 +91,7 @@ class _WarehouseCashRequestsScreenState
               );
             },
             loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColor.primary),
+              child: CircularProgressIndicator(color: WarehouseAppColor.primary),
             ),
             error: (e, _) => ListView(
               children: const [
@@ -188,7 +190,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.account_balance_wallet_rounded,
-                    color: AppColor.cashIn, size: 24),
+                    color: WarehouseAppColor.cashIn, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -200,19 +202,19 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: AppColor.textDark,
+                        color: WarehouseAppColor.textDark,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'From: ${r.sentByName ?? 'Accountant'}',
                       style: const TextStyle(
-                          fontSize: 13, color: AppColor.textMuted),
+                          fontSize: 13, color: WarehouseAppColor.textMuted),
                     ),
                     Text(
                       _date(r.createdAt),
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textMuted),
+                          fontSize: 12, color: WarehouseAppColor.textMuted),
                     ),
                   ],
                 ),
@@ -223,7 +225,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
             const SizedBox(height: 10),
             Text(
               r.notes!,
-              style: const TextStyle(fontSize: 12, color: AppColor.textMuted),
+              style: const TextStyle(fontSize: 12, color: WarehouseAppColor.textMuted),
             ),
           ],
           const SizedBox(height: 14),
@@ -235,7 +237,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   height: 22,
                   width: 22,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColor.primary),
+                      strokeWidth: 2, color: WarehouseAppColor.primary),
                 ),
               ),
             )
@@ -246,8 +248,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   child: OutlinedButton(
                     onPressed: () => _handle(false),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColor.cashOut,
-                      side: const BorderSide(color: AppColor.cashOut),
+                      foregroundColor: WarehouseAppColor.cashOut,
+                      side: const BorderSide(color: WarehouseAppColor.cashOut),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -262,7 +264,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   child: ElevatedButton(
                     onPressed: () => _handle(true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.cashIn,
+                      backgroundColor: WarehouseAppColor.cashIn,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 12),

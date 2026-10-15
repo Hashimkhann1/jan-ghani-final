@@ -1,6 +1,8 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
@@ -25,8 +27,8 @@ class AssignStockCartSummary extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColor.white,
-        border: Border(top: BorderSide(color: AppColor.grey200)),
+        color: WarehouseAppColor.white,
+        border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
@@ -37,7 +39,7 @@ class AssignStockCartSummary extends ConsumerWidget {
                 _StatChip(
                   label: 'Items',
                   value: '${state.totalItems}',
-                  color: AppColor.primary,
+                  color: WarehouseAppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 _StatChip(
@@ -49,7 +51,7 @@ class AssignStockCartSummary extends ConsumerWidget {
                 _StatChip(
                   label: 'Grand Total',
                   value: 'Rs ${state.grandTotal.toStringAsFixed(0)}',
-                  color: AppColor.success,
+                  color: WarehouseAppColor.success,
                 ),
               ],
             ),
@@ -60,19 +62,19 @@ class AssignStockCartSummary extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColor.errorLight,
+                color: WarehouseAppColor.errorLight,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColor.error.withOpacity(0.3)),
+                border: Border.all(color: WarehouseAppColor.error.withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
                   Icon(Icons.inventory_2_outlined,
-                      size: 14, color: AppColor.error),
+                      size: 14, color: WarehouseAppColor.error),
                   SizedBox(width: 6),
                   Text(
                     'Kuch items ki quantity available stock se zyada hai',
-                    style: TextStyle(fontSize: 12, color: AppColor.error),
+                    style: TextStyle(fontSize: 12, color: WarehouseAppColor.error),
                   ),
                 ],
               ),
@@ -87,25 +89,25 @@ class AssignStockCartSummary extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColor.errorLight,
+                  color: WarehouseAppColor.errorLight,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.warning_amber_rounded,
-                        size: 14, color: AppColor.error),
+                        size: 14, color: WarehouseAppColor.error),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         state.errorMessage!,
                         style: const TextStyle(
-                            fontSize: 12, color: AppColor.error),
+                            fontSize: 12, color: WarehouseAppColor.error),
                       ),
                     ),
                     GestureDetector(
                       onTap: notifier.clearError,
                       child: const Icon(Icons.close,
-                          size: 14, color: AppColor.error),
+                          size: 14, color: WarehouseAppColor.error),
                     ),
                   ],
                 ),
@@ -142,8 +144,8 @@ class AssignStockCartSummary extends ConsumerWidget {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonEnabled
-                      ? AppColor.primary
-                      : AppColor.grey300,
+                      ? WarehouseAppColor.primary
+                      : WarehouseAppColor.grey300,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -240,11 +242,11 @@ class _ZeroQtyWarningDialog extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppColor.warning.withOpacity(0.12),
+                      color: WarehouseAppColor.warning.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.info_outline_rounded,
-                        color: AppColor.warning, size: 22),
+                        color: WarehouseAppColor.warning, size: 22),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -253,7 +255,7 @@ class _ZeroQtyWarningDialog extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary),
+                          color: WarehouseAppColor.textPrimary),
                     ),
                   ),
                 ],
@@ -265,7 +267,7 @@ class _ZeroQtyWarningDialog extends StatelessWidget {
                 'sirf inki product info (price, barcode waghera) store par update karega:',
                 style: TextStyle(
                     fontSize: 13,
-                    color: AppColor.textSecondary,
+                    color: WarehouseAppColor.textSecondary,
                     height: 1.4),
               ),
               const SizedBox(height: 12),
@@ -274,10 +276,10 @@ class _ZeroQtyWarningDialog extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColor.warningLight,
+                  color: WarehouseAppColor.warningLight,
                   borderRadius: BorderRadius.circular(10),
                   border:
-                      Border.all(color: AppColor.warning.withOpacity(0.3)),
+                      Border.all(color: WarehouseAppColor.warning.withOpacity(0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,7 +290,7 @@ class _ZeroQtyWarningDialog extends StatelessWidget {
                         child: Row(
                           children: [
                             const Icon(Icons.circle,
-                                size: 6, color: AppColor.warning),
+                                size: 6, color: WarehouseAppColor.warning),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -296,21 +298,21 @@ class _ZeroQtyWarningDialog extends StatelessWidget {
                                 style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColor.textPrimary),
+                                    color: WarehouseAppColor.textPrimary),
                               ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColor.warning.withOpacity(0.15),
+                                color: WarehouseAppColor.warning.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text('Qty 0',
                                   style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColor.warning)),
+                                      color: WarehouseAppColor.warning)),
                             ),
                           ],
                         ),
@@ -327,13 +329,13 @@ class _ZeroQtyWarningDialog extends StatelessWidget {
                       onPressed: onCancel,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: AppColor.grey300),
+                        side: const BorderSide(color: WarehouseAppColor.grey300),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       child: const Text('Cancel',
                           style: TextStyle(
-                              color: AppColor.textSecondary,
+                              color: WarehouseAppColor.textSecondary,
                               fontWeight: FontWeight.w600)),
                     ),
                   ),
@@ -343,7 +345,7 @@ class _ZeroQtyWarningDialog extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: onConfirm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.primary,
+                        backgroundColor: WarehouseAppColor.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -405,7 +407,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 620),
         decoration: BoxDecoration(
-          color: AppColor.white,
+          color: WarehouseAppColor.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -423,22 +425,22 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
-                color: AppColor.primary.withOpacity(0.06),
+                color: WarehouseAppColor.primary.withOpacity(0.06),
                 borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16)),
                 border: Border(
-                    bottom: BorderSide(color: AppColor.primary.withOpacity(0.15))),
+                    bottom: BorderSide(color: WarehouseAppColor.primary.withOpacity(0.15))),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColor.primary.withOpacity(0.12),
+                      color: WarehouseAppColor.primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.fact_check_outlined,
-                        color: AppColor.primary, size: 20),
+                        color: WarehouseAppColor.primary, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -450,12 +452,12 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppColor.textPrimary),
+                              color: WarehouseAppColor.textPrimary),
                         ),
                         Text(
                           'Transfer # ${state.transferNumber}',
                           style: const TextStyle(
-                              fontSize: 12, color: AppColor.textSecondary),
+                              fontSize: 12, color: WarehouseAppColor.textSecondary),
                         ),
                       ],
                     ),
@@ -465,11 +467,11 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColor.grey100,
+                        color: WarehouseAppColor.grey100,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Icon(Icons.close,
-                          size: 16, color: AppColor.textSecondary),
+                          size: 16, color: WarehouseAppColor.textSecondary),
                     ),
                   ),
                 ],
@@ -487,7 +489,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                     icon: Icons.store_rounded,
                     label: 'To Store',
                     value: state.selectedStoreName ?? '-',
-                    color: AppColor.primary,
+                    color: WarehouseAppColor.primary,
                   ),
                   _MetaChip(
                     icon: Icons.person_outline_rounded,
@@ -519,7 +521,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary),
+                    color: WarehouseAppColor.textPrimary),
               ),
             ),
 
@@ -527,7 +529,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
               margin: const EdgeInsets.symmetric(horizontal: 20),
               constraints: const BoxConstraints(maxHeight: 200),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColor.grey200),
+                border: Border.all(color: WarehouseAppColor.grey200),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -538,7 +540,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColor.primary.withOpacity(0.06),
+                      color: WarehouseAppColor.primary.withOpacity(0.06),
                       borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(7)),
                     ),
@@ -560,7 +562,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                       shrinkWrap: true,
                       itemCount: state.cartItems.length,
                       separatorBuilder: (_, __) =>
-                          Divider(height: 1, color: AppColor.grey200),
+                          Divider(height: 1, color: WarehouseAppColor.grey200),
                       itemBuilder: (_, i) {
                         final item = state.cartItems[i];
                         return Padding(
@@ -575,7 +577,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                                   style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColor.textPrimary),
+                                      color: WarehouseAppColor.textPrimary),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -588,7 +590,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                                       : item.quantity.toStringAsFixed(2),
                                   style: const TextStyle(
                                       fontSize: 12,
-                                      color: AppColor.textPrimary),
+                                      color: WarehouseAppColor.textPrimary),
                                   textAlign: TextAlign.center,
                                 ),
                               ),
@@ -598,7 +600,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                                   'Rs ${item.purchasePrice.toStringAsFixed(0)}',
                                   style: const TextStyle(
                                       fontSize: 12,
-                                      color: AppColor.textSecondary),
+                                      color: WarehouseAppColor.textSecondary),
                                   textAlign: TextAlign.center,
                                 ),
                               ),
@@ -622,7 +624,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                                   style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColor.primary),
+                                      color: WarehouseAppColor.primary),
                                   textAlign: TextAlign.center,
                                 ),
                               ),
@@ -641,16 +643,16 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
               margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColor.grey100,
+                color: WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColor.grey200),
+                border: Border.all(color: WarehouseAppColor.grey200),
               ),
               child: Row(
                 children: [
                   _SummaryCell(
                     label: 'Total Purchase',
                     value: 'Rs ${totalPurchase.toStringAsFixed(0)}',
-                    color: AppColor.textPrimary,
+                    color: WarehouseAppColor.textPrimary,
                   ),
                   _Divider(),
                   _SummaryCell(
@@ -668,13 +670,13 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                   _SummaryCell(
                     label: 'Discount',
                     value: 'Rs ${totalDiscount.toStringAsFixed(0)}',
-                    color: AppColor.error,
+                    color: WarehouseAppColor.error,
                   ),
                   _Divider(),
                   _SummaryCell(
                     label: 'Grand Total',
                     value: 'Rs ${state.grandTotal.toStringAsFixed(0)}',
-                    color: AppColor.success,
+                    color: WarehouseAppColor.success,
                     bold: true,
                   ),
                 ],
@@ -704,7 +706,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                           state.notes!,
                           style: const TextStyle(
                               fontSize: 12,
-                              color: AppColor.textPrimary),
+                              color: WarehouseAppColor.textPrimary),
                         ),
                       ),
                     ],
@@ -727,14 +729,14 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                         const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
-                        side: const BorderSide(color: AppColor.grey300),
+                        side: const BorderSide(color: WarehouseAppColor.grey300),
                       ),
                       child: const Text(
                         'Cancel',
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppColor.textSecondary),
+                            color: WarehouseAppColor.textSecondary),
                       ),
                     ),
                   ),
@@ -799,8 +801,8 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                                   ],
                                 ),
                                 backgroundColor: offline
-                                    ? AppColor.info
-                                    : AppColor.success,
+                                    ? WarehouseAppColor.info
+                                    : WarehouseAppColor.success,
                                 behavior: SnackBarBehavior.floating,
                                 duration: Duration(
                                     seconds: offline ? 5 : 3),
@@ -835,7 +837,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                             fontWeight: FontWeight.w700),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.primary,
+                        backgroundColor: WarehouseAppColor.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding:
@@ -925,7 +927,7 @@ class _TH extends StatelessWidget {
     style: const TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w700,
-        color: AppColor.primary),
+        color: WarehouseAppColor.primary),
     textAlign: align,
   );
 }
@@ -951,7 +953,7 @@ class _SummaryCell extends StatelessWidget {
         Text(label,
             style: const TextStyle(
                 fontSize: 10,
-                color: AppColor.textSecondary,
+                color: WarehouseAppColor.textSecondary,
                 fontWeight: FontWeight.w500)),
         const SizedBox(height: 2),
         Text(value,
@@ -970,7 +972,7 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: 1,
     height: 28,
-    color: AppColor.grey200,
+    color: WarehouseAppColor.grey200,
     margin: const EdgeInsets.symmetric(horizontal: 4),
   );
 }

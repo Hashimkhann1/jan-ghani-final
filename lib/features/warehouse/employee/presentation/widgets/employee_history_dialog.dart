@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 10:12 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // employee_history_dialog.dart
 // Employee par tap → uska POORA salary/advance record (sab months).
@@ -6,7 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import '../../data/employee_repository.dart';
 import '../../domain/employee_model.dart';
@@ -98,14 +98,14 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                 Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(
-                      color: AppColor.primary.withOpacity(0.1),
+                      color: WarehouseAppColor.primary.withOpacity(0.1),
                       shape: BoxShape.circle),
                   alignment: Alignment.center,
                   child: Text(
                       e.name.isEmpty ? '?' : e.name[0].toUpperCase(),
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: AppColor.primary)),
+                          color: WarehouseAppColor.primary)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -116,11 +116,11 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                           style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: AppColor.textPrimary),
+                              color: WarehouseAppColor.textPrimary),
                           overflow: TextOverflow.ellipsis),
                       Text('Monthly salary: Rs ${e.monthlySalary.pkrFormat}',
                           style: const TextStyle(
-                              fontSize: 11, color: AppColor.textSecondary)),
+                              fontSize: 11, color: WarehouseAppColor.textSecondary)),
                     ],
                   ),
                 ),
@@ -128,7 +128,7 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close_rounded),
                   style: IconButton.styleFrom(
-                      foregroundColor: AppColor.textSecondary),
+                      foregroundColor: WarehouseAppColor.textSecondary),
                 ),
               ]),
             ),
@@ -140,15 +140,15 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColor.grey100,
+                  color: WarehouseAppColor.grey100,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(children: [
-                  _totCol('Total Paid', totalPaid, AppColor.textPrimary),
+                  _totCol('Total Paid', totalPaid, WarehouseAppColor.textPrimary),
                   _vDiv(),
-                  _totCol('Salary', salaryTotal, AppColor.success),
+                  _totCol('Salary', salaryTotal, WarehouseAppColor.success),
                   _vDiv(),
-                  _totCol('Advance', advanceTotal, AppColor.warningDark),
+                  _totCol('Advance', advanceTotal, WarehouseAppColor.warningDark),
                 ]),
               ),
             ),
@@ -160,7 +160,7 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                 padding: const EdgeInsets.all(22),
                 child: Text('Load masla: $_error',
                     style: const TextStyle(
-                        color: AppColor.error, fontSize: 12)),
+                        color: WarehouseAppColor.error, fontSize: 12)),
               )
             else if (p == null)
               const Padding(
@@ -173,7 +173,7 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                 child: Center(
                   child: Text('Abhi tak koi payment nahi',
                       style: TextStyle(
-                          fontSize: 13, color: AppColor.textHint)),
+                          fontSize: 13, color: WarehouseAppColor.textHint)),
                 ),
               )
             else
@@ -199,13 +199,13 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                                 style: const TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColor.textPrimary)),
+                                    color: WarehouseAppColor.textPrimary)),
                             const Spacer(),
                             Text('Rs ${monthSum.pkrFormat}',
                                 style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColor.primary)),
+                                    color: WarehouseAppColor.primary)),
                           ]),
                         ),
                         // Payments of that month
@@ -214,10 +214,10 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 9),
                               decoration: BoxDecoration(
-                                color: AppColor.surface,
+                                color: WarehouseAppColor.surface,
                                 borderRadius: BorderRadius.circular(9),
                                 border:
-                                    Border.all(color: AppColor.grey200),
+                                    Border.all(color: WarehouseAppColor.grey200),
                               ),
                               child: Row(children: [
                                 Icon(
@@ -226,16 +226,16 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                                         : Icons.payments_outlined,
                                     size: 15,
                                     color: pay.isAdvance
-                                        ? AppColor.warningDark
-                                        : AppColor.success),
+                                        ? WarehouseAppColor.warningDark
+                                        : WarehouseAppColor.success),
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 7, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: (pay.isAdvance
-                                            ? AppColor.warningDark
-                                            : AppColor.success)
+                                            ? WarehouseAppColor.warningDark
+                                            : WarehouseAppColor.success)
                                         .withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(5),
                                   ),
@@ -244,8 +244,8 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w700,
                                           color: pay.isAdvance
-                                              ? AppColor.warningDark
-                                              : AppColor.success)),
+                                              ? WarehouseAppColor.warningDark
+                                              : WarehouseAppColor.success)),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -255,7 +255,7 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                                           : '—',
                                       style: const TextStyle(
                                           fontSize: 11,
-                                          color: AppColor.textSecondary),
+                                          color: WarehouseAppColor.textSecondary),
                                       overflow: TextOverflow.ellipsis),
                                 ),
                                 Column(
@@ -266,13 +266,13 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
                                         style: const TextStyle(
                                             fontSize: 12.5,
                                             fontWeight: FontWeight.w700,
-                                            color: AppColor.textPrimary)),
+                                            color: WarehouseAppColor.textPrimary)),
                                     Text(
                                         DateFormat('dd MMM yyyy · hh:mm a')
                                             .format(pay.createdAt.toLocal()),
                                         style: const TextStyle(
                                             fontSize: 9.5,
-                                            color: AppColor.textHint)),
+                                            color: WarehouseAppColor.textHint)),
                                   ],
                                 ),
                               ]),
@@ -296,12 +296,12 @@ class _EmployeeHistoryDialogState extends State<EmployeeHistoryDialog> {
           const SizedBox(height: 2),
           Text(label,
               style: const TextStyle(
-                  fontSize: 10, color: AppColor.textSecondary)),
+                  fontSize: 10, color: WarehouseAppColor.textSecondary)),
         ]),
       );
 
   Widget _vDiv() => Container(
-        width: 1, height: 28, color: AppColor.grey300,
+        width: 1, height: 28, color: WarehouseAppColor.grey300,
         margin: const EdgeInsets.symmetric(horizontal: 10),
       );
 }

@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // cash_flow_report_screen.dart
 // Simplified + responsive Cash Flow Report — 6 summary cards (3/2/1 per
@@ -8,7 +10,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/data/datasources/cash_flow_report_local_datasource.dart';
@@ -21,11 +23,11 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/p
 const _kMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const _kPieColors = [
-  AppColor.error,
-  AppColor.warning,
-  AppColor.info,
-  AppColor.primary,
-  AppColor.success,
+  WarehouseAppColor.error,
+  WarehouseAppColor.warning,
+  WarehouseAppColor.info,
+  WarehouseAppColor.primary,
+  WarehouseAppColor.success,
   Color(0xFF9C27B0),
   Color(0xFF00BCD4),
   Color(0xFFFF5722),
@@ -41,7 +43,7 @@ class CashFlowReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
           _TopBar(),
@@ -72,19 +74,19 @@ class _Body extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColor.error, size: 36),
+            const Icon(Icons.error_outline, color: WarehouseAppColor.error, size: 36),
             const SizedBox(height: 12),
             const Text('Data load nahi hua',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary)),
             const SizedBox(height: 6),
-            Text(state.error!, style: const TextStyle(fontSize: 11, color: AppColor.textSecondary), textAlign: TextAlign.center),
+            Text(state.error!, style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary), textAlign: TextAlign.center),
             const SizedBox(height: 16),
             GestureDetector(
               onTap: () => ref.read(cashFlowReportProvider.notifier).refresh(),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: AppColor.primary, borderRadius: BorderRadius.circular(8)),
-                child: const Text('Retry', style: TextStyle(color: AppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                decoration: BoxDecoration(color: WarehouseAppColor.primary, borderRadius: BorderRadius.circular(8)),
+                child: const Text('Retry', style: TextStyle(color: WarehouseAppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -155,7 +157,7 @@ class _TopBarState extends ConsumerState<_TopBar> {
       initialDateRange: DateTimeRange(start: start, end: end),
       builder: (context, child) => Theme(
         data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColor.primary),
+          colorScheme: const ColorScheme.light(primary: WarehouseAppColor.primary),
         ),
         child: child!,
       ),
@@ -178,26 +180,26 @@ class _TopBarState extends ConsumerState<_TopBar> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: const BoxDecoration(
-        color:  AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
-              color: AppColor.success.withOpacity(0.1),
+              color: WarehouseAppColor.success.withOpacity(0.1),
               borderRadius: BorderRadius.circular(9),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.account_balance_wallet_outlined, size: 18, color: AppColor.success),
+            child: const Icon(Icons.account_balance_wallet_outlined, size: 18, color: WarehouseAppColor.success),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Cash Flow Report', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
-              Text(dateStr, style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+              const Text('Cash Flow Report', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary)),
+              Text(dateStr, style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
             ],
           ),
           const Spacer(),
@@ -225,14 +227,14 @@ class _TopBarState extends ConsumerState<_TopBar> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColor.grey100, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColor.grey200),
+                color: WarehouseAppColor.grey100, borderRadius: BorderRadius.circular(8), border: Border.all(color: WarehouseAppColor.grey200),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.refresh_rounded, size: 13, color: AppColor.grey600),
+                  Icon(Icons.refresh_rounded, size: 13, color: WarehouseAppColor.grey600),
                   SizedBox(width: 5),
-                  Text('Refresh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColor.grey700)),
+                  Text('Refresh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: WarehouseAppColor.grey700)),
                 ],
               ),
             ),
@@ -261,15 +263,15 @@ class _FilterPill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color:        selected ? AppColor.primary : AppColor.grey100,
+          color:        selected ? WarehouseAppColor.primary : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: selected ? AppColor.primary : AppColor.grey200),
+          border:       Border.all(color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey200),
         ),
         child: Text(label,
             style: TextStyle(
               fontSize:   11,
               fontWeight: FontWeight.w600,
-              color:      selected ? AppColor.white : AppColor.grey600,
+              color:      selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
             )),
       ),
     );
@@ -300,15 +302,15 @@ class _CustomPill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color:        selected ? AppColor.primary : AppColor.grey100,
+          color:        selected ? WarehouseAppColor.primary : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: selected ? AppColor.primary : AppColor.grey200),
+          border:       Border.all(color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey200),
         ),
         child: Text(_label,
             style: TextStyle(
               fontSize:   11,
               fontWeight: FontWeight.w600,
-              color:      selected ? AppColor.white : AppColor.grey600,
+              color:      selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
             )),
       ),
     );
@@ -364,7 +366,7 @@ class _SummaryCards extends StatelessWidget {
         value:      'Rs ${summary.cashInHand.pkrFormat}',
         badge:      'Live balance',
         icon:       Icons.account_balance_wallet_outlined,
-        color:      AppColor.primary,
+        color:      WarehouseAppColor.primary,
         barPercent: 1.0,
       ),
       DashStatCard(
@@ -372,7 +374,7 @@ class _SummaryCards extends StatelessWidget {
         value:      'Rs ${summary.periodCashIn.pkrFormat}',
         badge:      'Cash received',
         icon:       Icons.arrow_downward_rounded,
-        color:      AppColor.success,
+        color:      WarehouseAppColor.success,
         barPercent: summary.periodCashIn == 0 ? 0 : 1.0,
       ),
       DashStatCard(
@@ -380,7 +382,7 @@ class _SummaryCards extends StatelessWidget {
         value:      'Rs ${summary.periodCashOut.pkrFormat}',
         badge:      'Total spent',
         icon:       Icons.arrow_upward_rounded,
-        color:      AppColor.error,
+        color:      WarehouseAppColor.error,
         barPercent: summary.periodCashIn == 0
             ? 0
             : (summary.periodCashOut / summary.periodCashIn).clamp(0, 1),
@@ -392,7 +394,7 @@ class _SummaryCards extends StatelessWidget {
         icon:       netPositive
             ? Icons.trending_up_rounded
             : Icons.trending_down_rounded,
-        color:      netPositive ? AppColor.success : AppColor.error,
+        color:      netPositive ? WarehouseAppColor.success : WarehouseAppColor.error,
         barPercent: 1.0,
       ),
       DashStatCard(
@@ -400,7 +402,7 @@ class _SummaryCards extends StatelessWidget {
         value:      'Rs ${totalExpense.pkrFormat}',
         badge:      'Expenses',
         icon:       Icons.receipt_long_outlined,
-        color:      AppColor.warning,
+        color:      WarehouseAppColor.warning,
         barPercent: out == 0 ? 0 : (totalExpense / out).clamp(0, 1),
       ),
       DashStatCard(
@@ -408,7 +410,7 @@ class _SummaryCards extends StatelessWidget {
         value:      'Rs ${paidSupplier.pkrFormat}',
         badge:      'Supplier payments',
         icon:       Icons.people_outline_rounded,
-        color:      AppColor.info,
+        color:      WarehouseAppColor.info,
         barPercent: out == 0 ? 0 : (paidSupplier / out).clamp(0, 1),
       ),
     ];
@@ -504,16 +506,16 @@ class _GroupedBarChart extends StatelessWidget {
     final maxY    = allVals.isEmpty ? 10.0 : allVals.reduce((a, b) => a > b ? a : b) * 1.25;
 
     return SectionCard(
-      headerIcon: _headerIcon(Icons.bar_chart_rounded, AppColor.info, AppColor.infoLight),
+      headerIcon: _headerIcon(Icons.bar_chart_rounded, WarehouseAppColor.info, WarehouseAppColor.infoLight),
       title: 'Monthly In vs Out',
       headerTrailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _dot(AppColor.success), const SizedBox(width: 4),
-          const Text('In', style: TextStyle(fontSize: 9, color: AppColor.textSecondary)),
+          _dot(WarehouseAppColor.success), const SizedBox(width: 4),
+          const Text('In', style: TextStyle(fontSize: 9, color: WarehouseAppColor.textSecondary)),
           const SizedBox(width: 8),
-          _dot(AppColor.error), const SizedBox(width: 4),
-          const Text('Out', style: TextStyle(fontSize: 9, color: AppColor.textSecondary)),
+          _dot(WarehouseAppColor.error), const SizedBox(width: 4),
+          const Text('Out', style: TextStyle(fontSize: 9, color: WarehouseAppColor.textSecondary)),
         ],
       ),
       children: [
@@ -532,7 +534,7 @@ class _GroupedBarChart extends StatelessWidget {
                       final label = ri == 0 ? 'Cash In' : 'Cash Out';
                       return BarTooltipItem(
                         '$label\nRs ${rod.toY.pkrFormat}',
-                        TextStyle(fontSize: 10, color: ri == 0 ? AppColor.success : AppColor.error, fontWeight: FontWeight.w700),
+                        TextStyle(fontSize: 10, color: ri == 0 ? WarehouseAppColor.success : WarehouseAppColor.error, fontWeight: FontWeight.w700),
                       );
                     },
                   ),
@@ -548,7 +550,7 @@ class _GroupedBarChart extends StatelessWidget {
                         return Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(_kMonths[m.month - 1],
-                              style: const TextStyle(fontSize: 8, color: AppColor.textSecondary)),
+                              style: const TextStyle(fontSize: 8, color: WarehouseAppColor.textSecondary)),
                         );
                       },
                     ),
@@ -566,13 +568,13 @@ class _GroupedBarChart extends StatelessWidget {
                     barRods: [
                       BarChartRodData(
                         toY:          e.value.cashIn,
-                        color:        AppColor.success,
+                        color:        WarehouseAppColor.success,
                         width:        10,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                       ),
                       BarChartRodData(
                         toY:          e.value.cashOut,
-                        color:        AppColor.error,
+                        color:        WarehouseAppColor.error,
                         width:        10,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                       ),
@@ -608,13 +610,13 @@ class _DonutExpenseChartState extends State<_DonutExpenseChart> {
     final total = widget.categories.fold<double>(0, (s, e) => s + e.amount);
 
     return SectionCard(
-      headerIcon: _headerIcon(Icons.donut_large_rounded, AppColor.error, AppColor.errorLight),
+      headerIcon: _headerIcon(Icons.donut_large_rounded, WarehouseAppColor.error, WarehouseAppColor.errorLight),
       title: 'Expense Breakdown by Category',
       headerTrailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: AppColor.errorLight, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: WarehouseAppColor.errorLight, borderRadius: BorderRadius.circular(12)),
         child: Text('Rs ${total.pkrFormat}',
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.error)),
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.error)),
       ),
       children: [
         if (widget.categories.isEmpty)
@@ -655,7 +657,7 @@ class _DonutExpenseChartState extends State<_DonutExpenseChart> {
                               value:      e.value.amount,
                               title:      isTouched ? '${pct.toStringAsFixed(0)}%' : '',
                               radius:     isTouched ? 70 : 58,
-                              titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColor.white),
+                              titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: WarehouseAppColor.white),
                             );
                           }).toList(),
                           sectionsSpace:     3,
@@ -666,14 +668,14 @@ class _DonutExpenseChartState extends State<_DonutExpenseChart> {
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('Total', style: TextStyle(fontSize: 10, color: AppColor.textHint)),
+                          const Text('Total', style: TextStyle(fontSize: 10, color: WarehouseAppColor.textHint)),
                           Text(
                             'Rs ${total.pkrFormat}',
                             style: const TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w800, color: AppColor.textPrimary),
+                                fontSize: 11, fontWeight: FontWeight.w800, color: WarehouseAppColor.textPrimary),
                           ),
                           Text('${widget.categories.length} heads',
-                              style: const TextStyle(fontSize: 9, color: AppColor.textHint)),
+                              style: const TextStyle(fontSize: 9, color: WarehouseAppColor.textHint)),
                         ],
                       ),
                     ],
@@ -709,13 +711,13 @@ class _DonutExpenseChartState extends State<_DonutExpenseChart> {
                                     style: TextStyle(
                                       fontSize:   11,
                                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                                      color:      isActive ? color : AppColor.textPrimary,
+                                      color:      isActive ? color : WarehouseAppColor.textPrimary,
                                     ),
                                     overflow: TextOverflow.ellipsis),
                                 Row(
                                   children: [
                                     Text('Rs ${e.value.amount.pkrFormat}',
-                                        style: const TextStyle(fontSize: 10, color: AppColor.textSecondary)),
+                                        style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textSecondary)),
                                     const SizedBox(width: 6),
                                     Text('${pct.toStringAsFixed(1)}%',
                                         style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.w600)),
@@ -769,9 +771,9 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.inbox_outlined, size: 28, color: AppColor.grey300),
+            const Icon(Icons.inbox_outlined, size: 28, color: WarehouseAppColor.grey300),
             const SizedBox(height: 8),
-            Text(message, style: const TextStyle(fontSize: 12, color: AppColor.textHint)),
+            Text(message, style: const TextStyle(fontSize: 12, color: WarehouseAppColor.textHint)),
           ],
         ),
       ),

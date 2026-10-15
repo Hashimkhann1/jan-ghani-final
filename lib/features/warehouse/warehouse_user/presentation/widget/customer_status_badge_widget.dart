@@ -1,5 +1,7 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 class CustomerStatusBadge extends StatelessWidget {
   final bool isActive;
@@ -7,8 +9,8 @@ class CustomerStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color   = isActive ? AppColor.success  : AppColor.grey400;
-    final bgColor = isActive ? AppColor.successLight : AppColor.grey200;
+    final color   = isActive ? WarehouseAppColor.success  : WarehouseAppColor.grey400;
+    final bgColor = isActive ? WarehouseAppColor.successLight : WarehouseAppColor.grey200;
     final label   = isActive ? 'Active' : 'Inactive';
 
     return Container(

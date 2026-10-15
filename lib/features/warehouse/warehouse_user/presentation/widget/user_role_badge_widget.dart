@@ -1,5 +1,7 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 class UserRoleBadge extends StatelessWidget {
   final String role;
@@ -7,11 +9,11 @@ class UserRoleBadge extends StatelessWidget {
 
   Color get _color {
     switch (role) {
-      case 'warehouse_owner':   return AppColor.error;
-      case 'warehouse_manager': return AppColor.primary;
-      case 'warehouse_staff':   return AppColor.info;
-      case 'data_entry':        return AppColor.grey500;
-      default:                  return AppColor.grey500;
+      case 'warehouse_owner':   return WarehouseAppColor.error;
+      case 'warehouse_manager': return WarehouseAppColor.primary;
+      case 'warehouse_staff':   return WarehouseAppColor.info;
+      case 'data_entry':        return WarehouseAppColor.grey500;
+      default:                  return WarehouseAppColor.grey500;
     }
   }
 

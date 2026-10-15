@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // po_cart_table_header.dart
 // Columns: Product | Qty | Purchase Price | Sale Price | Margin | Tax | Dis | Sub Total
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 class PoCartTableHeader extends StatelessWidget {
   const PoCartTableHeader({super.key});
@@ -17,7 +19,7 @@ class PoCartTableHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color:        AppColor.primary.withOpacity(0.08),
+        color:        WarehouseAppColor.primary.withOpacity(0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Row(
@@ -59,7 +61,7 @@ class _H extends StatelessWidget {
           fontSize:      10,
           fontWeight:    FontWeight.w700,
           color: isPurple
-              ? const Color(0xFF534AB7) : AppColor.primary,
+              ? const Color(0xFF534AB7) : WarehouseAppColor.primary,
           letterSpacing: 0.3,
         ),
         textAlign: textAlign ?? TextAlign.center,

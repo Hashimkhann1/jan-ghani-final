@@ -1,8 +1,10 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart';
@@ -21,13 +23,13 @@ class InventoryReportScreen extends ConsumerWidget {
 
     if (invData.isLoading) {
       return const Scaffold(
-        backgroundColor: AppColor.background,
+        backgroundColor: WarehouseAppColor.background,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
           const _TopBar(),
@@ -78,44 +80,44 @@ class _TopBar extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: const BoxDecoration(
-        color: AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color: WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.1),
+              color: WarehouseAppColor.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(9),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.bar_chart_rounded, size: 18, color: AppColor.primary),
+            child: const Icon(Icons.bar_chart_rounded, size: 18, color: WarehouseAppColor.primary),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Inventory Report',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary)),
               Text('As of $dateStr  •  Active products only',
-                  style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                  style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
             ],
           ),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.08),
+              color: WarehouseAppColor.primary.withOpacity(0.08),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColor.primary.withOpacity(0.2)),
+              border: Border.all(color: WarehouseAppColor.primary.withOpacity(0.2)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.inventory_2_outlined, size: 13, color: AppColor.primary),
+                Icon(Icons.inventory_2_outlined, size: 13, color: WarehouseAppColor.primary),
                 SizedBox(width: 5),
-                Text('Stock Report', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.primary)),
+                Text('Stock Report', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: WarehouseAppColor.primary)),
               ],
             ),
           ),
@@ -141,7 +143,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value: '${data.totalActive}',
         badge: 'Active',
         icon: Icons.inventory_2_outlined,
-        color: AppColor.primary,
+        color: WarehouseAppColor.primary,
         barPercent: (data.totalActive / 500).clamp(0.0, 1.0),
       ),
       DashStatCard(
@@ -149,7 +151,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value: 'Rs ${data.totalPurchaseValue.pkrFormat}',
         badge: 'Purchase cost',
         icon: Icons.currency_rupee_rounded,
-        color: AppColor.success,
+        color: WarehouseAppColor.success,
         barPercent: 1.0,
       ),
       DashStatCard(
@@ -157,7 +159,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value: '${data.needsReorderCount}',
         badge: data.needsReorderCount > 0 ? 'Order now' : 'All good',
         icon: Icons.shopping_cart_outlined,
-        color: data.needsReorderCount > 0 ? AppColor.warning : AppColor.success,
+        color: data.needsReorderCount > 0 ? WarehouseAppColor.warning : WarehouseAppColor.success,
         barPercent: data.totalActive > 0
             ? (data.needsReorderCount / data.totalActive).clamp(0.0, 1.0)
             : 0.0,
@@ -167,7 +169,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value: '${data.outOfStockCount}',
         badge: data.outOfStockCount > 0 ? 'Urgent' : 'All good',
         icon: Icons.remove_shopping_cart_outlined,
-        color: data.outOfStockCount > 0 ? AppColor.error : AppColor.success,
+        color: data.outOfStockCount > 0 ? WarehouseAppColor.error : WarehouseAppColor.success,
         barPercent: data.totalActive > 0
             ? (data.outOfStockCount / data.totalActive).clamp(0.0, 1.0)
             : 0.0,
@@ -264,12 +266,12 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
   int _touchedIndex = -1;
 
   static const _pieColors = [
-    AppColor.primary,
-    AppColor.info,
-    AppColor.success,
+    WarehouseAppColor.primary,
+    WarehouseAppColor.info,
+    WarehouseAppColor.success,
     Color(0xFFFF9800),
     Color(0xFF9C27B0),
-    AppColor.grey400,
+    WarehouseAppColor.grey400,
   ];
 
   @override
@@ -293,9 +295,9 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,19 +306,19 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
             children: [
               Container(
                 width: 26, height: 26,
-                decoration: BoxDecoration(color: AppColor.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(color: WarehouseAppColor.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                 alignment: Alignment.center,
-                child: const Icon(Icons.pie_chart_outline_rounded, size: 14, color: AppColor.primary),
+                child: const Icon(Icons.pie_chart_outline_rounded, size: 14, color: WarehouseAppColor.primary),
               ),
               const SizedBox(width: 8),
               const Text('Category-wise stock value',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AppColor.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: WarehouseAppColor.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
                 child: Text('Rs ${totalVal.pkrFormat}',
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColor.primary)),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: WarehouseAppColor.primary)),
               ),
             ],
           ),
@@ -325,9 +327,9 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 32),
               child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.pie_chart_outline_rounded, size: 36, color: AppColor.grey300),
+                Icon(Icons.pie_chart_outline_rounded, size: 36, color: WarehouseAppColor.grey300),
                 SizedBox(height: 8),
-                Text('Koi category data nahi', style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                Text('Koi category data nahi', style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
               ])),
             )
           else
@@ -383,10 +385,10 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                                 Text(e.value.categoryName,
                                     style: TextStyle(fontSize: 11,
                                         fontWeight: isTouched ? FontWeight.w700 : FontWeight.w500,
-                                        color: isTouched ? AppColor.textPrimary : AppColor.textSecondary),
+                                        color: isTouched ? WarehouseAppColor.textPrimary : WarehouseAppColor.textSecondary),
                                     overflow: TextOverflow.ellipsis),
                                 Text('${e.value.productCount} products',
-                                    style: const TextStyle(fontSize: 9, color: AppColor.textHint)),
+                                    style: const TextStyle(fontSize: 9, color: WarehouseAppColor.textHint)),
                               ]),
                             ),
                             const SizedBox(width: 4),
@@ -394,7 +396,7 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                               Text('Rs ${e.value.totalValue.pkrFormat}',
                                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
                               Text('${pct.toStringAsFixed(1)}%',
-                                  style: const TextStyle(fontSize: 9, color: AppColor.textHint)),
+                                  style: const TextStyle(fontSize: 9, color: WarehouseAppColor.textHint)),
                             ]),
                           ],
                         ),
@@ -426,24 +428,24 @@ class _StockHealthPanel extends ConsumerWidget {
     return SectionCard(
       headerIcon: Container(
         width: 26, height: 26,
-        decoration: BoxDecoration(color: AppColor.successLight, borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(color: WarehouseAppColor.successLight, borderRadius: BorderRadius.circular(6)),
         alignment: Alignment.center,
-        child: const Icon(Icons.health_and_safety_outlined, size: 14, color: AppColor.success),
+        child: const Icon(Icons.health_and_safety_outlined, size: 14, color: WarehouseAppColor.success),
       ),
       title: 'Stock health',
       headerTrailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: AppColor.successLight, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(color: WarehouseAppColor.successLight, borderRadius: BorderRadius.circular(10)),
         child: Text('$total products',
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColor.success)),
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: WarehouseAppColor.success)),
       ),
       children: [
-        _HealthRow(label: 'Good stock', count: good, total: total, color: AppColor.success, icon: Icons.check_circle_outline_rounded),
-        _HealthRow(label: 'Low stock', count: data.lowStockCount, total: total, color: AppColor.warning, icon: Icons.warning_amber_rounded,
+        _HealthRow(label: 'Good stock', count: good, total: total, color: WarehouseAppColor.success, icon: Icons.check_circle_outline_rounded),
+        _HealthRow(label: 'Low stock', count: data.lowStockCount, total: total, color: WarehouseAppColor.warning, icon: Icons.warning_amber_rounded,
             onTap: () => _openStockHealth(context, ref, StockFilter.lowStock)),
-        _HealthRow(label: 'Out of stock', count: data.outOfStockCount, total: total, color: AppColor.error, icon: Icons.remove_shopping_cart_outlined,
+        _HealthRow(label: 'Out of stock', count: data.outOfStockCount, total: total, color: WarehouseAppColor.error, icon: Icons.remove_shopping_cart_outlined,
             onTap: () => _openStockHealth(context, ref, StockFilter.outOfStock)),
-        _HealthRow(label: 'Needs reorder', count: data.needsReorderCount, total: total, color: AppColor.info, icon: Icons.shopping_cart_outlined, isLast: true,
+        _HealthRow(label: 'Needs reorder', count: data.needsReorderCount, total: total, color: WarehouseAppColor.info, icon: Icons.shopping_cart_outlined, isLast: true,
             onTap: () => _openStockHealth(context, ref, StockFilter.needsReorder)),
       ],
       footerLeft: 'Tap a row to see products',
@@ -508,7 +510,7 @@ class _HealthRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100))),
+        decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: WarehouseAppColor.grey100))),
         child: Column(children: [
           Row(children: [
             Container(width: 26, height: 26,
@@ -516,14 +518,14 @@ class _HealthRow extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Icon(icon, size: 13, color: color)),
             const SizedBox(width: 10),
-            Expanded(child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColor.textPrimary))),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: WarehouseAppColor.textPrimary))),
             Text('$count', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
             const SizedBox(width: 4),
             Text(total > 0 ? '(${(pct * 100).toStringAsFixed(0)}%)' : '',
-                style: const TextStyle(fontSize: 10, color: AppColor.textSecondary)),
+                style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textSecondary)),
             if (onTap != null) ...[
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right_rounded, size: 17, color: AppColor.grey400),
+              const Icon(Icons.chevron_right_rounded, size: 17, color: WarehouseAppColor.grey400),
             ],
           ]),
           const SizedBox(height: 7),
@@ -557,9 +559,9 @@ class _StockTransferSection extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: AppColor.surface,
+          color: WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColor.grey200),
+          border: Border.all(color: WarehouseAppColor.grey200),
         ),
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
@@ -604,27 +606,27 @@ class _StockTransferSection extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColor.surface,
+            color: WarehouseAppColor.surface,
             borderRadius: const BorderRadius.only(topLeft: Radius.circular(14), topRight: Radius.circular(14)),
-            border: Border.all(color: AppColor.grey200),
+            border: Border.all(color: WarehouseAppColor.grey200),
           ),
           child: Row(
             children: [
               Container(
                 width: 26, height: 26,
-                decoration: BoxDecoration(color: AppColor.info.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(color: WarehouseAppColor.info.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                 alignment: Alignment.center,
-                child: const Icon(Icons.local_shipping_outlined, size: 14, color: AppColor.info),
+                child: const Icon(Icons.local_shipping_outlined, size: 14, color: WarehouseAppColor.info),
               ),
               const SizedBox(width: 8),
               const Text('Stock Transfers Report',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AppColor.infoLight, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: WarehouseAppColor.infoLight, borderRadius: BorderRadius.circular(10)),
                 child: Text('${transfers.length} total transfers',
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColor.info)),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: WarehouseAppColor.info)),
               ),
             ],
           ),
@@ -633,21 +635,21 @@ class _StockTransferSection extends ConsumerWidget {
         // ── 4 Transfer stats (responsive: wide 4-in-row, narrow 2×2) ──
         Container(
           decoration: BoxDecoration(
-            border: Border.symmetric(horizontal: BorderSide(color: AppColor.grey200)),
+            border: Border.symmetric(horizontal: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           child: LayoutBuilder(
             builder: (context, c) {
-              final t1 = _TransferStatTile(label: 'Total Transfers', value: '${transfers.length}', icon: Icons.swap_horiz_rounded, color: AppColor.info);
-              final t2 = _TransferStatTile(label: 'Total Cost', value: 'Rs ${totalCost.pkrFormat}', icon: Icons.currency_rupee_rounded, color: AppColor.primary);
-              final t3 = _TransferStatTile(label: 'Items Transferred', value: '$totalItems', icon: Icons.inventory_2_outlined, color: AppColor.success);
-              final t4 = _TransferStatTile(label: 'Pending', value: '$pendingCount', icon: Icons.hourglass_empty_rounded, color: AppColor.warning);
+              final t1 = _TransferStatTile(label: 'Total Transfers', value: '${transfers.length}', icon: Icons.swap_horiz_rounded, color: WarehouseAppColor.info);
+              final t2 = _TransferStatTile(label: 'Total Cost', value: 'Rs ${totalCost.pkrFormat}', icon: Icons.currency_rupee_rounded, color: WarehouseAppColor.primary);
+              final t3 = _TransferStatTile(label: 'Items Transferred', value: '$totalItems', icon: Icons.inventory_2_outlined, color: WarehouseAppColor.success);
+              final t4 = _TransferStatTile(label: 'Pending', value: '$pendingCount', icon: Icons.hourglass_empty_rounded, color: WarehouseAppColor.warning);
 
               if (c.maxWidth < 600) {
                 // 2 × 2 grid with a horizontal divider between rows
                 return Column(
                   children: [
                     Row(children: [t1, _vDivider(), t2]),
-                    Container(height: 1, color: AppColor.grey200),
+                    Container(height: 1, color: WarehouseAppColor.grey200),
                     Row(children: [t3, _vDivider(), t4]),
                   ],
                 );
@@ -669,15 +671,15 @@ class _StockTransferSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(children: [
-                  Icon(Icons.storefront_outlined, size: 14, color: AppColor.info),
+                  Icon(Icons.storefront_outlined, size: 14, color: WarehouseAppColor.info),
                   SizedBox(width: 6),
                   Text('Store-wise transfer value',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary)),
                 ]),
                 const SizedBox(height: 14),
                 if (stores.isEmpty)
                   const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Text('Koi transfer nahi', style: TextStyle(fontSize: 12, color: AppColor.textSecondary))))
+                    child: Text('Koi transfer nahi', style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary))))
                 else
                   ...stores.take(6).map((s) => _StoreBar(store: s, maxCost: stores.first.totalCost)),
               ],
@@ -688,10 +690,10 @@ class _StockTransferSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(children: [
-                  Icon(Icons.bar_chart_rounded, size: 14, color: AppColor.primary),
+                  Icon(Icons.bar_chart_rounded, size: 14, color: WarehouseAppColor.primary),
                   SizedBox(width: 6),
                   Text('Monthly trend (transfers)',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary)),
                 ]),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -703,8 +705,8 @@ class _StockTransferSection extends ConsumerWidget {
 
             return Container(
               decoration: BoxDecoration(
-                color: AppColor.surface,
-                border: Border.all(color: AppColor.grey200),
+                color: WarehouseAppColor.surface,
+                border: Border.all(color: WarehouseAppColor.grey200),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
               ),
@@ -721,7 +723,7 @@ class _StockTransferSection extends ConsumerWidget {
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: const BoxDecoration(
-                              border: Border(bottom: BorderSide(color: AppColor.grey200)),
+                              border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
                             ),
                             child: storePanel,
                           ),
@@ -741,7 +743,7 @@ class _StockTransferSection extends ConsumerWidget {
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: const BoxDecoration(
-                              border: Border(right: BorderSide(color: AppColor.grey200)),
+                              border: Border(right: BorderSide(color: WarehouseAppColor.grey200)),
                             ),
                             child: storePanel,
                           ),
@@ -765,7 +767,7 @@ class _StockTransferSection extends ConsumerWidget {
     );
   }
 
-  Widget _vDivider() => Container(width: 1, height: 70, color: AppColor.grey200);
+  Widget _vDivider() => Container(width: 1, height: 70, color: WarehouseAppColor.grey200);
   static String _shortMonth(int m) =>
       ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m - 1];
 }
@@ -787,7 +789,7 @@ class _TransferStatTile extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         child: Row(
           children: [
             Container(
@@ -805,7 +807,7 @@ class _TransferStatTile extends StatelessWidget {
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: color),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(label,
-                      style: const TextStyle(fontSize: 10, color: AppColor.textSecondary),
+                      style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textSecondary),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
@@ -843,22 +845,22 @@ class _StoreBar extends StatelessWidget {
             children: [
               Container(
                 width: 22, height: 22,
-                decoration: BoxDecoration(color: AppColor.infoLight, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: WarehouseAppColor.infoLight, shape: BoxShape.circle),
                 alignment: Alignment.center,
                 child: Text(_initials(store.name),
-                    style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: AppColor.info)),
+                    style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: WarehouseAppColor.info)),
               ),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(store.name,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColor.textPrimary),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: WarehouseAppColor.textPrimary),
                     overflow: TextOverflow.ellipsis),
               ),
               Text('Rs ${store.totalCost.pkrFormat}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColor.info)),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: WarehouseAppColor.info)),
               const SizedBox(width: 8),
               Text('${store.count} TRF  •  ${store.totalItems} items',
-                  style: const TextStyle(fontSize: 10, color: AppColor.textSecondary)),
+                  style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textSecondary)),
             ],
           ),
           const SizedBox(height: 5),
@@ -866,8 +868,8 @@ class _StoreBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: pct, minHeight: 7,
-              backgroundColor: AppColor.infoLight,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColor.info),
+              backgroundColor: WarehouseAppColor.infoLight,
+              valueColor: const AlwaysStoppedAnimation<Color>(WarehouseAppColor.info),
             ),
           ),
         ],
@@ -900,9 +902,9 @@ class _MonthlyBarChart extends StatelessWidget {
     if (maxCount == 0) {
       return const Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.bar_chart_rounded, size: 32, color: AppColor.grey300),
+          Icon(Icons.bar_chart_rounded, size: 32, color: WarehouseAppColor.grey300),
           SizedBox(height: 6),
-          Text('Koi transfer data nahi', style: TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+          Text('Koi transfer data nahi', style: TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
         ]),
       );
     }
@@ -916,7 +918,7 @@ class _MonthlyBarChart extends StatelessWidget {
             barRods: [
               BarChartRodData(
                 toY: e.value.count.toDouble(),
-                color: e.value.count > 0 ? AppColor.primary : AppColor.grey200,
+                color: e.value.count > 0 ? WarehouseAppColor.primary : WarehouseAppColor.grey200,
                 width: 22,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
@@ -930,7 +932,7 @@ class _MonthlyBarChart extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: 1,
-          getDrawingHorizontalLine: (_) => const FlLine(color: AppColor.grey100, strokeWidth: 1),
+          getDrawingHorizontalLine: (_) => const FlLine(color: WarehouseAppColor.grey100, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -947,7 +949,7 @@ class _MonthlyBarChart extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(data[idx].label,
-                      style: const TextStyle(fontSize: 9, color: AppColor.textSecondary)),
+                      style: const TextStyle(fontSize: 9, color: WarehouseAppColor.textSecondary)),
                 );
               },
             ),
@@ -955,7 +957,7 @@ class _MonthlyBarChart extends StatelessWidget {
         ),
         barTouchData: BarTouchData(
           touchTooltipData: BarTouchTooltipData(
-            getTooltipColor: (_) => AppColor.textPrimary,
+            getTooltipColor: (_) => WarehouseAppColor.textPrimary,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               final m = data[group.x];
               return BarTooltipItem(
@@ -988,10 +990,10 @@ extension _StockFilterX on StockFilter {
 
   Color get color {
     switch (this) {
-      case StockFilter.all:          return AppColor.primary;
-      case StockFilter.outOfStock:   return AppColor.error;
-      case StockFilter.lowStock:     return AppColor.warning;
-      case StockFilter.needsReorder: return AppColor.info;
+      case StockFilter.all:          return WarehouseAppColor.primary;
+      case StockFilter.outOfStock:   return WarehouseAppColor.error;
+      case StockFilter.lowStock:     return WarehouseAppColor.warning;
+      case StockFilter.needsReorder: return WarehouseAppColor.info;
     }
   }
 
@@ -1062,7 +1064,7 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: AppColor.background,
+            color: WarehouseAppColor.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -1072,7 +1074,7 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
                 margin: const EdgeInsets.only(top: 10, bottom: 4),
                 width: 42, height: 4,
                 decoration: BoxDecoration(
-                  color: AppColor.grey300,
+                  color: WarehouseAppColor.grey300,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -1085,20 +1087,20 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
                     Container(
                       width: 32, height: 32,
                       decoration: BoxDecoration(
-                        color: AppColor.success.withOpacity(0.1),
+                        color: WarehouseAppColor.success.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(9),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.inventory_2_outlined, size: 17, color: AppColor.success),
+                      child: const Icon(Icons.inventory_2_outlined, size: 17, color: WarehouseAppColor.success),
                     ),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Text('Stock Details',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary)),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded, size: 20, color: AppColor.grey600),
+                      icon: const Icon(Icons.close_rounded, size: 20, color: WarehouseAppColor.grey600),
                       splashRadius: 18,
                     ),
                   ],
@@ -1114,12 +1116,12 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
                   style: const TextStyle(fontSize: 13),
                   decoration: InputDecoration(
                     hintText: 'Search product name ya SKU...',
-                    hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColor.grey500),
+                    hintStyle: const TextStyle(fontSize: 13, color: WarehouseAppColor.textHint),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: WarehouseAppColor.grey500),
                     suffixIcon: _query.isEmpty
                         ? null
                         : IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 16, color: AppColor.grey500),
+                            icon: const Icon(Icons.clear_rounded, size: 16, color: WarehouseAppColor.grey500),
                             splashRadius: 14,
                             onPressed: () {
                               _searchCtrl.clear();
@@ -1129,14 +1131,14 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     filled: true,
-                    fillColor: AppColor.surface,
+                    fillColor: WarehouseAppColor.surface,
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColor.grey200),
+                      borderSide: const BorderSide(color: WarehouseAppColor.grey200),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColor.primary),
+                      borderSide: const BorderSide(color: WarehouseAppColor.primary),
                     ),
                   ),
                 ),
@@ -1159,9 +1161,9 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
                         duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: selected ? f.color : AppColor.grey100,
+                          color: selected ? f.color : WarehouseAppColor.grey100,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: selected ? f.color : AppColor.grey200),
+                          border: Border.all(color: selected ? f.color : WarehouseAppColor.grey200),
                         ),
                         child: Row(
                           children: [
@@ -1169,19 +1171,19 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
                                 style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: selected ? AppColor.white : AppColor.grey600)),
+                                    color: selected ? WarehouseAppColor.white : WarehouseAppColor.grey600)),
                             const SizedBox(width: 5),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(
-                                color: selected ? AppColor.white.withOpacity(0.25) : AppColor.grey200,
+                                color: selected ? WarehouseAppColor.white.withOpacity(0.25) : WarehouseAppColor.grey200,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text('${_count(f)}',
                                   style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w700,
-                                      color: selected ? AppColor.white : AppColor.grey600)),
+                                      color: selected ? WarehouseAppColor.white : WarehouseAppColor.grey600)),
                             ),
                           ],
                         ),
@@ -1191,7 +1193,7 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Divider(height: 1, color: AppColor.grey200),
+              const Divider(height: 1, color: WarehouseAppColor.grey200),
 
               // ── Product list ────────────────────────────────
               Expanded(
@@ -1200,10 +1202,10 @@ class _StockHealthSheetState extends State<_StockHealthSheet> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.inbox_outlined, size: 34, color: AppColor.grey300),
+                            Icon(Icons.inbox_outlined, size: 34, color: WarehouseAppColor.grey300),
                             SizedBox(height: 8),
                             Text('Koi product nahi mila',
-                                style: TextStyle(fontSize: 13, color: AppColor.textHint)),
+                                style: TextStyle(fontSize: 13, color: WarehouseAppColor.textHint)),
                           ],
                         ),
                       )
@@ -1238,19 +1240,19 @@ class _ProductStockRow extends StatelessWidget {
     final Color color;
     final Color bg;
     if (p.isTrackStock && p.isOutOfStock) {
-      badge = 'Out';     color = AppColor.error;   bg = AppColor.errorLight;
+      badge = 'Out';     color = WarehouseAppColor.error;   bg = WarehouseAppColor.errorLight;
     } else if (p.isLowStock) {
-      badge = 'Low';     color = AppColor.warning; bg = AppColor.warningLight;
+      badge = 'Low';     color = WarehouseAppColor.warning; bg = WarehouseAppColor.warningLight;
     } else if (p.needsReorder) {
-      badge = 'Reorder'; color = AppColor.info;    bg = AppColor.infoLight;
+      badge = 'Reorder'; color = WarehouseAppColor.info;    bg = WarehouseAppColor.infoLight;
     } else {
-      badge = 'OK';      color = AppColor.success;  bg = AppColor.successLight;
+      badge = 'OK';      color = WarehouseAppColor.success;  bg = WarehouseAppColor.successLight;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColor.grey100)),
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
       ),
       child: Row(
         children: [
@@ -1261,11 +1263,11 @@ class _ProductStockRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(p.name,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text('SKU: ${p.sku}',
-                    style: const TextStyle(fontSize: 10, color: AppColor.textHint),
+                    style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textHint),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
@@ -1282,13 +1284,13 @@ class _ProductStockRow extends StatelessWidget {
                     TextSpan(text: _qtyStr(p.quantity),
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
                     TextSpan(text: ' ${p.unitOfMeasure}',
-                        style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+                        style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textHint)),
                   ]),
                 ),
                 const SizedBox(height: 2),
                 Text('Min: ${p.minStockLevel}'
                     '${p.reorderPoint > 0 ? '  •  Reorder: ${p.reorderPoint}' : ''}',
-                    style: const TextStyle(fontSize: 9, color: AppColor.textSecondary)),
+                    style: const TextStyle(fontSize: 9, color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),

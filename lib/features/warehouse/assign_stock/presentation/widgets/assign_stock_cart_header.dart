@@ -1,5 +1,7 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 class AssignStockCartHeader extends StatelessWidget {
   const AssignStockCartHeader({super.key});
@@ -10,7 +12,7 @@ class AssignStockCartHeader extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColor.primary.withOpacity(0.08),
+        color: WarehouseAppColor.primary.withOpacity(0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Row(
@@ -45,7 +47,7 @@ class _H extends StatelessWidget {
     style: TextStyle(
       fontSize: 10,
       fontWeight: FontWeight.w700,
-      color: isPurple ? const Color(0xFF534AB7) : AppColor.primary,
+      color: isPurple ? const Color(0xFF534AB7) : WarehouseAppColor.primary,
       letterSpacing: 0.3,
     ),
     textAlign: textAlign ?? TextAlign.center,

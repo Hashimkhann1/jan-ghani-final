@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 09:35 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // warehouse_dashboard_widgets.dart
 // Dashboard ke reusable small widgets:
@@ -8,7 +8,7 @@
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 // ─────────────────────────────────────────────────────────────
 // DASH STAT CARD — top mein 4 cards
@@ -38,9 +38,9 @@ class DashStatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color:        AppColor.surface,
+          color:        WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(14),
-          border:       Border.all(color: AppColor.grey200),
+          border:       Border.all(color: WarehouseAppColor.grey200),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,13 +78,13 @@ class DashStatCard extends StatelessWidget {
             Text(value,
                 style: TextStyle(fontSize: 24,
                     fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
             const SizedBox(height: 3),
 
             // Label
             Text(label,
                 style: TextStyle(fontSize: 12,
-                    color: AppColor.textSecondary)),
+                    color: WarehouseAppColor.textSecondary)),
             const SizedBox(height: 10),
 
             // Progress bar
@@ -93,7 +93,7 @@ class DashStatCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value:            barPercent,
                 minHeight:        3,
-                backgroundColor:  AppColor.grey200,
+                backgroundColor:  WarehouseAppColor.grey200,
                 valueColor:       AlwaysStoppedAnimation<Color>(color),
               ),
             ),
@@ -132,9 +132,9 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
@@ -148,7 +148,7 @@ class SectionCard extends StatelessWidget {
                   horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 border: Border(
-                    bottom: BorderSide(color: AppColor.grey200)),
+                    bottom: BorderSide(color: WarehouseAppColor.grey200)),
               ),
               child: Row(
                 children: [
@@ -157,7 +157,7 @@ class SectionCard extends StatelessWidget {
                   Text(title,
                       style: TextStyle(fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                   const Spacer(),
                   if (headerTrailing != null) headerTrailing!,
                 ],
@@ -174,21 +174,21 @@ class SectionCard extends StatelessWidget {
                     horizontal: 16, vertical: 9),
                 decoration: BoxDecoration(
                   border: Border(
-                      top: BorderSide(color: AppColor.grey100)),
+                      top: BorderSide(color: WarehouseAppColor.grey100)),
                 ),
                 child: Row(
                   children: [
                     if (footerLeft != null)
                       Text(footerLeft!,
                           style: TextStyle(fontSize: 11,
-                              color: AppColor.textSecondary)),
+                              color: WarehouseAppColor.textSecondary)),
                     const Spacer(),
                     if (footerRight != null)
                       GestureDetector(
                         onTap: onFooterRightTap,
                         child: Text(footerRight!,
                             style: TextStyle(fontSize: 11,
-                                color: AppColor.textSecondary)),
+                                color: WarehouseAppColor.textSecondary)),
                       ),
                   ],
                 ),

@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 10:12 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // salary_tracking_screen.dart — monthly salary tracking (main)
 // Mobile (< 700px): top bar 2 lines, cards 2×2, employee row 2 lines.
@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import '../../domain/employee_month_status.dart';
 import '../../domain/salary_payment_model.dart';
@@ -47,7 +47,7 @@ class SalaryTrackingScreen extends ConsumerWidget {
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(next.errorMessage!),
-          backgroundColor: AppColor.error,
+          backgroundColor: WarehouseAppColor.error,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
               label: 'OK', textColor: Colors.white,
@@ -65,14 +65,14 @@ class SalaryTrackingScreen extends ConsumerWidget {
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: AppColor.textPrimary)),
+                color: WarehouseAppColor.textPrimary)),
         Text(
             _readOnly
                 ? '${warehouseName ?? 'Warehouse'} · sirf dekhne ke liye'
                 : 'Kis employee ki salary/advance paid, kaun pending',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+            style: const TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
       ],
     );
 
@@ -86,12 +86,12 @@ class SalaryTrackingScreen extends ConsumerWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: AppColor.grey100,
+            color: WarehouseAppColor.grey100,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColor.grey200),
+            border: Border.all(color: WarehouseAppColor.grey200),
           ),
           child: const Icon(Icons.arrow_back_rounded,
-              size: 20, color: AppColor.textSecondary),
+              size: 20, color: WarehouseAppColor.textSecondary),
         ),
       ),
     );
@@ -112,12 +112,12 @@ class SalaryTrackingScreen extends ConsumerWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: AppColor.grey100,
+            color: WarehouseAppColor.grey100,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColor.grey200),
+            border: Border.all(color: WarehouseAppColor.grey200),
           ),
           child: const Icon(Icons.refresh_rounded,
-              size: 20, color: AppColor.textSecondary),
+              size: 20, color: WarehouseAppColor.textSecondary),
         ),
       ),
     );
@@ -135,8 +135,8 @@ class SalaryTrackingScreen extends ConsumerWidget {
         icon: const Icon(Icons.badge_outlined, size: 18),
         label: const Text('Employees'),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColor.primary,
-          side: const BorderSide(color: AppColor.primary),
+          foregroundColor: WarehouseAppColor.primary,
+          side: const BorderSide(color: WarehouseAppColor.primary),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10)),
@@ -153,8 +153,8 @@ class SalaryTrackingScreen extends ConsumerWidget {
         child: OutlinedButton(
           onPressed: openEmployees,
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColor.primary,
-            side: const BorderSide(color: AppColor.primary),
+            foregroundColor: WarehouseAppColor.primary,
+            side: const BorderSide(color: WarehouseAppColor.primary),
             padding: EdgeInsets.zero,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10)),
@@ -166,17 +166,17 @@ class SalaryTrackingScreen extends ConsumerWidget {
 
     final cards = [
       _StatCard(label: 'Paid', value: '${state.paidCount}/${state.totalEmployees}',
-          icon: Icons.check_circle_outline_rounded, color: AppColor.success),
+          icon: Icons.check_circle_outline_rounded, color: WarehouseAppColor.success),
       _StatCard(label: 'Pending', value: '${state.pendingCount}',
-          icon: Icons.schedule_rounded, color: AppColor.warningDark),
+          icon: Icons.schedule_rounded, color: WarehouseAppColor.warningDark),
       _StatCard(label: 'Total Paid', value: 'Rs ${state.totalPaid.pkrFormat}',
-          icon: Icons.payments_outlined, color: AppColor.primary),
+          icon: Icons.payments_outlined, color: WarehouseAppColor.primary),
       _StatCard(label: 'Remaining', value: 'Rs ${state.totalRemaining.pkrFormat}',
-          icon: Icons.account_balance_wallet_outlined, color: AppColor.error),
+          icon: Icons.account_balance_wallet_outlined, color: WarehouseAppColor.error),
     ];
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: LayoutBuilder(builder: (context, c) {
         // Mobile (< 700px): top bar 2 lines, cards 2×2, row 2 lines.
         // Desktop: bilkul pehle wala layout.
@@ -188,7 +188,7 @@ class SalaryTrackingScreen extends ConsumerWidget {
           children: [
             // ── Top bar: title + month nav + manage employees ──
             Container(
-              color: AppColor.surface,
+              color: WarehouseAppColor.surface,
               padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 14),
               child: narrow
                   ? Column(
@@ -227,7 +227,7 @@ class SalaryTrackingScreen extends ConsumerWidget {
 
             // ── Summary cards ──
             Container(
-              color: AppColor.surface,
+              color: WarehouseAppColor.surface,
               padding: EdgeInsets.fromLTRB(hPad, 4, hPad, 16),
               child: narrow
                   ? Column(children: [
@@ -286,9 +286,9 @@ class _MonthNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColor.grey100,
+        color: WarehouseAppColor.grey100,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         IconButton(onPressed: onPrev,
@@ -299,7 +299,7 @@ class _MonthNav extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w700,
-                  color: AppColor.textPrimary)),
+                  color: WarehouseAppColor.textPrimary)),
         ),
         IconButton(onPressed: onNext,
             icon: const Icon(Icons.chevron_right_rounded, size: 20)),
@@ -328,9 +328,9 @@ class _EmployeeRow extends StatelessWidget {
 
   Color get _statusColor {
     switch (status.status) {
-      case SalaryStatus.paid:    return AppColor.success;
-      case SalaryStatus.partial: return AppColor.warningDark;
-      case SalaryStatus.pending: return AppColor.error;
+      case SalaryStatus.paid:    return WarehouseAppColor.success;
+      case SalaryStatus.partial: return WarehouseAppColor.warningDark;
+      case SalaryStatus.pending: return WarehouseAppColor.error;
     }
   }
 
@@ -342,14 +342,14 @@ class _EmployeeRow extends StatelessWidget {
     final avatar = Container(
       width: 40, height: 40,
       decoration: BoxDecoration(
-        color: AppColor.primary.withOpacity(0.1),
+        color: WarehouseAppColor.primary.withOpacity(0.1),
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
       child: Text(
         s.employee.name.isEmpty ? '?' : s.employee.name[0].toUpperCase(),
         style: const TextStyle(
-            fontWeight: FontWeight.w700, color: AppColor.primary),
+            fontWeight: FontWeight.w700, color: WarehouseAppColor.primary),
       ),
     );
 
@@ -360,14 +360,14 @@ class _EmployeeRow extends StatelessWidget {
         Text(s.employee.name,
             style: const TextStyle(
                 fontSize: 14, fontWeight: FontWeight.w600,
-                color: AppColor.textPrimary),
+                color: WarehouseAppColor.textPrimary),
             overflow: TextOverflow.ellipsis),
         Text(
             'Salary Rs ${s.monthlySalary.pkrFormat}'
             '${s.employee.phone != null ? " · ${s.employee.phone}" : ""}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+            style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
       ],
     );
 
@@ -378,7 +378,7 @@ class _EmployeeRow extends StatelessWidget {
         Text('Paid Rs ${s.totalPaid.pkrFormat}',
             style: const TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w600,
-                color: AppColor.textPrimary)),
+                color: WarehouseAppColor.textPrimary)),
         Text('Baaki Rs ${s.remaining.pkrFormat}',
             style: TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor)),
@@ -399,7 +399,7 @@ class _EmployeeRow extends StatelessWidget {
 
     // History hint — row tap se poora record khulta hai
     const historyIcon =
-        Icon(Icons.history_rounded, size: 16, color: AppColor.grey400);
+        Icon(Icons.history_rounded, size: 16, color: WarehouseAppColor.grey400);
 
     // Pay button
     Widget payBtn(double width) => SizedBox(
@@ -408,9 +408,9 @@ class _EmployeeRow extends StatelessWidget {
       child: ElevatedButton(
         onPressed: s.status == SalaryStatus.paid ? null : onPay,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColor.primary,
-          foregroundColor: AppColor.white,
-          disabledBackgroundColor: AppColor.grey200,
+          backgroundColor: WarehouseAppColor.primary,
+          foregroundColor: WarehouseAppColor.white,
+          disabledBackgroundColor: WarehouseAppColor.grey200,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -462,9 +462,9 @@ class _EmployeeRow extends StatelessWidget {
       child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Column(children: [
         header,
@@ -476,7 +476,7 @@ class _EmployeeRow extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(children: [
                   Icon(p.isAdvance ? Icons.trending_down_rounded : Icons.payments_outlined,
-                      size: 13, color: p.isAdvance ? AppColor.warningDark : AppColor.success),
+                      size: 13, color: p.isAdvance ? WarehouseAppColor.warningDark : WarehouseAppColor.success),
                   const SizedBox(width: 6),
                   // Mobile: type + amount + notes ek Expanded text (ellipsis),
                   // date right par — tang jagah mein overflow nahi
@@ -487,35 +487,35 @@ class _EmployeeRow extends StatelessWidget {
                           TextSpan(text: '${p.typeLabel} · Rs ${p.amount.pkrFormat}'),
                           if (p.notes != null && p.notes!.isNotEmpty)
                             TextSpan(text: ' · ${p.notes}',
-                                style: const TextStyle(color: AppColor.textHint)),
+                                style: const TextStyle(color: WarehouseAppColor.textHint)),
                         ]),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
+                        style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary),
                       ),
                     ),
                     const SizedBox(width: 6),
                   ] else
                   Text('${p.typeLabel} · Rs ${p.amount.pkrFormat}',
-                      style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                      style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
                   if (!compact && p.notes != null && p.notes!.isNotEmpty) ...[
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text('· ${p.notes}',
-                          style: const TextStyle(fontSize: 11, color: AppColor.textHint),
+                          style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textHint),
                           overflow: TextOverflow.ellipsis),
                     ),
                   ] else if (!compact) const Spacer(),
                   Text(
                       DateFormat('dd MMM yyyy · hh:mm a')
                           .format(p.createdAt.toLocal()),
-                      style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+                      style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textHint)),
                   // GestureDetector(
                   //   onTap: () => onDeletePayment(p),
                   //   child: const Padding(
                   //     padding: EdgeInsets.only(left: 8),
                   //     child: Icon(Icons.delete_outline_rounded,
-                  //         size: 15, color: AppColor.error),
+                  //         size: 15, color: WarehouseAppColor.error),
                   //   ),
                   // ),
                 ]),
@@ -566,10 +566,10 @@ class _StatCard extends StatelessWidget {
                   child: Text(value,
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                 ),
                 Text(label,
-                    style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                    style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -586,16 +586,16 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.badge_outlined, size: 56, color: AppColor.grey300),
+        const Icon(Icons.badge_outlined, size: 56, color: WarehouseAppColor.grey300),
         const SizedBox(height: 12),
         const Text('Koi active employee nahi',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary)),
+                color: WarehouseAppColor.textSecondary)),
         const SizedBox(height: 4),
         Text(readOnly
                 ? 'Warehouse app mein employees add hon to yahan dikhenge'
                 : '"Employees" button se employee add karein',
-            style: const TextStyle(fontSize: 13, color: AppColor.textHint)),
+            style: const TextStyle(fontSize: 13, color: WarehouseAppColor.textHint)),
       ]),
     );
   }

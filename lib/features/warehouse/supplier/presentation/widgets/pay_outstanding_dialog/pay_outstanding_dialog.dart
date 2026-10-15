@@ -1,4 +1,4 @@
-// Updated on 2026-10-05 03:37 PM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // pay_outstanding_dialog.dart
 // Supplier ka outstanding balance pay karne ka dialog
@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_detail_provider/supplier_detail_provider.dart';
@@ -68,7 +68,7 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
 
     return Dialog(
       shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: AppColor.surface,
+      backgroundColor: WarehouseAppColor.surface,
       child: SizedBox(
         width: 460,
         child: Column(
@@ -91,14 +91,14 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                       _SummaryCard(
                         label: 'Outstanding Balance',
                         value: 'Rs ${_outstanding.pkrFormat}',
-                        color: _outstanding > 0 ? AppColor.error : AppColor.success,
+                        color: _outstanding > 0 ? WarehouseAppColor.error : WarehouseAppColor.success,
                         icon:  Icons.account_balance_wallet_outlined,
                       ),
                       const SizedBox(width: 10),
                       _SummaryCard(
                         label: 'Last Payment',
                         value: 'Rs —',         // TODO: ledger se last payment
-                        color: AppColor.info,
+                        color: WarehouseAppColor.info,
                         icon:  Icons.history_rounded,
                       ),
                     ],
@@ -110,7 +110,7 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                   Text('Pay Amount',
                       style: TextStyle(fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                   const SizedBox(height: 6),
 
                   TextField(
@@ -151,34 +151,34 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                     },
                     style: TextStyle(fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary),
+                        color: WarehouseAppColor.textPrimary),
                     decoration: InputDecoration(
                       hintText:    'Amount darj karein',
                       hintStyle:   TextStyle(fontSize: 14,
-                          color: AppColor.textHint,
+                          color: WarehouseAppColor.textHint,
                           fontWeight: FontWeight.w400),
                       prefixText:  'Rs ',
                       prefixStyle: TextStyle(fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textSecondary),
+                          color: WarehouseAppColor.textSecondary),
                       filled:         true,
-                      fillColor:      AppColor.grey100,
+                      fillColor:      WarehouseAppColor.grey100,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 14),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColor.grey200)),
+                          borderSide: BorderSide(color: WarehouseAppColor.grey200)),
                       enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColor.grey200)),
+                          borderSide: BorderSide(color: WarehouseAppColor.grey200)),
                       focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                              color: AppColor.primary, width: 1.5)),
+                              color: WarehouseAppColor.primary, width: 1.5)),
                       // Overpaying error
                       errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColor.error)),
+                          borderSide: BorderSide(color: WarehouseAppColor.error)),
                       errorText: _isOverpaying
                           ? 'Amount outstanding se zyada hai'
                           : null,
@@ -194,29 +194,29 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                   Text('Notes (optional)',
                       style: TextStyle(fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _notesController,
                     maxLines:   2,
-                    style: TextStyle(fontSize: 13, color: AppColor.textPrimary),
+                    style: TextStyle(fontSize: 13, color: WarehouseAppColor.textPrimary),
                     decoration: InputDecoration(
                       hintText:       'Payment ki wajah ya note...',
-                      hintStyle:      TextStyle(fontSize: 13, color: AppColor.textHint),
+                      hintStyle:      TextStyle(fontSize: 13, color: WarehouseAppColor.textHint),
                       filled:         true,
-                      fillColor:      AppColor.grey100,
+                      fillColor:      WarehouseAppColor.grey100,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColor.grey200)),
+                          borderSide: BorderSide(color: WarehouseAppColor.grey200)),
                       enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: AppColor.grey200)),
+                          borderSide: BorderSide(color: WarehouseAppColor.grey200)),
                       focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                              color: AppColor.primary, width: 1.5)),
+                              color: WarehouseAppColor.primary, width: 1.5)),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -226,32 +226,32 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                       width:   double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color:        AppColor.grey100,
+                        color:        WarehouseAppColor.grey100,
                         borderRadius: BorderRadius.circular(10),
-                        border:       Border.all(color: AppColor.grey200),
+                        border:       Border.all(color: WarehouseAppColor.grey200),
                       ),
                       child: Column(
                         children: [
                           _PreviewRow(
                             label: 'Outstanding Balance',
                             value: 'Rs ${_outstanding.pkrFormat}',
-                            color: AppColor.error,
+                            color: WarehouseAppColor.error,
                           ),
                           const SizedBox(height: 8),
                           _PreviewRow(
                             label: 'Pay Amount',
                             value: '- Rs ${_enteredAmount.pkrFormat}',
-                            color: AppColor.success,
+                            color: WarehouseAppColor.success,
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Divider(height: 1, color: AppColor.grey300),
+                            child: Divider(height: 1, color: WarehouseAppColor.grey300),
                           ),
                           _PreviewRow(
                             label:   'Balance After Payment',
                             value:   'Rs ${_balanceAfterPay.pkrFormat}',
                             color:   _balanceAfterPay == 0
-                                ? AppColor.success : AppColor.warning,
+                                ? WarehouseAppColor.success : WarehouseAppColor.warning,
                             isBold:  true,
                           ),
                           // Fully clear message
@@ -261,18 +261,18 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color:        AppColor.successLight,
+                                color:        WarehouseAppColor.successLight,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.check_circle_outline_rounded,
-                                      size: 14, color: AppColor.success),
+                                      size: 14, color: WarehouseAppColor.success),
                                   const SizedBox(width: 5),
                                   Text('Account fully clear ho jayega',
                                       style: TextStyle(fontSize: 12,
-                                          color: AppColor.success,
+                                          color: WarehouseAppColor.success,
                                           fontWeight: FontWeight.w500)),
                                 ],
                               ),
@@ -290,7 +290,7 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: AppColor.grey200))),
+                  border: Border(top: BorderSide(color: WarehouseAppColor.grey200))),
               child: Row(
                 children: [
                   // Cancel button
@@ -301,14 +301,14 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color:        AppColor.grey100,
+                          color:        WarehouseAppColor.grey100,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         alignment: Alignment.center,
                         child: Text('Cancel',
                             style: TextStyle(fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: AppColor.textSecondary)),
+                                color: WarehouseAppColor.textSecondary)),
                       ),
                     ),
                   ),
@@ -325,8 +325,8 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           color: _hasValidAmount
-                              ? AppColor.primary
-                              : AppColor.primary.withOpacity(0.4),
+                              ? WarehouseAppColor.primary
+                              : WarehouseAppColor.primary.withOpacity(0.4),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         alignment: Alignment.center,
@@ -338,7 +338,7 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
                             : Text('Pay ${_enteredAmount > 0 ? _fmtRs(_enteredAmount) : ''}',
                             style: TextStyle(fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: AppColor.white)),
+                                color: WarehouseAppColor.white)),
                       ),
                     ),
                   ),
@@ -382,7 +382,7 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
           SnackBar(
             content: Text(
                 '${_fmtRs(_enteredAmount)} payment recorded — ${widget.supplier.name}'),
-            backgroundColor: AppColor.success,
+            backgroundColor: WarehouseAppColor.success,
             behavior:        SnackBarBehavior.floating,
             duration:        const Duration(seconds: 2),
           ),
@@ -393,7 +393,7 @@ class _PayOutstandingDialogState extends ConsumerState<PayOutstandingDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:         Text('Payment mein masla: $e'),
-            backgroundColor: AppColor.error,
+            backgroundColor: WarehouseAppColor.error,
             behavior:        SnackBarBehavior.floating,
           ),
         );
@@ -439,19 +439,19 @@ class _DialogHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
       decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColor.grey200))),
+          border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200))),
       child: Row(
         children: [
           // Icon
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color:        AppColor.success.withOpacity(0.1),
+              color:        WarehouseAppColor.success.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
             child: Icon(Icons.payments_outlined,
-                size: 18, color: AppColor.success),
+                size: 18, color: WarehouseAppColor.success),
           ),
           const SizedBox(width: 12),
 
@@ -463,10 +463,10 @@ class _DialogHeader extends StatelessWidget {
                 Text('Pay Outstanding',
                     style: TextStyle(fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColor.textPrimary)),
+                        color: WarehouseAppColor.textPrimary)),
                 Text(supplier.name,
                     style: TextStyle(fontSize: 12,
-                        color: AppColor.textSecondary)),
+                        color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -478,11 +478,11 @@ class _DialogHeader extends StatelessWidget {
             child: Container(
               width: 30, height: 30,
               decoration: BoxDecoration(
-                color:        AppColor.grey100,
+                color:        WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.close_rounded,
-                  size: 16, color: AppColor.textSecondary),
+                  size: 16, color: WarehouseAppColor.textSecondary),
             ),
           ),
         ],
@@ -537,11 +537,11 @@ class _SummaryCard extends StatelessWidget {
                   Text(value,
                       style: TextStyle(fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary),
+                          color: WarehouseAppColor.textPrimary),
                       overflow: TextOverflow.ellipsis),
                   Text(label,
                       style: TextStyle(fontSize: 11,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
                 ],
               ),
             ),
@@ -578,7 +578,7 @@ class _PreviewRow extends StatelessWidget {
             style: TextStyle(
               fontSize:   isBold ? 13 : 12,
               fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
-              color:      AppColor.textSecondary,
+              color:      WarehouseAppColor.textSecondary,
             )),
         Text(value,
             style: TextStyle(

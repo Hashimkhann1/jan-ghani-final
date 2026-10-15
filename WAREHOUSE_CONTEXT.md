@@ -1,4 +1,4 @@
-<!-- Updated on 2026-10-08 09:25 AM -->
+<!-- Updated on 2026-10-15 10:42 AM -->
 
 # Jan Ghani POS — Project Context
 
@@ -77,7 +77,8 @@ AppConfig.appMode       // 'warehouse' ya 'store'
 ```
 lib/
 ├── core/
-│   ├── color/app_color.dart          ← AppColor class (all colors)
+│   ├── color/app_color.dart          ← AppColor class (branch / accountant / baaki app)
+│   ├── color/warehouse_color.dart    ← ⭐ S21 WarehouseAppColor — SIRF warehouse feature + warehouse sidebar
 │   ├── config/app_config.dart        ← AppConfig (loads config.json)
 │   ├── extension/app_extention.dart  ← Extensions (pkrFormat, timeAgo, etc.)
 │   ├── service/
@@ -174,9 +175,10 @@ lib/
 
 ---
 
-## Core Colors (`AppColor`)
+## Core Colors (`WarehouseAppColor` — warehouse ke liye, S21)
+> ⚠️ Warehouse code (`lib/features/warehouse/` + `core/widget/sidebar/sidebar_widget.dart` + `nav_tile_widget.dart`) **`WarehouseAppColor`** (`core/color/warehouse_color.dart`) use karta hai — `AppColor` NAHI. `AppColor` (`app_color.dart`, primary brand red `#ED0015`) branch/accountant ke liye hai, use warehouse mein mat lagao. Neeche ke naam dono class mein same hain.
 ```dart
-AppColor.primary       // #6C63FF (purple)
+WarehouseAppColor.primary       // #6C63FF (purple)
 AppColor.success       // #4CAF50 (green)
 AppColor.error         // #E53935 (red)
 AppColor.warning       // #FFC107 (yellow)
@@ -502,7 +504,7 @@ class ProductModel {
 3. **Stateful widgets sirf jab local UI state zaroor ho** (e.g., TextEditingController, animation controller, touch index for charts)
 4. **Local DB queries:** `DatabaseService.connection.execute(Sql.named(...), parameters: {...})`
 5. **Extension use karo:** `double.pkrFormat` for Pakistani rupee formatting, `.timeAgo` for dates
-6. **Colors:** sirf `AppColor.*` use karo, koi hardcoded color nahi
+6. **Colors:** warehouse mein sirf `WarehouseAppColor.*` (`import 'package:jan_ghani_final/core/color/warehouse_color.dart'`), koi hardcoded color nahi. (Purane sessions ke notes mein `AppColor.*` likha hai — warehouse ke liye ab `WarehouseAppColor.*` samjho.)
 7. **Overflow fix pattern:** `OverflowBox + SizedBox` inside `AnimatedContainer` with `Clip.hardEdge`
 8. **Search fields:** always `TextEditingController` + clear (X) button jab text ho
 9. **New feature add karna:** `lib/features/warehouse/<feature_name>/` mein banao, `data/`, `presentation/providers/`, `presentation/screens/`, `presentation/widgets/` structure follow karo
@@ -1598,6 +1600,31 @@ Store counting (Supabase inventory_counting)
 **Purchase invoice:** `purchase_invoice_model.dart` · `purchase_invoice_provider.dart` · `po_cart_summary_widget.dart`
 **Stock:** `warehouse_stock_inventory_screen.dart`
 **Inventory balance:** `inventory_balance_screen.dart` (Delta Calculator)
+
+---
+
+## Session 21 — WarehouseAppColor (alag color class) · Assign cart default qty ⭐
+
+### 1. Warehouse ke liye alag color class
+- **Naya file:** `lib/core/color/warehouse_color.dart` → class **`WarehouseAppColor`** (private constructor). Values purane purple palette wali: `primary #6C63FF`, `primaryLight #9D97FF`, `primaryDark #3D35CC`, `secondary #03DAC6` (teal), `borderFocused #6C63FF` + baaki sab (status, greys, text, cashIn/Out, textMuted, cardBg, shadow, 2 gradients) `AppColor` jaise hi.
+- **Kyun:** `app_color.dart` mein `primary` brand red (`#ED0015`, Shahabmustafa commit `0f78358`) hai jo branch/accountant use karte hain — warehouse ka apna palette alag rakhna tha bina doosre features ko chhue.
+- **Replace:** `lib/features/warehouse/` ki **69 files** + warehouse sidebar (`sidebar_widget.dart`, `nav_tile_widget.dart`) — `AppColor` → `WarehouseAppColor` + import `app_color.dart` → `warehouse_color.dart`. Sirf rename; koi value/logic nahi badli.
+- **Untouched:** `app_color.dart`, `branch_sidebar_widget.dart`, branch/accountant code. 2 warehouse files (`stock_inventory_dialog.dart`, `product_audit_dialog.dart`) `app_color.dart` sirf import karti hain (use nahi — unused import, pehle se) — nahi chhui.
+- **Visual asar:** warehouse screens + sidebar ka primary ab **purple** (pehle brand red), `secondary`/`borderFocused` bhi badle. Warehouse ka rang badalna ho to sirf `warehouse_color.dart` ki values badlo.
+- `flutter analyze` — koi error nahi; issue count pehle jitna (403 warehouse).
+
+### 2. Assign Stock — cart default qty = poora available stock
+- **File:** `assign_stock/data/models/assign_stock_item_model.dart` → `fromProduct()`: `quantity: 1` → **`quantity: p.availableQty`** (`quantity − reserved_quantity`).
+- **Physical nahi, available kyun:** cart "Max" + Assign button validation `availableStock` par hai; physical dete to reserved wale product par qty > Max → button disable.
+- Cart row qty field `initState` mein `item.quantity` se bharta hai → koi aur file change nahi.
+- Examples: stock 10, reserved 0 → 10 · stock 10, reserved 3 → 7 · available 0 → 0 (Assign par 0-qty "sirf info update" dialog, S7).
+- ⚠️ User qty kam karna bhool jaye to poora stock chala jata — confirm dialog pehle se hai.
+
+### Files (Session 21)
+**Naya:** `core/color/warehouse_color.dart` · **Sidebar:** `sidebar_widget.dart` · `nav_tile_widget.dart` · **Warehouse:** 69 files (color rename) · `assign_stock_item_model.dart` (default qty)
+
+### Sirf check kiya (code NAHI badla)
+- Branch counting (`branch/inventory_management`) mein deleted products: RPC `get_daily_counting_products` mein `deleted_at IS NULL` **pehle se** dono jagah (S12) — aaj ke 300 batch mein 0 deleted. Koi change nahi.
 
 ---
 

@@ -1,6 +1,8 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import '../../data/model/warehouse_cash_request_model.dart';
 import '../provider/warehouse_cash_requests_provider.dart';
 
@@ -94,7 +96,7 @@ class _CashRequestCardState extends ConsumerState<CashRequestCard> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.account_balance_wallet_rounded,
-                      color: AppColor.cashIn, size: 20),
+                      color: WarehouseAppColor.cashIn, size: 20),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -106,7 +108,7 @@ class _CashRequestCardState extends ConsumerState<CashRequestCard> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textMuted,
+                          color: WarehouseAppColor.textMuted,
                         ),
                       ),
                       const SizedBox(height: 1),
@@ -115,7 +117,7 @@ class _CashRequestCardState extends ConsumerState<CashRequestCard> {
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
-                          color: AppColor.textDark,
+                          color: WarehouseAppColor.textDark,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -129,7 +131,7 @@ class _CashRequestCardState extends ConsumerState<CashRequestCard> {
               'From: ${r.sentByName ?? 'Accountant'}  •  ${_date(r.createdAt)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: AppColor.textMuted),
+              style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textMuted),
             ),
             const SizedBox(height: 12),
 
@@ -142,7 +144,7 @@ class _CashRequestCardState extends ConsumerState<CashRequestCard> {
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColor.primary),
+                        strokeWidth: 2, color: WarehouseAppColor.primary),
                   ),
                 ),
               )
@@ -153,8 +155,8 @@ class _CashRequestCardState extends ConsumerState<CashRequestCard> {
                     child: OutlinedButton(
                       onPressed: () => _handle(false),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColor.cashOut,
-                        side: const BorderSide(color: AppColor.cashOut),
+                        foregroundColor: WarehouseAppColor.cashOut,
+                        side: const BorderSide(color: WarehouseAppColor.cashOut),
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -170,7 +172,7 @@ class _CashRequestCardState extends ConsumerState<CashRequestCard> {
                     child: ElevatedButton(
                       onPressed: () => _handle(true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.cashIn,
+                        backgroundColor: WarehouseAppColor.cashIn,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 9),

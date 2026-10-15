@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:40 AM
+
 
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
 import 'package:uuid/uuid.dart';
@@ -112,7 +114,7 @@ class AssignStockCartItem {
       categoryId: p.categoryId,
       categoryName: p.categoryName,
       unitOfMeasure: p.unitOfMeasure,
-      quantity: 1,
+      quantity: p.availableQty, // default = poora available stock (pehle 1)
       purchasePrice: p.purchasePrice,
       salePrice: p.sellingPrice,
       wholesalePrice: p.wholesalePrice ?? 0,

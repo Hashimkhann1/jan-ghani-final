@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 09:31 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // warehouse_dashboard_screen.dart — Dashboard v2 (Stitch design)
 // Layout:
@@ -12,7 +12,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart';
@@ -49,7 +49,7 @@ class _WarehouseDashboardScreenState
     final s     = state.summary;
 
     return Scaffold(
-      backgroundColor: AppColor.grey100,
+      backgroundColor: WarehouseAppColor.grey100,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -105,25 +105,25 @@ class _Body extends ConsumerWidget {
           label: 'Cash in hand',
           value: rs(s.cashInHand),
           icon:  Icons.account_balance_wallet_outlined,
-          color: AppColor.primary,
-          bg:    AppColor.primary.withOpacity(0.1),
+          color: WarehouseAppColor.primary,
+          bg:    WarehouseAppColor.primary.withOpacity(0.1),
           sub: Text.rich(TextSpan(children: [
             TextSpan(text: '+${rs(s.periodCashIn)} in',
-                style: const TextStyle(color: AppColor.success)),
+                style: const TextStyle(color: WarehouseAppColor.success)),
             const TextSpan(text: '  ·  '),
             TextSpan(text: '−${rs(s.periodCashOut)} out',
-                style: const TextStyle(color: AppColor.error)),
+                style: const TextStyle(color: WarehouseAppColor.error)),
           ])),
         ),
         DashKpiCard(
           label: 'Purchases ($period)',
           value: rs(s.purchaseAmount),
           icon:  Icons.shopping_bag_outlined,
-          color: AppColor.info,
-          bg:    AppColor.infoLight,
+          color: WarehouseAppColor.info,
+          bg:    WarehouseAppColor.infoLight,
           sub: Text.rich(TextSpan(children: [
             TextSpan(text: '${s.purchaseCount} POs',
-                style: const TextStyle(color: AppColor.textPrimary)),
+                style: const TextStyle(color: WarehouseAppColor.textPrimary)),
             const TextSpan(text: ' received'),
           ])),
         ),
@@ -131,11 +131,11 @@ class _Body extends ConsumerWidget {
           label: 'Supplier outstanding',
           value: rs(s.supplierOutstanding),
           icon:  Icons.receipt_long_outlined,
-          color: AppColor.error,
-          bg:    AppColor.errorLight,
+          color: WarehouseAppColor.error,
+          bg:    WarehouseAppColor.errorLight,
           sub: Text.rich(TextSpan(children: [
             TextSpan(text: '${s.suppliersWithDues} suppliers',
-                style: const TextStyle(color: AppColor.error)),
+                style: const TextStyle(color: WarehouseAppColor.error)),
             const TextSpan(text: ' with dues'),
           ])),
         ),
@@ -143,16 +143,16 @@ class _Body extends ConsumerWidget {
           label: 'Expenses ($period)',
           value: rs(s.expenseAmount),
           icon:  Icons.money_off_rounded,
-          color: AppColor.warningDark,
-          bg:    AppColor.warningLight,
+          color: WarehouseAppColor.warningDark,
+          bg:    WarehouseAppColor.warningLight,
           sub:   Text('incl. salary ${rs(s.salaryAmount)}'),
         ),
         DashKpiCard(
           label: 'Inventory value',
           value: rs(s.inventoryValue),
           icon:  Icons.inventory_2_outlined,
-          color: AppColor.success,
-          bg:    AppColor.successLight,
+          color: WarehouseAppColor.success,
+          bg:    WarehouseAppColor.successLight,
           sub:   Text('${s.activeProducts} products at purchase price'),
         ),
       ];
@@ -180,31 +180,31 @@ class _Body extends ConsumerWidget {
         items: [
           AttentionItem(
             title: 'Low stock', hint: 'reorder now', count: s.lowStockCount,
-            color: AppColor.error, bg: AppColor.errorLight,
+            color: WarehouseAppColor.error, bg: WarehouseAppColor.errorLight,
             onTap: () => goTo('Stock'),
           ),
           AttentionItem(
             title: 'Out of stock', hint: 'critical shortage',
             count: s.outOfStockCount,
-            color: AppColor.error, bg: AppColor.errorLight,
+            color: WarehouseAppColor.error, bg: WarehouseAppColor.errorLight,
             onTap: () => goTo('Stock'),
           ),
           AttentionItem(
             title: 'Pending POs', hint: 'draft / ordered / partial',
             count: s.pendingPOs,
-            color: AppColor.info, bg: AppColor.infoLight,
+            color: WarehouseAppColor.info, bg: WarehouseAppColor.infoLight,
             onTap: () => goTo('Purchase Order'),
           ),
           AttentionItem(
             title: 'Pending transfers', hint: 'awaiting store accept',
             count: s.pendingTransfers,
-            color: AppColor.primary, bg: AppColor.primary.withOpacity(0.1),
+            color: WarehouseAppColor.primary, bg: WarehouseAppColor.primary.withOpacity(0.1),
             onTap: () => goTo('Assign Stock'),
           ),
           AttentionItem(
             title: 'Cash requests', hint: 'accountant se aayi cash',
             count: cashRequests,
-            color: AppColor.warningDark, bg: AppColor.warningLight,
+            color: WarehouseAppColor.warningDark, bg: WarehouseAppColor.warningLight,
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const WarehouseCashRequestsScreen())),
           ),
@@ -306,20 +306,20 @@ class _TopBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
-        color:  AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color:        AppColor.primary.withOpacity(0.1),
+              color:        WarehouseAppColor.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
             child: const Icon(Icons.warehouse_outlined,
-                size: 20, color: AppColor.primary),
+                size: 20, color: WarehouseAppColor.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -332,20 +332,20 @@ class _TopBar extends ConsumerWidget {
                     child: Text('Jan Ghani — Warehouse',
                         style: TextStyle(
                           fontSize: 20, fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary,
+                          color: WarehouseAppColor.textPrimary,
                         ),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                   ),
                   if (code.isNotEmpty) ...[
                     const SizedBox(width: 10),
                     DashChip(text: code,
-                        color: AppColor.success, bg: AppColor.successLight),
+                        color: WarehouseAppColor.success, bg: WarehouseAppColor.successLight),
                   ],
                 ]),
                 const SizedBox(height: 2),
                 Text('$wd, ${now.day} $mo ${now.year}  •  ${AppConfig.warehouseName}',
                     style: const TextStyle(
-                        fontSize: 12, color: AppColor.textSecondary),
+                        fontSize: 12, color: WarehouseAppColor.textSecondary),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
@@ -354,19 +354,19 @@ class _TopBar extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color:        AppColor.errorLight,
+                color:        WarehouseAppColor.errorLight,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColor.error.withOpacity(0.3)),
+                border: Border.all(color: WarehouseAppColor.error.withOpacity(0.3)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Container(width: 6, height: 6,
                     decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: AppColor.error)),
+                        shape: BoxShape.circle, color: WarehouseAppColor.error)),
                 const SizedBox(width: 6),
                 Text('$unsynced unsynced',
                     style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600,
-                        color: AppColor.error)),
+                        color: WarehouseAppColor.error)),
               ]),
             ),
             const SizedBox(width: 10),
@@ -375,23 +375,23 @@ class _TopBar extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color:        AppColor.grey100,
+                color:        WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(20),
-                border:       Border.all(color: AppColor.grey200),
+                border:       Border.all(color: WarehouseAppColor.grey200),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.account_circle_outlined,
-                    size: 16, color: AppColor.textSecondary),
+                    size: 16, color: WarehouseAppColor.textSecondary),
                 const SizedBox(width: 8),
                 Text(user.fullName.toString(),
                     style: const TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary)),
-                Container(width: 1, height: 14, color: AppColor.grey300,
+                        color: WarehouseAppColor.textPrimary)),
+                Container(width: 1, height: 14, color: WarehouseAppColor.grey300,
                     margin: const EdgeInsets.symmetric(horizontal: 10)),
                 Text(user.role.toString(),
                     style: const TextStyle(
-                        fontSize: 12, color: AppColor.textSecondary)),
+                        fontSize: 12, color: WarehouseAppColor.textSecondary)),
               ]),
             ),
             const SizedBox(width: 10),
@@ -405,14 +405,14 @@ class _TopBar extends ConsumerWidget {
                 width: 40, height: 40,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border:       Border.all(color: AppColor.grey200),
+                  border:       Border.all(color: WarehouseAppColor.grey200),
                 ),
                 alignment: Alignment.center,
                 child: isRefreshing
                     ? const SizedBox(width: 16, height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.refresh_rounded,
-                        size: 20, color: AppColor.textPrimary),
+                        size: 20, color: WarehouseAppColor.textPrimary),
               ),
             ),
           ),
@@ -447,19 +447,19 @@ class _FilterBar extends ConsumerWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color:        on ? AppColor.primary : AppColor.transparent,
+            color:        on ? WarehouseAppColor.primary : WarehouseAppColor.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (icon != null) ...[
               Icon(icon, size: 15,
-                  color: on ? AppColor.white : AppColor.textPrimary),
+                  color: on ? WarehouseAppColor.white : WarehouseAppColor.textPrimary),
               const SizedBox(width: 6),
             ],
             Text(label,
                 style: TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w600,
-                  color: on ? AppColor.white : AppColor.textPrimary,
+                  color: on ? WarehouseAppColor.white : WarehouseAppColor.textPrimary,
                 )),
           ]),
         ),
@@ -496,9 +496,9 @@ class _FilterBar extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color:        AppColor.surface,
+            color:        WarehouseAppColor.surface,
             borderRadius: BorderRadius.circular(10),
-            border:       Border.all(color: AppColor.grey200),
+            border:       Border.all(color: WarehouseAppColor.grey200),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             pill('Today',         PurchaseDateFilter.today),
@@ -511,10 +511,10 @@ class _FilterBar extends ConsumerWidget {
         ),
         const Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.info_outline_rounded,
-              size: 15, color: AppColor.textSecondary),
+              size: 15, color: WarehouseAppColor.textSecondary),
           SizedBox(width: 6),
           Text('Filter applies to purchases, cash, expenses and movements',
-              style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+              style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
         ]),
       ],
     );
@@ -535,16 +535,16 @@ class _ErrorBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color:        AppColor.errorLight,
+        color:        WarehouseAppColor.errorLight,
         borderRadius: BorderRadius.circular(10),
-        border:       Border.all(color: AppColor.error.withOpacity(0.3)),
+        border:       Border.all(color: WarehouseAppColor.error.withOpacity(0.3)),
       ),
       child: Row(children: [
-        const Icon(Icons.error_outline_rounded, size: 18, color: AppColor.error),
+        const Icon(Icons.error_outline_rounded, size: 18, color: WarehouseAppColor.error),
         const SizedBox(width: 10),
         Expanded(
           child: Text(message,
-              style: const TextStyle(fontSize: 12, color: AppColor.error),
+              style: const TextStyle(fontSize: 12, color: WarehouseAppColor.error),
               maxLines: 2, overflow: TextOverflow.ellipsis),
         ),
         TextButton(onPressed: onRetry, child: const Text('Retry')),
@@ -567,11 +567,11 @@ class _ErrorState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.error_outline_rounded,
-                size: 48, color: AppColor.error),
+                size: 48, color: WarehouseAppColor.error),
             const SizedBox(height: 12),
             Text(message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColor.textSecondary)),
+                style: const TextStyle(color: WarehouseAppColor.textSecondary)),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
           ],

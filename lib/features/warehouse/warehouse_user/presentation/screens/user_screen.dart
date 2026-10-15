@@ -1,6 +1,8 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/data/model/user_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/provider/user_provider.dart';
@@ -40,11 +42,11 @@ class AllUserScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel',
                 style:
-                    TextStyle(color: AppColor.textSecondary)),
+                    TextStyle(color: WarehouseAppColor.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.error,
+                backgroundColor: WarehouseAppColor.error,
                 foregroundColor: Colors.white,
                 elevation:       0,
                 shape: RoundedRectangleBorder(
@@ -70,7 +72,7 @@ class AllUserScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:         Text(next.errorMessage!),
-            backgroundColor: AppColor.error,
+            backgroundColor: WarehouseAppColor.error,
             behavior:        SnackBarBehavior.floating,
             action: SnackBarAction(
               label:     'OK',
@@ -95,7 +97,7 @@ class AllUserScreen extends ConsumerWidget {
             icon:    const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',
             style: IconButton.styleFrom(
-                foregroundColor: AppColor.textSecondary),
+                foregroundColor: WarehouseAppColor.textSecondary),
           ),
           const SizedBox(width: 4),
           IntrinsicWidth(
@@ -105,7 +107,7 @@ class AllUserScreen extends ConsumerWidget {
               child: ElevatedButton.icon(
                 onPressed: () => _openDialog(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
+                  backgroundColor: WarehouseAppColor.primary,
                   foregroundColor: Colors.white,
                   elevation:       0,
                   shape: RoundedRectangleBorder(
@@ -137,21 +139,21 @@ class AllUserScreen extends ConsumerWidget {
                         title: 'Total Users',
                         value: '${state.totalCount}',
                         icon:  Icons.people_outline_rounded,
-                        color: AppColor.primary,
+                        color: WarehouseAppColor.primary,
                       ),
                       const SizedBox(width: 12),
                       SummaryCard(
                         title: 'Active',
                         value: '${state.activeCount}',
                         icon:  Icons.check_circle_outline_rounded,
-                        color: AppColor.success,
+                        color: WarehouseAppColor.success,
                       ),
                       const SizedBox(width: 12),
                       SummaryCard(
                         title: 'Owners',
                         value: '${state.ownerCount}',
                         icon:  Icons.admin_panel_settings_outlined,
-                        color: AppColor.error,
+                        color: WarehouseAppColor.error,
                       ),
                     ],
                   ),
@@ -173,14 +175,14 @@ class AllUserScreen extends ConsumerWidget {
                             decoration: InputDecoration(
                               hintText:  'Search by name, username...',
                               hintStyle: const TextStyle(
-                                  color:    AppColor.textHint,
+                                  color:    WarehouseAppColor.textHint,
                                   fontSize: 13),
                               prefixIcon: const Icon(
                                   Icons.search,
                                   size:  18,
-                                  color: AppColor.grey400),
+                                  color: WarehouseAppColor.grey400),
                               filled:    true,
-                              fillColor: AppColor.grey100,
+                              fillColor: WarehouseAppColor.grey100,
                               contentPadding:
                                   const EdgeInsets.symmetric(
                                       horizontal: 14,
@@ -254,13 +256,13 @@ class AllUserScreen extends ConsumerWidget {
                               child: DataTable(
                                 headingRowColor:
                                     WidgetStateProperty.all(
-                                        AppColor.grey100),
+                                        WarehouseAppColor.grey100),
                                 dataRowColor:
                                     WidgetStateProperty
                                         .resolveWith<Color?>(
                                   (s) => s.contains(
                                               WidgetState.hovered)
-                                          ? AppColor.primary
+                                          ? WarehouseAppColor.primary
                                               .withValues(alpha: 0.05)
                                           : null,
                                 ),
@@ -291,7 +293,7 @@ class AllUserScreen extends ConsumerWidget {
                                             CircleAvatar(
                                               radius: 16,
                                               backgroundColor:
-                                                  AppColor.primary
+                                                  WarehouseAppColor.primary
                                                       .withValues(
                                                           alpha: 0.1),
                                               child: Text(
@@ -303,7 +305,7 @@ class AllUserScreen extends ConsumerWidget {
                                                     fontSize:   13,
                                                     fontWeight:
                                                         FontWeight.w700,
-                                                    color: AppColor
+                                                    color: WarehouseAppColor
                                                         .primary),
                                               ),
                                             ),
@@ -319,7 +321,7 @@ class AllUserScreen extends ConsumerWidget {
                                           DataCell(Text(
                                               '@${u.username}',
                                               style: const TextStyle(
-                                                  color:    AppColor
+                                                  color:    WarehouseAppColor
                                                       .textSecondary,
                                                   fontSize: 13))),
 
@@ -338,7 +340,7 @@ class AllUserScreen extends ConsumerWidget {
                                               u.lastLoginLabel,
                                               style: const TextStyle(
                                                   fontSize: 12,
-                                                  color: AppColor
+                                                  color: WarehouseAppColor
                                                       .textSecondary))),
 
                                           // Status
@@ -352,7 +354,7 @@ class AllUserScreen extends ConsumerWidget {
                                             CustomerActionButton(
                                               icon:    Icons
                                                   .edit_outlined,
-                                              color:   AppColor
+                                              color:   WarehouseAppColor
                                                   .primary,
                                               tooltip: 'Edit',
                                               onTap: () => _openDialog(
@@ -363,7 +365,7 @@ class AllUserScreen extends ConsumerWidget {
                                             CustomerActionButton(
                                               icon: Icons
                                                   .delete_outline_rounded,
-                                              color:   AppColor.error,
+                                              color:   WarehouseAppColor.error,
                                               tooltip: 'Delete',
                                               onTap: () =>
                                                   _confirmDelete(
@@ -391,6 +393,6 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       width:  1,
       height: 28,
-      color:  AppColor.grey200,
+      color:  WarehouseAppColor.grey200,
       margin: const EdgeInsets.symmetric(horizontal: 6));
 }

@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 09:49 AM
+// Updated on 2026-10-15 10:28 AM
 // =============================================================
 // sidebar_widget.dart — WAREHOUSE app shell (Stitch "Improved Sidebar")
 //
@@ -16,7 +16,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_screen.dart';
@@ -276,8 +276,8 @@ class _SideBarState extends ConsumerState<SideBar> {
                 width: target,
                 clipBehavior: Clip.hardEdge,
                 decoration: const BoxDecoration(
-                  color:  AppColor.surface,
-                  border: Border(right: BorderSide(color: AppColor.grey200)),
+                  color:  WarehouseAppColor.surface,
+                  border: Border(right: BorderSide(color: WarehouseAppColor.grey200)),
                 ),
                 child: OverflowBox(
                   alignment: Alignment.topLeft,
@@ -319,7 +319,7 @@ class _SideBarState extends ConsumerState<SideBar> {
         child: Text(g,
             style: const TextStyle(
               fontSize: 11, fontWeight: FontWeight.w700,
-              color: AppColor.textSecondary, letterSpacing: 0.8,
+              color: WarehouseAppColor.textSecondary, letterSpacing: 0.8,
             )),
       ));
       for (final i in inGroup) {
@@ -339,7 +339,7 @@ class _SideBarState extends ConsumerState<SideBar> {
           height: 64,
           padding: const EdgeInsets.only(left: 16, right: 8),
           decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColor.grey200)),
+            border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           child: Row(
             children: [
@@ -353,7 +353,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                     const Text('Jan Ghani',
                         style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary,
+                          color: WarehouseAppColor.textPrimary,
                         )),
                     Text(
                       AppConfig.warehouseCode.isEmpty
@@ -361,7 +361,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                           : 'Warehouse · ${AppConfig.warehouseCode}',
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 11, color: AppColor.textSecondary),
+                          fontSize: 11, color: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -392,12 +392,12 @@ class _SideBarState extends ConsumerState<SideBar> {
                     (it) => it.label.toLowerCase().contains(qq));
                 if (i >= 0) _select(i);
               },
-              style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
+              style: const TextStyle(fontSize: 13, color: WarehouseAppColor.textPrimary),
               decoration: InputDecoration(
                 hintText:  'Search menu…',
-                hintStyle: const TextStyle(fontSize: 13, color: AppColor.textSecondary),
+                hintStyle: const TextStyle(fontSize: 13, color: WarehouseAppColor.textSecondary),
                 prefixIcon: const Icon(Icons.search_rounded,
-                    size: 18, color: AppColor.textSecondary),
+                    size: 18, color: WarehouseAppColor.textSecondary),
                 suffixIcon: _query.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.close_rounded, size: 16),
@@ -413,7 +413,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                 suffixIconConstraints:
                     const BoxConstraints(minWidth: 0, minHeight: 0),
                 filled:         true,
-                fillColor:      AppColor.grey100,
+                fillColor:      WarehouseAppColor.grey100,
                 isDense:        true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 border: OutlineInputBorder(
@@ -422,7 +422,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColor.primary, width: 1.2),
+                  borderSide: const BorderSide(color: WarehouseAppColor.primary, width: 1.2),
                 ),
               ),
             ),
@@ -435,7 +435,7 @@ class _SideBarState extends ConsumerState<SideBar> {
               ? const Padding(
                   padding: EdgeInsets.all(16),
                   child: Text('Koi menu nahi mila',
-                      style: TextStyle(fontSize: 13, color: AppColor.textSecondary)),
+                      style: TextStyle(fontSize: 13, color: WarehouseAppColor.textSecondary)),
                 )
               : ListView(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -447,7 +447,7 @@ class _SideBarState extends ConsumerState<SideBar> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: AppColor.grey200)),
+            border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -479,7 +479,7 @@ class _SideBarState extends ConsumerState<SideBar> {
       if (children.isNotEmpty) {
         children.add(const Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-          child: Divider(height: 1, color: AppColor.grey200),
+          child: Divider(height: 1, color: WarehouseAppColor.grey200),
         ));
       }
       for (final i in inGroup) {
@@ -499,7 +499,7 @@ class _SideBarState extends ConsumerState<SideBar> {
         Container(
           height: 64,
           decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColor.grey200)),
+            border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           alignment: Alignment.center,
           child: const AppLogo(size: 40, radius: 10),
@@ -520,7 +520,7 @@ class _SideBarState extends ConsumerState<SideBar> {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: AppColor.grey200)),
+            border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           child: Column(
             children: [
@@ -533,8 +533,8 @@ class _SideBarState extends ConsumerState<SideBar> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: sync == null
-                        ? AppColor.grey400
-                        : unsynced == 0 ? AppColor.success : AppColor.error,
+                        ? WarehouseAppColor.grey400
+                        : unsynced == 0 ? WarehouseAppColor.success : WarehouseAppColor.error,
                   ),
                 ),
               ),
@@ -547,7 +547,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                   PopupMenuItem(
                     value: 'logout',
                     child: Row(children: [
-                      Icon(Icons.logout_rounded, size: 18, color: AppColor.error),
+                      Icon(Icons.logout_rounded, size: 18, color: WarehouseAppColor.error),
                       SizedBox(width: 10),
                       Text('Logout'),
                     ]),
@@ -583,10 +583,10 @@ class _IconBtn extends StatelessWidget {
           width: 32, height: 32,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColor.grey200),
+            border: Border.all(color: WarehouseAppColor.grey200),
           ),
           alignment: Alignment.center,
-          child: Icon(icon, size: 18, color: AppColor.textSecondary),
+          child: Icon(icon, size: 18, color: WarehouseAppColor.textSecondary),
         ),
       ),
     );
@@ -602,14 +602,14 @@ class _KeyHint extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(5),
-        border:       Border.all(color: AppColor.grey300),
+        border:       Border.all(color: WarehouseAppColor.grey300),
       ),
       child: Text(text,
           style: const TextStyle(
               fontSize: 10, fontWeight: FontWeight.w600,
-              color: AppColor.textSecondary)),
+              color: WarehouseAppColor.textSecondary)),
     );
   }
 }
@@ -633,14 +633,14 @@ class _Avatar extends StatelessWidget {
       width: 36, height: 36,
       decoration: BoxDecoration(
         shape:  BoxShape.circle,
-        color:  AppColor.primary.withOpacity(0.10),
-        border: Border.all(color: AppColor.primary.withOpacity(0.25)),
+        color:  WarehouseAppColor.primary.withOpacity(0.10),
+        border: Border.all(color: WarehouseAppColor.primary.withOpacity(0.25)),
       ),
       alignment: Alignment.center,
       child: Text(_initials,
           style: const TextStyle(
               fontSize: 12, fontWeight: FontWeight.w700,
-              color: AppColor.primary)),
+              color: WarehouseAppColor.primary)),
     );
   }
 }
@@ -656,10 +656,10 @@ class _SyncStatus extends StatelessWidget {
     final unknown = b == null;
     final ok      = !unknown && b.unsynced == 0;
 
-    final color = unknown ? AppColor.textSecondary
-                : ok      ? AppColor.success : AppColor.error;
-    final bg    = unknown ? AppColor.grey100
-                : ok      ? AppColor.successLight : AppColor.errorLight;
+    final color = unknown ? WarehouseAppColor.textSecondary
+                : ok      ? WarehouseAppColor.success : WarehouseAppColor.error;
+    final bg    = unknown ? WarehouseAppColor.grey100
+                : ok      ? WarehouseAppColor.successLight : WarehouseAppColor.errorLight;
 
     String ago() {
       final m = DateTime.now().difference(b!.checkedAt).inMinutes;
@@ -730,7 +730,7 @@ class _UserCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Row(
         children: [
@@ -744,11 +744,11 @@ class _UserCard extends StatelessWidget {
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary)),
+                        color: WarehouseAppColor.textPrimary)),
                 Text(code.isEmpty ? role : '$role · $code',
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 11, color: AppColor.textSecondary)),
+                        fontSize: 11, color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -760,7 +760,7 @@ class _UserCard extends StatelessWidget {
               child: const Padding(
                 padding: EdgeInsets.all(8),
                 child: Icon(Icons.logout_rounded,
-                    size: 18, color: AppColor.error),
+                    size: 18, color: WarehouseAppColor.error),
               ),
             ),
           ),

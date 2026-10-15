@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // add_employee_dialog.dart — Add + Edit employee
 // =============================================================
@@ -5,7 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/employee_model.dart';
@@ -127,31 +129,31 @@ class _AddEmployeeDialogState extends ConsumerState<AddEmployeeDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withOpacity(0.1),
+                        color: WarehouseAppColor.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                           _isEdit ? Icons.edit_outlined : Icons.badge_outlined,
-                          color: AppColor.primary, size: 20),
+                          color: WarehouseAppColor.primary, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Text(_isEdit ? 'Edit Employee' : 'New Employee',
                         style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: AppColor.textPrimary)),
+                            color: WarehouseAppColor.textPrimary)),
                     const Spacer(),
                     IconButton(
                       onPressed:
                           _isSaving ? null : () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close_rounded),
                       style: IconButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary),
+                          foregroundColor: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Divider(color: AppColor.grey200),
+                Divider(color: WarehouseAppColor.grey200),
                 const SizedBox(height: 14),
 
                 _label('Name *'),
@@ -210,23 +212,23 @@ class _AddEmployeeDialogState extends ConsumerState<AddEmployeeDialog> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColor.grey100,
+                    color: WarehouseAppColor.grey100,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColor.grey200),
+                    border: Border.all(color: WarehouseAppColor.grey200),
                   ),
                   child: Row(children: [
                     const Icon(Icons.toggle_on_outlined,
-                        size: 18, color: AppColor.textSecondary),
+                        size: 18, color: WarehouseAppColor.textSecondary),
                     const SizedBox(width: 8),
                     const Text('Active',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: AppColor.textPrimary)),
+                            color: WarehouseAppColor.textPrimary)),
                     const Spacer(),
                     Switch(
                         value: _isActive,
-                        activeColor: AppColor.primary,
+                        activeColor: WarehouseAppColor.primary,
                         onChanged: (v) => setState(() => _isActive = v)),
                   ]),
                 ),
@@ -239,7 +241,7 @@ class _AddEmployeeDialogState extends ConsumerState<AddEmployeeDialog> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(err,
-                        style: const TextStyle(color: AppColor.error, fontSize: 12)),
+                        style: const TextStyle(color: WarehouseAppColor.error, fontSize: 12)),
                   );
                 }),
 
@@ -248,8 +250,8 @@ class _AddEmployeeDialogState extends ConsumerState<AddEmployeeDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: AppColor.white,
+                      backgroundColor: WarehouseAppColor.primary,
+                      foregroundColor: WarehouseAppColor.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -279,7 +281,7 @@ class _AddEmployeeDialogState extends ConsumerState<AddEmployeeDialog> {
             style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColor.textPrimary)),
+                color: WarehouseAppColor.textPrimary)),
       );
 
   Widget _field(TextEditingController c,
@@ -296,28 +298,28 @@ class _AddEmployeeDialogState extends ConsumerState<AddEmployeeDialog> {
       keyboardType: keyboard,
       inputFormatters: formatters,
       validator: validator,
-      style: const TextStyle(fontSize: 14, color: AppColor.textPrimary),
+      style: const TextStyle(fontSize: 14, color: WarehouseAppColor.textPrimary),
       decoration: InputDecoration(
         hintText: hint,
         prefixText: prefix,
         suffixText: suffix,
-        hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
+        hintStyle: const TextStyle(color: WarehouseAppColor.textHint, fontSize: 13),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         filled: true,
-        fillColor: AppColor.grey100,
+        fillColor: WarehouseAppColor.grey100,
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColor.grey200)),
+            borderSide: BorderSide(color: WarehouseAppColor.grey200)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColor.grey200)),
+            borderSide: BorderSide(color: WarehouseAppColor.grey200)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
+            borderSide: const BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
         errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColor.error)),
+            borderSide: const BorderSide(color: WarehouseAppColor.error)),
       ),
     );
   }

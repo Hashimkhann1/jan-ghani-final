@@ -1,4 +1,4 @@
-// Updated on 2026-09-28 11:49 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // specific_supplier_detail_screen.dart
 // Supplier detail screen — sidebar nahi hai
@@ -8,7 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_detail_models.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_detail_provider/supplier_detail_provider.dart';
@@ -58,7 +58,7 @@ class _SpecificSupplierDetailScreenState
         )));
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -119,8 +119,8 @@ class _TopBar extends StatelessWidget {
       width:   double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
-        color:  AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.max,
@@ -132,32 +132,32 @@ class _TopBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                border:       Border.all(color: AppColor.grey200),
+                border:       Border.all(color: WarehouseAppColor.grey200),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 13, color: AppColor.textSecondary),
+                      size: 13, color: WarehouseAppColor.textSecondary),
                   const SizedBox(width: 6),
                   Text('Suppliers',
                       style: TextStyle(fontSize: 13,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
                 ],
               ),
             ),
           ),
 
           const SizedBox(width: 16),
-          Container(width: 1, height: 20, color: AppColor.grey200),
+          Container(width: 1, height: 20, color: WarehouseAppColor.grey200),
           const SizedBox(width: 16),
 
           // ── Avatar ─────────────────────────────────────
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
-              color:        AppColor.primary.withOpacity(0.1),
+              color:        WarehouseAppColor.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(9),
             ),
             alignment: Alignment.center,
@@ -165,7 +165,7 @@ class _TopBar extends StatelessWidget {
               supplier.name.isNotEmpty
                   ? supplier.name[0].toUpperCase() : '?',
               style: TextStyle(fontWeight: FontWeight.w700,
-                  color: AppColor.primary, fontSize: 14),
+                  color: WarehouseAppColor.primary, fontSize: 14),
             ),
           ),
           const SizedBox(width: 10),
@@ -185,10 +185,10 @@ class _TopBar extends StatelessWidget {
                     style: TextStyle(
                       fontSize:      16,
                       fontWeight:    FontWeight.w700,
-                      color:         AppColor.textPrimary,
+                      color:         WarehouseAppColor.textPrimary,
                       // Subtle underline hint ke liye
                       decoration:    TextDecoration.underline,
-                      decorationColor: AppColor.grey300,
+                      decorationColor: WarehouseAppColor.grey300,
                       decorationStyle: TextDecorationStyle.dotted,
                     ),
                   ),
@@ -197,7 +197,7 @@ class _TopBar extends StatelessWidget {
               if (supplier.code != null)
                 Text(supplier.code!,
                     style: TextStyle(fontSize: 11,
-                        color: AppColor.textSecondary)),
+                        color: WarehouseAppColor.textSecondary)),
             ],
           ),
 
@@ -208,7 +208,7 @@ class _TopBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
               color: supplier.isActive
-                  ? AppColor.successLight : AppColor.grey200,
+                  ? WarehouseAppColor.successLight : WarehouseAppColor.grey200,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -219,7 +219,7 @@ class _TopBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: supplier.isActive
-                        ? AppColor.success : AppColor.grey400,
+                        ? WarehouseAppColor.success : WarehouseAppColor.grey400,
                   ),
                 ),
                 const SizedBox(width: 5),
@@ -229,7 +229,7 @@ class _TopBar extends StatelessWidget {
                     fontSize:   11,
                     fontWeight: FontWeight.w600,
                     color: supplier.isActive
-                        ? AppColor.success : AppColor.grey600,
+                        ? WarehouseAppColor.success : WarehouseAppColor.grey600,
                   ),
                 ),
               ],
@@ -244,19 +244,19 @@ class _TopBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color:        AppColor.success.withOpacity(0.1),
+                color:        WarehouseAppColor.success.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border:       Border.all(color: AppColor.success.withOpacity(0.3)),
+                border:       Border.all(color: WarehouseAppColor.success.withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.payments_outlined, size: 15, color: AppColor.success),
+                  Icon(Icons.payments_outlined, size: 15, color: WarehouseAppColor.success),
                   const SizedBox(width: 6),
                   Text('Pay Amount',
                       style: TextStyle(fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.success)),
+                          color: WarehouseAppColor.success)),
                 ],
               ),
             ),
@@ -279,7 +279,7 @@ class _FinancialSummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color:   AppColor.surface,
+      color:   WarehouseAppColor.surface,
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
       child: Row(
         children: [
@@ -290,7 +290,7 @@ class _FinancialSummaryRow extends StatelessWidget {
                 ? 'Dena baaki hai' : 'Clear',
             icon:     Icons.account_balance_wallet_outlined,
             color:    summary.outstandingBalance > 0
-                ? AppColor.error : AppColor.success,
+                ? WarehouseAppColor.error : WarehouseAppColor.success,
           ),
           const SizedBox(width: 12),
           DetailStatCard(
@@ -298,7 +298,7 @@ class _FinancialSummaryRow extends StatelessWidget {
             value:    'Rs ${summary.totalPurchased.pkrFormat}',
             subtitle: '${summary.totalOrders} orders total',
             icon:     Icons.shopping_cart_outlined,
-            color:    AppColor.info,
+            color:    WarehouseAppColor.info,
           ),
           const SizedBox(width: 12),
           DetailStatCard(
@@ -306,7 +306,7 @@ class _FinancialSummaryRow extends StatelessWidget {
             value:    'Rs ${summary.totalPaid.pkrFormat}',
             subtitle: '${summary.pendingOrders} orders pending',
             icon:     Icons.payments_outlined,
-            color:    AppColor.success,
+            color:    WarehouseAppColor.success,
           ),
         ],
       ),
@@ -341,15 +341,15 @@ class _TabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-      color:   AppColor.surface,
+      color:   WarehouseAppColor.surface,
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color:        AppColor.grey100,
+              color:        WarehouseAppColor.grey100,
               borderRadius: BorderRadius.circular(10),
-              border:       Border.all(color: AppColor.grey200),
+              border:       Border.all(color: WarehouseAppColor.grey200),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -393,9 +393,9 @@ class _LedgerTable extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 10, 24, 24),
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
@@ -410,7 +410,7 @@ class _LedgerTable extends StatelessWidget {
                   : ListView.separated(
                 itemCount:        entries.length,
                 separatorBuilder: (_, __) =>
-                    Divider(height: 1, color: AppColor.grey100),
+                    Divider(height: 1, color: WarehouseAppColor.grey100),
                 itemBuilder: (_, i) => LedgerEntryRow(
                   key:       ValueKey(entries[i].id),
                   entry:     entries[i],
@@ -430,8 +430,8 @@ class _LedgerTable extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
       decoration: BoxDecoration(
-        color:  AppColor.grey100,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.grey100,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
@@ -476,9 +476,9 @@ class _OrdersTable extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 10, 24, 24),
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
@@ -492,7 +492,7 @@ class _OrdersTable extends StatelessWidget {
                   : ListView.separated(
                 itemCount:        orders.length,
                 separatorBuilder: (_, __) =>
-                    Divider(height: 1, color: AppColor.grey100),
+                    Divider(height: 1, color: WarehouseAppColor.grey100),
                 itemBuilder: (_, i) => PurchaseOrderRow(
                   key:   ValueKey(orders[i].id),
                   order: orders[i],

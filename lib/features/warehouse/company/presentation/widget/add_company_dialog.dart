@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // add_company_dialog.dart — Add + Edit dono handle karta hai
 // =============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/company/presentation/provider/company_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -104,14 +106,14 @@ class _AddCompanyDialogState extends ConsumerState<AddCompanyDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withOpacity(0.1),
+                        color: WarehouseAppColor.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         _isEdit
                             ? Icons.edit_outlined
                             : Icons.business_outlined,
-                        color: AppColor.primary, size: 20,
+                        color: WarehouseAppColor.primary, size: 20,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -123,13 +125,13 @@ class _AddCompanyDialogState extends ConsumerState<AddCompanyDialog> {
                           style: const TextStyle(
                               fontSize:   16,
                               fontWeight: FontWeight.w700,
-                              color:      AppColor.textPrimary),
+                              color:      WarehouseAppColor.textPrimary),
                         ),
                         const Text(
                           'Company ki details bharein',
                           style: TextStyle(
                               fontSize: 12,
-                              color:    AppColor.textSecondary),
+                              color:    WarehouseAppColor.textSecondary),
                         ),
                       ],
                     ),
@@ -140,13 +142,13 @@ class _AddCompanyDialogState extends ConsumerState<AddCompanyDialog> {
                           : () => Navigator.of(context).pop(),
                       icon:  const Icon(Icons.close_rounded),
                       style: IconButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary),
+                          foregroundColor: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 20),
-                Divider(color: AppColor.grey200),
+                Divider(color: WarehouseAppColor.grey200),
                 const SizedBox(height: 16),
 
                 // ── Name ─────────────────────────────────
@@ -155,7 +157,7 @@ class _AddCompanyDialogState extends ConsumerState<AddCompanyDialog> {
                 TextFormField(
                   controller: _name,
                   style: const TextStyle(
-                      fontSize: 14, color: AppColor.textPrimary),
+                      fontSize: 14, color: WarehouseAppColor.textPrimary),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty)
                           ? 'Name required hai'
@@ -170,24 +172,24 @@ class _AddCompanyDialogState extends ConsumerState<AddCompanyDialog> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 4),
                   decoration: BoxDecoration(
-                    color:        AppColor.grey100,
+                    color:        WarehouseAppColor.grey100,
                     borderRadius: BorderRadius.circular(8),
-                    border:       Border.all(color: AppColor.grey200),
+                    border:       Border.all(color: WarehouseAppColor.grey200),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.toggle_on_outlined,
-                          size: 18, color: AppColor.textSecondary),
+                          size: 18, color: WarehouseAppColor.textSecondary),
                       const SizedBox(width: 8),
                       const Text('Active',
                           style: TextStyle(
                               fontSize:   13,
                               fontWeight: FontWeight.w500,
-                              color:      AppColor.textPrimary)),
+                              color:      WarehouseAppColor.textPrimary)),
                       const Spacer(),
                       Switch(
                         value:       _isActive,
-                        activeColor: AppColor.primary,
+                        activeColor: WarehouseAppColor.primary,
                         onChanged:   (v) => setState(() => _isActive = v),
                       ),
                     ],
@@ -205,7 +207,7 @@ class _AddCompanyDialogState extends ConsumerState<AddCompanyDialog> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(error,
                         style: const TextStyle(
-                            color: AppColor.error, fontSize: 12)),
+                            color: WarehouseAppColor.error, fontSize: 12)),
                   );
                 }),
 
@@ -215,8 +217,8 @@ class _AddCompanyDialogState extends ConsumerState<AddCompanyDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: AppColor.white,
+                      backgroundColor: WarehouseAppColor.primary,
+                      foregroundColor: WarehouseAppColor.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -245,23 +247,23 @@ class _AddCompanyDialogState extends ConsumerState<AddCompanyDialog> {
   InputDecoration _inputDec({required String hint}) {
     return InputDecoration(
       hintText:  hint,
-      hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
+      hintStyle: const TextStyle(color: WarehouseAppColor.textHint, fontSize: 13),
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       filled:    true,
-      fillColor: AppColor.grey100,
+      fillColor: WarehouseAppColor.grey100,
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide(color: AppColor.grey200)),
+          borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide(color: AppColor.grey200)),
+          borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
       focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   const BorderSide(color: AppColor.primary, width: 1.5)),
+          borderSide:   const BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
       errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   const BorderSide(color: AppColor.error)),
+          borderSide:   const BorderSide(color: WarehouseAppColor.error)),
     );
   }
 }
@@ -275,5 +277,5 @@ class _FieldLabel extends StatelessWidget {
       style: const TextStyle(
           fontSize:   13,
           fontWeight: FontWeight.w500,
-          color:      AppColor.textPrimary));
+          color:      WarehouseAppColor.textPrimary));
 }

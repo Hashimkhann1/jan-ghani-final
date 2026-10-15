@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // purchase_report_screen.dart
 // =============================================================
@@ -5,7 +7,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/purchase/data/datasources/purchase_report_local_datasource.dart';
@@ -17,23 +19,23 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_reports/purchase/pr
 
 Color _statusColor(String status) {
   switch (status) {
-    case 'received':  return AppColor.success;
-    case 'ordered':   return AppColor.info;
-    case 'partial':   return AppColor.warning;
-    case 'draft':     return AppColor.grey400;
-    case 'cancelled': return AppColor.error;
-    default:          return AppColor.grey400;
+    case 'received':  return WarehouseAppColor.success;
+    case 'ordered':   return WarehouseAppColor.info;
+    case 'partial':   return WarehouseAppColor.warning;
+    case 'draft':     return WarehouseAppColor.grey400;
+    case 'cancelled': return WarehouseAppColor.error;
+    default:          return WarehouseAppColor.grey400;
   }
 }
 
 Color _statusBg(String status) {
   switch (status) {
-    case 'received':  return AppColor.successLight;
-    case 'ordered':   return AppColor.infoLight;
-    case 'partial':   return AppColor.warningLight;
-    case 'draft':     return AppColor.grey100;
-    case 'cancelled': return AppColor.errorLight;
-    default:          return AppColor.grey100;
+    case 'received':  return WarehouseAppColor.successLight;
+    case 'ordered':   return WarehouseAppColor.infoLight;
+    case 'partial':   return WarehouseAppColor.warningLight;
+    case 'draft':     return WarehouseAppColor.grey100;
+    case 'cancelled': return WarehouseAppColor.errorLight;
+    default:          return WarehouseAppColor.grey100;
   }
 }
 
@@ -47,7 +49,7 @@ class PurchaseReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
           _TopBar(),
@@ -78,22 +80,22 @@ class _Body extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColor.error, size: 36),
+            const Icon(Icons.error_outline, color: WarehouseAppColor.error, size: 36),
             const SizedBox(height: 12),
             const Text('Data load nahi hua',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary)),
             const SizedBox(height: 6),
             Text(state.error!,
-                style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
+                style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary),
                 textAlign: TextAlign.center),
             const SizedBox(height: 16),
             GestureDetector(
               onTap: () => ref.read(purchaseReportProvider.notifier).refresh(),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: AppColor.primary, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: WarehouseAppColor.primary, borderRadius: BorderRadius.circular(8)),
                 child: const Text('Retry',
-                    style: TextStyle(color: AppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: WarehouseAppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -159,7 +161,7 @@ class _TopBarState extends ConsumerState<_TopBar> {
       initialDateRange:   DateTimeRange(start: start, end: end),
       builder: (context, child) => Theme(
         data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColor.primary),
+          colorScheme: const ColorScheme.light(primary: WarehouseAppColor.primary),
         ),
         child: child!,
       ),
@@ -183,8 +185,8 @@ class _TopBarState extends ConsumerState<_TopBar> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: const BoxDecoration(
-        color:  AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
@@ -192,20 +194,20 @@ class _TopBarState extends ConsumerState<_TopBar> {
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
-              color:        AppColor.info.withOpacity(0.1),
+              color:        WarehouseAppColor.info.withOpacity(0.1),
               borderRadius: BorderRadius.circular(9),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.receipt_long_outlined, size: 18, color: AppColor.info),
+            child: const Icon(Icons.receipt_long_outlined, size: 18, color: WarehouseAppColor.info),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Purchase Report',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary)),
               Text(dateStr,
-                  style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                  style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
             ],
           ),
           const Spacer(),
@@ -233,17 +235,17 @@ class _TopBarState extends ConsumerState<_TopBar> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color:        AppColor.grey100,
+                color:        WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(8),
-                border:       Border.all(color: AppColor.grey200),
+                border:       Border.all(color: WarehouseAppColor.grey200),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.refresh_rounded, size: 13, color: AppColor.grey600),
+                  Icon(Icons.refresh_rounded, size: 13, color: WarehouseAppColor.grey600),
                   SizedBox(width: 5),
                   Text('Refresh',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColor.grey700)),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: WarehouseAppColor.grey700)),
                 ],
               ),
             ),
@@ -273,16 +275,16 @@ class _FilterPill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color:        selected ? AppColor.primary : AppColor.grey100,
+          color:        selected ? WarehouseAppColor.primary : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: selected ? AppColor.primary : AppColor.grey200),
+          border:       Border.all(color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey200),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize:   11,
             fontWeight: FontWeight.w600,
-            color:      selected ? AppColor.white : AppColor.grey600,
+            color:      selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
           ),
         ),
       ),
@@ -317,16 +319,16 @@ class _CustomPill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color:        selected ? AppColor.primary : AppColor.grey100,
+          color:        selected ? WarehouseAppColor.primary : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: selected ? AppColor.primary : AppColor.grey200),
+          border:       Border.all(color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey200),
         ),
         child: Text(
           _label,
           style: TextStyle(
             fontSize:   11,
             fontWeight: FontWeight.w600,
-            color:      selected ? AppColor.white : AppColor.grey600,
+            color:      selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
           ),
         ),
       ),
@@ -350,7 +352,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value:      summary.totalPos.toString(),
         badge:      'All time',
         icon:       Icons.receipt_long_outlined,
-        color:      AppColor.primary,
+        color:      WarehouseAppColor.primary,
         barPercent: 1.0,
       ),
       DashStatCard(
@@ -358,7 +360,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value:      'Rs ${summary.totalReceivedValue.pkrFormat}',
         badge:      'Completed',
         icon:       Icons.check_circle_outline,
-        color:      AppColor.success,
+        color:      WarehouseAppColor.success,
         barPercent: summary.totalPos == 0 ? 0 :
             (summary.totalPos - summary.pendingCount) / summary.totalPos,
       ),
@@ -367,7 +369,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value:      summary.pendingCount.toString(),
         badge:      'Draft / Ordered / Partial',
         icon:       Icons.hourglass_empty_rounded,
-        color:      AppColor.warning,
+        color:      WarehouseAppColor.warning,
         barPercent: summary.totalPos == 0 ? 0 :
             summary.pendingCount / summary.totalPos,
       ),
@@ -376,7 +378,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value:      'Rs ${summary.thisMonthValue.pkrFormat}',
         badge:      'Received only',
         icon:       Icons.calendar_month_outlined,
-        color:      AppColor.info,
+        color:      WarehouseAppColor.info,
         barPercent: summary.totalReceivedValue == 0 ? 0 :
             (summary.thisMonthValue / summary.totalReceivedValue).clamp(0, 1),
       ),
@@ -434,10 +436,10 @@ class _TopSuppliersBarChart extends StatelessWidget {
       headerIcon: Container(
         width: 26, height: 26,
         decoration: BoxDecoration(
-            color: AppColor.successLight,
+            color: WarehouseAppColor.successLight,
             borderRadius: BorderRadius.circular(6)),
         alignment: Alignment.center,
-        child: const Icon(Icons.bar_chart_rounded, size: 14, color: AppColor.success),
+        child: const Icon(Icons.bar_chart_rounded, size: 14, color: WarehouseAppColor.success),
       ),
       title: 'Top Suppliers by PO Value',
       children: [
@@ -457,7 +459,7 @@ class _TopSuppliersBarChart extends StatelessWidget {
                           '${data[group.x].supplierName}\nRs ${rod.toY.pkrFormat}',
                           const TextStyle(
                               fontSize: 10,
-                              color: AppColor.white,
+                              color: WarehouseAppColor.white,
                               fontWeight: FontWeight.w600),
                         ),
                   ),
@@ -477,7 +479,7 @@ class _TopSuppliersBarChart extends StatelessWidget {
                           child: Text(
                             name.length > 6 ? '${name.substring(0, 6)}..' : name,
                             style: const TextStyle(
-                                fontSize: 9, color: AppColor.textSecondary),
+                                fontSize: 9, color: WarehouseAppColor.textSecondary),
                           ),
                         );
                       },
@@ -495,7 +497,7 @@ class _TopSuppliersBarChart extends StatelessWidget {
                     barRods: [
                       BarChartRodData(
                         toY:          e.value.totalValue,
-                        color:        AppColor.success,
+                        color:        WarehouseAppColor.success,
                         width:        18,
                         borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(5)),
@@ -525,10 +527,10 @@ class _SupplierCompletionSection extends StatelessWidget {
       headerIcon: Container(
         width: 26, height: 26,
         decoration: BoxDecoration(
-            color: AppColor.warningLight,
+            color: WarehouseAppColor.warningLight,
             borderRadius: BorderRadius.circular(6)),
         alignment: Alignment.center,
-        child: const Icon(Icons.track_changes_rounded, size: 14, color: AppColor.warning),
+        child: const Icon(Icons.track_changes_rounded, size: 14, color: WarehouseAppColor.warning),
       ),
       title: 'Supplier Delivery Completion Rate',
       children: [
@@ -540,10 +542,10 @@ class _SupplierCompletionSection extends StatelessWidget {
             final isLast = e.key == data.length - 1;
             final pct    = item.completionRate;
             final color  = pct >= 0.9
-                ? AppColor.success
+                ? WarehouseAppColor.success
                 : pct >= 0.5
-                    ? AppColor.warning
-                    : AppColor.error;
+                    ? WarehouseAppColor.warning
+                    : WarehouseAppColor.error;
 
             return Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
@@ -551,7 +553,7 @@ class _SupplierCompletionSection extends StatelessWidget {
                 border: isLast
                     ? null
                     : const Border(
-                        bottom: BorderSide(color: AppColor.grey100)),
+                        bottom: BorderSide(color: WarehouseAppColor.grey100)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,14 +565,14 @@ class _SupplierCompletionSection extends StatelessWidget {
                             style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: AppColor.textPrimary),
+                                color: WarehouseAppColor.textPrimary),
                             overflow: TextOverflow.ellipsis),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         '${item.receivedPos}/${item.totalPos} POs',
                         style: const TextStyle(
-                            fontSize: 10, color: AppColor.textSecondary),
+                            fontSize: 10, color: WarehouseAppColor.textSecondary),
                       ),
                       const SizedBox(width: 8),
                       Container(
@@ -596,7 +598,7 @@ class _SupplierCompletionSection extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value:           pct,
                       minHeight:       5,
-                      backgroundColor: AppColor.grey100,
+                      backgroundColor: WarehouseAppColor.grey100,
                       valueColor:      AlwaysStoppedAnimation<Color>(color),
                     ),
                   ),
@@ -604,7 +606,7 @@ class _SupplierCompletionSection extends StatelessWidget {
                   Text(
                     '${item.totalReceived.toStringAsFixed(0)} of ${item.totalOrdered.toStringAsFixed(0)} items received',
                     style: const TextStyle(
-                        fontSize: 9, color: AppColor.textHint),
+                        fontSize: 9, color: WarehouseAppColor.textHint),
                   ),
                 ],
               ),
@@ -629,10 +631,10 @@ class _PendingPoSection extends StatelessWidget {
       headerIcon: Container(
         width: 26, height: 26,
         decoration: BoxDecoration(
-            color: AppColor.warningLight,
+            color: WarehouseAppColor.warningLight,
             borderRadius: BorderRadius.circular(6)),
         alignment: Alignment.center,
-        child: const Icon(Icons.hourglass_empty_rounded, size: 14, color: AppColor.warning),
+        child: const Icon(Icons.hourglass_empty_rounded, size: 14, color: WarehouseAppColor.warning),
       ),
       title: 'Pending POs',
       headerTrailing: entries.isEmpty
@@ -640,29 +642,29 @@ class _PendingPoSection extends StatelessWidget {
           : Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                  color: AppColor.warningLight,
+                  color: WarehouseAppColor.warningLight,
                   borderRadius: BorderRadius.circular(12)),
               child: Text('${entries.length}',
                   style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: AppColor.warning)),
+                      color: WarehouseAppColor.warning)),
             ),
       children: [
         // Header
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: const BoxDecoration(
-            color:  AppColor.grey100,
-            border: Border(bottom: BorderSide(color: AppColor.grey200)),
+            color:  WarehouseAppColor.grey100,
+            border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           child: const Row(
             children: [
-              Expanded(flex: 2, child: Text('PO#', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 3, child: Text('Supplier', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 2, child: Text('Status', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 2, child: Text('Order Date', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 3, child: Text('Amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary), textAlign: TextAlign.right)),
+              Expanded(flex: 2, child: Text('PO#', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary))),
+              Expanded(flex: 3, child: Text('Supplier', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary))),
+              Expanded(flex: 2, child: Text('Status', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary))),
+              Expanded(flex: 2, child: Text('Order Date', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary))),
+              Expanded(flex: 3, child: Text('Amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary), textAlign: TextAlign.right)),
             ],
           ),
         ),
@@ -678,7 +680,7 @@ class _PendingPoSection extends StatelessWidget {
               decoration: BoxDecoration(
                 border: isLast
                     ? null
-                    : const Border(bottom: BorderSide(color: AppColor.grey100)),
+                    : const Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
               ),
               child: Row(
                 children: [
@@ -688,14 +690,14 @@ class _PendingPoSection extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColor.textPrimary),
+                            color: WarehouseAppColor.textPrimary),
                         overflow: TextOverflow.ellipsis),
                   ),
                   Expanded(
                     flex: 3,
                     child: Text(po.supplierName ?? '—',
                         style: const TextStyle(
-                            fontSize: 11, color: AppColor.textSecondary),
+                            fontSize: 11, color: WarehouseAppColor.textSecondary),
                         overflow: TextOverflow.ellipsis),
                   ),
                   Expanded(
@@ -706,7 +708,7 @@ class _PendingPoSection extends StatelessWidget {
                     flex: 2,
                     child: Text(po.orderDate.timeAgo,
                         style: const TextStyle(
-                            fontSize: 10, color: AppColor.textHint)),
+                            fontSize: 10, color: WarehouseAppColor.textHint)),
                   ),
                   Expanded(
                     flex: 3,
@@ -714,7 +716,7 @@ class _PendingPoSection extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColor.textPrimary),
+                            color: WarehouseAppColor.textPrimary),
                         textAlign: TextAlign.right),
                   ),
                 ],
@@ -779,10 +781,10 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.inbox_outlined, size: 28, color: AppColor.grey300),
+            const Icon(Icons.inbox_outlined, size: 28, color: WarehouseAppColor.grey300),
             const SizedBox(height: 8),
             Text(message,
-                style: const TextStyle(fontSize: 12, color: AppColor.textHint)),
+                style: const TextStyle(fontSize: 12, color: WarehouseAppColor.textHint)),
           ],
         ),
       ),

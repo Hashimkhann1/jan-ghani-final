@@ -1,6 +1,8 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/provider/product_provider.dart';
@@ -45,8 +47,8 @@ class _AssignStockProductListPanelState
 
     return Container(
       decoration: const BoxDecoration(
-        color: AppColor.white,
-        border: Border(right: BorderSide(color: AppColor.grey200)),
+        color: WarehouseAppColor.white,
+        border: Border(right: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Column(
         children: [
@@ -54,29 +56,29 @@ class _AssignStockProductListPanelState
           Container(
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
-              color: AppColor.white,
-              border: Border(bottom: BorderSide(color: AppColor.grey200)),
+              color: WarehouseAppColor.white,
+              border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
             ),
             child: TextField(
               controller: _searchController,
               onChanged: notifier.updateSearch,
-              style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
+              style: const TextStyle(fontSize: 13, color: WarehouseAppColor.textPrimary),
               cursorHeight: 14,
               decoration: InputDecoration(
                 hintText: 'Name, SKU ya barcode se search...',
-                hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-                prefixIcon: const Icon(Icons.search, size: 18, color: AppColor.grey500),
+                hintStyle: const TextStyle(fontSize: 13, color: WarehouseAppColor.textHint),
+                prefixIcon: const Icon(Icons.search, size: 18, color: WarehouseAppColor.grey500),
                 suffixIcon: state.searchQuery.isNotEmpty
                     ? GestureDetector(
                         onTap: () {
                           _searchController.clear();
                           notifier.updateSearch('');
                         },
-                        child: const Icon(Icons.close, size: 16, color: AppColor.grey500),
+                        child: const Icon(Icons.close, size: 16, color: WarehouseAppColor.grey500),
                       )
                     : null,
                 filled: true,
-                fillColor: AppColor.grey100,
+                fillColor: WarehouseAppColor.grey100,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -96,10 +98,10 @@ class _AssignStockProductListPanelState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.search_off, size: 40, color: AppColor.grey300),
+                  Icon(Icons.search_off, size: 40, color: WarehouseAppColor.grey300),
                   SizedBox(height: 8),
                   Text('Koi product nahi mila',
-                      style: TextStyle(fontSize: 13, color: AppColor.textHint)),
+                      style: TextStyle(fontSize: 13, color: WarehouseAppColor.textHint)),
                 ],
               ),
             )
@@ -176,13 +178,13 @@ class _ProductItemState extends State<_ProductItem>
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: widget.inCart
-                ? AppColor.primary.withOpacity(0.05)
-                : AppColor.white,
+                ? WarehouseAppColor.primary.withOpacity(0.05)
+                : WarehouseAppColor.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: widget.inCart
-                  ? AppColor.primary.withOpacity(0.4)
-                  : AppColor.grey200,
+                  ? WarehouseAppColor.primary.withOpacity(0.4)
+                  : WarehouseAppColor.grey200,
             ),
           ),
           child: Row(
@@ -195,14 +197,14 @@ class _ProductItemState extends State<_ProductItem>
                         style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppColor.textPrimary),
+                            color: WarehouseAppColor.textPrimary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
                     Text(
                       '${p.categoryName ?? '-'}  •  Rs ${p.purchasePrice.toStringAsFixed(0)}',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary),
+                          fontSize: 12, color: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -212,22 +214,22 @@ class _ProductItemState extends State<_ProductItem>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColor.primary.withOpacity(0.1),
+                    color: WarehouseAppColor.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text('${p.availableQty.toStringAsFixed(2)} ${p.unitOfMeasure}',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.primary)),
+                          color: WarehouseAppColor.primary)),
                 )
               else
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: inStock
-                        ? AppColor.success.withOpacity(0.10)
-                        : AppColor.error.withOpacity(0.10),
+                        ? WarehouseAppColor.success.withOpacity(0.10)
+                        : WarehouseAppColor.error.withOpacity(0.10),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -237,7 +239,7 @@ class _ProductItemState extends State<_ProductItem>
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: inStock ? AppColor.success : AppColor.error),
+                        color: inStock ? WarehouseAppColor.success : WarehouseAppColor.error),
                   ),
                 ),
             ],

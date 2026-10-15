@@ -1,4 +1,4 @@
-// Updated on 2026-09-28 01:06 PM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // edit_supplier_dialog.dart
 // =============================================================
@@ -6,7 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_provider/supplier_provider.dart';
 
@@ -100,11 +100,11 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color:        AppColor.info.withOpacity(0.1),
+                        color:        WarehouseAppColor.info.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(Icons.edit_outlined,
-                          color: AppColor.info, size: 20),
+                          color: WarehouseAppColor.info, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -114,11 +114,11 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                             style: TextStyle(
                                 fontSize:   16,
                                 fontWeight: FontWeight.w700,
-                                color:      AppColor.textPrimary)),
+                                color:      WarehouseAppColor.textPrimary)),
                         Text(widget.supplier.name,
                             style: TextStyle(
                                 fontSize: 12,
-                                color:    AppColor.textSecondary)),
+                                color:    WarehouseAppColor.textSecondary)),
                       ],
                     ),
                     const Spacer(),
@@ -126,13 +126,13 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                       onPressed: () => Navigator.of(context).pop(),
                       icon:  const Icon(Icons.close_rounded),
                       style: IconButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary),
+                          foregroundColor: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 20),
-                Divider(color: AppColor.grey200),
+                Divider(color: WarehouseAppColor.grey200),
                 const SizedBox(height: 16),
 
                 // ── Required Info ─────────────────────────────
@@ -254,27 +254,27 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                         style: TextStyle(
                             fontSize:   13,
                             fontWeight: FontWeight.w500,
-                            color:      AppColor.textPrimary)),
+                            color:      WarehouseAppColor.textPrimary)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<int>(
                       value: _paymentTerms,
                       decoration: InputDecoration(
                         filled:    true,
-                        fillColor: AppColor.grey100,
+                        fillColor: WarehouseAppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide:
-                            BorderSide(color: AppColor.grey200)),
+                            BorderSide(color: WarehouseAppColor.grey200)),
                         enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide:
-                            BorderSide(color: AppColor.grey200)),
+                            BorderSide(color: WarehouseAppColor.grey200)),
                         focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(
-                                color: AppColor.primary, width: 1.5)),
+                                color: WarehouseAppColor.primary, width: 1.5)),
                       ),
                       items: [7, 15, 30, 45, 60, 90]
                           .map((d) => DropdownMenuItem(
@@ -295,7 +295,7 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                         style: TextStyle(
                             fontSize:   13,
                             fontWeight: FontWeight.w500,
-                            color:      AppColor.textPrimary)),
+                            color:      WarehouseAppColor.textPrimary)),
                     const SizedBox(height: 6),
                     GestureDetector(
                       onTap: () =>
@@ -305,13 +305,13 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                             horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: _isActive
-                              ? AppColor.successLight
-                              : AppColor.grey100,
+                              ? WarehouseAppColor.successLight
+                              : WarehouseAppColor.grey100,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                               color: _isActive
-                                  ? AppColor.success
-                                  : AppColor.grey200),
+                                  ? WarehouseAppColor.success
+                                  : WarehouseAppColor.grey200),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -322,8 +322,8 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: _isActive
-                                    ? AppColor.success
-                                    : AppColor.grey400,
+                                    ? WarehouseAppColor.success
+                                    : WarehouseAppColor.grey400,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -333,8 +333,8 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                                 fontSize:   13,
                                 fontWeight: FontWeight.w500,
                                 color:      _isActive
-                                    ? AppColor.success
-                                    : AppColor.grey500,
+                                    ? WarehouseAppColor.success
+                                    : WarehouseAppColor.grey500,
                               ),
                             ),
                           ],
@@ -354,7 +354,7 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                       style: TextStyle(
                         fontSize:   13,
                         fontWeight: FontWeight.w500,
-                        color:      AppColor.textPrimary,
+                        color:      WarehouseAppColor.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -363,34 +363,34 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                     TextFormField(
                       controller: _balance,
                       enabled:    false,
-                      style: TextStyle(fontSize: 14, color: AppColor.textSecondary),
+                      style: TextStyle(fontSize: 14, color: WarehouseAppColor.textSecondary),
                       decoration: InputDecoration(
                         hintText:  '0.00',
                         prefixText: 'Rs ',
                         helperText: 'Balance yahan edit nahi hota — ledger se '
                             'payment / reverse karein',
                         helperStyle: TextStyle(
-                            color: AppColor.textSecondary, fontSize: 11),
+                            color: WarehouseAppColor.textSecondary, fontSize: 11),
                         disabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide:   BorderSide(color: AppColor.grey200)),
-                        hintStyle: TextStyle(color: AppColor.textHint, fontSize: 13),
+                            borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
+                        hintStyle: TextStyle(color: WarehouseAppColor.textHint, fontSize: 13),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         filled:    true,
-                        fillColor: AppColor.grey100,
+                        fillColor: WarehouseAppColor.grey100,
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide:   BorderSide(color: AppColor.grey200)),
+                            borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
                         enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide:   BorderSide(color: AppColor.grey200)),
+                            borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
                         focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide:   BorderSide(color: AppColor.primary, width: 1.5)),
+                            borderSide:   BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
                         errorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide:   BorderSide(color: AppColor.error)),
+                            borderSide:   BorderSide(color: WarehouseAppColor.error)),
                       ),
                     ),
                   ],
@@ -405,8 +405,8 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary,
-                          side: BorderSide(color: AppColor.grey300),
+                          foregroundColor: WarehouseAppColor.textSecondary,
+                          side: BorderSide(color: WarehouseAppColor.grey300),
                           padding: const EdgeInsets.symmetric(
                               vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -421,8 +421,8 @@ class _EditSupplierDialogState extends ConsumerState<EditSupplierDialog> {
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _save,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.primary,
-                          foregroundColor: AppColor.white,
+                          backgroundColor: WarehouseAppColor.primary,
+                          foregroundColor: WarehouseAppColor.white,
                           padding: const EdgeInsets.symmetric(
                               vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -525,7 +525,7 @@ class _SectionLabel extends StatelessWidget {
         style: TextStyle(
             fontSize:      12,
             fontWeight:    FontWeight.w600,
-            color:         AppColor.textSecondary,
+            color:         WarehouseAppColor.textSecondary,
             letterSpacing: 0.5));
   }
 }
@@ -564,7 +564,7 @@ class _Field extends StatelessWidget {
             style: TextStyle(
                 fontSize:   13,
                 fontWeight: FontWeight.w500,
-                color:      AppColor.textPrimary)),
+                color:      WarehouseAppColor.textPrimary)),
         const SizedBox(height: 6),
         TextFormField(
           controller:      controller,
@@ -572,31 +572,31 @@ class _Field extends StatelessWidget {
           validator:       validator,
           inputFormatters: inputFormatters,
           maxLines:        maxLines,
-          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          style: TextStyle(fontSize: 14, color: WarehouseAppColor.textPrimary),
           decoration: InputDecoration(
             hintText:    hint,
             hintStyle:   TextStyle(
-                color: AppColor.textHint, fontSize: 13),
+                color: WarehouseAppColor.textHint, fontSize: 13),
             helperText:  helperText,
             helperStyle: TextStyle(
-                color: AppColor.textSecondary, fontSize: 11),
+                color: WarehouseAppColor.textSecondary, fontSize: 11),
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14, vertical: 12),
             filled:    true,
-            fillColor: AppColor.grey100,
+            fillColor: WarehouseAppColor.grey100,
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide:   BorderSide(color: AppColor.grey200)),
+                borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide:   BorderSide(color: AppColor.grey200)),
+                borderSide:   BorderSide(color: WarehouseAppColor.grey200)),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide:
-                BorderSide(color: AppColor.primary, width: 1.5)),
+                BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
             errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide:   BorderSide(color: AppColor.error)),
+                borderSide:   BorderSide(color: WarehouseAppColor.error)),
           ),
         ),
       ],

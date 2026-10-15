@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // linked_store_inventory_screen.dart
 // Linked store ka inventory — filter chips + search + infinite scroll.
@@ -6,7 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/link_stores/inventory/presentation/providers/linked_store_inventory_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/link_stores/inventory/presentation/widgets/linked_store_product_row.dart';
 
@@ -61,12 +63,12 @@ class _LinkedStoreInventoryScreenState
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
               hintText: 'Search product name, SKU ya barcode...',
-              hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColor.grey500),
+              hintStyle: const TextStyle(fontSize: 13, color: WarehouseAppColor.textHint),
+              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: WarehouseAppColor.grey500),
               suffixIcon: state.search.isEmpty
                   ? null
                   : IconButton(
-                      icon: const Icon(Icons.clear_rounded, size: 16, color: AppColor.grey500),
+                      icon: const Icon(Icons.clear_rounded, size: 16, color: WarehouseAppColor.grey500),
                       splashRadius: 14,
                       onPressed: () {
                         _searchCtrl.clear();
@@ -76,14 +78,14 @@ class _LinkedStoreInventoryScreenState
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               filled: true,
-              fillColor: AppColor.surface,
+              fillColor: WarehouseAppColor.surface,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColor.grey200),
+                borderSide: const BorderSide(color: WarehouseAppColor.grey200),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColor.primary),
+                borderSide: const BorderSide(color: WarehouseAppColor.primary),
               ),
             ),
           ),
@@ -98,28 +100,28 @@ class _LinkedStoreInventoryScreenState
             children: [
               _Chip(
                 label: 'All', count: state.allCount,
-                color: AppColor.primary,
+                color: WarehouseAppColor.primary,
                 selected: state.status == 'all',
                 onTap: () => notifier.setStatus('all'),
               ),
               const SizedBox(width: 8),
               _Chip(
                 label: 'In Stock', count: state.inStockCount,
-                color: AppColor.success,
+                color: WarehouseAppColor.success,
                 selected: state.status == 'ok',
                 onTap: () => notifier.setStatus('ok'),
               ),
               const SizedBox(width: 8),
               _Chip(
                 label: 'Low (Below Min)', count: state.lowCount,
-                color: AppColor.warning,
+                color: WarehouseAppColor.warning,
                 selected: state.status == 'low',
                 onTap: () => notifier.setStatus('low'),
               ),
               const SizedBox(width: 8),
               _Chip(
                 label: 'Out of Stock', count: state.outCount,
-                color: AppColor.error,
+                color: WarehouseAppColor.error,
                 selected: state.status == 'out',
                 onTap: () => notifier.setStatus('out'),
               ),
@@ -127,7 +129,7 @@ class _LinkedStoreInventoryScreenState
           ),
         ),
         const SizedBox(height: 10),
-        const Divider(height: 1, color: AppColor.grey200),
+        const Divider(height: 1, color: WarehouseAppColor.grey200),
 
         // ── List ────────────────────────────────────────────
         Expanded(child: _buildList(state, notifier)),
@@ -146,15 +148,15 @@ class _LinkedStoreInventoryScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColor.error, size: 34),
+            const Icon(Icons.error_outline, color: WarehouseAppColor.error, size: 34),
             const SizedBox(height: 10),
             const Text('Data load nahi hua',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary)),
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(state.error!,
-                  style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
+                  style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary),
                   textAlign: TextAlign.center),
             ),
             const SizedBox(height: 14),
@@ -162,9 +164,9 @@ class _LinkedStoreInventoryScreenState
               onTap: notifier.refresh,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: AppColor.primary, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: WarehouseAppColor.primary, borderRadius: BorderRadius.circular(8)),
                 child: const Text('Retry',
-                    style: TextStyle(color: AppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: WarehouseAppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -177,10 +179,10 @@ class _LinkedStoreInventoryScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 36, color: AppColor.grey300),
+            Icon(Icons.inventory_2_outlined, size: 36, color: WarehouseAppColor.grey300),
             SizedBox(height: 10),
             Text('Koi product nahi mila',
-                style: TextStyle(fontSize: 13, color: AppColor.textHint)),
+                style: TextStyle(fontSize: 13, color: WarehouseAppColor.textHint)),
           ],
         ),
       );
@@ -243,9 +245,9 @@ class _Chip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? color : AppColor.grey100,
+          color: selected ? color : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? color : AppColor.grey200),
+          border: Border.all(color: selected ? color : WarehouseAppColor.grey200),
         ),
         child: Row(
           children: [
@@ -253,20 +255,20 @@ class _Chip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: selected ? AppColor.white : AppColor.grey600,
+                  color: selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
                 )),
             const SizedBox(width: 5),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
-                color: selected ? AppColor.white.withOpacity(0.25) : AppColor.grey200,
+                color: selected ? WarehouseAppColor.white.withOpacity(0.25) : WarehouseAppColor.grey200,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text('$count',
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: selected ? AppColor.white : AppColor.grey600,
+                    color: selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
                   )),
             ),
           ],

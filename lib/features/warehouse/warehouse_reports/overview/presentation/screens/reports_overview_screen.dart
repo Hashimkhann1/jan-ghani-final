@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // reports_overview_screen.dart
 //
@@ -19,7 +21,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/cash_flow/presentation/providers/cash_flow_report_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/expense/presentation/providers/expense_report_provider.dart';
@@ -53,7 +55,7 @@ class ReportsOverviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
           _TopBar(onRefreshAll: () => _refreshAll(ref)),
@@ -111,28 +113,28 @@ class _TopBar extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: const BoxDecoration(
-        color: AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color: WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.1),
+              color: WarehouseAppColor.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(9),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.dashboard_rounded, size: 18, color: AppColor.primary),
+            child: const Icon(Icons.dashboard_rounded, size: 18, color: WarehouseAppColor.primary),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Reports Overview',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary)),
               Text('As of $dateStr  •  Sab reports ka khulasa',
-                  style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                  style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
             ],
           ),
           const Spacer(),
@@ -141,17 +143,17 @@ class _TopBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColor.grey100,
+                color: WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColor.grey200),
+                border: Border.all(color: WarehouseAppColor.grey200),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.refresh_rounded, size: 13, color: AppColor.grey600),
+                  Icon(Icons.refresh_rounded, size: 13, color: WarehouseAppColor.grey600),
                   SizedBox(width: 5),
                   Text('Refresh',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColor.grey700)),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: WarehouseAppColor.grey700)),
                 ],
               ),
             ),
@@ -186,7 +188,7 @@ class _InventorySection extends ConsumerWidget {
     return _Section(
       title: 'Inventory',
       icon: Icons.inventory_2_outlined,
-      color: AppColor.primary,
+      color: WarehouseAppColor.primary,
       onViewReport: () => onOpenReport(ReportTab.inventory),
       cards: [
         _OverviewCard(
@@ -194,7 +196,7 @@ class _InventorySection extends ConsumerWidget {
           value: '${inv.totalActive}',
           badge: 'Active',
           icon: Icons.inventory_2_outlined,
-          color: AppColor.primary,
+          color: WarehouseAppColor.primary,
           loading: inv.isLoading,
           onTap: () => onOpenReport(ReportTab.inventory),
         ),
@@ -203,7 +205,7 @@ class _InventorySection extends ConsumerWidget {
           value: 'Rs ${inv.totalPurchaseValue.pkrFormat}',
           badge: 'Purchase cost',
           icon: Icons.currency_rupee_rounded,
-          color: AppColor.success,
+          color: WarehouseAppColor.success,
           loading: inv.isLoading,
           onTap: () => onOpenReport(ReportTab.inventory),
         ),
@@ -212,7 +214,7 @@ class _InventorySection extends ConsumerWidget {
           value: '${monthTransfers.length}',
           badge: 'This month • Rs ${trfCost.pkrFormat}',
           icon: Icons.local_shipping_outlined,
-          color: AppColor.info,
+          color: WarehouseAppColor.info,
           loading: transfers.isLoading,
           onTap: () => onOpenReport(ReportTab.inventory),
         ),
@@ -234,7 +236,7 @@ class _PurchaseSection extends ConsumerWidget {
     return _Section(
       title: 'Purchases',
       icon: Icons.receipt_long_outlined,
-      color: AppColor.info,
+      color: WarehouseAppColor.info,
       onViewReport: () => onOpenReport(ReportTab.purchases),
       cards: [
         _OverviewCard(
@@ -242,7 +244,7 @@ class _PurchaseSection extends ConsumerWidget {
           value: '${s?.totalPos ?? 0}',
           badge: 'This month',
           icon: Icons.receipt_long_outlined,
-          color: AppColor.primary,
+          color: WarehouseAppColor.primary,
           loading: st.isLoading,
           onTap: () => onOpenReport(ReportTab.purchases),
         ),
@@ -251,7 +253,7 @@ class _PurchaseSection extends ConsumerWidget {
           value: 'Rs ${(s?.thisMonthValue ?? 0).pkrFormat}',
           badge: 'This month • received',
           icon: Icons.shopping_cart_checkout_rounded,
-          color: AppColor.success,
+          color: WarehouseAppColor.success,
           loading: st.isLoading,
           onTap: () => onOpenReport(ReportTab.purchases),
         ),
@@ -260,7 +262,7 @@ class _PurchaseSection extends ConsumerWidget {
           value: '${s?.pendingCount ?? 0}',
           badge: 'Awaiting',
           icon: Icons.hourglass_empty_rounded,
-          color: AppColor.warning,
+          color: WarehouseAppColor.warning,
           loading: st.isLoading,
           onTap: () => onOpenReport(ReportTab.purchases),
         ),
@@ -288,7 +290,7 @@ class _SupplierSection extends ConsumerWidget {
     return _Section(
       title: 'Suppliers',
       icon: Icons.people_outline,
-      color: AppColor.warning,
+      color: WarehouseAppColor.warning,
       onViewReport: () => onOpenReport(ReportTab.suppliers),
       cards: [
         _OverviewCard(
@@ -296,7 +298,7 @@ class _SupplierSection extends ConsumerWidget {
           value: '${s?.totalActive ?? 0}',
           badge: 'Active',
           icon: Icons.people_outline,
-          color: AppColor.primary,
+          color: WarehouseAppColor.primary,
           loading: st.isLoading,
           onTap: () => onOpenReport(ReportTab.suppliers),
         ),
@@ -305,7 +307,7 @@ class _SupplierSection extends ConsumerWidget {
           value: 'Rs ${(s?.totalOutstanding ?? 0).pkrFormat}',
           badge: 'Payable',
           icon: Icons.account_balance_wallet_outlined,
-          color: AppColor.error,
+          color: WarehouseAppColor.error,
           loading: st.isLoading,
           onTap: () => onOpenReport(ReportTab.suppliers),
         ),
@@ -314,7 +316,7 @@ class _SupplierSection extends ConsumerWidget {
           value: 'Rs ${paidToSupplier.pkrFormat}',
           badge: 'This month',
           icon: Icons.payments_outlined,
-          color: AppColor.success,
+          color: WarehouseAppColor.success,
           loading: cf.isLoading,
           onTap: () => onOpenReport(ReportTab.suppliers),
         ),
@@ -337,7 +339,7 @@ class _CashExpenseSection extends ConsumerWidget {
     return _Section(
       title: 'Cash & Expense',
       icon: Icons.account_balance_wallet_outlined,
-      color: AppColor.success,
+      color: WarehouseAppColor.success,
       onViewReport: () => onOpenReport(ReportTab.cashFlow),
       cards: [
         _OverviewCard(
@@ -345,7 +347,7 @@ class _CashExpenseSection extends ConsumerWidget {
           value: 'Rs ${(cs?.cashInHand ?? 0).pkrFormat}',
           badge: 'Live balance',
           icon: Icons.account_balance_wallet_outlined,
-          color: AppColor.primary,
+          color: WarehouseAppColor.primary,
           loading: cf.isLoading,
           onTap: () => onOpenReport(ReportTab.cashFlow),
         ),
@@ -354,7 +356,7 @@ class _CashExpenseSection extends ConsumerWidget {
           value: 'Rs ${(cs?.periodCashIn ?? 0).pkrFormat}',
           badge: 'This month',
           icon: Icons.south_west_rounded,
-          color: AppColor.success,
+          color: WarehouseAppColor.success,
           loading: cf.isLoading,
           onTap: () => onOpenReport(ReportTab.cashFlow),
         ),
@@ -363,7 +365,7 @@ class _CashExpenseSection extends ConsumerWidget {
           value: 'Rs ${(cs?.periodCashOut ?? 0).pkrFormat}',
           badge: 'This month',
           icon: Icons.north_east_rounded,
-          color: AppColor.error,
+          color: WarehouseAppColor.error,
           loading: cf.isLoading,
           onTap: () => onOpenReport(ReportTab.cashFlow),
         ),
@@ -372,7 +374,7 @@ class _CashExpenseSection extends ConsumerWidget {
           value: 'Rs ${(exp.summary?.totalAmount ?? 0).pkrFormat}',
           badge: 'This month',
           icon: Icons.receipt_long_outlined,
-          color: AppColor.warning,
+          color: WarehouseAppColor.warning,
           loading: exp.isLoading,
           onTap: () => onOpenReport(ReportTab.expenses),
         ),
@@ -424,7 +426,7 @@ class _Section extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(title,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary)),
                 const Spacer(),
                 Text('View report',
                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
@@ -506,9 +508,9 @@ class _OverviewCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColor.surface,
+              color: WarehouseAppColor.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColor.grey200),
+              border: Border.all(color: WarehouseAppColor.grey200),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,7 +527,7 @@ class _OverviewCard extends StatelessWidget {
                       child: Icon(icon, size: 15, color: color),
                     ),
                     const Spacer(),
-                    const Icon(Icons.chevron_right_rounded, size: 16, color: AppColor.grey400),
+                    const Icon(Icons.chevron_right_rounded, size: 16, color: WarehouseAppColor.grey400),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -533,21 +535,21 @@ class _OverviewCard extends StatelessWidget {
                     ? Container(
                         width: 72, height: 18,
                         decoration: BoxDecoration(
-                          color: AppColor.grey100,
+                          color: WarehouseAppColor.grey100,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       )
                     : Text(value,
                         style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w700, color: AppColor.textPrimary),
+                            fontSize: 18, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 3),
                 Text(label,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColor.textSecondary),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: WarehouseAppColor.textSecondary),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 6),
                 Text(badge,
-                    style: const TextStyle(fontSize: 10, color: AppColor.textHint),
+                    style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textHint),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),

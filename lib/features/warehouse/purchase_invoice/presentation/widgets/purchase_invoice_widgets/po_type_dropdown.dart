@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // po_type_dropdown.dart
 // Sale Invoice SaleTypeDropdown ki tarah
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
 
 
@@ -29,7 +31,7 @@ class PoTypeDropdown extends StatelessWidget {
             style: TextStyle(
                 fontSize:   10,
                 fontWeight: FontWeight.w600,
-                color:      AppColor.textSecondary)),
+                color:      WarehouseAppColor.textSecondary)),
         const SizedBox(height: 4),
         DropdownButtonFormField<PoType>(
           value:      value,
@@ -37,7 +39,7 @@ class PoTypeDropdown extends StatelessWidget {
           isExpanded: true,
           style: TextStyle(
               fontSize:   12,
-              color: isReturn ? AppColor.error : AppColor.primary,
+              color: isReturn ? WarehouseAppColor.error : WarehouseAppColor.primary,
               fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             prefixIcon: Icon(
@@ -45,12 +47,12 @@ class PoTypeDropdown extends StatelessWidget {
                   ? Icons.assignment_return_outlined
                   : Icons.shopping_bag_outlined,
               size:  16,
-              color: isReturn ? AppColor.error : AppColor.primary,
+              color: isReturn ? WarehouseAppColor.error : WarehouseAppColor.primary,
             ),
             filled:    true,
             fillColor: isReturn
-                ? AppColor.errorLight.withOpacity(0.2)
-                : AppColor.primary.withOpacity(0.08),
+                ? WarehouseAppColor.errorLight.withOpacity(0.2)
+                : WarehouseAppColor.primary.withOpacity(0.08),
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: 8, vertical: 10),
             border: OutlineInputBorder(
@@ -60,14 +62,14 @@ class PoTypeDropdown extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
                   color: isReturn
-                      ? AppColor.error : AppColor.primary,
+                      ? WarehouseAppColor.error : WarehouseAppColor.primary,
                   width: 1.2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
                   color: isReturn
-                      ? AppColor.error : AppColor.primary,
+                      ? WarehouseAppColor.error : WarehouseAppColor.primary,
                   width: 1.5),
             ),
           ),
@@ -78,8 +80,8 @@ class PoTypeDropdown extends StatelessWidget {
                         style: TextStyle(
                             fontSize:   12,
                             color: type == PoType.purchaseReturn
-                                ? AppColor.error
-                                : AppColor.primary,
+                                ? WarehouseAppColor.error
+                                : WarehouseAppColor.primary,
                             fontWeight: FontWeight.w600)),
                   ))
               .toList(),

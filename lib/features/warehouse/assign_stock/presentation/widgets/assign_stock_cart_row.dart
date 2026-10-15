@@ -1,7 +1,9 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/data/models/assign_stock_item_model.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_provider.dart';
 
@@ -65,11 +67,11 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: isOverStock
-            ? AppColor.errorLight.withOpacity(0.4)
-            : AppColor.white,
+            ? WarehouseAppColor.errorLight.withOpacity(0.4)
+            : WarehouseAppColor.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isOverStock ? AppColor.error.withOpacity(0.5) : AppColor.grey200,
+          color: isOverStock ? WarehouseAppColor.error.withOpacity(0.5) : WarehouseAppColor.grey200,
           width: isOverStock ? 1.5 : 1.0,
         ),
       ),
@@ -83,7 +85,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
                 width:  22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color:        AppColor.primary.withOpacity(0.10),
+                  color:        WarehouseAppColor.primary.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Center(
@@ -92,7 +94,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
                     style: const TextStyle(
                       fontSize:   10,
                       fontWeight: FontWeight.w700,
-                      color:      AppColor.primary,
+                      color:      WarehouseAppColor.primary,
                     ),
                   ),
                 ),
@@ -111,21 +113,21 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary),
+                        color: WarehouseAppColor.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 Row(
                   children: [
                     Text(item.categoryName ?? '-',
                         style: const TextStyle(
-                            fontSize: 11, color: AppColor.textSecondary)),
+                            fontSize: 11, color: WarehouseAppColor.textSecondary)),
                     if (isOverStock) ...[
                       const SizedBox(width: 6),
                       Text(
                         'Max: ${_fmt(item.availableStock)} ${item.unitOfMeasure}',
                         style: const TextStyle(
                             fontSize: 10,
-                            color: AppColor.error,
+                            color: WarehouseAppColor.error,
                             fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -210,7 +212,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColor.successLight,
+                  color: WarehouseAppColor.successLight,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -218,12 +220,12 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
                   style: const TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
-                      color: AppColor.success),
+                      color: WarehouseAppColor.success),
                   textAlign: TextAlign.center,
                 ),
               )
                   : const Text('—',
-                  style: TextStyle(fontSize: 10, color: AppColor.textHint),
+                  style: TextStyle(fontSize: 10, color: WarehouseAppColor.textHint),
                   textAlign: TextAlign.center),
             ),
           ),
@@ -275,7 +277,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
               margin: const EdgeInsets.symmetric(horizontal: 3),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColor.primary.withOpacity(0.06),
+                color: WarehouseAppColor.primary.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -283,7 +285,7 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColor.primary),
+                    color: WarehouseAppColor.primary),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -296,11 +298,11 @@ class _AssignStockCartRowState extends ConsumerState<AssignStockCartRow> {
               width: 26,
               height: 26,
               decoration: BoxDecoration(
-                color: AppColor.errorLight,
+                color: WarehouseAppColor.errorLight,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Icon(Icons.delete_outline,
-                  size: 14, color: AppColor.error),
+                  size: 14, color: WarehouseAppColor.error),
             ),
           ),
         ],
@@ -355,16 +357,16 @@ class _TFState extends State<_TF> {
     FontWeight fontWeight;
 
     if (widget.isError) {
-      fillColor = AppColor.error.withOpacity(0.08);
-      textColor = AppColor.error;
+      fillColor = WarehouseAppColor.error.withOpacity(0.08);
+      textColor = WarehouseAppColor.error;
       fontWeight = FontWeight.w600;
     } else if (widget.isPurple) {
       fillColor = const Color(0xFFEEEDFE);
       textColor = const Color(0xFF534AB7);
       fontWeight = FontWeight.w600;
     } else {
-      fillColor = AppColor.grey100;
-      textColor = AppColor.textPrimary;
+      fillColor = WarehouseAppColor.grey100;
+      textColor = WarehouseAppColor.textPrimary;
       fontWeight = FontWeight.w400;
     }
 
@@ -387,7 +389,7 @@ class _TFState extends State<_TF> {
         decoration: InputDecoration(
           prefixText: widget.prefix != null ? '${widget.prefix} ' : null,
           prefixStyle:
-          const TextStyle(fontSize: 9, color: AppColor.textHint),
+          const TextStyle(fontSize: 9, color: WarehouseAppColor.textHint),
           isDense: true,
           filled: true,
           fillColor: fillColor,

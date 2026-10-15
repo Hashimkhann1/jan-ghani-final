@@ -1,7 +1,9 @@
+// Updated on 2026-10-15 10:24 AM
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_report_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/widgets/assign_stock_details_dialog_widget.dart';
 
@@ -15,7 +17,7 @@ class AssignStockReportScreen extends ConsumerWidget {
     final state = ref.watch(transferReportProvider);
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -24,9 +26,9 @@ class AssignStockReportScreen extends ConsumerWidget {
             padding:
             const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
-              color: AppColor.surface,
+              color: WarehouseAppColor.surface,
               border:
-              Border(bottom: BorderSide(color: AppColor.grey200)),
+              Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
             ),
             child: Row(
               children: [
@@ -42,12 +44,12 @@ class AssignStockReportScreen extends ConsumerWidget {
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary),
+                          color: WarehouseAppColor.textPrimary),
                     ),
                     Text(
                       'Warehouse se store ko assign kiya gaya stock',
                       style: TextStyle(
-                          fontSize: 13, color: AppColor.textSecondary),
+                          fontSize: 13, color: WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -60,12 +62,12 @@ class AssignStockReportScreen extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColor.grey100,
+                      color: WarehouseAppColor.grey100,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColor.grey200),
+                      border: Border.all(color: WarehouseAppColor.grey200),
                     ),
                     child: const Icon(Icons.refresh_rounded,
-                        size: 18, color: AppColor.textSecondary),
+                        size: 18, color: WarehouseAppColor.textSecondary),
                   ),
                 ),
               ],
@@ -115,8 +117,8 @@ class _SummaryCards extends StatelessWidget {
       children: [
         _Card(
           icon: Icons.swap_horiz_rounded,
-          iconColor: AppColor.primary,
-          bgColor: AppColor.primary.withOpacity(0.08),
+          iconColor: WarehouseAppColor.primary,
+          bgColor: WarehouseAppColor.primary.withOpacity(0.08),
           label: 'Total Transfers',
           value: '${state.totalTransfers}',
         ),
@@ -131,8 +133,8 @@ class _SummaryCards extends StatelessWidget {
         const SizedBox(width: 12),
         _Card(
           icon: Icons.check_circle_outline_rounded,
-          iconColor: AppColor.success,
-          bgColor: AppColor.success.withOpacity(0.08),
+          iconColor: WarehouseAppColor.success,
+          bgColor: WarehouseAppColor.success.withOpacity(0.08),
           label: 'Accepted',
           value: '${state.acceptedCount}',
         ),
@@ -147,8 +149,8 @@ class _SummaryCards extends StatelessWidget {
         const SizedBox(width: 12),
         _Card(
           icon: Icons.account_balance_wallet_outlined,
-          iconColor: AppColor.error,
-          bgColor: AppColor.error.withOpacity(0.08),
+          iconColor: WarehouseAppColor.error,
+          bgColor: WarehouseAppColor.error.withOpacity(0.08),
           label: 'Grand Total Cost',
           value: 'Rs ${_fmt(state.grandTotalCost)}',
         ),
@@ -185,9 +187,9 @@ class _Card extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColor.white,
+          color: WarehouseAppColor.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.grey200),
+          border: Border.all(color: WarehouseAppColor.grey200),
         ),
         child: Row(
           children: [
@@ -208,10 +210,10 @@ class _Card extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary)),
+                          color: WarehouseAppColor.textPrimary)),
                   Text(label,
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textSecondary)),
+                          fontSize: 12, color: WarehouseAppColor.textSecondary)),
                 ],
               ),
             ),
@@ -257,9 +259,9 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColor.white,
+        color: WarehouseAppColor.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Column(
         children: [
@@ -273,29 +275,29 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
                   controller: _searchCtrl,
                   onChanged: (v) => notifier.applyFilters(search: v),
                   style: const TextStyle(
-                      fontSize: 13, color: AppColor.textPrimary),
+                      fontSize: 13, color: WarehouseAppColor.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Transfer number, store ya assigned by...',
                     hintStyle: const TextStyle(
-                        fontSize: 13, color: AppColor.textHint),
+                        fontSize: 13, color: WarehouseAppColor.textHint),
                     prefixIcon: const Icon(Icons.search,
-                        size: 16, color: AppColor.grey400),
+                        size: 16, color: WarehouseAppColor.grey400),
                     filled: true,
-                    fillColor: AppColor.grey100,
+                    fillColor: WarehouseAppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide:
-                        const BorderSide(color: AppColor.grey200)),
+                        const BorderSide(color: WarehouseAppColor.grey200)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide:
-                        const BorderSide(color: AppColor.grey200)),
+                        const BorderSide(color: WarehouseAppColor.grey200)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
+                            color: WarehouseAppColor.primary, width: 1.5)),
                   ),
                 ),
               ),
@@ -351,7 +353,7 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
                       value: filter.selectedStoreId,
                       hint: const Text('All Stores',
                           style: TextStyle(
-                              fontSize: 13, color: AppColor.textHint)),
+                              fontSize: 13, color: WarehouseAppColor.textHint)),
                       onChanged: (v) {
                         if (v == null) {
                           notifier.applyFilters(clearStore: true);
@@ -361,23 +363,23 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
                       },
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.store_outlined,
-                            size: 16, color: AppColor.grey400),
+                            size: 16, color: WarehouseAppColor.grey400),
                         filled: true,
-                        fillColor: AppColor.grey100,
+                        fillColor: WarehouseAppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 10),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide:
-                            const BorderSide(color: AppColor.grey200)),
+                            const BorderSide(color: WarehouseAppColor.grey200)),
                         enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide:
-                            const BorderSide(color: AppColor.grey200)),
+                            const BorderSide(color: WarehouseAppColor.grey200)),
                         focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: const BorderSide(
-                                color: AppColor.primary, width: 1.5)),
+                                color: WarehouseAppColor.primary, width: 1.5)),
                       ),
                       items: [
                         const DropdownMenuItem<String?>(
@@ -397,14 +399,14 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
                                     text: s['store_name'] as String,
                                     style: const TextStyle(
                                         fontSize: 13,
-                                        color: AppColor.textPrimary),
+                                        color: WarehouseAppColor.textPrimary),
                                   ),
                                   if (code != null && code.isNotEmpty)
                                     TextSpan(
                                       text: '  ·  $code',
                                       style: const TextStyle(
                                           fontSize: 11,
-                                          color: AppColor.textSecondary),
+                                          color: WarehouseAppColor.textSecondary),
                                     ),
                                 ],
                               ),
@@ -433,20 +435,20 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: AppColor.errorLight,
+                          color: WarehouseAppColor.errorLight,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: AppColor.error.withOpacity(0.3)),
+                              color: WarehouseAppColor.error.withOpacity(0.3)),
                         ),
                         child: Row(
                           children: const [
                             Icon(Icons.close_rounded,
-                                size: 14, color: AppColor.error),
+                                size: 14, color: WarehouseAppColor.error),
                             SizedBox(width: 4),
                             Text('Reset',
                                 style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColor.error,
+                                    color: WarehouseAppColor.error,
                                     fontWeight: FontWeight.w500)),
                           ],
                         ),
@@ -479,13 +481,13 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
                         horizontal: 14, vertical: 7),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColor.primary
-                          : AppColor.grey100,
+                          ? WarehouseAppColor.primary
+                          : WarehouseAppColor.grey100,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isSelected
-                            ? AppColor.primary
-                            : AppColor.grey200,
+                            ? WarehouseAppColor.primary
+                            : WarehouseAppColor.grey200,
                       ),
                     ),
                     child: Text(
@@ -497,7 +499,7 @@ class _FilterBarState extends ConsumerState<_FilterBar> {
                             : FontWeight.w400,
                         color: isSelected
                             ? Colors.white
-                            : AppColor.textSecondary,
+                            : WarehouseAppColor.textSecondary,
                       ),
                     ),
                   ),
@@ -536,12 +538,12 @@ class _DatePickerButton extends StatelessWidget {
         const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: hasValue
-              ? AppColor.primary.withOpacity(0.07)
-              : AppColor.grey100,
+              ? WarehouseAppColor.primary.withOpacity(0.07)
+              : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color:
-            hasValue ? AppColor.primary.withOpacity(0.4) : AppColor.grey200,
+            hasValue ? WarehouseAppColor.primary.withOpacity(0.4) : WarehouseAppColor.grey200,
           ),
         ),
         child: Row(
@@ -550,13 +552,13 @@ class _DatePickerButton extends StatelessWidget {
             Icon(icon,
                 size: 14,
                 color:
-                hasValue ? AppColor.primary : AppColor.grey400),
+                hasValue ? WarehouseAppColor.primary : WarehouseAppColor.grey400),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
-                color: hasValue ? AppColor.primary : AppColor.textHint,
+                color: hasValue ? WarehouseAppColor.primary : WarehouseAppColor.textHint,
                 fontWeight: hasValue ? FontWeight.w500 : FontWeight.w400,
               ),
             ),
@@ -565,7 +567,7 @@ class _DatePickerButton extends StatelessWidget {
               GestureDetector(
                 onTap: onClear,
                 child: const Icon(Icons.close_rounded,
-                    size: 13, color: AppColor.primary),
+                    size: 13, color: WarehouseAppColor.primary),
               ),
             ]
           ],
@@ -599,18 +601,18 @@ class _TransferTable extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.all(48),
         decoration: BoxDecoration(
-          color: AppColor.white,
+          color: WarehouseAppColor.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.grey200),
+          border: Border.all(color: WarehouseAppColor.grey200),
         ),
         child: const Column(
           children: [
             Icon(Icons.swap_horiz_rounded,
-                size: 48, color: AppColor.grey300),
+                size: 48, color: WarehouseAppColor.grey300),
             SizedBox(height: 12),
             Text('Koi transfer nahi mila',
                 style: TextStyle(
-                    fontSize: 15, color: AppColor.textHint)),
+                    fontSize: 15, color: WarehouseAppColor.textHint)),
           ],
         ),
       );
@@ -618,9 +620,9 @@ class _TransferTable extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColor.white,
+        color: WarehouseAppColor.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Column(
         children: [
@@ -629,11 +631,11 @@ class _TransferTable extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColor.grey100,
+              color: WarehouseAppColor.grey100,
               borderRadius:
               const BorderRadius.vertical(top: Radius.circular(12)),
               border: Border(
-                  bottom: BorderSide(color: AppColor.grey200)),
+                  bottom: BorderSide(color: WarehouseAppColor.grey200)),
             ),
             child: Row(
               children: const [
@@ -657,7 +659,7 @@ class _TransferTable extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: transfers.length,
             separatorBuilder: (_, __) =>
-                Divider(height: 1, color: AppColor.grey200),
+                Divider(height: 1, color: WarehouseAppColor.grey200),
             itemBuilder: (context, index) {
               final t = transfers[index];
               return _TransferRow(
@@ -686,10 +688,10 @@ class _TransferTable extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.04),
+              color: WarehouseAppColor.primary.withOpacity(0.04),
               borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(12)),
-              border: Border(top: BorderSide(color: AppColor.grey200)),
+              border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
             ),
             child: Row(
               children: [
@@ -699,7 +701,7 @@ class _TransferTable extends ConsumerWidget {
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColor.textPrimary),
+                        color: WarehouseAppColor.textPrimary),
                   ),
                 ),
                 const Spacer(flex: 7),
@@ -710,7 +712,7 @@ class _TransferTable extends ConsumerWidget {
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColor.primary),
+                        color: WarehouseAppColor.primary),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -721,7 +723,7 @@ class _TransferTable extends ConsumerWidget {
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColor.success),
+                        color: WarehouseAppColor.success),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -748,7 +750,7 @@ class _TH extends StatelessWidget {
     style: const TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: AppColor.textSecondary,
+        color: WarehouseAppColor.textSecondary,
         letterSpacing: 0.3),
     textAlign: TextAlign.center,
   );
@@ -782,7 +784,7 @@ class _TransferRowState extends State<_TransferRow> {
           padding: const EdgeInsets.symmetric(
               horizontal: 16, vertical: 12),
           color: _hovered
-              ? AppColor.primary.withOpacity(0.03)
+              ? WarehouseAppColor.primary.withOpacity(0.03)
               : Colors.transparent,
           child: Row(
             children: [
@@ -797,14 +799,14 @@ class _TransferRowState extends State<_TransferRow> {
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.primary),
+                          color: WarehouseAppColor.primary),
                     ),
                     if (t.notes != null && t.notes!.isNotEmpty)
                       Text(
                         t.notes!,
                         style: const TextStyle(
                             fontSize: 11,
-                            color: AppColor.textSecondary),
+                            color: WarehouseAppColor.textSecondary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -822,23 +824,23 @@ class _TransferRowState extends State<_TransferRow> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColor.grey100,
+                        color: WarehouseAppColor.grey100,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColor.grey200),
+                        border: Border.all(color: WarehouseAppColor.grey200),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.store_rounded,
                               size: 11,
-                              color: AppColor.textSecondary),
+                              color: WarehouseAppColor.textSecondary),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               t.toStoreName,
                               style: const TextStyle(
                                   fontSize: 11,
-                                  color: AppColor.textSecondary,
+                                  color: WarehouseAppColor.textSecondary,
                                   fontWeight: FontWeight.w500),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -863,7 +865,7 @@ class _TransferRowState extends State<_TransferRow> {
                         t.assignedByName ?? '—',
                         style: const TextStyle(
                             fontSize: 12,
-                            color: AppColor.textPrimary),
+                            color: WarehouseAppColor.textPrimary),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -879,14 +881,14 @@ class _TransferRowState extends State<_TransferRow> {
                     Text(
                       DateFormat('dd MMM yyyy').format(t.assignedAt),
                       style: const TextStyle(
-                          fontSize: 12, color: AppColor.textPrimary),
+                          fontSize: 12, color: WarehouseAppColor.textPrimary),
                       textAlign: TextAlign.center,
                     ),
                     Text(
                       DateFormat('hh:mm a').format(t.assignedAt),
                       style: const TextStyle(
                           fontSize: 10,
-                          color: AppColor.textSecondary),
+                          color: WarehouseAppColor.textSecondary),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -907,7 +909,7 @@ class _TransferRowState extends State<_TransferRow> {
                   style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColor.textPrimary),
+                      color: WarehouseAppColor.textPrimary),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -920,7 +922,7 @@ class _TransferRowState extends State<_TransferRow> {
                   style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColor.success),
+                      color: WarehouseAppColor.success),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -931,7 +933,7 @@ class _TransferRowState extends State<_TransferRow> {
                 child: Text(
                   '${t.totalItems}',
                   style: const TextStyle(
-                      fontSize: 12, color: AppColor.textSecondary),
+                      fontSize: 12, color: WarehouseAppColor.textSecondary),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -944,8 +946,8 @@ class _TransferRowState extends State<_TransferRow> {
                     Icons.open_in_new_rounded,
                     size: 16,
                     color: _hovered
-                        ? AppColor.primary
-                        : AppColor.grey400,
+                        ? WarehouseAppColor.primary
+                        : WarehouseAppColor.grey400,
                   ),
                 ),
               ),
@@ -1011,8 +1013,8 @@ class _StatusBadge extends StatelessWidget {
     String label;
     switch (status.toLowerCase()) {
       case 'accepted':
-        bg = AppColor.success.withOpacity(0.12);
-        fg = AppColor.success;
+        bg = WarehouseAppColor.success.withOpacity(0.12);
+        fg = WarehouseAppColor.success;
         label = '● Accepted';
         break;
       case 'pending':
@@ -1021,13 +1023,13 @@ class _StatusBadge extends StatelessWidget {
         label = '● Pending';
         break;
       case 'rejected':
-        bg = AppColor.error.withOpacity(0.12);
-        fg = AppColor.error;
+        bg = WarehouseAppColor.error.withOpacity(0.12);
+        fg = WarehouseAppColor.error;
         label = '● Rejected';
         break;
       default:
-        bg = AppColor.grey200;
-        fg = AppColor.textSecondary;
+        bg = WarehouseAppColor.grey200;
+        fg = WarehouseAppColor.textSecondary;
         label = status;
     }
     return Container(

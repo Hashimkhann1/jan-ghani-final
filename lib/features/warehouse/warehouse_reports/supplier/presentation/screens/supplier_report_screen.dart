@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // supplier_report_screen.dart
 // =============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/warehouse_dashboard_widgets/warehouse_dashboard_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/supplier/data/datasources/supplier_report_local_datasource.dart';
@@ -15,11 +17,11 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_reports/supplier/pr
 // ─────────────────────────────────────────────────────────────
 
 const _kChartColors = [
-  AppColor.primary,
-  AppColor.success,
-  AppColor.warning,
-  AppColor.error,
-  AppColor.info,
+  WarehouseAppColor.primary,
+  WarehouseAppColor.success,
+  WarehouseAppColor.warning,
+  WarehouseAppColor.error,
+  WarehouseAppColor.info,
   Color(0xFF9C27B0),
 ];
 
@@ -33,7 +35,7 @@ class SupplierReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
           _TopBar(),
@@ -64,21 +66,21 @@ class _Body extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColor.error, size: 36),
+            const Icon(Icons.error_outline, color: WarehouseAppColor.error, size: 36),
             const SizedBox(height: 12),
-            const Text('Data load nahi hua', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+            const Text('Data load nahi hua', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary)),
             const SizedBox(height: 6),
-            Text(state.error!, style: const TextStyle(fontSize: 11, color: AppColor.textSecondary), textAlign: TextAlign.center),
+            Text(state.error!, style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary), textAlign: TextAlign.center),
             const SizedBox(height: 16),
             GestureDetector(
               onTap: () => ref.read(supplierReportProvider.notifier).refresh(),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColor.primary,
+                  color: WarehouseAppColor.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('Retry', style: TextStyle(color: AppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                child: const Text('Retry', style: TextStyle(color: WarehouseAppColor.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -147,7 +149,7 @@ class _TopBarState extends ConsumerState<_TopBar> {
       initialDateRange: DateTimeRange(start: start, end: end),
       builder: (context, child) => Theme(
         data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColor.primary),
+          colorScheme: const ColorScheme.light(primary: WarehouseAppColor.primary),
         ),
         child: child!,
       ),
@@ -171,26 +173,26 @@ class _TopBarState extends ConsumerState<_TopBar> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: const BoxDecoration(
-        color:  AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
-              color:        AppColor.primary.withOpacity(0.1),
+              color:        WarehouseAppColor.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(9),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.people_outline, size: 18, color: AppColor.primary),
+            child: const Icon(Icons.people_outline, size: 18, color: WarehouseAppColor.primary),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Supplier Report', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColor.textPrimary)),
-              Text(dateStr, style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+              const Text('Supplier Report', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: WarehouseAppColor.textPrimary)),
+              Text(dateStr, style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
             ],
           ),
           const Spacer(),
@@ -218,16 +220,16 @@ class _TopBarState extends ConsumerState<_TopBar> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color:        AppColor.grey100,
+                color:        WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(8),
-                border:       Border.all(color: AppColor.grey200),
+                border:       Border.all(color: WarehouseAppColor.grey200),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.refresh_rounded, size: 13, color: AppColor.grey600),
+                  Icon(Icons.refresh_rounded, size: 13, color: WarehouseAppColor.grey600),
                   SizedBox(width: 5),
-                  Text('Refresh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColor.grey700)),
+                  Text('Refresh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: WarehouseAppColor.grey700)),
                 ],
               ),
             ),
@@ -257,16 +259,16 @@ class _FilterPill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color:        selected ? AppColor.primary : AppColor.grey100,
+          color:        selected ? WarehouseAppColor.primary : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: selected ? AppColor.primary : AppColor.grey200),
+          border:       Border.all(color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey200),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize:   11,
             fontWeight: FontWeight.w600,
-            color:      selected ? AppColor.white : AppColor.grey600,
+            color:      selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
           ),
         ),
       ),
@@ -301,16 +303,16 @@ class _CustomPill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color:        selected ? AppColor.primary : AppColor.grey100,
+          color:        selected ? WarehouseAppColor.primary : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: selected ? AppColor.primary : AppColor.grey200),
+          border:       Border.all(color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey200),
         ),
         child: Text(
           _label,
           style: TextStyle(
             fontSize:   11,
             fontWeight: FontWeight.w600,
-            color:      selected ? AppColor.white : AppColor.grey600,
+            color:      selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
           ),
         ),
       ),
@@ -334,7 +336,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value:      summary.totalActive.toString(),
         badge:      'Active',
         icon:       Icons.people_outline,
-        color:      AppColor.primary,
+        color:      WarehouseAppColor.primary,
         barPercent: 1.0,
       ),
       DashStatCard(
@@ -342,7 +344,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value:      'Rs ${summary.totalOutstanding.pkrFormat}',
         badge:      '${summary.hasBalanceCount} suppliers',
         icon:       Icons.account_balance_wallet_outlined,
-        color:      AppColor.error,
+        color:      WarehouseAppColor.error,
         barPercent: summary.hasBalanceCount / (summary.totalActive == 0 ? 1 : summary.totalActive),
       ),
       DashStatCard(
@@ -350,7 +352,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value:      'Rs ${summary.totalPaid.pkrFormat}',
         badge:      'Payments',
         icon:       Icons.payments_outlined,
-        color:      AppColor.success,
+        color:      WarehouseAppColor.success,
         barPercent: 1.0,
       ),
       DashStatCard(
@@ -358,7 +360,7 @@ class _SummaryCardsRow extends StatelessWidget {
         value:      'Rs ${summary.totalPurchased.pkrFormat}',
         badge:      'All time',
         icon:       Icons.shopping_cart_outlined,
-        color:      AppColor.info,
+        color:      WarehouseAppColor.info,
         barPercent: 1.0,
       ),
     ];
@@ -421,10 +423,10 @@ class _TopOutstandingChart extends StatelessWidget {
         width: 26,
         height: 26,
         decoration: BoxDecoration(
-            color: AppColor.errorLight, borderRadius: BorderRadius.circular(6)),
+            color: WarehouseAppColor.errorLight, borderRadius: BorderRadius.circular(6)),
         alignment: Alignment.center,
         child: const Icon(Icons.trending_up_rounded,
-            size: 14, color: AppColor.error),
+            size: 14, color: WarehouseAppColor.error),
       ),
       title: 'Top Suppliers by Outstanding',
       children: [
@@ -457,14 +459,14 @@ class _TopOutstandingChart extends StatelessWidget {
                             style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: AppColor.textPrimary)),
+                                color: WarehouseAppColor.textPrimary)),
                       ),
                       const SizedBox(width: 8),
                       Text('Rs ${it.outstandingBalance.pkrFormat}',
                           style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColor.error)),
+                              color: WarehouseAppColor.error)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -472,7 +474,7 @@ class _TopOutstandingChart extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                     child: Container(
                       height: 8,
-                      color: AppColor.grey200,
+                      color: WarehouseAppColor.grey200,
                       child: FractionallySizedBox(
                         alignment: Alignment.centerLeft,
                         widthFactor: frac == 0 ? 0.02 : frac,
@@ -506,16 +508,16 @@ class _SupplierBalanceTable extends ConsumerWidget {
     return SectionCard(
       headerIcon: Container(
         width: 26, height: 26,
-        decoration: BoxDecoration(color: AppColor.warningLight, borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(color: WarehouseAppColor.warningLight, borderRadius: BorderRadius.circular(6)),
         alignment: Alignment.center,
-        child: const Icon(Icons.list_alt_outlined, size: 14, color: AppColor.warning),
+        child: const Icon(Icons.list_alt_outlined, size: 14, color: WarehouseAppColor.warning),
       ),
       title: 'Supplier Balance Overview',
       headerTrailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: AppColor.errorLight, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: WarehouseAppColor.errorLight, borderRadius: BorderRadius.circular(12)),
         child: Text('Rs ${totalBalance.pkrFormat}',
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.error)),
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.error)),
       ),
       children: [
         // ── Balance status filter ─────────────────────────
@@ -548,16 +550,16 @@ class _SupplierBalanceTable extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: const BoxDecoration(
-            color:  AppColor.grey100,
-            border: Border(bottom: BorderSide(color: AppColor.grey200)),
+            color:  WarehouseAppColor.grey100,
+            border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           child: const Row(
             children: [
-              Expanded(flex: 3, child: Text('Supplier', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 2, child: Text('Code', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary))),
-              Expanded(flex: 2, child: Text('POs', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary), textAlign: TextAlign.center)),
-              Expanded(flex: 3, child: Text('Total Purchased', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary), textAlign: TextAlign.right)),
-              Expanded(flex: 3, child: Text('Outstanding', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.textSecondary), textAlign: TextAlign.right)),
+              Expanded(flex: 3, child: Text('Supplier', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary))),
+              Expanded(flex: 2, child: Text('Code', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary))),
+              Expanded(flex: 2, child: Text('POs', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary), textAlign: TextAlign.center)),
+              Expanded(flex: 3, child: Text('Total Purchased', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary), textAlign: TextAlign.right)),
+              Expanded(flex: 3, child: Text('Outstanding', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: WarehouseAppColor.textSecondary), textAlign: TextAlign.right)),
             ],
           ),
         ),
@@ -572,7 +574,7 @@ class _SupplierBalanceTable extends ConsumerWidget {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                border: isLast ? null : const Border(bottom: BorderSide(color: AppColor.grey100)),
+                border: isLast ? null : const Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
               ),
               child: Row(
                 children: [
@@ -582,29 +584,29 @@ class _SupplierBalanceTable extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textPrimary), overflow: TextOverflow.ellipsis),
+                        Text(s.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: WarehouseAppColor.textPrimary), overflow: TextOverflow.ellipsis),
                         if (s.phone != null)
-                          Text(s.phone!, style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+                          Text(s.phone!, style: const TextStyle(fontSize: 10, color: WarehouseAppColor.textHint)),
                       ],
                     ),
                   ),
                   // Code
                   Expanded(
                     flex: 2,
-                    child: Text(s.code ?? '—', style: const TextStyle(fontSize: 11, color: AppColor.textSecondary)),
+                    child: Text(s.code ?? '—', style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary)),
                   ),
                   // POs
                   Expanded(
                     flex: 2,
                     child: Text(s.totalOrders.toString(),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColor.textPrimary),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: WarehouseAppColor.textPrimary),
                         textAlign: TextAlign.center),
                   ),
                   // Total purchased
                   Expanded(
                     flex: 3,
                     child: Text('Rs ${s.totalPurchased.pkrFormat}',
-                        style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
+                        style: const TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary),
                         textAlign: TextAlign.right),
                   ),
                   // Outstanding badge
@@ -615,7 +617,7 @@ class _SupplierBalanceTable extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                          color:        hasDue ? AppColor.errorLight : AppColor.successLight,
+                          color:        hasDue ? WarehouseAppColor.errorLight : WarehouseAppColor.successLight,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -623,7 +625,7 @@ class _SupplierBalanceTable extends ConsumerWidget {
                           style: TextStyle(
                             fontSize:   10,
                             fontWeight: FontWeight.w600,
-                            color:      hasDue ? AppColor.error : AppColor.success,
+                            color:      hasDue ? WarehouseAppColor.error : WarehouseAppColor.success,
                           ),
                         ),
                       ),
@@ -657,16 +659,16 @@ class _BalancePill extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color:        selected ? AppColor.warning : AppColor.grey100,
+          color:        selected ? WarehouseAppColor.warning : WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: selected ? AppColor.warning : AppColor.grey200),
+          border:       Border.all(color: selected ? WarehouseAppColor.warning : WarehouseAppColor.grey200),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize:   11,
             fontWeight: FontWeight.w600,
-            color:      selected ? AppColor.white : AppColor.grey600,
+            color:      selected ? WarehouseAppColor.white : WarehouseAppColor.grey600,
           ),
         ),
       ),
@@ -690,9 +692,9 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.inbox_outlined, size: 28, color: AppColor.grey300),
+            const Icon(Icons.inbox_outlined, size: 28, color: WarehouseAppColor.grey300),
             const SizedBox(height: 8),
-            Text(message, style: const TextStyle(fontSize: 12, color: AppColor.textHint)),
+            Text(message, style: const TextStyle(fontSize: 12, color: WarehouseAppColor.textHint)),
           ],
         ),
       ),

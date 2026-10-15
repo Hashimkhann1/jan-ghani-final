@@ -1,7 +1,7 @@
-// Updated on 2026-09-10 03:49 PM
+// Updated on 2026-10-15 10:24 AM
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_provider.dart';
 import 'assign_stock_cart_header.dart';
 import 'assign_stock_cart_row.dart';
@@ -54,8 +54,8 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColor.white,
-            border: Border(bottom: BorderSide(color: AppColor.grey200)),
+            color: WarehouseAppColor.white,
+            border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
           ),
           child: Row(
             children: [
@@ -64,14 +64,14 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColor.grey100,
+                  color: WarehouseAppColor.grey100,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColor.grey200),
+                  border: Border.all(color: WarehouseAppColor.grey200),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.receipt_long_outlined,
-                        size: 14, color: AppColor.textSecondary),
+                        size: 14, color: WarehouseAppColor.textSecondary),
                     const SizedBox(width: 6),
                     Text(
                       state.transferNumber.isEmpty
@@ -80,7 +80,7 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textPrimary),
+                          color: WarehouseAppColor.textPrimary),
                     ),
                   ],
                 ),
@@ -97,7 +97,7 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
                   hint: const Text('Store select karo',
                       style: TextStyle(
                           fontSize: 13,
-                          color: AppColor.textHint)),
+                          color: WarehouseAppColor.textHint)),
                   onChanged: (val) {
                     if (val == null) return;
                     final store = state.linkedStores
@@ -109,25 +109,25 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
                     prefixIcon: const Icon(
                         Icons.store_rounded,
                         size: 16,
-                        color: AppColor.primary),
+                        color: WarehouseAppColor.primary),
                     filled: true,
-                    fillColor: AppColor.primary.withOpacity(0.05),
+                    fillColor: WarehouseAppColor.primary.withOpacity(0.05),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(
-                            color: AppColor.primary
+                            color: WarehouseAppColor.primary
                                 .withOpacity(0.3))),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(
-                            color: AppColor.primary
+                            color: WarehouseAppColor.primary
                                 .withOpacity(0.3))),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(
-                            color: AppColor.primary,
+                            color: WarehouseAppColor.primary,
                             width: 1.5)),
                   ),
                   items: state.linkedStores
@@ -163,29 +163,29 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
                 child: TextField(
                   onChanged: notifier.updateNotes,
                   style: const TextStyle(
-                      fontSize: 13, color: AppColor.textPrimary),
+                      fontSize: 13, color: WarehouseAppColor.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Notes (optional)',
                     hintStyle: const TextStyle(
-                        fontSize: 12, color: AppColor.textHint),
+                        fontSize: 12, color: WarehouseAppColor.textHint),
                     prefixIcon: const Icon(Icons.notes_rounded,
-                        size: 14, color: AppColor.grey400),
+                        size: 14, color: WarehouseAppColor.grey400),
                     filled: true,
-                    fillColor: AppColor.grey100,
+                    fillColor: WarehouseAppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 10),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide:
-                        const BorderSide(color: AppColor.grey200)),
+                        const BorderSide(color: WarehouseAppColor.grey200)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide:
-                        const BorderSide(color: AppColor.grey200)),
+                        const BorderSide(color: WarehouseAppColor.grey200)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
+                            color: WarehouseAppColor.primary, width: 1.5)),
                   ),
                 ),
               ),
@@ -204,13 +204,13 @@ class _AssignStockCartPanelState extends ConsumerState<AssignStockCartPanel> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.inventory_2_outlined,
-                    size: 56, color: AppColor.grey300),
+                    size: 56, color: WarehouseAppColor.grey300),
                 const SizedBox(height: 12),
                 const Text(
                   'Koi product add nahi kiya\nDouble tap karke product add karo',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 14, color: AppColor.textHint),
+                      fontSize: 14, color: WarehouseAppColor.textHint),
                 ),
               ],
             ),

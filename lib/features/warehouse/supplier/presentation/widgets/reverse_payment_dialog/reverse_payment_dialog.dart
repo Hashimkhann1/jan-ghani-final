@@ -1,4 +1,4 @@
-// Updated on 2026-09-28 11:49 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // reverse_payment_dialog.dart
 // Ledger mein galat MANUAL payment ko reverse karne ka dialog
@@ -12,7 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/local/auth_local_storage.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_detail_models.dart';
@@ -98,7 +98,7 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
 
     return Dialog(
       shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: AppColor.surface,
+      backgroundColor: WarehouseAppColor.surface,
       child: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -122,28 +122,28 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                       width:   double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color:        AppColor.errorLight,
+                        color:        WarehouseAppColor.errorLight,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: AppColor.error.withOpacity(0.25)),
+                            color: WarehouseAppColor.error.withOpacity(0.25)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Galat payment',
                               style: TextStyle(fontSize: 11,
-                                  color: AppColor.textSecondary)),
+                                  color: WarehouseAppColor.textSecondary)),
                           const SizedBox(height: 2),
                           Text('Rs ${_paidAmount.pkrFormat}',
                               style: TextStyle(fontSize: 18,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColor.error)),
+                                  color: WarehouseAppColor.error)),
                           const SizedBox(height: 4),
                           Text(
                             '${_fmtDateTime(e.createdAt)}'
                             '${e.notes != null ? '  •  ${e.notes}' : ''}',
                             style: TextStyle(fontSize: 12,
-                                color: AppColor.textSecondary),
+                                color: WarehouseAppColor.textSecondary),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -157,7 +157,7 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                     Text('Sahi amount (optional)',
                         style: TextStyle(fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: AppColor.textPrimary)),
+                            color: WarehouseAppColor.textPrimary)),
                     const SizedBox(height: 6),
                     TextField(
                       controller:   _correctController,
@@ -178,7 +178,7 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                       onChanged: (_) => setState(() {}),
                       style: TextStyle(fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppColor.textPrimary),
+                          color: WarehouseAppColor.textPrimary),
                       decoration: _inputDecoration(
                         hint: 'Asal mein kitna diya tha',
                         prefixText: 'Rs ',
@@ -196,14 +196,14 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                     Text('Wajah *',
                         style: TextStyle(fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: AppColor.textPrimary)),
+                            color: WarehouseAppColor.textPrimary)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _reasonController,
                       maxLines:   2,
                       onChanged:  (_) => setState(() {}),
                       style: TextStyle(fontSize: 13,
-                          color: AppColor.textPrimary),
+                          color: WarehouseAppColor.textPrimary),
                       decoration: _inputDecoration(
                         hint: 'e.g. Galti se ek 0 zyada lag gaya',
                         helperText:
@@ -218,9 +218,9 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                       width:   double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color:        AppColor.grey100,
+                        color:        WarehouseAppColor.grey100,
                         borderRadius: BorderRadius.circular(10),
-                        border:       Border.all(color: AppColor.grey200),
+                        border:       Border.all(color: WarehouseAppColor.grey200),
                       ),
                       child: Column(
                         children: [
@@ -248,7 +248,7 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                 decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: AppColor.grey200))),
+                    border: Border(top: BorderSide(color: WarehouseAppColor.grey200))),
                 child: Row(
                   children: [
                     Expanded(
@@ -258,14 +258,14 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color:        AppColor.grey100,
+                            color:        WarehouseAppColor.grey100,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           alignment: Alignment.center,
                           child: Text('Cancel',
                               style: TextStyle(fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColor.textSecondary)),
+                                  color: WarehouseAppColor.textSecondary)),
                         ),
                       ),
                     ),
@@ -279,8 +279,8 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: _canSave
-                                ? AppColor.error
-                                : AppColor.error.withOpacity(0.4),
+                                ? WarehouseAppColor.error
+                                : WarehouseAppColor.error.withOpacity(0.4),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           alignment: Alignment.center,
@@ -293,7 +293,7 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                                   _correct > 0 ? 'Reverse & Save' : 'Reverse',
                                   style: TextStyle(fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColor.white)),
+                                      color: WarehouseAppColor.white)),
                         ),
                       ),
                     ),
@@ -339,7 +339,7 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
                 ? 'Rs ${_paidAmount.pkrFormat} reverse — '
                   'sahi payment Rs ${correct.pkrFormat} save ho gayi'
                 : 'Rs ${_paidAmount.pkrFormat} payment reverse ho gayi'),
-            backgroundColor: AppColor.success,
+            backgroundColor: WarehouseAppColor.success,
             behavior:        SnackBarBehavior.floating,
             duration:        const Duration(seconds: 3),
           ),
@@ -350,7 +350,7 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:         Text('Reverse mein masla: $e'),
-            backgroundColor: AppColor.error,
+            backgroundColor: WarehouseAppColor.error,
             behavior:        SnackBarBehavior.floating,
           ),
         );
@@ -368,29 +368,29 @@ class _ReversePaymentDialogState extends ConsumerState<ReversePaymentDialog> {
   }) {
     return InputDecoration(
       hintText:    hint,
-      hintStyle:   TextStyle(fontSize: 13, color: AppColor.textHint,
+      hintStyle:   TextStyle(fontSize: 13, color: WarehouseAppColor.textHint,
           fontWeight: FontWeight.w400),
       prefixText:  prefixText,
       prefixStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
-          color: AppColor.textSecondary),
+          color: WarehouseAppColor.textSecondary),
       helperText:  helperText,
-      helperStyle: TextStyle(fontSize: 11, color: AppColor.textSecondary),
+      helperStyle: TextStyle(fontSize: 11, color: WarehouseAppColor.textSecondary),
       errorText:   errorText,
       filled:         true,
-      fillColor:      AppColor.grey100,
+      fillColor:      WarehouseAppColor.grey100,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColor.grey200)),
+          borderSide: BorderSide(color: WarehouseAppColor.grey200)),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColor.grey200)),
+          borderSide: BorderSide(color: WarehouseAppColor.grey200)),
       focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColor.primary, width: 1.5)),
+          borderSide: BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
       errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColor.error)),
+          borderSide: BorderSide(color: WarehouseAppColor.error)),
     );
   }
 
@@ -420,17 +420,17 @@ class _DialogHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
       decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColor.grey200))),
+          border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200))),
       child: Row(
         children: [
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color:        AppColor.error.withOpacity(0.1),
+              color:        WarehouseAppColor.error.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: Icon(Icons.undo_rounded, size: 18, color: AppColor.error),
+            child: Icon(Icons.undo_rounded, size: 18, color: WarehouseAppColor.error),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -440,10 +440,10 @@ class _DialogHeader extends StatelessWidget {
                 Text('Payment Reverse',
                     style: TextStyle(fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColor.textPrimary)),
+                        color: WarehouseAppColor.textPrimary)),
                 Text(supplierName,
                     style: TextStyle(fontSize: 12,
-                        color: AppColor.textSecondary)),
+                        color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -453,11 +453,11 @@ class _DialogHeader extends StatelessWidget {
             child: Container(
               width: 30, height: 30,
               decoration: BoxDecoration(
-                color:        AppColor.grey100,
+                color:        WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.close_rounded,
-                  size: 16, color: AppColor.textSecondary),
+                  size: 16, color: WarehouseAppColor.textSecondary),
             ),
           ),
         ],
@@ -483,19 +483,19 @@ class _PreviewRow extends StatelessWidget {
       children: [
         Expanded(
           child: Text(label,
-              style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+              style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
         ),
         Text('Rs ${from.pkrFormat}',
-            style: TextStyle(fontSize: 13, color: AppColor.textSecondary)),
+            style: TextStyle(fontSize: 13, color: WarehouseAppColor.textSecondary)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Icon(Icons.arrow_forward_rounded,
-              size: 14, color: AppColor.grey400),
+              size: 14, color: WarehouseAppColor.grey400),
         ),
         Text('Rs ${to.pkrFormat}',
             style: TextStyle(fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColor.textPrimary)),
+                color: WarehouseAppColor.textPrimary)),
       ],
     );
   }

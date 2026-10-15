@@ -1,4 +1,4 @@
-// Updated on 2026-10-05 06:40 PM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // po_cart_summary_widget.dart
 // Clean + Beautiful summary
@@ -12,7 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart';
 
@@ -54,8 +54,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color:  AppColor.white,
-        border: Border(top: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.white,
+        border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
         boxShadow: [
           BoxShadow(
             color:      Colors.black.withOpacity(0.04),
@@ -81,20 +81,20 @@ class PoCartSummaryWidget extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color:        AppColor.primary.withOpacity(0.08),
+                        color:        WarehouseAppColor.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.shopping_bag_outlined,
-                              size: 11, color: AppColor.primary),
+                              size: 11, color: WarehouseAppColor.primary),
                           const SizedBox(width: 4),
                           Text('${state.totalItems} items',
                               style: TextStyle(
                                   fontSize:   10,
                                   fontWeight: FontWeight.w600,
-                                  color:      AppColor.primary)),
+                                  color:      WarehouseAppColor.primary)),
                         ],
                       ),
                     ),
@@ -104,22 +104,22 @@ class PoCartSummaryWidget extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color:        AppColor.errorLight,
+                          color:        WarehouseAppColor.errorLight,
                           borderRadius: BorderRadius.circular(20),
                           border:       Border.all(
-                              color: AppColor.error.withOpacity(0.3)),
+                              color: WarehouseAppColor.error.withOpacity(0.3)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.assignment_return_outlined,
-                                size: 11, color: AppColor.error),
+                                size: 11, color: WarehouseAppColor.error),
                             const SizedBox(width: 4),
                             Text('Purchase Return',
                                 style: TextStyle(
                                     fontSize:   10,
                                     fontWeight: FontWeight.w600,
-                                    color:      AppColor.error)),
+                                    color:      WarehouseAppColor.error)),
                           ],
                         ),
                       ),
@@ -138,7 +138,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                   _TRow(
                     label:      'Total Tax',
                     value:      '+${_fmtRs(state.totalTax)}',
-                    valueColor: AppColor.warning,
+                    valueColor: WarehouseAppColor.warning,
                   ),
                 ],
                 if (state.totalDiscount > 0) ...[
@@ -146,7 +146,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                   _TRow(
                     label:      'Total Discount',
                     value:      '-${_fmtRs(state.totalDiscount)}',
-                    valueColor: AppColor.success,
+                    valueColor: WarehouseAppColor.success,
                   ),
                 ],
                 if (state.totalProfit > 0) ...[
@@ -159,7 +159,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                 ],
 
                 const SizedBox(height: 8),
-                const Divider(color: AppColor.grey200, height: 1),
+                const Divider(color: WarehouseAppColor.grey200, height: 1),
                 const SizedBox(height: 8),
 
                 // Grand Total — highlighted
@@ -171,8 +171,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                             fontSize:   13,
                             fontWeight: FontWeight.w700,
                             color: isReturn
-                                ? AppColor.error
-                                : AppColor.primary)),
+                                ? WarehouseAppColor.error
+                                : WarehouseAppColor.primary)),
                     Text(
                       '${isReturn ? '- ' : ''}'
                           'Rs ${_fmt(state.grandTotal.abs())}',
@@ -180,8 +180,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                           fontSize:   16,
                           fontWeight: FontWeight.w800,
                           color: isReturn
-                              ? AppColor.error
-                              : AppColor.primary),
+                              ? WarehouseAppColor.error
+                              : WarehouseAppColor.primary),
                     ),
                   ],
                 ),
@@ -191,14 +191,14 @@ class PoCartSummaryWidget extends ConsumerWidget {
                   _TRow(
                     label:      'Paid Amount',
                     value:      '- Rs ${_fmt(state.paidAmount)}',
-                    valueColor: AppColor.success,
+                    valueColor: WarehouseAppColor.success,
                   ),
                   const SizedBox(height: 3),
                   _TRow(
                     label: 'Remaining',
                     value: 'Rs ${_fmt((state.grandTotal - state.paidAmount).clamp(0, double.infinity))}',
                     valueColor: (state.grandTotal - state.paidAmount) <= 0
-                        ? AppColor.success : AppColor.error,
+                        ? WarehouseAppColor.success : WarehouseAppColor.error,
                   ),
                 ],
               ],
@@ -259,8 +259,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                     label: const Text('Clear',
                         style: TextStyle(fontSize: 12)),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColor.error,
-                      side:    const BorderSide(color: AppColor.error),
+                      foregroundColor: WarehouseAppColor.error,
+                      side:    const BorderSide(color: WarehouseAppColor.error),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 10),
                       shape: RoundedRectangleBorder(
@@ -293,12 +293,12 @@ class PoCartSummaryWidget extends ConsumerWidget {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: hasPriceError
-                          ? AppColor.error
+                          ? WarehouseAppColor.error
                           : isReturn
-                          ? AppColor.error : AppColor.primary,
-                      foregroundColor:         AppColor.white,
-                      disabledBackgroundColor: AppColor.grey300,
-                      disabledForegroundColor: AppColor.grey500,
+                          ? WarehouseAppColor.error : WarehouseAppColor.primary,
+                      foregroundColor:         WarehouseAppColor.white,
+                      disabledBackgroundColor: WarehouseAppColor.grey300,
+                      disabledForegroundColor: WarehouseAppColor.grey500,
                       padding: const EdgeInsets.symmetric(vertical: 11),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
@@ -332,7 +332,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
       builder:      (_) => Dialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        backgroundColor: AppColor.white,
+        backgroundColor: WarehouseAppColor.white,
         child: SizedBox(
           width: 420,
           child: Column(
@@ -344,12 +344,12 @@ class PoCartSummaryWidget extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
                 decoration: BoxDecoration(
                   color: isReturn
-                      ? AppColor.errorLight.withOpacity(0.15)
-                      : AppColor.primary.withOpacity(0.06),
+                      ? WarehouseAppColor.errorLight.withOpacity(0.15)
+                      : WarehouseAppColor.primary.withOpacity(0.06),
                   borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16)),
                   border: Border(
-                      bottom: BorderSide(color: AppColor.grey200)),
+                      bottom: BorderSide(color: WarehouseAppColor.grey200)),
                 ),
                 child: Row(
                   children: [
@@ -357,8 +357,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                       width:  38, height: 38,
                       decoration: BoxDecoration(
                         color: isReturn
-                            ? AppColor.errorLight
-                            : AppColor.primary.withOpacity(0.1),
+                            ? WarehouseAppColor.errorLight
+                            : WarehouseAppColor.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       alignment: Alignment.center,
@@ -368,8 +368,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                             : Icons.receipt_long_outlined,
                         size:  18,
                         color: isReturn
-                            ? AppColor.error
-                            : AppColor.primary,
+                            ? WarehouseAppColor.error
+                            : WarehouseAppColor.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -384,12 +384,12 @@ class PoCartSummaryWidget extends ConsumerWidget {
                             style: const TextStyle(
                                 fontSize:   15,
                                 fontWeight: FontWeight.w700,
-                                color:      AppColor.textPrimary),
+                                color:      WarehouseAppColor.textPrimary),
                           ),
                           Text('Please review before saving',
                               style: TextStyle(
                                   fontSize: 11,
-                                  color:    AppColor.textSecondary)),
+                                  color:    WarehouseAppColor.textSecondary)),
                         ],
                       ),
                     ),
@@ -446,7 +446,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                                 ? fmt.format(state.deliveryDate!)
                                 : 'Not set',
                             valueColor: state.deliveryDate == null
-                                ? AppColor.textHint
+                                ? WarehouseAppColor.textHint
                                 : null,
                           ),
                         ),
@@ -454,7 +454,7 @@ class PoCartSummaryWidget extends ConsumerWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    const Divider(color: AppColor.grey200, height: 1),
+                    const Divider(color: WarehouseAppColor.grey200, height: 1),
                     const SizedBox(height: 12),
 
                     // Totals
@@ -468,14 +468,14 @@ class PoCartSummaryWidget extends ConsumerWidget {
                       _SRow(
                           label: 'Total Tax',
                           value: 'Rs ${_fmt(state.totalTax)}',
-                          color: AppColor.warning),
+                          color: WarehouseAppColor.warning),
                     ],
                     if (state.totalDiscount > 0) ...[
                       const SizedBox(height: 4),
                       _SRow(
                         label: 'Total Discount',
                         value: '- Rs ${_fmt(state.totalDiscount)}',
-                        color: AppColor.success,
+                        color: WarehouseAppColor.success,
                       ),
                     ],
                     if (state.totalProfit > 0) ...[
@@ -494,13 +494,13 @@ class PoCartSummaryWidget extends ConsumerWidget {
                           horizontal: 14, vertical: 11),
                       decoration: BoxDecoration(
                         color: isReturn
-                            ? AppColor.errorLight.withOpacity(0.15)
-                            : AppColor.primary.withOpacity(0.07),
+                            ? WarehouseAppColor.errorLight.withOpacity(0.15)
+                            : WarehouseAppColor.primary.withOpacity(0.07),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: isReturn
-                              ? AppColor.error.withOpacity(0.2)
-                              : AppColor.primary.withOpacity(0.15),
+                              ? WarehouseAppColor.error.withOpacity(0.2)
+                              : WarehouseAppColor.primary.withOpacity(0.15),
                         ),
                       ),
                       child: Row(
@@ -512,8 +512,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                                   fontSize:   14,
                                   fontWeight: FontWeight.w700,
                                   color: isReturn
-                                      ? AppColor.error
-                                      : AppColor.primary)),
+                                      ? WarehouseAppColor.error
+                                      : WarehouseAppColor.primary)),
                           Text(
                             '${isReturn ? '- ' : ''}'
                                 'Rs ${_fmt(state.grandTotal.abs())}',
@@ -521,8 +521,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                                 fontSize:   17,
                                 fontWeight: FontWeight.w800,
                                 color: isReturn
-                                    ? AppColor.error
-                                    : AppColor.primary),
+                                    ? WarehouseAppColor.error
+                                    : WarehouseAppColor.primary),
                           ),
                         ],
                       ),
@@ -534,24 +534,24 @@ class PoCartSummaryWidget extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color:        AppColor.successLight,
+                          color:        WarehouseAppColor.successLight,
                           borderRadius: BorderRadius.circular(10),
                           border:       Border.all(
-                              color: AppColor.success.withOpacity(0.3)),
+                              color: WarehouseAppColor.success.withOpacity(0.3)),
                         ),
                         child: Column(
                           children: [
                             _SRow(
                               label: 'Paid Amount',
                               value: 'Rs ${_fmt(state.paidAmount)}',
-                              color: AppColor.success,
+                              color: WarehouseAppColor.success,
                             ),
                             const SizedBox(height: 4),
                             _SRow(
                               label: 'Remaining',
                               value: 'Rs ${_fmt((state.grandTotal - state.paidAmount).clamp(0, double.infinity))}',
                               color: (state.grandTotal - state.paidAmount) <= 0
-                                  ? AppColor.success : AppColor.error,
+                                  ? WarehouseAppColor.success : WarehouseAppColor.error,
                             ),
                           ],
                         ),
@@ -570,8 +570,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary,
-                          side:    const BorderSide(color: AppColor.grey300),
+                          foregroundColor: WarehouseAppColor.textSecondary,
+                          side:    const BorderSide(color: WarehouseAppColor.grey300),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape:   RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8)),
@@ -596,8 +596,8 @@ class PoCartSummaryWidget extends ConsumerWidget {
                                   : 'Purchase Invoice saved!')
                                   : 'Error: $error'),
                               backgroundColor: success
-                                  ? (isReturn ? AppColor.error : AppColor.success)
-                                  : AppColor.error,
+                                  ? (isReturn ? WarehouseAppColor.error : WarehouseAppColor.success)
+                                  : WarehouseAppColor.error,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8)),
@@ -610,9 +610,9 @@ class PoCartSummaryWidget extends ConsumerWidget {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isReturn
-                              ? AppColor.error
-                              : AppColor.primary,
-                          foregroundColor: AppColor.white,
+                              ? WarehouseAppColor.error
+                              : WarehouseAppColor.primary,
+                          foregroundColor: WarehouseAppColor.white,
                           padding: const EdgeInsets.symmetric(
                               vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -667,7 +667,7 @@ class _WarningBanner extends StatelessWidget {
         color:        Colors.redAccent.withOpacity(.3),
         borderRadius: BorderRadius.circular(8),
         border:       Border.all(
-            color: AppColor.warning.withOpacity(0.4)),
+            color: WarehouseAppColor.warning.withOpacity(0.4)),
       ),
       child: Row(
         children: [
@@ -679,7 +679,7 @@ class _WarningBanner extends StatelessWidget {
               style: TextStyle(
                   fontSize:   10,
                   fontWeight: FontWeight.w500,
-                  color:      AppColor.black),
+                  color:      WarehouseAppColor.black),
             ),
           ),
         ],
@@ -710,12 +710,12 @@ class _TRow extends StatelessWidget {
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 11, color: AppColor.textSecondary)),
+                fontSize: 11, color: WarehouseAppColor.textSecondary)),
         Text(value,
             style: TextStyle(
                 fontSize:   11,
                 fontWeight: FontWeight.w600,
-                color:      valueColor ?? AppColor.textPrimary)),
+                color:      valueColor ?? WarehouseAppColor.textPrimary)),
       ],
     );
   }
@@ -745,21 +745,21 @@ class _DRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color:        AppColor.grey100,
+        color:        WarehouseAppColor.grey100,
         borderRadius: BorderRadius.circular(8),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Row(
         children: [
           Container(
             width: 28, height: 28,
             decoration: BoxDecoration(
-              color:        AppColor.white,
+              color:        WarehouseAppColor.white,
               borderRadius: BorderRadius.circular(6),
             ),
             alignment: Alignment.center,
             child: Icon(icon, size: 13,
-                color: AppColor.textSecondary),
+                color: WarehouseAppColor.textSecondary),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -769,18 +769,18 @@ class _DRow extends StatelessWidget {
                 Text(label,
                     style: const TextStyle(
                         fontSize: 9,
-                        color:    AppColor.textSecondary)),
+                        color:    WarehouseAppColor.textSecondary)),
                 Text(value,
                     style: TextStyle(
                         fontSize:   12,
                         fontWeight: FontWeight.w600,
-                        color:      valueColor ?? AppColor.textPrimary),
+                        color:      valueColor ?? WarehouseAppColor.textPrimary),
                     overflow: TextOverflow.ellipsis),
                 if (sub != null)
                   Text(sub!,
                       style: const TextStyle(
                           fontSize: 9,
-                          color:    AppColor.textSecondary)),
+                          color:    WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -812,12 +812,12 @@ class _SRow extends StatelessWidget {
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 12, color: AppColor.textSecondary)),
+                fontSize: 12, color: WarehouseAppColor.textSecondary)),
         Text(value,
             style: TextStyle(
                 fontSize:   12,
                 fontWeight: FontWeight.w600,
-                color:      color ?? AppColor.textPrimary)),
+                color:      color ?? WarehouseAppColor.textPrimary)),
       ],
     );
   }
@@ -868,14 +868,14 @@ class _NotesFieldState extends ConsumerState<_NotesField> {
       minLines:   1,
       maxLines:   3,
       maxLength:  500,
-      style: const TextStyle(fontSize: 12.5, color: AppColor.textPrimary),
+      style: const TextStyle(fontSize: 12.5, color: WarehouseAppColor.textPrimary),
       decoration: InputDecoration(
         isDense:        true,
         counterText:    '',
         hintText:       'Comment / notes (optional)...',
-        hintStyle:      const TextStyle(fontSize: 12.5, color: AppColor.textHint),
+        hintStyle:      const TextStyle(fontSize: 12.5, color: WarehouseAppColor.textHint),
         prefixIcon:     const Icon(Icons.chat_bubble_outline_rounded,
-            size: 16, color: AppColor.grey500),
+            size: 16, color: WarehouseAppColor.grey500),
         prefixIconConstraints: const BoxConstraints(minWidth: 36),
         suffixIcon: _controller.text.isNotEmpty
             ? IconButton(
@@ -889,17 +889,17 @@ class _NotesFieldState extends ConsumerState<_NotesField> {
         )
             : null,
         filled:         true,
-        fillColor:      AppColor.surface,
+        fillColor:      WarehouseAppColor.surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide:   const BorderSide(color: AppColor.grey300)),
+            borderSide:   const BorderSide(color: WarehouseAppColor.grey300)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide:   const BorderSide(color: AppColor.grey300)),
+            borderSide:   const BorderSide(color: WarehouseAppColor.grey300)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide:   const BorderSide(color: AppColor.primary, width: 1.5)),
+            borderSide:   const BorderSide(color: WarehouseAppColor.primary, width: 1.5)),
       ),
     );
   }

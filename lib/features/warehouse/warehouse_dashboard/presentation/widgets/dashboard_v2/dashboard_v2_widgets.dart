@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 09:31 AM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // dashboard_v2_widgets.dart
 // Warehouse Dashboard v2 (Stitch design) ke widgets:
@@ -10,7 +10,7 @@
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/domain/warehouse_dashboard_models.dart';
 
@@ -55,9 +55,9 @@ class DashCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,13 +74,13 @@ class DashCard extends StatelessWidget {
                       Text(title!,
                           style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w700,
-                            color: AppColor.textPrimary,
+                            color: WarehouseAppColor.textPrimary,
                           )),
                       if (subtitle != null) ...[
                         const SizedBox(height: 3),
                         Text(subtitle!,
                             style: const TextStyle(
-                                fontSize: 12, color: AppColor.textSecondary)),
+                                fontSize: 12, color: WarehouseAppColor.textSecondary)),
                       ],
                     ],
                   ),
@@ -92,7 +92,7 @@ class DashCard extends StatelessWidget {
           ],
           Expanded(child: child),
           if (footer != null) ...[
-            const Divider(height: 24, color: AppColor.grey200),
+            const Divider(height: 24, color: WarehouseAppColor.grey200),
             footer!,
           ],
         ],
@@ -122,11 +122,11 @@ class DashLink extends StatelessWidget {
               Text(text,
                   style: const TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600,
-                    color: AppColor.primary,
+                    color: WarehouseAppColor.primary,
                   )),
               const SizedBox(width: 4),
               const Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: AppColor.primary),
+                  size: 14, color: WarehouseAppColor.primary),
             ],
           ),
         ),
@@ -184,9 +184,9 @@ class DashKpiCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 18, 14),
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,7 +197,7 @@ class DashKpiCard extends StatelessWidget {
                 child: Text(label,
                     style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.w500,
-                      color: AppColor.textPrimary,
+                      color: WarehouseAppColor.textPrimary,
                     ),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
@@ -218,12 +218,12 @@ class DashKpiCard extends StatelessWidget {
             child: Text(value,
                 style: const TextStyle(
                   fontSize: 24, fontWeight: FontWeight.w700,
-                  color: AppColor.textPrimary, letterSpacing: -0.5,
+                  color: WarehouseAppColor.textPrimary, letterSpacing: -0.5,
                 )),
           ),
           const SizedBox(height: 6),
           DefaultTextStyle(
-            style: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
+            style: const TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             child: sub,
@@ -269,9 +269,9 @@ class NeedsAttentionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color:        AppColor.surface,
+        color:        WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,23 +282,23 @@ class NeedsAttentionCard extends StatelessWidget {
                 width: 8, height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: actionCount > 0 ? AppColor.error : AppColor.success,
+                  color: actionCount > 0 ? WarehouseAppColor.error : WarehouseAppColor.success,
                 ),
               ),
               const SizedBox(width: 10),
               const Text('Needs attention',
                   style: TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w700,
-                    color: AppColor.textPrimary,
+                    color: WarehouseAppColor.textPrimary,
                   )),
               const SizedBox(width: 12),
               actionCount > 0
                   ? DashChip(
                       text:  '$actionCount action items',
-                      color: AppColor.error, bg: AppColor.errorLight)
+                      color: WarehouseAppColor.error, bg: WarehouseAppColor.errorLight)
                   : const DashChip(
                       text:  'All clear',
-                      color: AppColor.success, bg: AppColor.successLight),
+                      color: WarehouseAppColor.success, bg: WarehouseAppColor.successLight),
             ],
           ),
           const SizedBox(height: 16),
@@ -332,7 +332,7 @@ class _AttentionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = item.count > 0;
     return Material(
-      color: AppColor.surface,
+      color: WarehouseAppColor.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: item.onTap,
@@ -341,7 +341,7 @@ class _AttentionTile extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border:       Border.all(color: AppColor.grey200),
+            border:       Border.all(color: WarehouseAppColor.grey200),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,20 +352,20 @@ class _AttentionTile extends StatelessWidget {
                     child: Text(item.title,
                         style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w600,
-                          color: AppColor.textPrimary,
+                          color: WarehouseAppColor.textPrimary,
                         ),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: active ? item.bg : AppColor.grey100,
+                      color: active ? item.bg : WarehouseAppColor.grey100,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('${item.count}',
                         style: TextStyle(
                           fontSize: 12, fontWeight: FontWeight.w700,
-                          color: active ? item.color : AppColor.textSecondary,
+                          color: active ? item.color : WarehouseAppColor.textSecondary,
                         )),
                   ),
                 ],
@@ -376,11 +376,11 @@ class _AttentionTile extends StatelessWidget {
                   Expanded(
                     child: Text(item.hint,
                         style: const TextStyle(
-                            fontSize: 12, color: AppColor.textSecondary),
+                            fontSize: 12, color: WarehouseAppColor.textSecondary),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                   ),
                   const Icon(Icons.arrow_forward_rounded,
-                      size: 16, color: AppColor.textPrimary),
+                      size: 16, color: WarehouseAppColor.textPrimary),
                 ],
               ),
             ],
@@ -404,8 +404,8 @@ class PurchaseCashChartCard extends StatelessWidget {
     required this.filter,
   });
 
-  static const _purchaseColor = AppColor.info;
-  static const _cashOutColor  = AppColor.error;
+  static const _purchaseColor = WarehouseAppColor.info;
+  static const _cashOutColor  = WarehouseAppColor.error;
 
   @override
   Widget build(BuildContext context) {
@@ -428,7 +428,7 @@ class PurchaseCashChartCard extends StatelessWidget {
           Text('${filter.shortLabel.toUpperCase()} VOLUME',
               style: const TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w600,
-                color: AppColor.textPrimary, letterSpacing: 0.4,
+                color: WarehouseAppColor.textPrimary, letterSpacing: 0.4,
               )),
           const Spacer(),
           Flexible(
@@ -439,7 +439,7 @@ class PurchaseCashChartCard extends StatelessWidget {
                 TextSpan(text: '${rs(totalPurchases)} purchases',
                     style: const TextStyle(color: _purchaseColor)),
                 const TextSpan(text: '   ·   ',
-                    style: TextStyle(color: AppColor.textSecondary)),
+                    style: TextStyle(color: WarehouseAppColor.textSecondary)),
                 TextSpan(text: '${rs(totalCashOut)} paid',
                     style: const TextStyle(color: _cashOutColor)),
               ]), style: const TextStyle(
@@ -490,11 +490,11 @@ class PurchaseCashChartCard extends StatelessWidget {
             drawVerticalLine: false,
             horizontalInterval: step,
             getDrawingHorizontalLine: (_) =>
-                const FlLine(color: AppColor.grey200, strokeWidth: 1),
+                const FlLine(color: WarehouseAppColor.grey200, strokeWidth: 1),
           ),
           borderData: FlBorderData(
             show: true,
-            border: const Border(bottom: BorderSide(color: AppColor.grey300)),
+            border: const Border(bottom: BorderSide(color: WarehouseAppColor.grey300)),
           ),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
@@ -504,7 +504,7 @@ class PurchaseCashChartCard extends StatelessWidget {
                 interval:     step,
                 getTitlesWidget: (v, _) => Text(_rsCompact(v),
                     style: const TextStyle(
-                        fontSize: 11, color: AppColor.textSecondary)),
+                        fontSize: 11, color: WarehouseAppColor.textSecondary)),
               ),
             ),
             bottomTitles: AxisTitles(
@@ -521,7 +521,7 @@ class PurchaseCashChartCard extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(points[i].label,
                         style: const TextStyle(
-                            fontSize: 12, color: AppColor.textSecondary)),
+                            fontSize: 12, color: WarehouseAppColor.textSecondary)),
                   );
                 },
               ),
@@ -531,11 +531,11 @@ class PurchaseCashChartCard extends StatelessWidget {
           ),
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (_) => AppColor.textPrimary,
+              getTooltipColor: (_) => WarehouseAppColor.textPrimary,
               getTooltipItems: (spots) => spots.map((s) => LineTooltipItem(
                 '${s.barIndex == 0 ? 'Purchases' : 'Cash out'}: ${rs(s.y)}',
                 TextStyle(
-                  color: s.barIndex == 0 ? AppColor.infoLight : AppColor.errorLight,
+                  color: s.barIndex == 0 ? WarehouseAppColor.infoLight : WarehouseAppColor.errorLight,
                   fontSize: 11, fontWeight: FontWeight.w600,
                 ),
               )).toList(),
@@ -567,7 +567,7 @@ class _Legend extends StatelessWidget {
         Text(label,
             style: const TextStyle(
               fontSize: 13, fontWeight: FontWeight.w500,
-              color: AppColor.textPrimary,
+              color: WarehouseAppColor.textPrimary,
             )),
       ],
     );
@@ -590,7 +590,7 @@ class SupplierDuesCard extends StatelessWidget {
     return DashCard(
       title:    'Top supplier dues',
       trailing: const Text('Credit terms',
-          style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+          style: TextStyle(fontSize: 12, color: WarehouseAppColor.textSecondary)),
       footer:   DashLink(text: 'All suppliers', onTap: onViewAll),
       child: dues.isEmpty
           ? const _Empty(icon: Icons.check_circle_outline_rounded,
@@ -603,15 +603,15 @@ class SupplierDuesCard extends StatelessWidget {
                     child: _DueRow(
                       due:   dues[i],
                       ratio: maxAmt <= 0 ? 0 : dues[i].outstandingAmount / maxAmt,
-                      color: i == 0 ? AppColor.error
-                           : i == 1 ? AppColor.warning
-                           : AppColor.grey500,
-                      badgeColor: i == 0 ? AppColor.error
-                                : i == 1 ? AppColor.warningDark
-                                : AppColor.textSecondary,
-                      badgeBg: i == 0 ? AppColor.errorLight
-                             : i == 1 ? AppColor.warningLight
-                             : AppColor.grey100,
+                      color: i == 0 ? WarehouseAppColor.error
+                           : i == 1 ? WarehouseAppColor.warning
+                           : WarehouseAppColor.grey500,
+                      badgeColor: i == 0 ? WarehouseAppColor.error
+                                : i == 1 ? WarehouseAppColor.warningDark
+                                : WarehouseAppColor.textSecondary,
+                      badgeBg: i == 0 ? WarehouseAppColor.errorLight
+                             : i == 1 ? WarehouseAppColor.warningLight
+                             : WarehouseAppColor.grey100,
                     ),
                   ),
               ],
@@ -639,7 +639,7 @@ class _DueRow extends StatelessWidget {
             Flexible(
               child: Text(due.supplierName,
                   style: const TextStyle(
-                      fontSize: 13, color: AppColor.textPrimary),
+                      fontSize: 13, color: WarehouseAppColor.textPrimary),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
             const SizedBox(width: 8),
@@ -649,7 +649,7 @@ class _DueRow extends StatelessWidget {
             Text(rs(due.outstandingAmount),
                 style: const TextStyle(
                   fontSize: 15, fontWeight: FontWeight.w700,
-                  color: AppColor.textPrimary,
+                  color: WarehouseAppColor.textPrimary,
                 )),
           ],
         ),
@@ -659,7 +659,7 @@ class _DueRow extends StatelessWidget {
           child: LinearProgressIndicator(
             value:           ratio.clamp(0.0, 1.0),
             minHeight:       5,
-            backgroundColor: AppColor.grey100,
+            backgroundColor: WarehouseAppColor.grey100,
             valueColor:      AlwaysStoppedAnimation(color),
           ),
         ),
@@ -685,7 +685,7 @@ class LowStockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const head = TextStyle(
-      fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textSecondary,
+      fontSize: 12, fontWeight: FontWeight.w600, color: WarehouseAppColor.textSecondary,
     );
 
     return DashCard(
@@ -693,7 +693,7 @@ class LowStockCard extends StatelessWidget {
       subtitle: 'Reorder point se neeche ya barabar (available stock)',
       trailing: totalCount > 0
           ? DashChip(text: '$totalCount Items Critical',
-              color: AppColor.error, bg: AppColor.errorLight)
+              color: WarehouseAppColor.error, bg: WarehouseAppColor.errorLight)
           : null,
       footer: DashLink(
         text:  totalCount > 0 ? 'View all $totalCount' : 'View stock',
@@ -714,7 +714,7 @@ class LowStockCard extends StatelessWidget {
                     Expanded(flex: 3, child: Text('Level', style: head, textAlign: TextAlign.right)),
                   ]),
                 ),
-                const Divider(height: 1, color: AppColor.grey200),
+                const Divider(height: 1, color: WarehouseAppColor.grey200),
                 for (var i = 0; i < rows.length; i++)
                   _LowStockRow(row: rows[i], isLast: i == rows.length - 1),
               ],
@@ -731,24 +731,24 @@ class _LowStockRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pct   = row.level;
-    final color = pct < 0.30 ? AppColor.error : AppColor.warningDark;
-    final bar   = pct < 0.30 ? AppColor.error : AppColor.warning;
+    final color = pct < 0.30 ? WarehouseAppColor.error : WarehouseAppColor.warningDark;
+    final bar   = pct < 0.30 ? WarehouseAppColor.error : WarehouseAppColor.warning;
     final unit  = row.unit.isEmpty ? '' : ' ${row.unit}';
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         border: isLast ? null
-            : const Border(bottom: BorderSide(color: AppColor.grey100)),
+            : const Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
       ),
       child: Row(
         children: [
           Expanded(flex: 5, child: Text(row.productName,
-              style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
+              style: const TextStyle(fontSize: 13, color: WarehouseAppColor.textPrimary),
               maxLines: 1, overflow: TextOverflow.ellipsis)),
           Expanded(flex: 3, child: Text(row.sku,
               style: const TextStyle(
-                  fontSize: 12, color: AppColor.textSecondary,
+                  fontSize: 12, color: WarehouseAppColor.textSecondary,
                   fontFamily: 'monospace'),
               maxLines: 1, overflow: TextOverflow.ellipsis)),
           Expanded(flex: 2, child: Text('${_qty(row.available)}$unit',
@@ -758,7 +758,7 @@ class _LowStockRow extends StatelessWidget {
               maxLines: 1, overflow: TextOverflow.ellipsis)),
           Expanded(flex: 3, child: Text('${row.reorderPoint}$unit',
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 13, color: AppColor.textSecondary),
+              style: const TextStyle(fontSize: 13, color: WarehouseAppColor.textSecondary),
               maxLines: 1, overflow: TextOverflow.ellipsis)),
           Expanded(
             flex: 3,
@@ -803,7 +803,7 @@ class MovementsCard extends StatelessWidget {
       title:    'Recent stock movements',
       subtitle: 'Purchase, transfer, return aur adjustment log',
       trailing: const Icon(Icons.history_rounded,
-          size: 22, color: AppColor.textSecondary),
+          size: 22, color: WarehouseAppColor.textSecondary),
       child: movements.isEmpty
           ? const _Empty(icon: Icons.swap_vert_rounded,
               text: 'Is period mein koi stock movement nahi')
@@ -828,21 +828,21 @@ class _MovementTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (IconData icon, Color color, Color bg) = switch (m.movementType) {
       'purchase_in' || 'opening' || 'return_in' =>
-          (Icons.south_rounded, AppColor.success, AppColor.successLight),
+          (Icons.south_rounded, WarehouseAppColor.success, WarehouseAppColor.successLight),
       'transfer_out' =>
-          (Icons.east_rounded, AppColor.primary, AppColor.primary.withOpacity(0.1)),
+          (Icons.east_rounded, WarehouseAppColor.primary, WarehouseAppColor.primary.withOpacity(0.1)),
       'return_out' =>
-          (Icons.undo_rounded, AppColor.error, AppColor.errorLight),
-      _ => (Icons.tune_rounded, AppColor.textSecondary, AppColor.grey200),
+          (Icons.undo_rounded, WarehouseAppColor.error, WarehouseAppColor.errorLight),
+      _ => (Icons.tune_rounded, WarehouseAppColor.textSecondary, WarehouseAppColor.grey200),
     };
 
     final qtyColor = m.signedQty > 0
-        ? AppColor.success
+        ? WarehouseAppColor.success
         : m.movementType == 'transfer_out'
-            ? AppColor.primary
+            ? WarehouseAppColor.primary
             : m.movementType == 'adjustment'
-                ? AppColor.textPrimary
-                : AppColor.error;
+                ? WarehouseAppColor.textPrimary
+                : WarehouseAppColor.error;
 
     final ref  = m.reference ?? _typeLabel(m.movementType);
     final sign = m.signedQty > 0 ? '+' : (m.signedQty < 0 ? '−' : '');
@@ -850,7 +850,7 @@ class _MovementTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color:        AppColor.grey100,
+        color:        WarehouseAppColor.grey100,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -869,12 +869,12 @@ class _MovementTile extends StatelessWidget {
               children: [
                 Text(m.productName,
                     style: const TextStyle(
-                        fontSize: 13, color: AppColor.textPrimary),
+                        fontSize: 13, color: WarehouseAppColor.textPrimary),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text('Ref: $ref  •  ${_when(m.createdAt)}',
                     style: const TextStyle(
-                        fontSize: 11, color: AppColor.textSecondary,
+                        fontSize: 11, color: WarehouseAppColor.textSecondary,
                         fontFamily: 'monospace'),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
@@ -918,7 +918,7 @@ class _Empty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = success ? AppColor.success : AppColor.grey400;
+    final c = success ? WarehouseAppColor.success : WarehouseAppColor.grey400;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -934,7 +934,7 @@ class _Empty extends StatelessWidget {
           const SizedBox(height: 10),
           Text(text,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: AppColor.textSecondary)),
+              style: const TextStyle(fontSize: 13, color: WarehouseAppColor.textSecondary)),
         ],
       ),
     );

@@ -1,4 +1,4 @@
-// Updated on 2026-10-01 05:10 PM
+// Updated on 2026-10-15 10:24 AM
 // =============================================================
 // create_batch_panel.dart
 // Tab 1 — Create Balance Request (redesigned).
@@ -11,7 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/link_stores/data/models/linked_store_model/linked_store_model.dart';
@@ -67,7 +67,7 @@ class CreateBatchPanel extends ConsumerWidget {
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(
             content: Text('Batch bhej di gayi — ${next.successBatchNumber}'),
-            backgroundColor: AppColor.success,
+            backgroundColor: WarehouseAppColor.success,
             behavior: SnackBarBehavior.floating,
           ));
         notifier.ackSuccess();
@@ -77,7 +77,7 @@ class CreateBatchPanel extends ConsumerWidget {
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(
             content: Text(next.errorMessage!),
-            backgroundColor: AppColor.error,
+            backgroundColor: WarehouseAppColor.error,
             behavior: SnackBarBehavior.floating,
           ));
         notifier.ackError();
@@ -90,7 +90,7 @@ class CreateBatchPanel extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: const [
           SizedBox(width: 280, child: _LeftSidebar()),
-          VerticalDivider(width: 1, thickness: 1, color: AppColor.grey200),
+          VerticalDivider(width: 1, thickness: 1, color: WarehouseAppColor.grey200),
           Expanded(child: _MainContent()),
         ],
       ),
@@ -110,7 +110,7 @@ class _LeftSidebar extends ConsumerWidget {
     final storesAsync = ref.watch(linkedStoresProvider(AppConfig.warehouseId));
 
     return Container(
-      color: AppColor.surface,
+      color: WarehouseAppColor.surface,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       child: SingleChildScrollView(
         child: Column(
@@ -124,7 +124,7 @@ class _LeftSidebar extends ConsumerWidget {
               ),
               loading: () => const _StoreLoader(),
               error:   (_, __) => const Text('Stores load nahi hui',
-                  style: TextStyle(color: AppColor.error, fontSize: 12)),
+                  style: TextStyle(color: WarehouseAppColor.error, fontSize: 12)),
             ),
             const SizedBox(height: 18),
 
@@ -197,27 +197,27 @@ class _CountDateRangeField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color:        AppColor.surface,
+          color:        WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(9),
-          border:       Border.all(color: AppColor.grey200),
+          border:       Border.all(color: WarehouseAppColor.grey200),
         ),
         child: Row(
           children: [
             const Icon(Icons.date_range_rounded,
-                size: 16, color: AppColor.textSecondary),
+                size: 16, color: WarehouseAppColor.textSecondary),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 '${_fmt(from)}  –  ${_fmt(to)}',
                 style: const TextStyle(
                   fontSize: 12, fontWeight: FontWeight.w600,
-                  color: AppColor.textPrimary,
+                  color: WarehouseAppColor.textPrimary,
                 ),
                 maxLines: 1, overflow: TextOverflow.ellipsis,
               ),
             ),
             const Icon(Icons.keyboard_arrow_down_rounded,
-                size: 18, color: AppColor.textSecondary),
+                size: 18, color: WarehouseAppColor.textSecondary),
           ],
         ),
       ),
@@ -235,7 +235,7 @@ class _SectionLabel extends StatelessWidget {
         style: const TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w800,
-          color: AppColor.textSecondary,
+          color: WarehouseAppColor.textSecondary,
           letterSpacing: 1.2,
         ));
   }
@@ -250,7 +250,7 @@ class _StorePickerCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (stores.isEmpty) {
       return const Text('Koi linked store nahi',
-          style: TextStyle(color: AppColor.textSecondary, fontSize: 12));
+          style: TextStyle(color: WarehouseAppColor.textSecondary, fontSize: 12));
     }
     final selected = selectedId == null
         ? null
@@ -273,20 +273,20 @@ class _StorePickerCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColor.surface,
+          color: WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColor.grey200),
+          border: Border.all(color: WarehouseAppColor.grey200),
         ),
         child: Row(children: [
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.1),
+              color: WarehouseAppColor.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(9),
             ),
             alignment: Alignment.center,
             child: const Icon(Icons.storefront_rounded,
-                size: 17, color: AppColor.primary),
+                size: 17, color: WarehouseAppColor.primary),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -296,18 +296,18 @@ class _StorePickerCard extends ConsumerWidget {
                 Text(selected?.storeName ?? 'Store select karein',
                     style: const TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w700,
-                      color: AppColor.textPrimary,
+                      color: WarehouseAppColor.textPrimary,
                     ),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 if (selected != null)
                   Text(selected.storeCode,
                       style: const TextStyle(
-                          fontSize: 11, color: AppColor.textSecondary)),
+                          fontSize: 11, color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
           const Icon(Icons.expand_more_rounded,
-              size: 18, color: AppColor.textSecondary),
+              size: 18, color: WarehouseAppColor.textSecondary),
         ]),
       ),
     );
@@ -331,7 +331,7 @@ class _StorePickList extends StatelessWidget {
               child: Container(
                 width: 40, height: 4,
                 decoration: BoxDecoration(
-                  color: AppColor.grey200,
+                  color: WarehouseAppColor.grey200,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -343,17 +343,17 @@ class _StorePickList extends StatelessWidget {
                 child: Text('Select store',
                     style: TextStyle(
                       fontSize: 14, fontWeight: FontWeight.w700,
-                      color: AppColor.textPrimary,
+                      color: WarehouseAppColor.textPrimary,
                     )),
               ),
             ),
-            const Divider(height: 1, color: AppColor.grey100),
+            const Divider(height: 1, color: WarehouseAppColor.grey100),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
                 children: stores.map((s) => ListTile(
                   leading: const Icon(Icons.storefront_rounded,
-                      color: AppColor.primary, size: 18),
+                      color: WarehouseAppColor.primary, size: 18),
                   title: Text(s.storeName,
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                   subtitle: Text(s.storeCode,
@@ -375,7 +375,7 @@ class _StoreLoader extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     height: 60,
     decoration: BoxDecoration(
-      color: AppColor.grey100,
+      color: WarehouseAppColor.grey100,
       borderRadius: BorderRadius.circular(12),
     ),
     child: const Center(
@@ -421,19 +421,19 @@ class _SummaryTiles extends ConsumerWidget {
           children: [
             _SummaryTile(
               label: 'Total Pending', value: total.toString(),
-              icon: Icons.inbox_outlined, iconColor: AppColor.primary,
+              icon: Icons.inbox_outlined, iconColor: WarehouseAppColor.primary,
             ),
             const SizedBox(height: 8),
             _SummaryTile(
               label: 'Total Rs Impact',
               value: 'Rs ${totalImpact.pkrFormat}',
               icon: Icons.account_balance_wallet_outlined,
-              iconColor: AppColor.info,
+              iconColor: WarehouseAppColor.info,
             ),
             const SizedBox(height: 8),
             _SummaryTile(
               label: 'Red-flag items', value: redFlagCount.toString(),
-              icon: Icons.warning_amber_rounded, iconColor: AppColor.error,
+              icon: Icons.warning_amber_rounded, iconColor: WarehouseAppColor.error,
             ),
             const SizedBox(height: 8),
             _SummaryProgressTile(
@@ -454,7 +454,7 @@ class _TilesLoader extends StatelessWidget {
       height: 54,
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColor.grey100,
+        color: WarehouseAppColor.grey100,
         borderRadius: BorderRadius.circular(10),
       ),
     )),
@@ -476,9 +476,9 @@ class _SummaryTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Row(children: [
         Container(
@@ -497,13 +497,13 @@ class _SummaryTile extends StatelessWidget {
             children: [
               Text(label,
                   style: const TextStyle(
-                      fontSize: 10.5, color: AppColor.textSecondary,
+                      fontSize: 10.5, color: WarehouseAppColor.textSecondary,
                       fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
               Text(value,
                   style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.w800,
-                      color: AppColor.textPrimary),
+                      color: WarehouseAppColor.textPrimary),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ),
@@ -526,9 +526,9 @@ class _SummaryProgressTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColor.primary.withOpacity(0.06),
+        color: WarehouseAppColor.primary.withOpacity(0.06),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.primary.withOpacity(0.2)),
+        border: Border.all(color: WarehouseAppColor.primary.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,16 +536,16 @@ class _SummaryProgressTile extends StatelessWidget {
           Row(children: [
             const Text('Selected',
                 style: TextStyle(
-                    fontSize: 10.5, color: AppColor.textSecondary,
+                    fontSize: 10.5, color: WarehouseAppColor.textSecondary,
                     fontWeight: FontWeight.w600)),
             const Spacer(),
             Text('$selected  ',
                 style: const TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w800,
-                    color: AppColor.primary)),
+                    color: WarehouseAppColor.primary)),
             Text('/ $total',
                 style: const TextStyle(
-                    fontSize: 12, color: AppColor.textSecondary,
+                    fontSize: 12, color: WarehouseAppColor.textSecondary,
                     fontWeight: FontWeight.w600)),
           ]),
           const SizedBox(height: 8),
@@ -554,8 +554,8 @@ class _SummaryProgressTile extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress.clamp(0, 1),
               minHeight: 6,
-              backgroundColor: AppColor.primary.withOpacity(0.15),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColor.primary),
+              backgroundColor: WarehouseAppColor.primary.withOpacity(0.15),
+              valueColor: const AlwaysStoppedAnimation<Color>(WarehouseAppColor.primary),
             ),
           ),
         ],
@@ -600,21 +600,21 @@ class _ViewFilterChips extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                 decoration: BoxDecoration(
-                  color: active ? AppColor.primary : AppColor.surface,
+                  color: active ? WarehouseAppColor.primary : WarehouseAppColor.surface,
                   borderRadius: BorderRadius.circular(9),
                   border: Border.all(
-                    color: active ? AppColor.primary : AppColor.grey200,
+                    color: active ? WarehouseAppColor.primary : WarehouseAppColor.grey200,
                   ),
                 ),
                 child: Row(children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 13, color: active ? Colors.white : (icColor ?? AppColor.textSecondary)),
+                    Icon(icon, size: 13, color: active ? Colors.white : (icColor ?? WarehouseAppColor.textSecondary)),
                     const SizedBox(width: 6),
                   ],
                   Text(label,
                       style: TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w700,
-                        color: active ? Colors.white : AppColor.textPrimary,
+                        color: active ? Colors.white : WarehouseAppColor.textPrimary,
                       )),
                   const Spacer(),
                   Text(count.toString(),
@@ -622,7 +622,7 @@ class _ViewFilterChips extends ConsumerWidget {
                         fontSize: 11, fontWeight: FontWeight.w800,
                         color: active
                             ? Colors.white.withOpacity(0.9)
-                            : AppColor.textSecondary,
+                            : WarehouseAppColor.textSecondary,
                       )),
                 ]),
               ),
@@ -633,11 +633,11 @@ class _ViewFilterChips extends ConsumerWidget {
         return Column(children: [
           chip('All', allCount, CreateViewFilter.all),
           chip('Red-flag only', redFlag, CreateViewFilter.redFlag,
-              icon: Icons.warning_amber_rounded, icColor: AppColor.error),
+              icon: Icons.warning_amber_rounded, icColor: WarehouseAppColor.error),
           chip('Missing money', missing, CreateViewFilter.missing,
-              icon: Icons.arrow_downward_rounded, icColor: AppColor.error),
+              icon: Icons.arrow_downward_rounded, icColor: WarehouseAppColor.error),
           chip('Extra stock', extra, CreateViewFilter.extra,
-              icon: Icons.arrow_upward_rounded, icColor: AppColor.success),
+              icon: Icons.arrow_upward_rounded, icColor: WarehouseAppColor.success),
         ]);
       },
     );
@@ -665,9 +665,9 @@ class _SortDropdown extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: AppColor.grey200),
+        border: Border.all(color: WarehouseAppColor.grey200),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<CreateSortMode>(
@@ -675,7 +675,7 @@ class _SortDropdown extends ConsumerWidget {
           value: state.sortMode,
           style: const TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600,
-              color: AppColor.textPrimary),
+              color: WarehouseAppColor.textPrimary),
           items: CreateSortMode.values.map((m) => DropdownMenuItem(
             value: m, child: Text(label(m)),
           )).toList(),
@@ -716,7 +716,7 @@ class _StoreContent extends ConsumerWidget {
     return rowsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       error:   (e, _) => Center(child: Text('Load nahi hui: $e',
-          style: const TextStyle(color: AppColor.error, fontSize: 12))),
+          style: const TextStyle(color: WarehouseAppColor.error, fontSize: 12))),
       data: (rows) {
         if (rows.isEmpty) {
           return const _EmptyHint(
@@ -744,8 +744,8 @@ class _SearchAndActionsBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       decoration: const BoxDecoration(
-        color: AppColor.surface,
-        border: Border(bottom: BorderSide(color: AppColor.grey100)),
+        color: WarehouseAppColor.surface,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
       ),
       child: Row(children: [
         Expanded(
@@ -754,17 +754,17 @@ class _SearchAndActionsBar extends ConsumerWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFF7F8FA),
               borderRadius: BorderRadius.circular(9),
-              border: Border.all(color: AppColor.grey200),
+              border: Border.all(color: WarehouseAppColor.grey200),
             ),
             child: TextField(
               onChanged: notifier.setSearchQuery,
               decoration: const InputDecoration(
                 hintText: 'Search product name…',
-                hintStyle: TextStyle(fontSize: 13, color: AppColor.textHint),
+                hintStyle: TextStyle(fontSize: 13, color: WarehouseAppColor.textHint),
                 border: InputBorder.none,
                 isDense: true,
                 icon: Icon(Icons.search_rounded,
-                    size: 18, color: AppColor.textSecondary),
+                    size: 18, color: WarehouseAppColor.textSecondary),
               ),
               style: const TextStyle(fontSize: 13),
             ),
@@ -830,16 +830,16 @@ class _GhostBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColor.grey100,
+          color: WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 13, color: AppColor.textSecondary),
+          Icon(icon, size: 13, color: WarehouseAppColor.textSecondary),
           const SizedBox(width: 6),
           Text(label,
               style: const TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w700,
-                color: AppColor.textPrimary,
+                color: WarehouseAppColor.textPrimary,
               )),
         ]),
       ),
@@ -945,18 +945,18 @@ class _ItemCard extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColor.surface,
+        color: WarehouseAppColor.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: selected
-              ? AppColor.primaryLight
+              ? WarehouseAppColor.primaryLight
               : (isHigh
-                  ? AppColor.error.withOpacity(0.4)
-                  : AppColor.grey200),
+                  ? WarehouseAppColor.error.withOpacity(0.4)
+                  : WarehouseAppColor.grey200),
           width: selected ? 1.5 : 1,
         ),
         boxShadow: selected
-            ? [BoxShadow(color: AppColor.primary.withOpacity(0.10),)]
+            ? [BoxShadow(color: WarehouseAppColor.primary.withOpacity(0.10),)]
             : null,
       ),
       child: InkWell(
@@ -980,10 +980,10 @@ class _ItemCard extends ConsumerWidget {
                 child: Container(
                   width: 22, height: 22,
                   decoration: BoxDecoration(
-                    color: selected ? AppColor.primary : Colors.transparent,
+                    color: selected ? WarehouseAppColor.primary : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: selected ? AppColor.primary : AppColor.grey300,
+                      color: selected ? WarehouseAppColor.primary : WarehouseAppColor.grey300,
                       width: 1.5,
                     ),
                   ),
@@ -1004,17 +1004,17 @@ class _ItemCard extends ConsumerWidget {
                         maxLines: 1, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 13, fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary,
+                          color: WarehouseAppColor.textPrimary,
                         )),
                     if ((row.productSku ?? '').isNotEmpty)
                       Text(row.productSku!,
                           style: const TextStyle(
-                              fontSize: 11, color: AppColor.textSecondary)),
+                              fontSize: 11, color: WarehouseAppColor.textSecondary)),
                     const SizedBox(height: 3),
                     Text('Sale price: Rs ${row.unitPrice.pkrFormat}',
                         style: const TextStyle(
                             fontSize: 10.5,
-                            color: AppColor.textHint,
+                            color: WarehouseAppColor.textHint,
                             fontWeight: FontWeight.w600)),
                   ],
                 ),
@@ -1038,7 +1038,7 @@ class _ItemCard extends ConsumerWidget {
                       children: [
                         const Text('DELTA',
                             style: TextStyle(
-                              fontSize: 10, color: AppColor.textSecondary,
+                              fontSize: 10, color: WarehouseAppColor.textSecondary,
                               fontWeight: FontWeight.w700, letterSpacing: 0.8,
                             )),
                         const SizedBox(height: 4),
@@ -1064,18 +1064,18 @@ class _ItemCard extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: isHigh ? AppColor.error : AppColor.textPrimary,
+                          color: isHigh ? WarehouseAppColor.error : WarehouseAppColor.textPrimary,
                         )),
                     const Text('impact',
                         style: TextStyle(
-                            fontSize: 10, color: AppColor.textSecondary,
+                            fontSize: 10, color: WarehouseAppColor.textSecondary,
                             fontWeight: FontWeight.w600)),
                     if (isHigh) ...[
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColor.error,
+                          color: WarehouseAppColor.error,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text('HIGH',
@@ -1095,12 +1095,12 @@ class _ItemCard extends ConsumerWidget {
           // Counted on — local date + time (branch ne kab gina)
           Row(children: [
             const Icon(Icons.schedule_rounded,
-                size: 12, color: AppColor.textHint),
+                size: 12, color: WarehouseAppColor.textHint),
             const SizedBox(width: 5),
             Text('Counted: ${_fmtDateTime(row.countedAt)}',
                 style: const TextStyle(
                   fontSize: 10.5,
-                  color: AppColor.textHint,
+                  color: WarehouseAppColor.textHint,
                   fontWeight: FontWeight.w600,
                 )),
           ]),
@@ -1178,7 +1178,7 @@ class _StatCol extends StatelessWidget {
         children: [
           Text(label,
               style: const TextStyle(
-                fontSize: 10, color: AppColor.textSecondary,
+                fontSize: 10, color: WarehouseAppColor.textSecondary,
                 fontWeight: FontWeight.w700, letterSpacing: 0.8,
               )),
           const SizedBox(height: 4),
@@ -1186,7 +1186,7 @@ class _StatCol extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: valueWeight ?? FontWeight.w500,
-                color: valueColor ?? AppColor.textPrimary,
+                color: valueColor ?? WarehouseAppColor.textPrimary,
               )),
         ],
       ),
@@ -1264,18 +1264,18 @@ class _DeltaStepperState extends State<_DeltaStepper> {
     final positive = widget.value > 0;
     final negative = widget.value < 0;
     final signColor = positive
-        ? AppColor.success
-        : (negative ? AppColor.error : AppColor.textPrimary);
+        ? WarehouseAppColor.success
+        : (negative ? WarehouseAppColor.error : WarehouseAppColor.textPrimary);
 
     return Container(
       height: 32,
       decoration: BoxDecoration(
-        color: widget.isOverridden ? AppColor.warningLight : const Color(0xFFF7F8FA),
+        color: widget.isOverridden ? WarehouseAppColor.warningLight : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: widget.isOverridden
-              ? AppColor.warning.withOpacity(0.5)
-              : AppColor.grey200,
+              ? WarehouseAppColor.warning.withOpacity(0.5)
+              : WarehouseAppColor.grey200,
         ),
       ),
       child: Row(children: [
@@ -1319,7 +1319,7 @@ class _StepBtn extends StatelessWidget {
       child: Container(
         width: 28, height: 32,
         alignment: Alignment.center,
-        child: Icon(icon, size: 14, color: AppColor.textSecondary),
+        child: Icon(icon, size: 14, color: WarehouseAppColor.textSecondary),
       ),
     );
   }
@@ -1361,8 +1361,8 @@ class _StickyFooter extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: const BoxDecoration(
-        color: AppColor.surface,
-        border: Border(top: BorderSide(color: AppColor.grey200)),
+        color: WarehouseAppColor.surface,
+        border: Border(top: BorderSide(color: WarehouseAppColor.grey200)),
         boxShadow: [
           BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, -2)),
         ],
@@ -1375,12 +1375,12 @@ class _StickyFooter extends ConsumerWidget {
             Text('$selectedCount items selected',
                 style: const TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w800,
-                  color: AppColor.textPrimary,
+                  color: WarehouseAppColor.textPrimary,
                 )),
             if (highTotal > 0)
               Text('$highSelected of $highTotal red-flag reviewed',
                   style: const TextStyle(
-                    fontSize: 11, color: AppColor.textSecondary,
+                    fontSize: 11, color: WarehouseAppColor.textSecondary,
                     fontWeight: FontWeight.w600,
                   )),
           ],
@@ -1395,28 +1395,28 @@ class _StickyFooter extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 10, letterSpacing: 0.8,
                   fontWeight: FontWeight.w800,
-                  color: AppColor.textSecondary,
+                  color: WarehouseAppColor.textSecondary,
                 )),
             const SizedBox(height: 3),
             Row(children: [
               Text('Rs ${totalImpact.pkrFormat}',
                   style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.w800,
-                    color: AppColor.textPrimary,
+                    color: WarehouseAppColor.textPrimary,
                   )),
               if (highSelected > 0) ...[
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColor.error.withOpacity(0.1),
+                    color: WarehouseAppColor.error.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppColor.error.withOpacity(0.3)),
+                    border: Border.all(color: WarehouseAppColor.error.withOpacity(0.3)),
                   ),
                   child: Text('High: $highSelected',
                       style: const TextStyle(
                         fontSize: 10, fontWeight: FontWeight.w800,
-                        color: AppColor.error,
+                        color: WarehouseAppColor.error,
                       )),
                 ),
               ],
@@ -1431,17 +1431,17 @@ class _StickyFooter extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColor.warningLight,
+              color: WarehouseAppColor.warningLight,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColor.warning.withOpacity(0.4)),
+              border: Border.all(color: WarehouseAppColor.warning.withOpacity(0.4)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.warning_amber_rounded, size: 13, color: AppColor.warning),
+              const Icon(Icons.warning_amber_rounded, size: 13, color: WarehouseAppColor.warning),
               const SizedBox(width: 6),
               Text('$highRemaining red-flag still unselected',
                   style: const TextStyle(
                     fontSize: 11, fontWeight: FontWeight.w700,
-                    color: AppColor.warning,
+                    color: WarehouseAppColor.warning,
                   )),
             ]),
           ),
@@ -1474,10 +1474,10 @@ class _SendButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
           decoration: BoxDecoration(
-            color:        AppColor.primary,
+            color:        WarehouseAppColor.primary,
             borderRadius: BorderRadius.circular(9),
             boxShadow: enabled
-                ? [BoxShadow(color: AppColor.primary.withOpacity(0.3),
+                ? [BoxShadow(color: WarehouseAppColor.primary.withOpacity(0.3),
                     blurRadius: 8, offset: const Offset(0, 3))]
                 : null,
           ),
@@ -1519,10 +1519,10 @@ class _EmptyHint extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 44, color: AppColor.grey300),
+          Icon(icon, size: 44, color: WarehouseAppColor.grey300),
           const SizedBox(height: 12),
           Text(text,
-              style: const TextStyle(color: AppColor.textHint, fontSize: 13)),
+              style: const TextStyle(color: WarehouseAppColor.textHint, fontSize: 13)),
         ],
       ),
     );

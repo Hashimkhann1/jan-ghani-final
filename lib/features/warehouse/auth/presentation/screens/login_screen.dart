@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // login_screen.dart
 // Jan Ghani Warehouse Login
@@ -5,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 
 import '../provider/auth_provider.dart';
@@ -49,7 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:         Text(next.errorMessage!),
-            backgroundColor: AppColor.error,
+            backgroundColor: WarehouseAppColor.error,
             behavior:        SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10)),
@@ -65,7 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return Scaffold(
-      backgroundColor: AppColor.grey100,
+      backgroundColor: WarehouseAppColor.grey100,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -82,7 +84,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 'Warehouse Management System',  // warehouse
                 style: TextStyle(
                   fontSize: 13,
-                  color:    AppColor.textSecondary,
+                  color:    WarehouseAppColor.textSecondary,
                 ),
               ),
 
@@ -115,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: TextStyle(
                           fontSize:   22,
                           fontWeight: FontWeight.w700,
-                          color:      AppColor.textPrimary,
+                          color:      WarehouseAppColor.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -123,7 +125,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         'Apna username aur password dalein',
                         style: TextStyle(
                           fontSize: 13,
-                          color:    AppColor.textSecondary,
+                          color:    WarehouseAppColor.textSecondary,
                         ),
                       ),
 
@@ -137,7 +139,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         textInputAction: TextInputAction.next,
                         style: const TextStyle(
                             fontSize: 14,
-                            color:    AppColor.textPrimary),
+                            color:    WarehouseAppColor.textPrimary),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty)
                             return 'Username required hai';
@@ -161,7 +163,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onFieldSubmitted: (_) => _login(),
                         style: const TextStyle(
                             fontSize: 14,
-                            color:    AppColor.textPrimary),
+                            color:    WarehouseAppColor.textPrimary),
                         validator: (v) {
                           if (v == null || v.isEmpty)
                             return 'Password required hai';
@@ -176,7 +178,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
                               size:  18,
-                              color: AppColor.grey400,
+                              color: WarehouseAppColor.grey400,
                             ),
                             onPressed: () => setState(
                                 () => _showPass = !_showPass),
@@ -193,10 +195,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           onPressed:
                               state.isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColor.primary,
+                            backgroundColor: WarehouseAppColor.primary,
                             foregroundColor: Colors.white,
                             disabledBackgroundColor:
-                                AppColor.primary
+                                WarehouseAppColor.primary
                                     .withValues(alpha: 0.6),
                             padding: const EdgeInsets.symmetric(
                                 vertical: 16),
@@ -229,7 +231,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Text(
                 '© ${DateTime.now().year} Jan Ghani Warehouse. All rights reserved.',
                 style: const TextStyle(
-                    fontSize: 12, color: AppColor.textHint),
+                    fontSize: 12, color: WarehouseAppColor.textHint),
               ),
             ],
           ),
@@ -246,33 +248,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return InputDecoration(
       hintText:  hint,
       hintStyle: const TextStyle(
-          color: AppColor.textHint, fontSize: 13),
-      prefixIcon:  Icon(prefix, size: 18, color: AppColor.grey400),
+          color: WarehouseAppColor.textHint, fontSize: 13),
+      prefixIcon:  Icon(prefix, size: 18, color: WarehouseAppColor.grey400),
       suffixIcon:  suffix,
       filled:      true,
-      fillColor:   AppColor.grey100,
+      fillColor:   WarehouseAppColor.grey100,
       contentPadding: const EdgeInsets.symmetric(
           horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:
-              const BorderSide(color: AppColor.grey200)),
+              const BorderSide(color: WarehouseAppColor.grey200)),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:
-              const BorderSide(color: AppColor.grey200)),
+              const BorderSide(color: WarehouseAppColor.grey200)),
       focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(
-              color: AppColor.primary, width: 1.5)),
+              color: WarehouseAppColor.primary, width: 1.5)),
       errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:
-              const BorderSide(color: AppColor.error)),
+              const BorderSide(color: WarehouseAppColor.error)),
       focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(
-              color: AppColor.error, width: 1.5)),
+              color: WarehouseAppColor.error, width: 1.5)),
     );
   }
 }
@@ -286,5 +288,5 @@ class _FieldLabel extends StatelessWidget {
       style: const TextStyle(
           fontSize:   13,
           fontWeight: FontWeight.w500,
-          color:      AppColor.textPrimary));
+          color:      WarehouseAppColor.textPrimary));
 }

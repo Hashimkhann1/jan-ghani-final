@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // po_product_list_panel.dart  — UPDATED (barcodes list support)
 // Left panel — products list with search
@@ -6,7 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/data/model/product_model.dart';
@@ -42,8 +44,8 @@ class PoProductListPanel extends ConsumerWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color:  AppColor.white,
-        border: Border(right: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.white,
+        border: Border(right: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Column(
         children: [
@@ -121,21 +123,21 @@ class _SearchBarState extends State<_SearchBar> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: const BoxDecoration(
-        color:  AppColor.white,
-        border: Border(bottom: BorderSide(color: AppColor.grey200)),
+        color:  WarehouseAppColor.white,
+        border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: TextField(
         controller: _ctrl,
         onChanged:  widget.onChanged,
         style: const TextStyle(
-            fontSize: 13, color: AppColor.textPrimary),
+            fontSize: 13, color: WarehouseAppColor.textPrimary),
         cursorHeight: 14,
         decoration: InputDecoration(
           hintText:  'Name, SKU ya barcode se search...',
           hintStyle: const TextStyle(
-              fontSize: 13, color: AppColor.textHint),
+              fontSize: 13, color: WarehouseAppColor.textHint),
           prefixIcon: const Icon(Icons.search,
-              size: 18, color: AppColor.grey500),
+              size: 18, color: WarehouseAppColor.grey500),
           // X button — sirf tab dikhega jab text ho
           suffixIcon: ValueListenableBuilder<TextEditingValue>(
             valueListenable: _ctrl,
@@ -145,17 +147,17 @@ class _SearchBarState extends State<_SearchBar> {
                     child: Container(
                       margin: const EdgeInsets.all(8),
                       decoration: const BoxDecoration(
-                        color:  AppColor.grey300,
+                        color:  WarehouseAppColor.grey300,
                         shape:  BoxShape.circle,
                       ),
                       child: const Icon(Icons.close_rounded,
-                          size: 14, color: AppColor.white),
+                          size: 14, color: WarehouseAppColor.white),
                     ),
                   )
                 : const SizedBox.shrink(),
           ),
           filled:    true,
-          fillColor: AppColor.grey100,
+          fillColor: WarehouseAppColor.grey100,
           contentPadding: const EdgeInsets.symmetric(
               horizontal: 12, vertical: 14),
           border:        InputBorder.none,
@@ -227,12 +229,12 @@ class _ProductListItemState extends State<_ProductListItem>
           decoration: BoxDecoration(
             color: isInCart
                 ? const Color(0xFFEEEDFE)   // light purple background
-                : AppColor.white,
+                : WarehouseAppColor.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isInCart
                   ? const Color(0xFFED0015)  // purple border
-                  : AppColor.grey200,
+                  : WarehouseAppColor.grey200,
               width: isInCart ? 1.5 : 1.0,
             ),
           ),
@@ -247,7 +249,7 @@ class _ProductListItemState extends State<_ProductListItem>
                       style: const TextStyle(
                           fontSize:   14,
                           fontWeight: FontWeight.w600,
-                          color:      AppColor.textPrimary),
+                          color:      WarehouseAppColor.textPrimary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -258,7 +260,7 @@ class _ProductListItemState extends State<_ProductListItem>
                       style: const TextStyle(
                           fontSize:   13,
                           fontWeight: FontWeight.w500,
-                          color:      AppColor.textSecondary),
+                          color:      WarehouseAppColor.textSecondary),
                     ),
                   ],
                 ),
@@ -271,8 +273,8 @@ class _ProductListItemState extends State<_ProductListItem>
                     horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: inStock
-                      ? AppColor.success.withOpacity(0.10)
-                      : AppColor.error.withOpacity(0.10),
+                      ? WarehouseAppColor.success.withOpacity(0.10)
+                      : WarehouseAppColor.error.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -282,7 +284,7 @@ class _ProductListItemState extends State<_ProductListItem>
                   style: TextStyle(
                     fontSize:   13,
                     fontWeight: FontWeight.w600,
-                    color: inStock ? AppColor.success : AppColor.error,
+                    color: inStock ? WarehouseAppColor.success : WarehouseAppColor.error,
                   ),
                 ),
               ),
@@ -305,10 +307,10 @@ class _EmptyProducts extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 40, color: AppColor.grey300),
+          Icon(Icons.search_off, size: 40, color: WarehouseAppColor.grey300),
           SizedBox(height: 8),
           Text('Koi product nahi mila',
-              style: TextStyle(fontSize: 13, color: AppColor.textHint)),
+              style: TextStyle(fontSize: 13, color: WarehouseAppColor.textHint)),
         ],
       ),
     );

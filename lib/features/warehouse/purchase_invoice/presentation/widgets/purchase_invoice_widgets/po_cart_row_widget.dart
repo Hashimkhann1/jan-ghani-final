@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // po_cart_row_widget.dart
 // FIX: purchasePrice aur subTotal onChanged remove kiya
@@ -8,7 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
 
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart';
@@ -200,9 +202,9 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
       padding: const EdgeInsets.symmetric(
           horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color:        AppColor.white,
+        color:        WarehouseAppColor.white,
         borderRadius: BorderRadius.circular(8),
-        border:       Border.all(color: AppColor.grey200),
+        border:       Border.all(color: WarehouseAppColor.grey200),
       ),
       child: Row(
         children: [
@@ -214,7 +216,7 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
                 width:  22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color:        AppColor.primary.withOpacity(0.10),
+                  color:        WarehouseAppColor.primary.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Center(
@@ -223,7 +225,7 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
                     style: const TextStyle(
                       fontSize:   10,
                       fontWeight: FontWeight.w700,
-                      color:      AppColor.primary,
+                      color:      WarehouseAppColor.primary,
                     ),
                   ),
                 ),
@@ -242,13 +244,13 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
                     style: const TextStyle(
                         fontSize:   13,
                         fontWeight: FontWeight.w600,
-                        color:      AppColor.textPrimary),
+                        color:      WarehouseAppColor.textPrimary),
                     maxLines:  1,
                     overflow: TextOverflow.ellipsis),
                 Text(item.product.category,
                     style: const TextStyle(
                         fontSize: 11,
-                        color:    AppColor.textSecondary)),
+                        color:    WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -313,7 +315,7 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColor.successLight,
+                  color: WarehouseAppColor.successLight,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -321,14 +323,14 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
                   style: const TextStyle(
                       fontSize:   9,
                       fontWeight: FontWeight.w600,
-                      color:      AppColor.success),
+                      color:      WarehouseAppColor.success),
                   textAlign: TextAlign.center,
                 ),
               )
                   : const Text('—',
                   style: TextStyle(
                       fontSize: 10,
-                      color:    AppColor.textHint),
+                      color:    WarehouseAppColor.textHint),
                   textAlign: TextAlign.center),
             ),
           ),
@@ -393,11 +395,11 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
               width:  26,
               height: 26,
               decoration: BoxDecoration(
-                color:        AppColor.errorLight,
+                color:        WarehouseAppColor.errorLight,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Icon(Icons.delete_outline,
-                  size: 14, color: AppColor.error),
+                  size: 14, color: WarehouseAppColor.error),
             ),
           ),
         ],
@@ -457,16 +459,16 @@ class _TFState extends State<_TF> {
     FontWeight fontWeight;
 
     if (widget.highlighted) {
-      fillColor  = AppColor.primary.withOpacity(0.06);
-      textColor  = AppColor.primary;
+      fillColor  = WarehouseAppColor.primary.withOpacity(0.06);
+      textColor  = WarehouseAppColor.primary;
       fontWeight = FontWeight.w700;
     } else if (widget.isPurple) {
       fillColor  = const Color(0xFFEEEDFE);
       textColor  = const Color(0xFF534AB7);
       fontWeight = FontWeight.w600;
     } else {
-      fillColor  = AppColor.grey100;
-      textColor  = AppColor.textPrimary;
+      fillColor  = WarehouseAppColor.grey100;
+      textColor  = WarehouseAppColor.textPrimary;
       fontWeight = FontWeight.w400;
     }
 
@@ -493,7 +495,7 @@ class _TFState extends State<_TF> {
           prefixText:  widget.prefix != null
               ? '${widget.prefix} ' : null,
           prefixStyle: const TextStyle(
-              fontSize: 9, color: AppColor.textHint),
+              fontSize: 9, color: WarehouseAppColor.textHint),
           isDense:    true,
           filled:     true,
           fillColor:  fillColor,

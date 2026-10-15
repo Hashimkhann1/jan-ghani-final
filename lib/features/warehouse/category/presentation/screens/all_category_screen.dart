@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // all_category_screen.dart
 // =============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import '../../data/model/category_model.dart';
 import '../provider/category_provider.dart';
 import '../widget/add_category_dialog.dart';
@@ -23,7 +25,7 @@ class AllCategoryScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:         Text(next.errorMessage!),
-            backgroundColor: AppColor.error,
+            backgroundColor: WarehouseAppColor.error,
             behavior:        SnackBarBehavior.floating,
             action: SnackBarAction(
               label:     'OK',
@@ -37,7 +39,7 @@ class AllCategoryScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
 
@@ -46,7 +48,7 @@ class AllCategoryScreen extends ConsumerWidget {
             width:   double.infinity,
             padding: const EdgeInsets.symmetric(
                 horizontal: 24, vertical: 16),
-            color: AppColor.surface,
+            color: WarehouseAppColor.surface,
             child: Row(
               children: [
                 Column(
@@ -56,11 +58,11 @@ class AllCategoryScreen extends ConsumerWidget {
                         style: TextStyle(
                             fontSize:   22,
                             fontWeight: FontWeight.w700,
-                            color:      AppColor.textPrimary)),
+                            color:      WarehouseAppColor.textPrimary)),
                     Text('Product categories manage karein',
                         style: TextStyle(
                             fontSize: 13,
-                            color:    AppColor.textSecondary)),
+                            color:    WarehouseAppColor.textSecondary)),
                   ],
                 ),
                 const Spacer(),
@@ -70,8 +72,8 @@ class AllCategoryScreen extends ConsumerWidget {
                   icon:  const Icon(Icons.add_rounded, size: 18),
                   label: const Text('New Category'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: AppColor.white,
+                    backgroundColor: WarehouseAppColor.primary,
+                    foregroundColor: WarehouseAppColor.white,
                     minimumSize: const Size(160, 48),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 13),
@@ -86,7 +88,7 @@ class AllCategoryScreen extends ConsumerWidget {
 
           // ── Stats ─────────────────────────────────────────
           Container(
-            color:   AppColor.surface,
+            color:   WarehouseAppColor.surface,
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
             child: Row(
               children: [
@@ -94,14 +96,14 @@ class AllCategoryScreen extends ConsumerWidget {
                   label: 'Total',
                   value: '${state.totalCount}',
                   icon:  Icons.category_outlined,
-                  color: AppColor.primary,
+                  color: WarehouseAppColor.primary,
                 ),
                 const SizedBox(width: 12),
                 _StatCard(
                   label: 'Active',
                   value: '${state.activeCount}',
                   icon:  Icons.check_circle_outline_rounded,
-                  color: AppColor.success,
+                  color: WarehouseAppColor.success,
                 ),
               ],
             ),
@@ -121,25 +123,25 @@ class AllCategoryScreen extends ConsumerWidget {
                     decoration: InputDecoration(
                       hintText:  'Category name se search...',
                       hintStyle: TextStyle(
-                          color: AppColor.textHint, fontSize: 13),
+                          color: WarehouseAppColor.textHint, fontSize: 13),
                       prefixIcon: Icon(Icons.search_rounded,
-                          color: AppColor.grey400, size: 20),
+                          color: WarehouseAppColor.grey400, size: 20),
                       filled:    true,
-                      fillColor: AppColor.surface,
+                      fillColor: WarehouseAppColor.surface,
                       contentPadding: const EdgeInsets.symmetric(
                           vertical: 0, horizontal: 16),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide:
-                          BorderSide(color: AppColor.grey200)),
+                          BorderSide(color: WarehouseAppColor.grey200)),
                       enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide:
-                          BorderSide(color: AppColor.grey200)),
+                          BorderSide(color: WarehouseAppColor.grey200)),
                       focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                              color: AppColor.primary, width: 1.5)),
+                              color: WarehouseAppColor.primary, width: 1.5)),
                     ),
                   ),
                 ),
@@ -200,31 +202,31 @@ class AllCategoryScreen extends ConsumerWidget {
                 Container(
                   padding:    const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color:        AppColor.error.withOpacity(0.1),
+                    color:        WarehouseAppColor.error.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(50),
                   ),
                   child: Icon(Icons.delete_outline_rounded,
-                      color: AppColor.error, size: 28),
+                      color: WarehouseAppColor.error, size: 28),
                 ),
                 const SizedBox(height: 16),
                 Text('Category Delete Karen?',
                     style: TextStyle(
                         fontSize:   17,
                         fontWeight: FontWeight.w700,
-                        color:      AppColor.textPrimary)),
+                        color:      WarehouseAppColor.textPrimary)),
                 const SizedBox(height: 8),
                 Text('"${c.name}"',
                     style: TextStyle(
                         fontSize:   14,
                         fontWeight: FontWeight.w600,
-                        color:      AppColor.error)),
+                        color:      WarehouseAppColor.error)),
                 const SizedBox(height: 6),
                 Text(
                   'Delete karne ke baad products is category\nse unlink ho jayenge.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 13,
-                      color:    AppColor.textSecondary),
+                      color:    WarehouseAppColor.textSecondary),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -234,8 +236,8 @@ class AllCategoryScreen extends ConsumerWidget {
                         onPressed: () =>
                             Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColor.textSecondary,
-                          side: BorderSide(color: AppColor.grey300),
+                          foregroundColor: WarehouseAppColor.textSecondary,
+                          side: BorderSide(color: WarehouseAppColor.grey300),
                           padding: const EdgeInsets.symmetric(
                               vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -255,7 +257,7 @@ class AllCategoryScreen extends ConsumerWidget {
                               .deleteCategory(c.id);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.error,
+                          backgroundColor: WarehouseAppColor.error,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               vertical: 12),
@@ -338,7 +340,7 @@ class _CategoryCardState extends State<_CategoryCard> {
   bool _hovered = false;
 
   Color get _color {
-    if (widget.category.colorCode == null) return AppColor.primary;
+    if (widget.category.colorCode == null) return WarehouseAppColor.primary;
     final h = widget.category.colorCode!.replaceAll('#', '');
     return Color(int.parse('FF$h', radix: 16));
   }
@@ -354,12 +356,12 @@ class _CategoryCardState extends State<_CategoryCard> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color:        AppColor.surface,
+          color:        WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: _hovered
                   ? _color.withOpacity(0.4)
-                  : AppColor.grey200),
+                  : WarehouseAppColor.grey200),
           boxShadow: _hovered
               ? [BoxShadow(
               color:      _color.withOpacity(0.1),
@@ -388,7 +390,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                       style: TextStyle(
                           fontSize:   14,
                           fontWeight: FontWeight.w600,
-                          color:      AppColor.textPrimary),
+                          color:      WarehouseAppColor.textPrimary),
                       overflow: TextOverflow.ellipsis),
                 ),
                 // Status badge
@@ -397,8 +399,8 @@ class _CategoryCardState extends State<_CategoryCard> {
                       horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: c.isActive
-                        ? AppColor.successLight
-                        : AppColor.grey200,
+                        ? WarehouseAppColor.successLight
+                        : WarehouseAppColor.grey200,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -407,8 +409,8 @@ class _CategoryCardState extends State<_CategoryCard> {
                         fontSize:   10,
                         fontWeight: FontWeight.w600,
                         color:      c.isActive
-                            ? AppColor.success
-                            : AppColor.grey500),
+                            ? WarehouseAppColor.success
+                            : WarehouseAppColor.grey500),
                   ),
                 ),
               ],
@@ -422,7 +424,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                 c.description ?? 'Koi description nahi',
                 style: TextStyle(
                     fontSize: 12,
-                    color:    AppColor.textSecondary),
+                    color:    WarehouseAppColor.textSecondary),
                 maxLines:  2,
                 overflow:  TextOverflow.ellipsis,
               ),
@@ -435,14 +437,14 @@ class _CategoryCardState extends State<_CategoryCard> {
                 children: [
                   _ActionBtn(
                     icon:    Icons.edit_outlined,
-                    color:   AppColor.info,
+                    color:   WarehouseAppColor.info,
                     tooltip: 'Edit',
                     onTap:   widget.onEdit,
                   ),
                   const SizedBox(width: 6),
                   // _ActionBtn(
                   //   icon:    Icons.delete_outline_rounded,
-                  //   color:   AppColor.error,
+                  //   color:   WarehouseAppColor.error,
                   //   tooltip: 'Delete',
                   //   onTap:   widget.onDelete,
                   // ),
@@ -500,11 +502,11 @@ class _StatCard extends StatelessWidget {
                   style: TextStyle(
                       fontSize:   20,
                       fontWeight: FontWeight.w700,
-                      color:      AppColor.textPrimary)),
+                      color:      WarehouseAppColor.textPrimary)),
               Text(label,
                   style: TextStyle(
                       fontSize: 12,
-                      color:    AppColor.textSecondary)),
+                      color:    WarehouseAppColor.textSecondary)),
             ],
           ),
         ],
@@ -538,18 +540,18 @@ class _FilterChip extends StatelessWidget {
             horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected
-              ? AppColor.primary : AppColor.surface,
+              ? WarehouseAppColor.primary : WarehouseAppColor.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
               color: selected
-                  ? AppColor.primary : AppColor.grey300),
+                  ? WarehouseAppColor.primary : WarehouseAppColor.grey300),
         ),
         child: Text(label,
             style: TextStyle(
                 fontSize:   13,
                 fontWeight: FontWeight.w500,
                 color:      selected
-                    ? AppColor.white : AppColor.textSecondary)),
+                    ? WarehouseAppColor.white : WarehouseAppColor.textSecondary)),
       ),
     );
   }
@@ -603,7 +605,7 @@ class _EmptyState extends StatelessWidget {
                 ? Icons.search_off_rounded
                 : Icons.category_outlined,
             size:  56,
-            color: AppColor.grey300,
+            color: WarehouseAppColor.grey300,
           ),
           const SizedBox(height: 12),
           Text(
@@ -613,7 +615,7 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(
                 fontSize:   16,
                 fontWeight: FontWeight.w600,
-                color:      AppColor.textSecondary),
+                color:      WarehouseAppColor.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(
@@ -621,7 +623,7 @@ class _EmptyState extends StatelessWidget {
                 ? 'Search change karein'
                 : 'New Category button se add karein',
             style: TextStyle(
-                fontSize: 13, color: AppColor.textHint),
+                fontSize: 13, color: WarehouseAppColor.textHint),
           ),
         ],
       ),

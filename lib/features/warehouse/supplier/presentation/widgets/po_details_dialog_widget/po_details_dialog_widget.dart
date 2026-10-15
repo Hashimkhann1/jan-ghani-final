@@ -1,7 +1,9 @@
+// Updated on 2026-10-15 10:24 AM
+
 
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_detail_models.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/domian/supplier_model.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens/po_invoice_screen/po_invoice_screen.dart';
@@ -37,16 +39,16 @@ class PurchaseOrderDetailDialog extends StatelessWidget {
 
     final Color statusColor;
     switch (o.status) {
-      case 'received':  statusColor = AppColor.success; break;
-      case 'ordered':   statusColor = AppColor.info;    break;
-      case 'partial':   statusColor = AppColor.warning; break;
-      case 'cancelled': statusColor = AppColor.error;   break;
-      default:          statusColor = AppColor.grey500;
+      case 'received':  statusColor = WarehouseAppColor.success; break;
+      case 'ordered':   statusColor = WarehouseAppColor.info;    break;
+      case 'partial':   statusColor = WarehouseAppColor.warning; break;
+      case 'cancelled': statusColor = WarehouseAppColor.error;   break;
+      default:          statusColor = WarehouseAppColor.grey500;
     }
 
     return Dialog(
       shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: AppColor.surface,
+      backgroundColor: WarehouseAppColor.surface,
       child: SizedBox(
         width: 1020,
         child: Column(
@@ -95,7 +97,7 @@ class PurchaseOrderDetailDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: AppColor.grey200))),
+                  border: Border(top: BorderSide(color: WarehouseAppColor.grey200))),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -106,13 +108,13 @@ class PurchaseOrderDetailDialog extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 9),
                       decoration: BoxDecoration(
-                        color:        AppColor.primary.withOpacity(0.08),
+                        color:        WarehouseAppColor.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text('Close',
                           style: TextStyle(fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColor.primary)),
+                              color: WarehouseAppColor.primary)),
                     ),
                   ),
                   SizedBox(width: 10,),
@@ -127,18 +129,18 @@ class PurchaseOrderDetailDialog extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                         decoration: BoxDecoration(
-                          color:        AppColor.primary.withOpacity(0.08),
+                          color:        WarehouseAppColor.primary.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.print_rounded, size: 15, color: AppColor.primary),
+                            Icon(Icons.print_rounded, size: 15, color: WarehouseAppColor.primary),
                             const SizedBox(width: 6),
                             Text('Print Invoice',
                                 style: TextStyle(fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColor.primary)),
+                                    color: WarehouseAppColor.primary)),
                           ],
                         ),
                       ),
@@ -175,19 +177,19 @@ class _PoDialogHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
       decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColor.grey200))),
+          border: Border(bottom: BorderSide(color: WarehouseAppColor.grey200))),
       child: Row(
         children: [
           // PO icon box
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color:        AppColor.info.withOpacity(0.1),
+              color:        WarehouseAppColor.info.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
             child: Icon(Icons.receipt_long_outlined,
-                size: 18, color: AppColor.info),
+                size: 18, color: WarehouseAppColor.info),
           ),
           const SizedBox(width: 12),
 
@@ -198,7 +200,7 @@ class _PoDialogHeader extends StatelessWidget {
               children: [
                 Text(order.poNumber,
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                        color: AppColor.textPrimary)),
+                        color: WarehouseAppColor.textPrimary)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -229,7 +231,7 @@ class _PoDialogHeader extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text('$supplierName  •  ${_fmtDate(order.orderDate)}',
                         style: TextStyle(fontSize: 12,
-                            color: AppColor.textSecondary)),
+                            color: WarehouseAppColor.textSecondary)),
                   ],
                 ),
               ],
@@ -243,11 +245,11 @@ class _PoDialogHeader extends StatelessWidget {
             child: Container(
               width: 30, height: 30,
               decoration: BoxDecoration(
-                color:        AppColor.grey100,
+                color:        WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.close_rounded, size: 16,
-                  color: AppColor.textSecondary),
+                  color: WarehouseAppColor.textSecondary),
             ),
           ),
         ],
@@ -284,13 +286,13 @@ class _MetaCards extends StatelessWidget {
           value:      order.receivedDate != null
               ? _fmtDate(order.receivedDate!) : '—',
           valueColor: order.receivedDate != null
-              ? AppColor.success : AppColor.textSecondary,
+              ? WarehouseAppColor.success : WarehouseAppColor.textSecondary,
         ),
         const SizedBox(width: 10),
         _MetaCard(
           label:      'Total items',
           value:      '${order.items.length} products',
-          valueColor: AppColor.info,
+          valueColor: WarehouseAppColor.info,
         ),
       ],
     );
@@ -315,7 +317,7 @@ class _MetaCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color:        AppColor.grey100,
+          color:        WarehouseAppColor.grey100,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -323,11 +325,11 @@ class _MetaCard extends StatelessWidget {
           children: [
             Text(label,
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500,
-                    color: AppColor.textSecondary, letterSpacing: 0.3)),
+                    color: WarehouseAppColor.textSecondary, letterSpacing: 0.3)),
             const SizedBox(height: 4),
             Text(value,
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                    color: valueColor ?? AppColor.textPrimary)),
+                    color: valueColor ?? WarehouseAppColor.textPrimary)),
           ],
         ),
       ),
@@ -348,30 +350,30 @@ class _PoFinancialRow extends StatelessWidget {
       children: [
         Text('Financial Summary',
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary, letterSpacing: 0.4)),
+                color: WarehouseAppColor.textSecondary, letterSpacing: 0.4)),
         const SizedBox(height: 8),
         Row(
           children: [
             _FinCard(label: 'Subtotal',     value: order.subtotal.toString(),
-                color: AppColor.info,
+                color: WarehouseAppColor.info,
                 icon: Icons.receipt_outlined),
             const SizedBox(width: 8),
             _FinCard(label: 'Discount',     value: '- ${_fmt(order.discountAmount)}',
-                color: AppColor.success,
+                color: WarehouseAppColor.success,
                 icon: Icons.local_offer_outlined),
             const SizedBox(width: 8),
             _FinCard(label: 'Total amount', value: order.totalAmount.toString(),
-                color: AppColor.warning,
+                color: WarehouseAppColor.warning,
                 icon: Icons.calculate_outlined),
             const SizedBox(width: 8),
             _FinCard(label: 'Paid',         value: order.paidAmount.toString(),
-                color: AppColor.success,
+                color: WarehouseAppColor.success,
                 icon: Icons.payments_outlined),
             const SizedBox(width: 8),
             _FinCard(
               label: 'Remaining',
               value: order.isFullyPaid ? 'Clear' : order.remainingAmount.toString(),
-              color: order.isFullyPaid ? AppColor.success : AppColor.error,
+              color: order.isFullyPaid ? WarehouseAppColor.success : WarehouseAppColor.error,
               icon:  order.isFullyPaid
                   ? Icons.check_circle_outline_rounded
                   : Icons.warning_amber_rounded,
@@ -430,11 +432,11 @@ class _FinCard extends StatelessWidget {
                 children: [
                   Text(value,
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                          color: AppColor.textPrimary),
+                          color: WarehouseAppColor.textPrimary),
                       overflow: TextOverflow.ellipsis),
                   Text(label,
                       style: TextStyle(fontSize: 10,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
                 ],
               ),
             ),
@@ -458,11 +460,11 @@ class _PoProductsTable extends StatelessWidget {
       children: [
         Text('Products  (${order.items.length} items)',
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary, letterSpacing: 0.4)),
+                color: WarehouseAppColor.textSecondary, letterSpacing: 0.4)),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            border:       Border.all(color: AppColor.grey200),
+            border:       Border.all(color: WarehouseAppColor.grey200),
             borderRadius: BorderRadius.circular(12),
           ),
           child: ClipRRect(
@@ -473,7 +475,7 @@ class _PoProductsTable extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 9),
-                  color: AppColor.grey100,
+                  color: WarehouseAppColor.grey100,
                   child: Row(
                     children: [
                       _ph('Product',   3),
@@ -492,7 +494,7 @@ class _PoProductsTable extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     child: Center(
                       child: Text('Koi item nahi',
-                          style: TextStyle(color: AppColor.textSecondary)),
+                          style: TextStyle(color: WarehouseAppColor.textSecondary)),
                     ),
                   )
                 else
@@ -512,7 +514,7 @@ class _PoProductsTable extends StatelessWidget {
     flex: flex,
     child: Text(label,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
-            color: AppColor.textSecondary, letterSpacing: 0.3)),
+            color: WarehouseAppColor.textSecondary, letterSpacing: 0.3)),
   );
 }
 
@@ -525,14 +527,14 @@ class _ProductItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double pct        = item.receivedPercent;
-    final Color  pctColor   = pct >= 1.0 ? AppColor.success
-        : pct > 0 ? AppColor.warning : AppColor.error;
+    final Color  pctColor   = pct >= 1.0 ? WarehouseAppColor.success
+        : pct > 0 ? WarehouseAppColor.warning : WarehouseAppColor.error;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         border: isLast ? null
-            : Border(bottom: BorderSide(color: AppColor.grey100)),
+            : Border(bottom: BorderSide(color: WarehouseAppColor.grey100)),
       ),
       child: Row(
         children: [
@@ -544,11 +546,11 @@ class _ProductItemRow extends StatelessWidget {
               children: [
                 Text(item.productName,
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                        color: AppColor.textPrimary)),
+                        color: WarehouseAppColor.textPrimary)),
                 if (item.sku != null)
                   Text(item.sku!,
                       style: TextStyle(fontSize: 11,
-                          color: AppColor.textSecondary)),
+                          color: WarehouseAppColor.textSecondary)),
               ],
             ),
           ),
@@ -558,7 +560,7 @@ class _ProductItemRow extends StatelessWidget {
             flex: 1,
             child: Text('${item.quantityOrdered.toInt()}',
                 style: TextStyle(fontSize: 13,
-                    color: AppColor.textPrimary)),
+                    color: WarehouseAppColor.textPrimary)),
           ),
 
           // // Received qty — colored
@@ -577,7 +579,7 @@ class _ProductItemRow extends StatelessWidget {
             child: Text(
               'Rs ${item.unitCost.toStringAsFixed(0)}',
               style: TextStyle(fontSize: 13,
-                  color: AppColor.textSecondary),
+                  color: WarehouseAppColor.textSecondary),
             ),
           ),
 
@@ -597,7 +599,7 @@ class _ProductItemRow extends StatelessWidget {
             child: Text(
               'Rs ${item.totalCost.toStringAsFixed(0)}',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                  color: AppColor.textPrimary),
+                  color: WarehouseAppColor.textPrimary),
             ),
           ),
 
@@ -648,17 +650,17 @@ class _PoNotes extends StatelessWidget {
       children: [
         Text('Notes',
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                color: AppColor.textSecondary, letterSpacing: 0.4)),
+                color: WarehouseAppColor.textSecondary, letterSpacing: 0.4)),
         const SizedBox(height: 8),
         Container(
           width:   double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color:        AppColor.grey100,
+            color:        WarehouseAppColor.grey100,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(notes,
-              style: TextStyle(fontSize: 13, color: AppColor.textSecondary,
+              style: TextStyle(fontSize: 13, color: WarehouseAppColor.textSecondary,
                   height: 1.6)),
         ),
       ],

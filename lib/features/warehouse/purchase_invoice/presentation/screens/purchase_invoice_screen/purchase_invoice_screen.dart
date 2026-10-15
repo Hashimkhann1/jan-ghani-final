@@ -1,3 +1,5 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // purchase_invoice_screen.dart
 // UPDATED: existingOrder parameter — edit mode support
@@ -5,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/domain/purchase_order_model.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/provider/purchase_invoice_provider/purchase_invoice_provider.dart';
@@ -83,7 +85,7 @@ class _PurchaseInvoiceScreenState
     final isEditMode = widget.existingOrder != null;
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: WarehouseAppColor.background,
       body: Column(
         children: [
           // ── Top Bar ───────────────────────────────────────
@@ -129,9 +131,9 @@ class _TopBar extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color:  AppColor.surface,
+        color:  WarehouseAppColor.surface,
         border: Border(
-            bottom: BorderSide(color: AppColor.grey200)),
+            bottom: BorderSide(color: WarehouseAppColor.grey200)),
       ),
       child: Row(
         children: [
@@ -149,12 +151,12 @@ class _TopBar extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color:        AppColor.grey100,
+                color:        WarehouseAppColor.grey100,
                 borderRadius: BorderRadius.circular(8),
-                border:       Border.all(color: AppColor.grey200),
+                border:       Border.all(color: WarehouseAppColor.grey200),
               ),
               child: const Icon(Icons.arrow_back_rounded,
-                  size: 18, color: AppColor.textPrimary),
+                  size: 18, color: WarehouseAppColor.textPrimary),
             ),
           ),
           const SizedBox(width: 12),
@@ -167,7 +169,7 @@ class _TopBar extends ConsumerWidget {
                 style: const TextStyle(
                     fontSize:   20,
                     fontWeight: FontWeight.w700,
-                    color:      AppColor.textPrimary),
+                    color:      WarehouseAppColor.textPrimary),
               ),
               Text(
                 isEditMode
@@ -175,7 +177,7 @@ class _TopBar extends ConsumerWidget {
                     : 'Products choose karo aur invoice banao',
                 style: const TextStyle(
                     fontSize: 13,
-                    color:    AppColor.textSecondary),
+                    color:    WarehouseAppColor.textSecondary),
               ),
             ],
           ),
@@ -183,7 +185,7 @@ class _TopBar extends ConsumerWidget {
           const Spacer(),
 
           TextButton(
-            style: TextButton.styleFrom(backgroundColor: AppColor.primary),
+            style: TextButton.styleFrom(backgroundColor: WarehouseAppColor.primary),
             onPressed: () => showDialog(
               context: context,
               barrierDismissible: false,
@@ -191,7 +193,7 @@ class _TopBar extends ConsumerWidget {
             ),
             child: const Text(
               "Add New Inventory",
-              style: TextStyle(color: AppColor.white),
+              style: TextStyle(color: WarehouseAppColor.white),
             ),
           ),
           SizedBox(width: 12,),
@@ -202,22 +204,22 @@ class _TopBar extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color:        AppColor.warning.withOpacity(0.12),
+                color:        WarehouseAppColor.warning.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: AppColor.warning.withOpacity(0.4)),
+                    color: WarehouseAppColor.warning.withOpacity(0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.edit_note_rounded,
-                      size: 14, color: AppColor.warning),
+                      size: 14, color: WarehouseAppColor.warning),
                   const SizedBox(width: 6),
                   Text('Edit Mode',
                       style: TextStyle(
                           fontSize:   12,
                           fontWeight: FontWeight.w600,
-                          color:      AppColor.warning)),
+                          color:      WarehouseAppColor.warning)),
                 ],
               ),
             ),
@@ -248,7 +250,7 @@ class _TopBar extends ConsumerWidget {
 //   @override
 //   Widget build(BuildContext context, WidgetRef ref) {
 //     return Scaffold(
-//       backgroundColor: AppColor.background,
+//       backgroundColor: WarehouseAppColor.background,
 //       appBar:          _buildAppBar(context),
 //       body: const Row(
 //         children: [
@@ -264,7 +266,7 @@ class _TopBar extends ConsumerWidget {
 //
 //   PreferredSizeWidget _buildAppBar(BuildContext context) {
 //     return AppBar(
-//       backgroundColor:  AppColor.white,
+//       backgroundColor:  WarehouseAppColor.white,
 //       elevation:        0,
 //       surfaceTintColor: Colors.transparent,
 //       titleSpacing:     16,
@@ -273,18 +275,18 @@ class _TopBar extends ConsumerWidget {
 //           Container(
 //             padding: const EdgeInsets.all(6),
 //             decoration: BoxDecoration(
-//               color:        AppColor.primary.withOpacity(0.1),
+//               color:        WarehouseAppColor.primary.withOpacity(0.1),
 //               borderRadius: BorderRadius.circular(8),
 //             ),
 //             child: const Icon(Icons.shopping_bag_outlined,
-//                 color: AppColor.primary, size: 18),
+//                 color: WarehouseAppColor.primary, size: 18),
 //           ),
 //           const SizedBox(width: 10),
 //           const Text('Purchase Invoice',
 //               style: TextStyle(
 //                   fontSize:   16,
 //                   fontWeight: FontWeight.w700,
-//                   color:      AppColor.textPrimary)),
+//                   color:      WarehouseAppColor.textPrimary)),
 //         ],
 //       ),
 //       actions: [
@@ -294,18 +296,18 @@ class _TopBar extends ConsumerWidget {
 //           padding: const EdgeInsets.symmetric(
 //               horizontal: 10, vertical: 6),
 //           decoration: BoxDecoration(
-//             color:        AppColor.infoLight,
+//             color:        WarehouseAppColor.infoLight,
 //             borderRadius: BorderRadius.circular(20),
 //           ),
 //           child: const Row(
 //             children: [
 //               Icon(Icons.touch_app_outlined,
-//                   size: 13, color: AppColor.info),
+//                   size: 13, color: WarehouseAppColor.info),
 //               SizedBox(width: 4),
 //               Text('Double tap product to add',
 //                   style: TextStyle(
 //                       fontSize:   11,
-//                       color:      AppColor.info,
+//                       color:      WarehouseAppColor.info,
 //                       fontWeight: FontWeight.w500)),
 //             ],
 //           ),
@@ -314,7 +316,7 @@ class _TopBar extends ConsumerWidget {
 //       ],
 //       bottom: PreferredSize(
 //         preferredSize: const Size.fromHeight(1),
-//         child: Container(height: 1, color: AppColor.grey200),
+//         child: Container(height: 1, color: WarehouseAppColor.grey200),
 //       ),
 //     );
 //   }

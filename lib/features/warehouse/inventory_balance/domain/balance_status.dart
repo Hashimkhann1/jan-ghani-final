@@ -1,10 +1,12 @@
+// Updated on 2026-10-15 10:24 AM
+
 // =============================================================
 // balance_status.dart
 // Inventory Balance ka 5-state machine — DB codes + UI display info.
 // =============================================================
 
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
+import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 enum BalanceStatus {
   reviewPending,
@@ -46,21 +48,21 @@ enum BalanceStatus {
 
   Color get color {
     switch (this) {
-      case BalanceStatus.reviewPending:    return AppColor.warningDark;
-      case BalanceStatus.branchPending:    return AppColor.info;
-      case BalanceStatus.reviewerRejected: return AppColor.error;
-      case BalanceStatus.branchRejected:   return AppColor.error;
-      case BalanceStatus.applied:          return AppColor.success;
+      case BalanceStatus.reviewPending:    return WarehouseAppColor.warningDark;
+      case BalanceStatus.branchPending:    return WarehouseAppColor.info;
+      case BalanceStatus.reviewerRejected: return WarehouseAppColor.error;
+      case BalanceStatus.branchRejected:   return WarehouseAppColor.error;
+      case BalanceStatus.applied:          return WarehouseAppColor.success;
     }
   }
 
   Color get bgColor {
     switch (this) {
-      case BalanceStatus.reviewPending:    return AppColor.warningLight;
-      case BalanceStatus.branchPending:    return AppColor.infoLight;
-      case BalanceStatus.reviewerRejected: return AppColor.errorLight;
-      case BalanceStatus.branchRejected:   return AppColor.errorLight;
-      case BalanceStatus.applied:          return AppColor.successLight;
+      case BalanceStatus.reviewPending:    return WarehouseAppColor.warningLight;
+      case BalanceStatus.branchPending:    return WarehouseAppColor.infoLight;
+      case BalanceStatus.reviewerRejected: return WarehouseAppColor.errorLight;
+      case BalanceStatus.branchRejected:   return WarehouseAppColor.errorLight;
+      case BalanceStatus.applied:          return WarehouseAppColor.successLight;
     }
   }
 
