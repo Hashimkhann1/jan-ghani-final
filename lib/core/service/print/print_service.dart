@@ -45,6 +45,7 @@ class ThermalPrintService {
     double? paidAmount,
     double? currentBalance,
     String? notes,
+    String? holdLabel,
   }) async {
     final doc = pw.Document();
     final dateFmt = DateFormat('dd/MM/yyyy');
@@ -106,6 +107,8 @@ class ThermalPrintService {
 
           // ── Invoice Info ───────────────────────────────────
           _infoRow('INVOICE:', invoiceNo),
+          if (holdLabel != null && holdLabel.isNotEmpty)
+            _infoRowBold('HOLD:', holdLabel.toUpperCase()),
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [

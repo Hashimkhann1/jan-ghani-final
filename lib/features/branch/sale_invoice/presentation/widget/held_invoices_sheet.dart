@@ -367,6 +367,7 @@ class _HeldInvoicesDialogState extends ConsumerState<_HeldInvoicesDialog> {
         customerId:     hold.customer?.id,
         previousBalance: hold.customer?.balance,
         notes:          'HELD INVOICE — NOT FINAL BILL',
+        holdLabel:      hold.holdLabel,
       );
     } catch (e) {
       if (context.mounted) {
