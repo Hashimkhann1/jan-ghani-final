@@ -32,7 +32,7 @@ class BranchTransactionDatasource {
         .select(
       'id, branch_id, assign_by_id, assign_by_name, assign_to_id, '
           'type, before_amount, pay_amount, after_amount, '
-          'is_synced, created_at, updated_at',
+          'is_synced, is_received, received_at, created_at, updated_at',
     )
         .eq('branch_id', branchId);
 
@@ -76,7 +76,7 @@ class BranchTransactionDatasource {
           .select(
         'id, branch_id, assign_by_id, assign_by_name, assign_to_id, '
             'type, before_amount, pay_amount, after_amount, '
-            'is_synced, created_at, updated_at',
+            'is_synced, is_received, received_at, created_at, updated_at',
       )
           .eq('branch_id', branchId);
   
@@ -109,6 +109,7 @@ class BranchTransactionDatasource {
   }) async {
     int    totalCount = 0;
     double totalCashOut = 0;
+    double pendingAmount = 0;
     int    rangeStart = 0;
     const  int pageSize = 1000;
     bool   hasMore = true;
@@ -116,7 +117,7 @@ class BranchTransactionDatasource {
     while (hasMore) {
       var query = _client
           .from('branch_transaction_to_janghani')
-          .select('type, pay_amount')
+          .select('type, pay_amount, is_received')
           .eq('branch_id', branchId);
 
       if (startDate != null) {
@@ -134,8 +135,10 @@ class BranchTransactionDatasource {
       for (final r in list) {
         totalCount++;
         if (r['type'] == 'cash_out') {
-          totalCashOut +=
+          final amt =
               double.tryParse(r['pay_amount']?.toString() ?? '0') ?? 0;
+          totalCashOut += amt;
+          if (r['is_received'] != true) pendingAmount += amt;
         }
       }
 
@@ -147,6 +150,16 @@ class BranchTransactionDatasource {
     }
 
     return BranchTransactionTotals(
-        totalCount: totalCount, totalCashOut: totalCashOut);
+        totalCount:    totalCount,
+        totalCashOut:  totalCashOut,
+        pendingAmount: pendingAmount);
+  }
+
+  // ── Accountant cash receive karta hai ──────────────────────
+  // Supabase RPC ek hi transaction mein row ko is_received = true karta hai
+  // aur pay_amount janghani_net_amount.cash_in_hand mein add karta hai.
+  // Row pehle se received ho to RPC error deta hai — double add nahi hota.
+  Future<void> receiveCashOut(String id) async {
+    await _client.rpc('receive_branch_cash_out', params: {'p_id': id});
   }
 }

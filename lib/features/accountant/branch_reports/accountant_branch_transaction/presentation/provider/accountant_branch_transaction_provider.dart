@@ -13,6 +13,7 @@ class BranchTransactionState {
   final List<BranchTransactionModel> transactions;
   final int       totalCount;
   final double    totalCashOut;
+  final double    pendingAmount;
   final String    branchName;
   final BranchReportPageState pagination;
   final bool      isLoading;
@@ -24,6 +25,7 @@ class BranchTransactionState {
     this.transactions = const [],
     this.totalCount   = 0,
     this.totalCashOut = 0,
+    this.pendingAmount = 0,
     this.branchName   = '',
     this.pagination   = const BranchReportPageState(),
     this.isLoading    = false,
@@ -36,6 +38,7 @@ class BranchTransactionState {
     List<BranchTransactionModel>? transactions,
     int?                          totalCount,
     double?                       totalCashOut,
+    double?                       pendingAmount,
     String?                       branchName,
     BranchReportPageState?        pagination,
     bool?                         isLoading,
@@ -47,6 +50,7 @@ class BranchTransactionState {
         transactions: transactions ?? this.transactions,
         totalCount:   totalCount   ?? this.totalCount,
         totalCashOut: totalCashOut ?? this.totalCashOut,
+        pendingAmount: pendingAmount ?? this.pendingAmount,
         branchName:   branchName   ?? this.branchName,
         pagination:   pagination   ?? this.pagination,
         isLoading:    isLoading    ?? this.isLoading,
@@ -126,6 +130,7 @@ class BranchTransactionNotifier
         transactions: paged.transactions,
         totalCount:   totals.totalCount,
         totalCashOut: totals.totalCashOut,
+        pendingAmount: totals.pendingAmount,
         isLoading:    false,
         pagination:   BranchReportPageState(
             page: 0, hasNextPage: paged.hasNextPage),
@@ -191,6 +196,32 @@ class BranchTransactionNotifier
     state = state.copyWith(startDate: null, endDate: null);
     await load();
   }
+
+  // ── Pending cash out receive karo → janghani_net_amount mein add ──
+  Future<bool> receiveCashOut(BranchTransactionModel t) async {
+    try {
+      await _datasource.receiveCashOut(t.id);
+      state = state.copyWith(
+        transactions: [
+          for (final x in state.transactions)
+            x.id == t.id ? x.markReceived() : x,
+        ],
+        pendingAmount: (state.pendingAmount - t.payAmount)
+            .clamp(0, double.infinity)
+            .toDouble(),
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+          errorMessage: 'Receive nahi ho saka — ${_cleanError(e)}');
+      // Ho sakta hai kisi aur ne pehle hi receive kar liya ho — taaza data lao.
+      await load();
+      return false;
+    }
+  }
+
+  String _cleanError(Object e) =>
+      e is PostgrestException ? e.message : e.toString();
 
   void clearError() => state = state.copyWith(errorMessage: null);
 }

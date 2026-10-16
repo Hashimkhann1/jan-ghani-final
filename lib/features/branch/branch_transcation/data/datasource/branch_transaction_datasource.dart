@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:postgres/postgres.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../../core/service/db/db_service.dart';
 import '../model/branch_transaction_history_model.dart';
@@ -37,9 +35,10 @@ class BranchTransactionDataSource {
   }) async {
     final conn = await DataBaseService.getConnection();
 
-    // Local money-move is atomic: decrement today's counter (only if it
-    // actually has the balance) and record the history row in one tx.
-    late String rowId;
+    // Sirf local: counter minus + history row ek hi tx mein. Amount
+    // janghani_net_amount mein tab add hota hai jab accountant is row ko
+    // "Receive" karta hai (Supabase RPC receive_branch_cash_out) — branch
+    // ka slow internet ab cash out ko nahi rokta.
     await conn.runTx((tx) async {
       final upd = await tx.execute(
         Sql.named('''
@@ -58,7 +57,7 @@ class BranchTransactionDataSource {
             'Aaj ka cash counter nahi mila ya available balance kam hai');
       }
 
-      final ins = await tx.execute(
+      await tx.execute(
         Sql.named('''
           INSERT INTO public.branch_transaction_to_janghani
             (branch_id, assign_by_id, assign_by_name, assign_to_id,
@@ -66,7 +65,6 @@ class BranchTransactionDataSource {
           VALUES
             (@branchId::uuid, @assignById::uuid, @assignByName, NULL,
              'cash_out', @beforeAmount, @payAmount, @afterAmount, false)
-          RETURNING id
         '''),
         parameters: {
           'branchId':     branchId,
@@ -77,85 +75,7 @@ class BranchTransactionDataSource {
           'afterAmount':  afterAmount,
         },
       );
-      rowId = ins.first.toColumnMap()['id'].toString();
     });
-
-    // Remote sync is best-effort with a short timeout — on slow/no internet it
-    // just stays "pending" and the background SyncService applies it later.
-    try {
-      await _pushToJanghani(conn, rowId, payAmount)
-          .timeout(const Duration(seconds: 8));
-    } catch (e) {
-      if (kDebugMode) debugPrint('cashOut: janghani sync pending — $e');
-    }
-  }
-
-  // ── SYNC single pending row (manual retry) ────────────────
-  Future<void> syncToJanghani(String rowId, double payAmount) async {
-    final conn = await DataBaseService.getConnection();
-    await _pushToJanghani(conn, rowId, payAmount);
-  }
-
-  /// Push one pending cash-out to the central `janghani_net_amount`.
-  ///
-  /// Idempotency: the local row is claimed FIRST (`is_synced` flipped to true
-  /// only if it was false). Whoever wins that atomic update is the only caller
-  /// that touches Supabase; if the remote update then fails the claim is rolled
-  /// back so a later cycle retries. This keeps the app's manual "Sync" button
-  /// and the background SyncService from double-applying the same row.
-  Future<void> _pushToJanghani(
-      Connection conn, String rowId, double payAmount) async {
-    // 1. Claim the row.
-    final claim = await conn.execute(
-      Sql.named('''
-        UPDATE public.branch_transaction_to_janghani
-        SET is_synced = true, updated_at = NOW()
-        WHERE id = @id::uuid AND is_synced = false
-      '''),
-      parameters: {'id': rowId},
-    );
-    if (claim.affectedRows != 1) return; // already synced / claimed elsewhere
-
-    try {
-      final res = await Supabase.instance.client
-          .from('janghani_net_amount')
-          .select('id, cash_in_hand')
-          .limit(1)
-          .maybeSingle();
-
-      if (res == null) {
-        throw Exception('janghani_net_amount row not found');
-      }
-
-      final janghaniId  = res['id'].toString();
-      final currentCash = double.tryParse(
-          res['cash_in_hand']?.toString() ?? '0') ?? 0.0;
-
-      await Supabase.instance.client
-          .from('janghani_net_amount')
-          .update({'cash_in_hand': currentCash + payAmount})
-          .eq('id', janghaniId);
-
-      await conn.execute(
-        Sql.named('''
-          UPDATE public.branch_transaction_to_janghani
-          SET assign_to_id = @janghaniId::uuid, updated_at = NOW()
-          WHERE id = @rowId::uuid
-        '''),
-        parameters: {'rowId': rowId, 'janghaniId': janghaniId},
-      );
-    } catch (e) {
-      // Release the claim so the next sync attempt retries this row.
-      await conn.execute(
-        Sql.named('''
-          UPDATE public.branch_transaction_to_janghani
-          SET is_synced = false, updated_at = NOW()
-          WHERE id = @id::uuid
-        '''),
-        parameters: {'id': rowId},
-      );
-      rethrow;
-    }
   }
 
   // ── GET history (with optional date range filter) ─────────

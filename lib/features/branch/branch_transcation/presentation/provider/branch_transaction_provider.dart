@@ -17,7 +17,6 @@ class BranchTransactionState {
   final bool     isSubmitting;
   final String?  errorMessage;
   final bool     isSuccess;
-  final String?  syncingRowId;
   final DateTime? startDate;
   final DateTime? endDate;
 
@@ -29,7 +28,6 @@ class BranchTransactionState {
     this.isSubmitting  = false,
     this.errorMessage,
     this.isSuccess     = false,
-    this.syncingRowId,
     this.startDate,
     this.endDate,
   });
@@ -42,7 +40,6 @@ class BranchTransactionState {
     bool?     isSubmitting,
     String?   errorMessage,
     bool?     isSuccess,
-    String?   syncingRowId,
     DateTime? startDate,
     DateTime? endDate,
     bool      clearDates = false,
@@ -55,7 +52,6 @@ class BranchTransactionState {
         isSubmitting:  isSubmitting  ?? this.isSubmitting,
         errorMessage:  errorMessage,
         isSuccess:     isSuccess     ?? this.isSuccess,
-        syncingRowId:  syncingRowId,
         startDate:     clearDates ? null : (startDate ?? this.startDate),
         endDate:       clearDates ? null : (endDate   ?? this.endDate),
       );
@@ -160,8 +156,8 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
       await loadData();
       state = state.copyWith(isSubmitting: false, isSuccess: true);
 
-      // Net available ho to turant background sync — pending amount ko
-      // janghani_net_amount tak pahunchane ke liye. Fire-and-forget.
+      // Net available ho to turant background sync — row Supabase tak
+      // pahunche taake accountant ko "Pending" dikhe. Fire-and-forget.
       unawaited(SyncService().syncNow());
     } catch (e) {
       if (kDebugMode) debugPrint('cashOut error: $e');
@@ -169,21 +165,6 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
       state = state.copyWith(
         isSubmitting: false,
         errorMessage: 'Cash out nahi ho saka — $msg',
-      );
-    }
-  }
-
-  // ── Sync single pending row ────────────────────────────
-  Future<void> syncRow(String rowId, double payAmount) async {
-    state = state.copyWith(syncingRowId: rowId, errorMessage: null);
-    try {
-      await _ds.syncToJanghani(rowId, payAmount);
-      await loadData();
-      state = state.copyWith(syncingRowId: null);
-    } catch (e) {
-      state = state.copyWith(
-        syncingRowId: null,
-        errorMessage: 'Sync error: $e',
       );
     }
   }

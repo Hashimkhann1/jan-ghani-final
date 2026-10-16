@@ -327,6 +327,13 @@ class _DesktopLayout extends StatelessWidget {
                 icon:  'ic_net_amount',
                 color: const Color(0xFFF97316),
               ),
+              const SizedBox(width: 10),
+              _DeskStatCard(
+                label: 'Pending',
+                value: 'Rs ${amtFmt.format(state.pendingAmount.toInt())}',
+                icon:  'ic_net_amount',
+                color: const Color(0xFFEAB308),
+              ),
             ],
           ),
         ),
@@ -442,6 +449,7 @@ class _TransactionTable extends StatelessWidget {
             _TH(label: 'Type',       flex: 2, center: true),
             _TH(label: 'Amount',     flex: 3, right: true),
             _TH(label: 'Date & Time',flex: 4),
+            _TH(label: 'Status',     flex: 3, center: true),
           ]),
         ),
         const Divider(height: 1, color: Color(0xFFEEEEEE)),
@@ -652,6 +660,12 @@ class _TransactionTableRow extends StatelessWidget {
               ),
             ),
           ),
+
+          // Status — Pending ho to Receive button
+          Expanded(
+            flex: 3,
+            child: Center(child: _ReceiveStatus(item: item)),
+          ),
         ],
       ),
     );
@@ -752,6 +766,14 @@ class _MobileLayout extends StatelessWidget {
                     'Rs ${amtFmt.format(state.totalCashOut.toInt())}',
                     icon:  'ic_net_amount',
                     color: const Color(0xFFF97316),
+                  ),
+                  const SizedBox(width: 10),
+                  _MobileSummaryCard(
+                    label: 'Pending',
+                    value:
+                    'Rs ${amtFmt.format(state.pendingAmount.toInt())}',
+                    icon:  'ic_net_amount',
+                    color: const Color(0xFFEAB308),
                   ),
                 ],
               ),
@@ -1018,6 +1040,10 @@ class _TransactionCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (transaction.isCashOut) ...[
+                  const SizedBox(height: 6),
+                  _ReceiveStatus(item: transaction),
+                ],
               ],
             ),
           ],
@@ -1030,6 +1056,126 @@ class _TransactionCard extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 // Shared Widgets
 // ══════════════════════════════════════════════════════════════════════════════
+
+// ── Cash out status: Received chip, ya Pending → "Receive" button ──────────
+// Receive dabane par amount janghani_net_amount mein add hota hai.
+class _ReceiveStatus extends ConsumerStatefulWidget {
+  final BranchTransactionModel item;
+
+  const _ReceiveStatus({required this.item});
+
+  @override
+  ConsumerState<_ReceiveStatus> createState() => _ReceiveStatusState();
+}
+
+class _ReceiveStatusState extends ConsumerState<_ReceiveStatus> {
+  bool _busy = false;
+
+  Future<void> _receive() async {
+    final t      = widget.item;
+    final amtFmt = NumberFormat('#,##0.##');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title:   const Text('Cash Receive karein?'),
+        content: Text(
+          'Rs ${amtFmt.format(t.payAmount)} — ${t.assignByName}\n\n'
+          'Ye amount Jan Ghani net amount (cash in hand) mein add ho jayega. '
+          'Ye wapas nahi hota.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child:     const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Receive'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _busy = true);
+    final done = await ref
+        .read(branchTransactionProvider(t.branchId).notifier)
+        .receiveCashOut(t);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (done) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            'Rs ${amtFmt.format(t.payAmount)} receive ho gaye — net amount mein add'),
+        backgroundColor: const Color(0xFF10B981),
+        behavior:        SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.item;
+    if (!t.isCashOut) {
+      return const Text('—',
+          style: TextStyle(fontSize: 12, color: AppColor.textHint));
+    }
+
+    if (t.isReceived) {
+      const green = Color(0xFF10B981);
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color:        green.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border:       Border.all(color: green.withOpacity(0.3)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_rounded, size: 12, color: green),
+            SizedBox(width: 4),
+            Text('Received',
+                style: TextStyle(
+                  fontSize:   10,
+                  fontWeight: FontWeight.w700,
+                  color:      green,
+                )),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 30,
+      child: ElevatedButton.icon(
+        onPressed: _busy ? null : _receive,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFEAB308),
+          foregroundColor: Colors.white,
+          elevation:       0,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8)),
+        ),
+        icon: _busy
+            ? const SizedBox(
+                width:  12,
+                height: 12,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.hourglass_top_rounded, size: 13),
+        label: Text(_busy ? '...' : 'Pending · Receive',
+            style: const TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
+}
 class _DateField extends StatelessWidget {
   final TextEditingController controller;
   final String                hint;

@@ -32,7 +32,7 @@ class BranchTransactionExportSheets {
         t.beforeAmount,
         t.payAmount,
         t.afterAmount,
-        t.isSynced ? 'Yes' : 'No',
+        t.isCashOut ? (t.isReceived ? 'Received' : 'Pending') : '—',
       ]);
     }
 
@@ -50,7 +50,7 @@ class BranchTransactionExportSheets {
           ExcelColumn('Before Amount',  width: 16, type: ExcelColType.amount),
           ExcelColumn('Amount',         width: 16, type: ExcelColType.amount),
           ExcelColumn('After Amount',   width: 16, type: ExcelColType.amount),
-          ExcelColumn('Synced',         width: 10),
+          ExcelColumn('Status',         width: 12),
         ],
         rows: rows,
       ),

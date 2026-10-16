@@ -255,35 +255,6 @@ class _BranchTransactionScreenState
 
             const SizedBox(height: 16),
 
-            // ── Pending sync banner ──────────────────
-            if (state.history.any((t) => !t.isSynced))
-              Container(
-                width:   double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin:  const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color:        Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.orange.shade300),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.wifi_off_rounded,
-                        color: Colors.orange.shade600, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        '${state.history.where((t) => !t.isSynced).length} transaction(s) pending sync — internet aa ne par Sync karein',
-                        style: TextStyle(
-                            color:      Colors.orange.shade700,
-                            fontSize:   13,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
             const Align(
               alignment: Alignment.centerLeft,
               child: Text('Transaction History',
@@ -345,12 +316,8 @@ class _BranchTransactionScreenState
                               DataColumn(label: Text('After Amount')),
                               DataColumn(label: Text('By')),
                               DataColumn(label: Text('Date & Time')),
-                              DataColumn(label: Text('Status')),
                             ],
                             rows: pageSlice(state.history, _page).map((t) {
-                              final isSyncingThis =
-                                  state.syncingRowId == t.id;
-
                               return DataRow(cells: [
 
                                 DataCell(Container(
@@ -420,100 +387,6 @@ class _BranchTransactionScreenState
                                       color: Colors.black45),
                                 )),
 
-                                DataCell(
-                                  t.isSynced
-                                      ? Container(
-                                    padding: const EdgeInsets
-                                        .symmetric(
-                                        horizontal: 10,
-                                        vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green
-                                          .shade50,
-                                      borderRadius:
-                                      BorderRadius
-                                          .circular(8),
-                                      border: Border.all(
-                                          color: Colors.green
-                                              .shade200),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize:
-                                      MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                            Icons.check_circle_outline,
-                                            size:  13,
-                                            color: Colors
-                                                .green.shade600),
-                                        const SizedBox(
-                                            width: 5),
-                                        Text('Synced',
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight:
-                                                FontWeight
-                                                    .w600,
-                                                color: Colors
-                                                    .green
-                                                    .shade600)),
-                                      ],
-                                    ),
-                                  )
-                                      : SizedBox(
-                                    width: 90,
-                                    child: ElevatedButton.icon(
-                                      onPressed: isSyncingThis
-                                          ? null
-                                          : () => ref
-                                          .read(branchTransactionProvider
-                                          .notifier)
-                                          .syncRow(
-                                          t.id,
-                                          t.payAmount),
-                                      style: ElevatedButton
-                                          .styleFrom(
-                                        backgroundColor:
-                                        Colors.orange,
-                                        foregroundColor:
-                                        Colors.white,
-                                        padding:
-                                        const EdgeInsets
-                                            .symmetric(
-                                            horizontal: 8,
-                                            vertical: 6),
-                                        elevation: 0,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                            BorderRadius
-                                                .circular(
-                                                8)),
-                                      ),
-                                      icon: isSyncingThis
-                                          ? const SizedBox(
-                                          width:  12,
-                                          height: 12,
-                                          child:
-                                          CircularProgressIndicator(
-                                              strokeWidth:
-                                              2,
-                                              color: Colors
-                                                  .white))
-                                          : const Icon(
-                                          Icons.sync_rounded,
-                                          size: 14),
-                                      label: Text(
-                                          isSyncingThis
-                                              ? '...'
-                                              : 'Sync',
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight:
-                                              FontWeight
-                                                  .w600)),
-                                    ),
-                                  ),
-                                ),
                               ]);
                             }).toList(),
                           ),
