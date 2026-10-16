@@ -9,7 +9,7 @@ class InventoryCountingRemoteDatasource {
   static const int _pageSize = 300;
   // counted_date > CURRENT_DATE - _cooldownDays  → aaj + last 6 din exclude,
   // 7ve din product dobara list mein aa jata hai.
-  static const int _cooldownDays = 7;
+  static const int _cooldownDays = 3;
 
   String get _todayDate {
     final now = DateTime.now();
