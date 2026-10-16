@@ -17,7 +17,6 @@ import 'package:jan_ghani_final/features/branch/reports/presentation/screen/pnl_
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/product_profit_loss_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale_return_report_screen.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
-import 'package:jan_ghani_final/features/branch/services/presentation/screen/service_screen.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 import '../../../features/branch/branch_transcation/presentation/screen/branch_transaction_screen.dart';
 import '../../../features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
@@ -106,11 +105,6 @@ final _stockOfficerItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyS,
     permKey: 'sale_invoice',
   ),
-  // NavItem(
-  //   icon: Icons.point_of_sale_rounded, label: 'Service',
-  //   screen: const ServiceScreen(),
-  //   shortcutKey: LogicalKeyboardKey.keyS,
-  // ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
@@ -232,11 +226,6 @@ final _managerItems = <NavItem>[
     shortcutKey: LogicalKeyboardKey.keyS,
     permKey: 'sale_invoice',
   ),
-  // NavItem(
-  //   icon: Icons.point_of_sale_rounded, label: 'Service',
-  //   screen: const ServiceScreen(),
-  //   shortcutKey: LogicalKeyboardKey.keyS,
-  // ),
   NavItem(
     icon: Icons.people_alt_rounded, label: 'Customer',
     screen: const AllCustomerScreen(),
