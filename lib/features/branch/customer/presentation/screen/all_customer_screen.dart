@@ -15,6 +15,7 @@ import '../../../../../core/widget/app_icon.dart';
 import '../../../../../core/widget/figure_card_widget.dart';
 import '../../data/model/customer_model.dart';
 import '../widget/customer_action_button_widget.dart';
+import '../widget/customer_detail_drawer.dart';
 import '../widget/customer_empty_state.dart';
 import '../widget/customer_filter_chip_widget.dart';
 import '../widget/customer_status_badge_widget.dart';
@@ -176,7 +177,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
           return _compare(a.balance, b.balance);
         case 6: // Status
           return _compare(a.isActive ? 1 : 0, b.isActive ? 1 : 0);
-        case 8: // Updated At
+        case 7: // Updated At
           return _compare(a.updatedAt, b.updatedAt);
         default:
           return 0;
@@ -464,11 +465,11 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                               label: const Text('Status'),
                               onSort: _onSort,
                             ),
-                            const DataColumn(label: Text('Actions')),
                             DataColumn(
                               label: const Text('Updated At'),
                               onSort: _onSort,
                             ),
+                            const DataColumn(label: Text('Actions')),
                           ],
                           rows: List.generate(customers.length, (i) {
                             final c = customers[i];
@@ -518,11 +519,28 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                 // Status
                                 DataCell(CustomerStatusBadge(isActive: c.isActive)),
 
+                                // Updated At
+                                DataCell(Text(
+                                    DateFormat('dd MMM yyyy, hh:mm a')
+                                        .format(c.updatedAt.toLocal()),
+                                    style: const TextStyle(fontSize: 13))),
+
                                 // Actions
                                 // Actions
                                 DataCell(Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+
+                                    // View — detail panel + connect QR
+                                    CustomerActionButton(
+                                      icon: Icons.visibility_outlined,
+                                      iconAsset: 'ic_view',
+                                      color: AppColor.info,
+                                      tooltip: 'View',
+                                      onTap: () =>
+                                          showCustomerDetailDrawer(context, c),
+                                    ),
+                                    const SizedBox(width: 6),
 
                                     // Edit — sirf 'customer.edit' permission grant hone par
                                     if (canEdit) ...[
@@ -584,12 +602,6 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                       ),
                                   ],
                                 )),
-
-                                // Updated At
-                                DataCell(Text(
-                                    DateFormat('dd MMM yyyy, hh:mm a')
-                                        .format(c.updatedAt.toLocal()),
-                                    style: const TextStyle(fontSize: 13))),
                               ],
                             );
                           }),

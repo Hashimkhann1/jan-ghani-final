@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -164,6 +166,7 @@ class _AccountantBranchInventoryReportScreenState
           ? _DesktopLayout(
         state: state,
         notifier: notifier,
+        searchCtrl: _searchCtrl,
         fmtAmt: _fmtAmt,
         fmtQty: _fmtQty,
         onFilters: _openFilters,
@@ -171,6 +174,7 @@ class _AccountantBranchInventoryReportScreenState
           : _MobileLayout(
         state: state,
         notifier: notifier,
+        searchCtrl: _searchCtrl,
         fmtAmt: _fmtAmt,
         fmtQty: _fmtQty,
         onFilters: _openFilters,
@@ -268,6 +272,7 @@ Widget _exportButton(
 class _DesktopLayout extends StatelessWidget {
   final AccountantBranchInventoryState state;
   final dynamic notifier;
+  final TextEditingController searchCtrl;
   final String Function(double) fmtAmt;
   final String Function(double) fmtQty;
   final VoidCallback onFilters;
@@ -275,10 +280,14 @@ class _DesktopLayout extends StatelessWidget {
   const _DesktopLayout({
     required this.state,
     required this.notifier,
+    required this.searchCtrl,
     required this.fmtAmt,
     required this.fmtQty,
     required this.onFilters,
   });
+
+  void _toggle(StockStatus s) =>
+      notifier.setStockFilter(state.stockFilter == s ? null : s);
 
   @override
   Widget build(BuildContext context) {
@@ -287,8 +296,11 @@ class _DesktopLayout extends StatelessWidget {
       children: [
         // Top bar
         Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+          ),
+          padding: const EdgeInsets.fromLTRB(28, 18, 28, 18),
           child: Row(
             children: [
               IconButton(
@@ -312,132 +324,178 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              SizedBox(
-                width: 130,
-                child: OutlinedButton.icon(
-                  onPressed: onFilters,
-                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
-                  label: Text(_activeFilterCount(state) > 0 ? 'Filters (${_activeFilterCount(state)})' : 'Filters'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+              ReportFilterButton(
+                onPressed:   onFilters,
+                activeCount: _activeFilterCount(state),
               ),
-              const SizedBox(width: 10),
               _exportButton(context, state, notifier, filled: true),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 120,
-                child: OutlinedButton.icon(
-                  onPressed: notifier.load,
-                  icon: const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
-                  label: const Text('Refresh'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ReportRefreshButton(onPressed: notifier.load),
+            ],
+          ),
+        ),
+
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Stock status cards
+                Row(children: [
+                  _DeskSummaryCard(
+                    label: 'Total',
+                    value: '${state.summary.totalProducts}',
+                    icon: 'ic_total_products',
+                    color: AppColor.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  _DeskSummaryCard(
+                    label: 'In Stock',
+                    value: '${state.summary.inStock}',
+                    icon: 'ic_active_check',
+                    color: AppColor.success,
+                    selected: state.stockFilter == StockStatus.inStock,
+                    onTap: () => _toggle(StockStatus.inStock),
+                  ),
+                  const SizedBox(width: 12),
+                  _DeskSummaryCard(
+                    label: 'Low Stock',
+                    value: '${state.summary.lowStock}',
+                    icon: 'ic_pending',
+                    color: AppColor.warning,
+                    selected: state.stockFilter == StockStatus.lowStock,
+                    onTap: () => _toggle(StockStatus.lowStock),
+                  ),
+                  const SizedBox(width: 12),
+                  _DeskSummaryCard(
+                    label: 'Out of Stock',
+                    value: '${state.summary.outOfStock}',
+                    icon: 'ic_inactive',
+                    color: AppColor.error,
+                    selected: state.stockFilter == StockStatus.outOfStock,
+                    onTap: () => _toggle(StockStatus.outOfStock),
+                  ),
+                  const SizedBox(width: 12),
+                  _DeskSummaryCard(
+                    label: 'Diet Product',
+                    value: '${state.summary.deadStock}',
+                    icon: 'ic_sale_price_trend',
+                    color: const Color(0xFFC00012),
+                    selected: state.deadStockOnly,
+                    onTap: notifier.toggleDeadStockOnly,
+                  ),
+                ]),
+                const SizedBox(height: 12),
+
+                // Values row — hamesha filtered list se
+                _ValuesRow(
+                  items: state.filtered,
+                  stockFilter: state.stockFilter,
+                  deadStockOnly: state.deadStockOnly,
+                  categoryFilter: state.categoryFilter,
+                  fmtAmt: fmtAmt,
+                  fmtQty: fmtQty,
+                ),
+                const SizedBox(height: 16),
+
+                // Table card
+                Expanded(
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFEEEEEE)),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
+                    ),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          child: Row(children: [
+                            SizedBox(
+                              width: 340,
+                              child: _InventorySearchField(
+                                controller: searchCtrl,
+                                query: state.searchQuery,
+                                onChanged: notifier.search,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text('${state.filtered.length} products',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColor.textHint)),
+                          ]),
+                        ),
+                        Expanded(
+                          child: state.isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : state.filtered.isEmpty
+                              ? const _EmptyState()
+                              : _InventoryTable(items: state.pageItems, fmtAmt: fmtAmt, fmtQty: fmtQty),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+                if (!state.isLoading && state.filtered.isNotEmpty)
+                  BranchReportPaginationControls(
+                    page:        state.pagination.page,
+                    hasNextPage: state.hasNextPage,
+                    onNext:      notifier.nextPage,
+                    onPrevious:  notifier.previousPage,
+                  )
+                else
+                  const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
-        const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
-        // Summary + Search
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _DeskSummaryCard(
-                label: 'Total',
-                value: '${state.summary.totalProducts}',
-                icon: 'ic_total_products',
-                color: AppColor.primary,
-              ),
-              const SizedBox(width: 10),
-              _DeskSummaryCard(
-                label: 'In Stock',
-                value: '${state.summary.inStock}',
-                icon: 'ic_active_check',
-                color: AppColor.success,
-                selected: state.stockFilter == StockStatus.inStock,
-                onTap: () => notifier.setStockFilter(
-                    state.stockFilter == StockStatus.inStock ? null : StockStatus.inStock),
-              ),
-              const SizedBox(width: 10),
-              _DeskSummaryCard(
-                label: 'Low Stock',
-                value: '${state.summary.lowStock}',
-                icon: 'ic_pending',
-                color: AppColor.warning,
-                selected: state.stockFilter == StockStatus.lowStock,
-                onTap: () => notifier.setStockFilter(
-                    state.stockFilter == StockStatus.lowStock ? null : StockStatus.lowStock),
-              ),
-              const SizedBox(width: 10),
-              _DeskSummaryCard(
-                label: 'Out of Stock',
-                value: '${state.summary.outOfStock}',
-                icon: 'ic_inactive',
-                color: AppColor.error,
-                selected: state.stockFilter == StockStatus.outOfStock,
-                onTap: () => notifier.setStockFilter(
-                    state.stockFilter == StockStatus.outOfStock ? null : StockStatus.outOfStock),
-              ),
-              const SizedBox(width: 10),
-              _DeskSummaryCard(
-                label: 'Diet Product',
-                value: '${state.summary.deadStock}',
-                icon: 'ic_sale_price_trend',
-                color: const Color(0xFFC00012),
-                selected: state.deadStockOnly,
-                onTap: notifier.toggleDeadStockOnly,
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
-        // Values row — hamesha filtered list se
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(28, 10, 28, 14),
-          child: _ValuesRow(
-            items: state.filtered,
-            stockFilter: state.stockFilter,
-            deadStockOnly: state.deadStockOnly,
-            categoryFilter: state.categoryFilter,
-            fmtAmt: fmtAmt,
-            fmtQty: fmtQty,
-          ),
-        ),
-        const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
-        // Table
-        Expanded(
-          child: state.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : state.filtered.isEmpty
-              ? const _EmptyState()
-              : _InventoryTable(items: state.pageItems, fmtAmt: fmtAmt, fmtQty: fmtQty),
-        ),
-        if (!state.isLoading && state.filtered.isNotEmpty)
-          BranchReportPaginationControls(
-            page:        state.pagination.page,
-            hasNextPage: state.hasNextPage,
-            onNext:      notifier.nextPage,
-            onPrevious:  notifier.previousPage,
-          ),
       ],
     );
   }
+}
+
+class _InventorySearchField extends StatelessWidget {
+  final TextEditingController controller;
+  final String query;
+  final ValueChanged<String> onChanged;
+
+  const _InventorySearchField({
+    required this.controller,
+    required this.query,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: controller,
+    onChanged: onChanged,
+    style: const TextStyle(fontSize: 13),
+    cursorHeight: 16,
+    decoration: InputDecoration(
+      isDense: true,
+      hintText: 'Search product, SKU or barcode...',
+      hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
+      prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.primary),
+      suffixIcon: query.isNotEmpty
+          ? IconButton(
+              icon: const AppIcon('ic_clear', size: 16, color: AppColor.textHint),
+              onPressed: () {
+                controller.clear();
+                onChanged('');
+              },
+            )
+          : null,
+      filled: true,
+      fillColor: const Color(0xFFF5F6FA),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColor.primary, width: 1.5)),
+    ),
+  );
 }
 
 class _DeskSummaryCard extends StatelessWidget {
@@ -457,40 +515,16 @@ class _DeskSummaryCard extends StatelessWidget {
     this.onTap,
   });
 
+  // Row ke andar use hota hai — available width barabar taqseem hoti hai.
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: selected ? color.withOpacity(0.1) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: selected ? color.withOpacity(0.4) : const Color(0xFFEEEEEE)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(7),
-            ),
-            child: AppIcon(icon, size: 14, color: color),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(value,
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color)),
-              Text(label, style: const TextStyle(fontSize: 11, color: AppColor.textHint)),
-            ],
-          ),
-        ],
-      ),
+  Widget build(BuildContext context) => Expanded(
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      selected:  selected,
+      onTap:     onTap,
     ),
   );
 }
@@ -507,29 +541,28 @@ class _InventoryTable extends StatelessWidget {
     return Column(
       children: [
         Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-          child: Row(children: [
-            const SizedBox(width: 10),
+          color: const Color(0xFFF8F9FC),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          child: const Row(children: [
+            SizedBox(width: 16),
             _TH(label: '#', flex: 1),
-            _TH(label: 'Product', flex: 4),
-            _TH(label: 'Category', flex: 2),
+            _TH(label: 'PRODUCT', flex: 6),
             _TH(label: 'SKU', flex: 3),
-            _TH(label: 'Unit', flex: 2),
-            _TH(label: 'Stock', flex: 2, center: true),
-            _TH(label: 'Min / Max', flex: 3, center: true),
-            _TH(label: 'Purchase Price', flex: 3, right: true),
-            _TH(label: 'Sale Price', flex: 3, right: true),
-            _TH(label: 'Wholesale', flex: 3, right: true),
-            _TH(label: 'Status', flex: 3, center: true),
+            _TH(label: 'STOCK', flex: 3, center: true),
+            _TH(label: 'MIN / MAX', flex: 3, center: true),
+            _TH(label: 'PURCHASE', flex: 3, right: true),
+            _TH(label: 'SALE', flex: 3, right: true),
+            _TH(label: 'WHOLESALE', flex: 3, right: true),
+            _TH(label: 'STATUS', flex: 3, center: true),
+            SizedBox(width: 16),
           ]),
         ),
-        Container(height: 1, color: const Color(0xFFEEEEEE)),
+        const Divider(height: 1, color: Color(0xFFEEEEEE)),
         Expanded(
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
+            padding: const EdgeInsets.only(bottom: 8),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF0F0F0)),
+            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF2F3F7)),
             itemBuilder: (_, i) => _TableRow(index: i + 1, item: items[i], fmtAmt: fmtAmt, fmtQty: fmtQty),
           ),
         ),
@@ -552,7 +585,7 @@ class _TH extends StatelessWidget {
     child: Text(
       label,
       textAlign: right ? TextAlign.right : center ? TextAlign.center : TextAlign.left,
-      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColor.textHint, letterSpacing: 0.3),
+      style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColor.textHint, letterSpacing: 0.6),
     ),
   );
 }
@@ -584,49 +617,73 @@ class _TableRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+      color: item.isDeadStock ? const Color(0xFFC00012).withOpacity(0.03) : Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          const SizedBox(width: 16),
           Expanded(
             flex: 1,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 10),
-              child: Text('$index', style: const TextStyle(fontSize: 12, color: AppColor.textHint)),
-            ),
+            child: Text('$index', style: const TextStyle(fontSize: 12, color: AppColor.textHint)),
           ),
           Expanded(
-            flex: 4,
+            flex: 6,
             child: Row(
               children: [
-                if (item.isDeadStock) ...[
-                  const AppIcon('ic_sale_price_trend', size: 13, color: Color(0xFFC00012)),
-                  const SizedBox(width: 4),
-                ],
-                Expanded(
-                  child: Text(item.productName,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                Container(
+                  width: 34, height: 34,
+                  decoration: BoxDecoration(
+                    color: _statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: AppIcon('ic_total_products', size: 16, color: _statusColor),
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        if (item.isDeadStock) ...[
+                          const AppIcon('ic_sale_price_trend', size: 13, color: Color(0xFFC00012)),
+                          const SizedBox(width: 4),
+                        ],
+                        Expanded(
+                          child: Text(item.productName,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1D23)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ]),
+                      const SizedBox(height: 2),
+                      Text(item.categoryName,
+                          style: const TextStyle(fontSize: 11, color: AppColor.textHint),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
               ],
             ),
           ),
           Expanded(
-            flex: 2,
-            child: Text(item.categoryName,
-                style: const TextStyle(fontSize: 11, color: AppColor.textSecondary),
+            flex: 3,
+            child: Text(item.sku,
+                style: const TextStyle(fontSize: 12, color: AppColor.textSecondary),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis),
           ),
-          Expanded(flex: 3, child: Text(item.sku, style: const TextStyle(fontSize: 12, color: AppColor.textSecondary))),
-          Expanded(flex: 2, child: Text(item.unit, style: const TextStyle(fontSize: 12, color: AppColor.textSecondary))),
           Expanded(
-            flex: 2,
-            child: Text(fmtQty(item.stock),
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _statusColor)),
+            flex: 3,
+            child: Column(
+              children: [
+                Text(fmtQty(item.stock),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _statusColor)),
+                Text(item.unit, style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
+              ],
+            ),
           ),
           Expanded(
             flex: 3,
@@ -674,6 +731,7 @@ class _TableRow extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(width: 16),
         ],
       ),
     );
@@ -692,6 +750,7 @@ int _activeFilterCount(AccountantBranchInventoryState s) =>
 class _MobileLayout extends StatelessWidget {
   final AccountantBranchInventoryState state;
   final dynamic notifier;
+  final TextEditingController searchCtrl;
   final String Function(double) fmtAmt;
   final String Function(double) fmtQty;
   final VoidCallback onFilters;
@@ -699,6 +758,7 @@ class _MobileLayout extends StatelessWidget {
   const _MobileLayout({
     required this.state,
     required this.notifier,
+    required this.searchCtrl,
     required this.fmtAmt,
     required this.fmtQty,
     required this.onFilters,
@@ -720,11 +780,7 @@ class _MobileLayout extends StatelessWidget {
             activeCount: _activeFilterCount(state),
           ),
           _exportButton(context, state, notifier),
-          IconButton(
-            onPressed: notifier.load,
-            icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           const SizedBox(width: 4),
         ],
         bottom: PreferredSize(
@@ -817,6 +873,14 @@ class _MobileLayout extends StatelessWidget {
           ),
           Container(height: 6, color: const Color(0xFFF5F6FA)),
 
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: _InventorySearchField(
+              controller: searchCtrl,
+              query: state.searchQuery,
+              onChanged: notifier.search,
+            ),
+          ),
           if (!state.isLoading && state.filtered.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
@@ -872,36 +936,15 @@ class _MobileSummaryCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: selected ? color.withOpacity(0.1) : color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: selected ? color.withOpacity(0.4) : color.withOpacity(0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-            child: AppIcon(icon, size: 12, color: color),
-          ),
-          const SizedBox(height: 7),
-          Text(value,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColor.textHint), maxLines: 1, overflow: TextOverflow.ellipsis),
-        ],
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      compact:   true,
+      selected:  selected,
+      onTap:     onTap,
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -974,27 +1017,13 @@ class _ValueCard extends StatelessWidget {
   const _ValueCard({required this.label, required this.value, required this.icon, required this.color});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-    decoration: BoxDecoration(
-      color: color.withOpacity(0.07),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: color.withOpacity(0.2)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppIcon(icon, size: 14, color: color),
-        const SizedBox(height: 5),
-        Text(value,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 9, color: AppColor.textHint)),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) => DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      compact:   true,
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

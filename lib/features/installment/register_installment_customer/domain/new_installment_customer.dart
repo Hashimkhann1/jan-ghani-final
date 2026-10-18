@@ -1,4 +1,4 @@
-/// Register screen ka basic customer data (abhi sirf UI — koi DB nahi).
+/// Register screen ka basic customer data (database: installment_customer).
 class NewInstallmentCustomer {
   final String name;
   final String phone;

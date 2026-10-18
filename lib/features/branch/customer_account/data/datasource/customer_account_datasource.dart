@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:postgres/postgres.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../../core/service/db/db_service.dart';
@@ -104,15 +103,12 @@ class CustomerAccountDatasource {
     required String email,
     required String password,
   }) async {
-    await _supabase.from('users').insert({
-      'id':             _uuid(),
-      'full_name':      fullName,
-      'email':          email,
-      'role':           'customer',
-      'branch_id':      null,
-      'warehouse_id':   null,
-      'customer_token': customerId,
-      'password':       password,
+    // Asli Supabase Auth user banta hai (auth.users) aur customer se link hota hai
+    await _supabase.rpc('create_customer_account', params: {
+      'p_customer_id': customerId,
+      'p_full_name':   fullName,
+      'p_email':       email,
+      'p_password':    password,
     });
   }
 
@@ -121,28 +117,30 @@ class CustomerAccountDatasource {
     required String userId,
     required String newPassword,
   }) async {
-    await _supabase
-        .from('users')
-        .update({
-      'password':   newPassword,
-      'updated_at': DateTime.now().toIso8601String(),
-    })
-        .eq('id', userId);
+    await _supabase.rpc('update_customer_account_password', params: {
+      'p_user_id':      userId,
+      'p_new_password': newPassword,
+    });
   }
 
-  // ── UUID v4 generator ─────────────────────────────────────
-  String _uuid() {
-    final rng = Random.secure();
-    final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    String hex(int b) => b.toRadixString(16).padLeft(2, '0');
-    final b = bytes.map(hex).toList();
-    return '${b[0]}${b[1]}${b[2]}${b[3]}-'
-        '${b[4]}${b[5]}-'
-        '${b[6]}${b[7]}-'
-        '${b[8]}${b[9]}-'
-        '${b[10]}${b[11]}${b[12]}${b[13]}${b[14]}${b[15]}';
+  // ── UPDATE NAME / EMAIL (Supabase Auth + users) ──────────
+  Future<void> updateAccount({
+    required String userId,
+    required String fullName,
+    required String email,
+  }) async {
+    await _supabase.rpc('update_customer_account', params: {
+      'p_user_id':   userId,
+      'p_full_name': fullName,
+      'p_email':     email,
+    });
+  }
+
+  // ── DELETE ACCOUNT (Supabase Auth + users) ────────────────
+  Future<void> deleteAccount(String userId) async {
+    await _supabase.rpc('delete_customer_account', params: {
+      'p_user_id': userId,
+    });
   }
 
   // ── PostgreSQL ROW → MAP ──────────────────────────────────

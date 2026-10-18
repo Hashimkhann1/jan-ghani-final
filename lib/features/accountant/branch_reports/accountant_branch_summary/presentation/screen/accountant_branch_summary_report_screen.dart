@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -105,11 +107,7 @@ class _BranchSummaryReportScreenState
                 fontWeight: FontWeight.w700,
                 color:      Color(0xFF1A1D23))),
         actions: [
-          IconButton(
-            onPressed: notifier.load,
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColor.textSecondary),
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           TextButton(
             onPressed: () {
               notifier.setThisMonth();
@@ -574,34 +572,12 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color:        Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-              color:      Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset:     const Offset(0, 2)),
-        ],
-      ),
-      child: Column(children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(height: 4),
-        Text(value,
-            style: TextStyle(
-                fontSize:   11,
-                fontWeight: FontWeight.w800,
-                color:      color),
-            maxLines:  1,
-            overflow:  TextOverflow.ellipsis),
-        const SizedBox(height: 2),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 10, color: AppColor.textHint)),
-      ]),
+    child: DashboardStatCard(
+      title:   label,
+      value:   value,
+      icon:    icon,
+      color:   color,
+      compact: true,
     ),
   );
 }

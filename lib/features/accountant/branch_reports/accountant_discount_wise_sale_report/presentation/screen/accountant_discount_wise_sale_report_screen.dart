@@ -1,3 +1,6 @@
+import '../../../common/action/report_action_style.dart';
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -272,37 +275,18 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              SizedBox(
-                width: 130,
-                child: OutlinedButton.icon(
-                  onPressed: onFilters,
-                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
-                  label: Text(activeFilterCount > 0 ? 'Filters ($activeFilterCount)' : 'Filters'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+              ReportFilterButton(
+                onPressed:   onFilters,
+                activeCount: activeFilterCount,
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 90,
+              Padding(
+                padding: ReportActionStyle.wideGap,
                 child: OutlinedButton(
                   onPressed: onToday,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Today'),
+                  style:     ReportActionStyle.outlined(),
+                  child:     const Text('Today'),
                 ),
               ),
-              const SizedBox(width: 10),
               ReportExportButton(
                 fileNamePrefix: 'discount_sale_report',
                 filled: true,
@@ -321,23 +305,7 @@ class _DesktopLayout extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 120,
-                child: OutlinedButton.icon(
-                  onPressed: notifier.load,
-                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
-                  label: const Text('Refresh'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              ReportRefreshButton(onPressed: notifier.load),
             ],
           ),
         ),
@@ -534,12 +502,7 @@ class _MobileLayout extends StatelessWidget {
               );
             },
           ),
-          IconButton(
-            onPressed: notifier.load,
-            icon:    const AppIcon('ic_refresh',
-                size: 22, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           TextButton(
             onPressed: onToday,
             child: const Text('Today'),
@@ -641,49 +604,12 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color:        color.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(10),
-        border:       Border.all(color: color.withOpacity(0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color:        color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: AppIcon(icon, size: 13, color: color),
-          ),
-          const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize:   13,
-                fontWeight: FontWeight.w800,
-                color:      color,
-              ),
-              maxLines: 1,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              color:    AppColor.textHint,
-            ),
-          ),
-        ],
-      ),
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      compact:   true,
     ),
   );
 }

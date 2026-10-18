@@ -6,6 +6,25 @@ abstract class AccountantAuthRepository {
     required String password,
   });
 
+  Future<void> signUp({
+    required String fullName,
+    required String email,
+    required String password,
+  });
+
+  Future<void> sendPasswordReset(String email);
+
+  Future<void> signInWithGoogle();
+
+  Future<AccountantUserEntity?> profileOfCurrentSession();
+
+  Future<void> signOut();
+
+  Future<void> connectCustomerAccount(String customerId);
+
+  Future<void> connectInstallmentAccount(String installmentId);
+  Future<void> connectBranchUserAccount(String branchUserId);
+
   Future<void> saveSession(AccountantUserEntity user);
 
   Future<AccountantUserEntity?> getSession();

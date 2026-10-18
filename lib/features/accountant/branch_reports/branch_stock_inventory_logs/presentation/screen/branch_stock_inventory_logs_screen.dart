@@ -1,3 +1,4 @@
+import '../../../common/action/report_refresh_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -259,22 +260,7 @@ class _Layout extends StatelessWidget {
                   endDate: state.endDate,
                 ),
               ),
-              const SizedBox(width: 6),
-              SizedBox(
-                width: 44,
-                height: 44,
-                child: OutlinedButton(
-                  onPressed: notifier.load,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
-                ),
-              ),
+              ReportRefreshButton(onPressed: notifier.load),
             ],
           ),
         ),

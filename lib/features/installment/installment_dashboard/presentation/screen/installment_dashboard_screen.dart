@@ -8,9 +8,11 @@ import 'package:jan_ghani_final/features/installment/installment_dashboard/prese
 import 'package:jan_ghani_final/features/installment/installment_dashboard/presentation/widget/installment_stat_card.dart';
 import 'package:jan_ghani_final/features/installment/installment_customer_detail/presentation/screen/installment_customer_detail_screen.dart';
 import 'package:jan_ghani_final/features/installment/installment_dashboard/domain/installment_customer.dart';
+import 'package:jan_ghani_final/features/accountant/authentication/presentation/providers/accountant_auth_providers.dart';
+import 'package:jan_ghani_final/features/installment/installment_calculator/presentation/screen/installment_calculator_screen.dart';
 import 'package:jan_ghani_final/features/installment/register_installment_customer/presentation/screen/register_installment_customer_screen.dart';
 
-/// Installment module ka mobile dashboard (sirf UI — data abhi mock).
+/// Installment module ka dashboard (officer / owner) — data database se.
 class InstallmentDashboardScreen extends ConsumerStatefulWidget {
   const InstallmentDashboardScreen({super.key});
 
@@ -32,22 +34,34 @@ class _InstallmentDashboardScreenState
   }
 
   /// + tap par Register New Customer screen kholo.
-  void _openRegisterCustomer() {
-    Navigator.of(context).push(
+  Future<void> _openRegisterCustomer() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const RegisterInstallmentCustomerScreen(),
       ),
     );
+    if (mounted) refreshInstallments(ref);
+  }
+
+  /// Calculator — customer select karke plan banao.
+  Future<void> _openCalculator() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const InstallmentCalculatorScreen(),
+      ),
+    );
+    if (mounted) refreshInstallments(ref);
   }
 
   /// Customer card tap par uski detail (multi-plan) screen kholo.
-  void _openCustomerDetail(InstallmentCustomer customer) {
-    Navigator.of(context).push(
+  Future<void> _openCustomerDetail(InstallmentCustomer customer) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
             InstallmentCustomerDetailScreen(customer: customer),
       ),
     );
+    if (mounted) refreshInstallments(ref);
   }
 
   @override
@@ -55,6 +69,9 @@ class _InstallmentDashboardScreenState
     final summary = ref.watch(installmentSummaryProvider);
     final customers = ref.watch(installmentCustomersProvider);
     final filter = ref.watch(installmentFilterProvider);
+    final data = ref.watch(installmentCustomersDataProvider);
+    final firstLoad = data.isLoading && !data.hasValue;
+    final failed = data.hasError && !data.hasValue;
 
     return Scaffold(
       backgroundColor: _canvas,
@@ -67,7 +84,13 @@ class _InstallmentDashboardScreenState
       // ),
       body: SafeArea(
         top: false,
-        child: ListView(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            refreshInstallments(ref);
+            await ref.read(installmentCustomersDataProvider.future);
+          },
+          child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
           children: [
             16.hBox,
@@ -77,7 +100,14 @@ class _InstallmentDashboardScreenState
             16.hBox,
             _buildFilterChips(filter),
             16.hBox,
-            if (customers.isEmpty)
+            if (firstLoad)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 64),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (failed)
+              _buildError('${data.error}'.replaceAll('Exception: ', ''))
+            else if (customers.isEmpty)
               _buildEmpty()
             else
               ...customers.map(
@@ -91,6 +121,7 @@ class _InstallmentDashboardScreenState
               ),
             90.hBox,
           ],
+        ),
         ),
       ),
     );
@@ -115,10 +146,23 @@ class _InstallmentDashboardScreenState
       ),
       actions: [
         IconButton(
-          onPressed: _openRegisterCustomer,
-          icon: const Icon(Icons.add, color: AppColor.primary),
+          tooltip: 'Installment calculator',
+          onPressed: _openCalculator,
+          icon: const Icon(Icons.calculate_outlined, color: AppColor.primary),
         ),
-        8.wBox,
+        IconButton(
+          tooltip: 'New customer',
+          onPressed: _openRegisterCustomer,
+          icon: const Icon(Icons.person_add_alt_1_outlined,
+              color: AppColor.primary),
+        ),
+        IconButton(
+          tooltip: 'Sign out',
+          onPressed: () =>
+              ref.read(accountantAuthNotifierProvider.notifier).logout(),
+          icon: const Icon(Icons.logout_rounded, color: AppColor.textSecondary),
+        ),
+        4.wBox,
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
@@ -138,7 +182,7 @@ class _InstallmentDashboardScreenState
           InstallmentStatCard(
             label: 'Total Customers',
             value: s.totalCustomers.toDouble().pkrFormat,
-            badge: '${s.customersGrowthPct.toStringAsFixed(0)}%',
+            badge: '+${s.newThisMonth} this month',
             badgeIcon: Icons.arrow_upward,
             badgeColor: AppColor.success,
           ),
@@ -242,6 +286,29 @@ class _InstallmentDashboardScreenState
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  // ── Error state ─────────────────────────────────────────────────────────────
+  Widget _buildError(String message) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+      child: Column(
+        children: [
+          Icon(Icons.error_outline, size: 48, color: AppColor.grey400),
+          12.hBox,
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColor.textSecondary, fontSize: 14),
+          ),
+          12.hBox,
+          TextButton(
+            onPressed: () => refreshInstallments(ref),
+            child: const Text('Retry'),
+          ),
+        ],
       ),
     );
   }

@@ -6,11 +6,8 @@ import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/providers/accountant_auth_providers.dart';
-import 'package:jan_ghani_final/features/installment/installment_dashboard/presentation/screen/installment_dashboard_screen.dart';
 
 import '../../../authentication/presentation/providers/accoutant_session_provider.dart';
-import '../../../branch_reports/customer_report/data/datasource/customer_report_datasource.dart';
-import '../../../branch_reports/customer_report/presentation/screen/customer_report_screen.dart';
 import '../../data/model/dashboard_model.dart';
 import '../provider/dashboard_provider.dart';
 
@@ -42,13 +39,13 @@ const List<_NavItem> _allNavItems = [
     icon: 'ic_cash_registration',
     label: 'Branch',
     path: AccPaths.branches,
-    allowedRoles: ['owner', 'accountant', 'manager'],
+    allowedRoles: ['owner', 'accountant', 'manager', 'viewer'],
   ),
   _NavItem(
     icon: 'sidebar_icons/branch_stock',
     label: 'Warehouse',
     path: AccPaths.warehouses,
-    allowedRoles: ['owner', 'accountant', 'warehouse_manager'],
+    allowedRoles: ['owner', 'accountant', 'warehouse_manager', 'viewer'],
   ),
   _NavItem(
     icon: 'ic_sale_price_trend',
@@ -61,6 +58,12 @@ const List<_NavItem> _allNavItems = [
     label: 'Investment',
     path: AccPaths.investment,
     allowedRoles: ['owner', 'accountant'],
+  ),
+  _NavItem(
+    icon: 'ic_top_customers',
+    label: 'Installments',
+    path: AccPaths.installments,
+    allowedRoles: ['owner', 'installment_officer'],
   ),
 ];
 
@@ -255,57 +258,6 @@ class AccountantDashboardScreen extends ConsumerWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Customer Portal
-// ══════════════════════════════════════════════════════════════
-class AccountantCustomerPortal extends ConsumerStatefulWidget {
-  final String customerId;
-  const AccountantCustomerPortal({required this.customerId});
-
-  @override
-  ConsumerState<AccountantCustomerPortal> createState() => _CustomerPortalState();
-}
-
-class _CustomerPortalState extends ConsumerState<AccountantCustomerPortal> {
-  String?  _customerName;
-  double   _customerBalance = 0;
-  bool     _loading         = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCustomer();
-  }
-
-  Future<void> _loadCustomer() async {
-    final ds  = CustomerReportDatasource();
-    final row = await ds.getCustomerInfo(widget.customerId);
-    if (!mounted) return;
-    setState(() {
-      _customerName    = row?['name']    as String? ?? 'Customer';
-      _customerBalance = row?['balance'] as double? ?? 0.0;
-      _loading         = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F6FA),
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return CustomerReportScreen(
-      customerId:      widget.customerId,
-      customerName:    _customerName ?? 'Customer',
-      customerBalance: _customerBalance,
-      hideAppBarBack:  true,
-    );
-  }
-}
-
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 class _Sidebar extends ConsumerWidget {
   final int selectedIndex;
@@ -327,6 +279,8 @@ class _Sidebar extends ConsumerWidget {
     'cashier'           => 'Cashier',
     'warehouse_manager' => 'Warehouse Manager',
     'customer'          => 'Customer',
+    'installment_officer' => 'Installment Officer',
+    'viewer'            => 'View User',
     _                   => role,
   };
 
@@ -335,6 +289,7 @@ class _Sidebar extends ConsumerWidget {
     'manager'           => const Color(0xFF1D9E75),
     'accountant'        => const Color(0xFF378ADD),
     'warehouse_manager' => const Color(0xFFBA7517),
+    'viewer'            => const Color(0xFF7C3AED),
     _                   => AppColor.textMuted,
   };
 
@@ -691,9 +646,7 @@ class _DesktopContent extends StatelessWidget {
               loading: () => const _ShimmerCard(height: 168),
               error:   (_, __) => const _ErrorCard(),
             ),
-            const SizedBox(height: 18),
-            _StatRow(stats: stats),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -739,8 +692,6 @@ class _MobileContent extends StatelessWidget {
           error:   (_, __) => const _ErrorCard(),
         ),
         const SizedBox(height: 16),
-        _StatRow(stats: stats, wrap: true),
-        const SizedBox(height: 16),
         _CashFlowPanel(stats: stats),
         const SizedBox(height: 16),
         _TransactionsPanel(recentAsync: recentAsync),
@@ -749,131 +700,12 @@ class _MobileContent extends StatelessWidget {
   }
 }
 
-// ── Stat Row ──────────────────────────────────────────────────────────────────
-class _StatRow extends StatelessWidget {
-  final _TxStats? stats;
-  final bool wrap;
-  const _StatRow({required this.stats, this.wrap = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final cards = [
-      _StatCard(
-        label: 'Cash In',
-        value: stats == null ? '—' : _money(stats!.cashIn),
-        icon: 'ic_cash_in',
-        color: AppColor.cashIn,
-      ),
-      _StatCard(
-        label: 'Cash Out',
-        value: stats == null ? '—' : _money(stats!.cashOut),
-        icon: 'ic_cash_out',
-        color: AppColor.cashOut,
-      ),
-      _StatCard(
-        label: 'Net Flow',
-        value: stats == null ? '—' : _money(stats!.net),
-        icon: 'ic_bank_net',
-        color: AppColor.primary,
-      ),
-      _StatCard(
-        label: 'Transactions',
-        value: stats == null ? '—' : '${stats!.count}',
-        icon: 'ic_transfer',
-        color: const Color(0xFF378ADD),
-      ),
-    ];
-
-    if (wrap) {
-      return GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.4,
-        children: cards,
-      );
-    }
-
-    return Row(
-      children: [
-        for (var i = 0; i < cards.length; i++) ...[
-          if (i > 0) const SizedBox(width: 14),
-          Expanded(child: cards[i]),
-        ],
-      ],
-    );
-  }
-}
-
-// ── Stat Card ─────────────────────────────────────────────────────────────────
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String icon;
-  final Color  color;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color:        Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border:       Border.all(color: const Color(0xFFEDEDF2)),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.03),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(child: AppIcon(icon, size: 17, color: color)),
-        ),
-        const SizedBox(height: 12),
-        Text(label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: AppColor.textMuted)),
-        const SizedBox(height: 3),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(value,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColor.textDark)),
-        ),
-      ],
-    ),
-  );
-}
-
 // ── Panel scaffold ───────────────────────────────────────────────────────────
 class _Panel extends StatelessWidget {
-  final String title;
-  final Widget child;
-  const _Panel({required this.title, required this.child});
+  final String  title;
+  final Widget  child;
+  final Widget? trailing;
+  const _Panel({required this.title, required this.child, this.trailing});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -893,12 +725,18 @@ class _Panel extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: const TextStyle(
-                fontSize:   15,
-                fontWeight: FontWeight.w700,
-                color:      AppColor.textDark)),
-        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(
+            child: Text(title,
+                style: const TextStyle(
+                    fontSize:   16,
+                    fontWeight: FontWeight.w700,
+                    color:      AppColor.textDark)),
+          ),
+          if (trailing != null) trailing!,
+        ]),
+        const SizedBox(height: 4),
+        const Divider(height: 24, color: Color(0xFFF0F0F4)),
         child,
       ],
     ),
@@ -913,6 +751,20 @@ class _TransactionsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _Panel(
     title: 'Transaction History',
+    trailing: recentAsync.asData?.value == null
+        ? null
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color:        AppColor.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text('${recentAsync.asData!.value.length} recent',
+                style: const TextStyle(
+                    fontSize:   11,
+                    fontWeight: FontWeight.w700,
+                    color:      AppColor.primary)),
+          ),
     child: recentAsync.when(
       data: (list) => list.isEmpty
           ? const _EmptyState(
@@ -950,12 +802,17 @@ class _CashFlowPanel extends StatelessWidget {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _flowRow('Cash In', _money(s.cashIn), AppColor.cashIn),
-                const SizedBox(height: 12),
-                _flowRow('Cash Out', _money(s.cashOut), AppColor.cashOut),
-                const SizedBox(height: 16),
+                _flowRow('Cash In', _money(s.cashIn), AppColor.cashIn,
+                    _share(s.cashIn, s)),
+                const SizedBox(height: 14),
+                _flowRow('Cash Out', _money(s.cashOut), AppColor.cashOut,
+                    _share(s.cashOut, s)),
+                const SizedBox(height: 18),
                 _bar(s),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
+                _flowRow('Transactions', '${s.count}',
+                    const Color(0xFF378ADD), null),
+                const SizedBox(height: 18),
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 12),
@@ -986,7 +843,12 @@ class _CashFlowPanel extends StatelessWidget {
     );
   }
 
-  Widget _flowRow(String label, String value, Color color) => Row(
+  String _share(double v, _TxStats s) {
+    final total = s.cashIn + s.cashOut;
+    return total == 0 ? '0%' : '${(v / total * 100).toStringAsFixed(0)}%';
+  }
+
+  Widget _flowRow(String label, String value, Color color, String? share) => Row(
         children: [
           Container(
               width: 8,
@@ -998,6 +860,12 @@ class _CashFlowPanel extends StatelessWidget {
               child: Text(label,
                   style: const TextStyle(
                       fontSize: 13, color: AppColor.textMuted))),
+          if (share != null) ...[
+            Text(share,
+                style: const TextStyle(
+                    fontSize: 11, color: AppColor.textMuted)),
+            const SizedBox(width: 12),
+          ],
           Text(value,
               style: const TextStyle(
                   fontSize: 13,
@@ -1273,9 +1141,8 @@ class _RecentTile extends StatelessWidget {
       margin:  const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color:        const Color(0xFFFAFAFC),
         borderRadius: BorderRadius.circular(12),
-        border:       Border.all(color: const Color(0xFFEDEDF2)),
       ),
       child: Row(children: [
         Container(
@@ -1305,9 +1172,26 @@ class _RecentTile extends StatelessWidget {
                       fontSize:   13,
                       color:      AppColor.textDark)),
               const SizedBox(height: 2),
-              Text(_formatDate(tx.createdAt),
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColor.textMuted)),
+              const SizedBox(height: 3),
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    color:        color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(isIn ? 'CASH IN' : 'CASH OUT',
+                      style: TextStyle(
+                          fontSize:   9,
+                          fontWeight: FontWeight.w800,
+                          color:      color)),
+                ),
+                const SizedBox(width: 8),
+                Text(_formatDate(tx.createdAt),
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColor.textMuted)),
+              ]),
             ],
           ),
         ),

@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
+import 'package:jan_ghani_final/features/installment/installment_calculator/presentation/screen/installment_calculator_screen.dart';
+import 'package:jan_ghani_final/features/installment/installment_dashboard/presentation/provider/installment_dashboard_provider.dart';
+import 'package:jan_ghani_final/features/installment/register_installment_customer/domain/new_installment_customer.dart';
 
-/// Naya installment customer register karne ki screen (sirf UI — koi DB nahi).
-class RegisterInstallmentCustomerScreen extends StatefulWidget {
+/// Naya installment customer register karne ki screen — database mein save
+/// hota hai (amount default 0).
+class RegisterInstallmentCustomerScreen extends ConsumerStatefulWidget {
   const RegisterInstallmentCustomerScreen({super.key});
 
   @override
-  State<RegisterInstallmentCustomerScreen> createState() =>
+  ConsumerState<RegisterInstallmentCustomerScreen> createState() =>
       _RegisterInstallmentCustomerScreenState();
 }
 
 class _RegisterInstallmentCustomerScreenState
-    extends State<RegisterInstallmentCustomerScreen> {
+    extends ConsumerState<RegisterInstallmentCustomerScreen> {
   static const Color _canvas = Color(0xFFF7F7F9);
 
   final _nameController = TextEditingController();
@@ -30,14 +35,63 @@ class _RegisterInstallmentCustomerScreenState
     super.dispose();
   }
 
-  void _onSave() {
-    // Abhi sirf UI — yahan baad mein save logic aayega.
+  bool _saving = false;
+
+  Future<void> _onSave() async {
+    if (_saving) return;
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      _snack('Enter the customer name');
+      return;
+    }
     FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Customer saved (UI demo)')),
-    );
-    Navigator.of(context).maybePop();
+    setState(() => _saving = true);
+    try {
+      final id = await ref.read(installmentRemoteProvider).registerCustomer(
+            NewInstallmentCustomer(
+              name: name,
+              phone: _phoneController.text.trim(),
+              cnic: _cnicController.text.trim(),
+              address: _addressController.text.trim(),
+            ),
+          );
+      if (!mounted) return;
+      refreshInstallments(ref);
+
+      final createPlan = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Customer added'),
+          content: Text('$name has been added. Create an installment plan now?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Later'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Create plan'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (createPlan == true) {
+        await Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (_) => InstallmentCalculatorScreen(customerId: id),
+        ));
+      } else {
+        Navigator.of(context).maybePop();
+      }
+    } catch (e) {
+      if (mounted) _snack('$e'.replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
+
+  void _snack(String m) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(m)));
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +168,7 @@ class _RegisterInstallmentCustomerScreenState
       ),
       actions: [
         TextButton(
-          onPressed: _onSave,
+          onPressed: _saving ? null : _onSave,
           child: const Text(
             'Save',
             style: TextStyle(
@@ -145,7 +199,7 @@ class _RegisterInstallmentCustomerScreenState
       child: SizedBox(
         height: 52,
         child: ElevatedButton.icon(
-          onPressed: _onSave,
+          onPressed: _saving ? null : _onSave,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.primary,
             foregroundColor: AppColor.white,
@@ -154,7 +208,13 @@ class _RegisterInstallmentCustomerScreenState
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          icon: const Icon(Icons.person_add_alt_1, size: 20),
+          icon: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2))
+              : const Icon(Icons.person_add_alt_1, size: 20),
           label: const Text(
             'Save Customer',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),

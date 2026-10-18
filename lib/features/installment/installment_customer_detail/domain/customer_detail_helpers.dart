@@ -11,12 +11,18 @@ String formatDmy(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
 /// Plan-level derived values (UI ke liye — abhi schedule mock se compute).
 extension InstallmentPlanDetailX on InstallmentPlan {
   /// Har qist ka amount (total ÷ count).
-  double get monthlyAmount =>
-      totalCount == 0 ? 0 : totalPayable / totalCount;
+  double get monthlyAmount => dues.isNotEmpty
+      ? dues.first.amount
+      : (totalCount == 0 ? 0 : totalPayable / totalCount);
+
+  /// Agli qist mein abhi kitna dena baqi hai (partial payment ke baad kam).
+  double get nextAmount => nextDue?.remaining ?? monthlyAmount;
 
   /// Agli unpaid qist ki due date (completed plan ka koi nahi).
   DateTime? get nextDueDate {
     if (status == InstallmentStatus.completed) return null;
+    final d = nextDue;
+    if (d != null) return d.dueDate;
     // Paid qiston ke baad wali = startDate + paidCount mahine.
     return DateTime(startDate.year, startDate.month + paidCount, startDate.day);
   }
@@ -37,5 +43,5 @@ extension InstallmentCustomerDetailX on InstallmentCustomer {
 
   DateTime? get nextDueDate => nextDuePlan?.nextDueDate;
 
-  double get nextDueAmount => nextDuePlan?.monthlyAmount ?? 0;
+  double get nextDueAmount => nextDuePlan?.nextAmount ?? 0;
 }

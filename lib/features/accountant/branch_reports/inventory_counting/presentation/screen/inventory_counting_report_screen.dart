@@ -1,4 +1,5 @@
 // Updated on 2026-09-12 12:50 PM
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -14,16 +15,6 @@ import '../../data/service/inventory_counting_pdf_service.dart';
 import '../provider/inventory_counting_provider.dart';
 
 const double _kWideBreakpoint = 900;
-const int _kPageSize = 100;
-
-// UUID pattern — rows jahan product name resolve nahi hua
-final _uuidRegex = RegExp(
-  r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-  caseSensitive: false,
-);
-
-bool _isUuid(String s) => _uuidRegex.hasMatch(s);
-
 String _barcodeText(List<String> barcodes) =>
     barcodes.isEmpty ? '—' : barcodes.join(', ');
 
@@ -93,13 +84,14 @@ class _InventoryCountingReportScreenState
     notifier.clearDateFilter();
   }
 
-  // ── Export PDF — hamesha poori filtered (visible) list use karta hai ─────
+  // ── Export PDF — poora filtered data server se (page nahi) ───────────────
   Future<void> _exportPdf(
       BuildContext context,
-      List<InventoryCountingRecord> visible,
+      InventoryCountingReportNotifier notifier,
       InventoryCountingReportState state,
       ) async {
     try {
+      final visible = await notifier.fetchAllForExport();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Generating PDF...'),
         duration: Duration(seconds: 2),
@@ -123,10 +115,11 @@ class _InventoryCountingReportScreenState
     }
   }
 
-  // ── Export (Excel / PDF / CSV) — the visible filtered list ──────────────
+  // ── Export (Excel / PDF / CSV) — poora filtered data server se ───────────
   Future<List<ExcelSheetData>> _exportSheets(
-      List<InventoryCountingRecord> visible,
+      InventoryCountingReportNotifier notifier,
       InventoryCountingReportState state) async {
+    final visible = await notifier.fetchAllForExport();
     if (visible.isEmpty) return const [];
     final branchName =
         await BranchExportLookups(branchId: widget.storeId).branchName();
@@ -169,17 +162,14 @@ class _InventoryCountingReportScreenState
     final notifier =
     ref.read(inventoryCountingReportProvider(widget.storeId).notifier);
 
-    // UUID wali rows hamesha hide (search + date filter provider mein ho chuka)
-    final visible = state.filtered.where((r) => !_isUuid(r.productName)).toList();
-
-    // Pagination isi visible (UUID-filtered) list par — 100 per page
-    final totalPages = visible.isEmpty ? 1 : (visible.length / _kPageSize).ceil();
-    final currentPage = state.currentPage.clamp(1, totalPages);
-    final pageStart = (currentPage - 1) * _kPageSize;
-    final pageEnd = (pageStart + _kPageSize) > visible.length ? visible.length : pageStart + _kPageSize;
-    final pageItems = visible.isEmpty ? <InventoryCountingRecord>[] : visible.sublist(pageStart, pageEnd);
-    final hasPrev = currentPage > 1;
-    final hasNext = currentPage < totalPages;
+    // Server-side pagination: state.records sirf current page ki rows hain.
+    final pageItems   = state.records;
+    final totalPages  = state.totalPages;
+    final currentPage = state.currentPage;
+    final pageStart   = (currentPage - 1) * state.pageSize;
+    final pageEnd     = pageStart + pageItems.length;
+    final hasPrev     = state.hasPrevPage;
+    final hasNext     = state.hasNextPage;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -191,13 +181,12 @@ class _InventoryCountingReportScreenState
             activeCount: (state.searchQuery.isNotEmpty ? 1 : 0) +
                 (state.startDate != null || state.endDate != null ? 1 : 0),
           ),
-          const SizedBox(width: 4),
           ReportExportButton(
             fileNamePrefix: 'stock_counting_report',
             filled: true,
-            enabled: !state.isLoading && state.errorMessage == null && visible.isNotEmpty,
-            loadSheets: () => _exportSheets(visible, state),
-            customPdf: () => _exportPdf(context, visible, state),
+            enabled: !state.isLoading && state.errorMessage == null && state.totalCount > 0,
+            loadSheets: () => _exportSheets(notifier, state),
+            customPdf: () => _exportPdf(context, notifier, state),
           ),
 
           const SizedBox(width: 4),
@@ -208,10 +197,10 @@ class _InventoryCountingReportScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!state.isLoading && state.errorMessage == null && state.records.isNotEmpty) ...[
-              _buildSummaryCards(context, visible),
+              _buildSummaryCards(context, state),
             ],
-            Expanded(child: _buildBody(context, pageItems, visible, state, notifier)),
-            if (!state.isLoading && state.errorMessage == null && visible.isNotEmpty)
+            Expanded(child: _buildBody(context, pageItems, state, notifier)),
+            if (!state.isLoading && state.errorMessage == null && state.totalCount > 0)
               _buildPaginationBar(
                 context: context,
                 notifier: notifier,
@@ -219,7 +208,7 @@ class _InventoryCountingReportScreenState
                 totalPages: totalPages,
                 pageStart: pageStart,
                 pageEnd: pageEnd,
-                totalCount: visible.length,
+                totalCount: state.totalCount,
                 hasPrev: hasPrev,
                 hasNext: hasNext,
               ),
@@ -232,10 +221,10 @@ class _InventoryCountingReportScreenState
   // ─── Summary Cards ────────────────────────────────────────────────────────
 
   Widget _buildSummaryCards(
-      BuildContext context, List<InventoryCountingRecord> visible) {
-    final surplus = visible.where((r) => r.difference > 0).length;
-    final shortage = visible.where((r) => r.difference < 0).length;
-    final matched = visible.where((r) => r.difference == 0).length;
+      BuildContext context, InventoryCountingReportState state) {
+    final surplus  = state.surplusCount;
+    final shortage = state.shortageCount;
+    final matched  = state.matchedCount;
 
     return Container(
       color: Colors.white,
@@ -248,7 +237,7 @@ class _InventoryCountingReportScreenState
               icon: 'ic_total_products',
               iconColor: const Color(0xFF4A90D9),
               label: 'Total',
-              value: '${visible.length}',
+              value: '${state.totalCount}',
               valueColor: const Color(0xFF4A90D9),
             ),
             const SizedBox(width: 10),
@@ -428,7 +417,6 @@ class _InventoryCountingReportScreenState
   Widget _buildBody(
       BuildContext context,
       List<InventoryCountingRecord> pageItems,
-      List<InventoryCountingRecord> visible,
       InventoryCountingReportState state,
       InventoryCountingReportNotifier notifier,
       ) {
@@ -459,7 +447,7 @@ class _InventoryCountingReportScreenState
       );
     }
 
-    if (visible.isEmpty) {
+    if (pageItems.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -577,37 +565,17 @@ class _StatCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: iconColor.withOpacity(0.07),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: iconColor.withOpacity(0.15)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppIcon(icon, size: 18, color: iconColor),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style:
-                  TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-              const SizedBox(height: 2),
-              Text(value,
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: valueColor)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SizedBox(
+    width: 190,
+    child: DashboardStatCard(
+      title:      label,
+      value:      value,
+      iconAsset:  icon,
+      color:      iconColor,
+      valueColor: valueColor,
+      compact:    true,
+    ),
+  );
 }
 
 // ─── Web Table View ───────────────────────────────────────────────────────────

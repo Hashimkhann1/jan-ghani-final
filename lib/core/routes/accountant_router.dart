@@ -18,20 +18,26 @@ import '../../features/accountant/accountant_warehouse_finance/presentation/scre
 import '../../features/accountant/accountant_warehouse_inventory/presentation/screen/accountant_warehouse_inventory_screen.dart';
 import '../../features/accountant/authentication/domain/entities/accountant_user_entity.dart';
 import '../../features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
+import '../../features/accountant/authentication/presentation/screen/connect_account_screen.dart';
+import '../../features/accountant/authentication/presentation/screen/forgot_password_screen.dart';
 import '../../features/accountant/authentication/presentation/screen/login_screen.dart';
+import '../../features/accountant/authentication/presentation/screen/sign_up_screen.dart';
 import '../../features/accountant/branch_reports/accountant_branch/presentation/screen/accountant_branch_screen.dart';
 import '../../features/accountant/branch_reports/branch_report_list_screen.dart';
 import '../../features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
+import '../../features/customer/customer_portal/presentation/screen/customer_portal_screen.dart';
 import '../../features/accountant/investment/presentation/screen/investment_screen.dart';
 import '../../features/accountant/supplier/presentation/screen/all_supplier_screen.dart';
 import '../../features/accountant/supplier/presentation/screen/supplier_detail_screen.dart';
 import '../../features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart';
+import '../../features/installment/installment_dashboard/presentation/screen/installment_dashboard_screen.dart';
 import '../../features/website/presentation/screen/website_screen.dart';
 import '../../features/warehouse/employee/presentation/screens/salary_tracking_screen.dart';
 import '../../features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart'
     show reportsWarehouseIdProvider;
 import '../../features/warehouse/warehouse_reports/presentation/screens/warehouse_reports_shell.dart';
 import '../color/app_color.dart';
+import '../../main.dart' show isMobileApp;
 import 'accountant_paths.dart';
 
 final _rootKey  = GlobalKey<NavigatorState>(debugLabel: 'accRoot');
@@ -40,19 +46,25 @@ final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'accShell');
 // ── Role → kaun se sidebar tabs ─────────────────────────────────────────────
 const Map<String, List<String>> _tabRoles = {
   AccPaths.dashboard:       ['owner', 'accountant'],
-  AccPaths.branches:        ['owner', 'accountant', 'manager'],
-  AccPaths.warehouses:      ['owner', 'accountant', 'warehouse_manager'],
-  AccPaths.cashTransfers:   ['owner', 'accountant', 'warehouse_manager'],
+  AccPaths.branches:        ['owner', 'accountant', 'manager', 'viewer'],
+  AccPaths.warehouses:      ['owner', 'accountant', 'warehouse_manager', 'viewer'],
+  AccPaths.cashTransfers:   ['owner', 'warehouse_manager'],
   AccPaths.inventoryReview: ['owner'],
   AccPaths.investment:      ['owner', 'accountant'],
+  AccPaths.installments:    ['owner', 'installment_officer'],
 };
 
 bool _hasToken(AccountantUserEntity u) =>
-    (u.customerToken ?? '').isNotEmpty;
+    (u.customerToken ?? '').isNotEmpty || (u.installmentId ?? '').isNotEmpty;
+
+/// Customer portal ki id: branch customer ka token, warna installment customer ki id.
+String _portalId(AccountantUserEntity u) =>
+    (u.customerToken ?? '').isNotEmpty ? u.customerToken! : u.installmentId!;
 
 /// Login ke baad user ka pehla screen (website ka "My Account" bhi yahi).
 String accountantHomeFor(AccountantUserEntity u) {
-  if (_hasToken(u)) return AccPaths.customer(u.customerToken!);
+  if (u.role.isEmpty) return AccPaths.connectAccount;
+  if (_hasToken(u)) return AccPaths.customer(_portalId(u));
   if (u.role == 'inventory_counter') return AccPaths.inventoryCount;
   for (final e in _tabRoles.entries) {
     if (e.value.contains(u.role)) return e.key;
@@ -62,9 +74,15 @@ String accountantHomeFor(AccountantUserEntity u) {
 }
 
 bool _isAllowed(AccountantUserEntity u, String path) {
-  if (_hasToken(u)) return path == AccPaths.customer(u.customerToken!);
+  if (u.role.isEmpty) return path == AccPaths.connectAccount;
+  if (_hasToken(u)) return path == AccPaths.customer(_portalId(u));
   if (u.role == 'inventory_counter') return path == AccPaths.inventoryCount;
-  final tab = '/${Uri.parse(path).pathSegments.firstOrNull ?? ''}';
+  final segs = Uri.parse(path).pathSegments;
+  final tab = '/${segs.firstOrNull ?? ''}';
+  // Viewer: branch ke saare reports, warehouse mein sirf list + reports.
+  if (u.role == 'viewer' && tab == AccPaths.warehouses && segs.length > 1) {
+    return segs.length == 3 && segs[2] == 'reports';
+  }
   return _tabRoles[tab]?.contains(u.role) ?? false;
 }
 
@@ -88,12 +106,17 @@ String? _redirect(Ref ref, GoRouterState state) {
   final user = session.user;
 
   // Website sirf logged-out ke liye — login user ko seedha apna account.
-  if (user == null && desiredPath == AccPaths.home) {
+  // Mobile app par website nahi — logged-out seedha login par jaye.
+  if (user == null && desiredPath == AccPaths.home && !isMobileApp) {
     return desired == current ? null : desired;
   }
 
   if (user == null) {
-    if (path == AccPaths.login) return null;
+    if (path == AccPaths.login ||
+        path == AccPaths.signUp ||
+        path == AccPaths.forgotPassword) {
+      return null;
+    }
     // Login ke baad wapas usi screen par aane ke liye `from` rakho.
     final keepFrom = desiredPath != AccPaths.login &&
         desiredPath != AccPaths.splash;
@@ -156,9 +179,23 @@ final accountantRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, s) => _noAnim(s, const AccountantLoginScreen()),
       ),
       GoRoute(
+        path: AccPaths.signUp,
+        pageBuilder: (_, s) => _noAnim(s, const AccountantSignUpScreen()),
+      ),
+      GoRoute(
+        path: AccPaths.connectAccount,
+        pageBuilder: (_, s) =>
+            _noAnim(s, const AccountantConnectAccountScreen()),
+      ),
+      GoRoute(
+        path: AccPaths.forgotPassword,
+        pageBuilder: (_, s) =>
+            _noAnim(s, const AccountantForgotPasswordScreen()),
+      ),
+      GoRoute(
         path: '${AccPaths.customerPrefix}/:customerId',
         pageBuilder: (_, s) => _noAnim(
-            s, AccountantCustomerPortal(customerId: _p(s, 'customerId'))),
+            s, CustomerPortalScreen(customerId: _p(s, 'customerId'))),
       ),
       GoRoute(
         path: AccPaths.inventoryCount,
@@ -236,6 +273,11 @@ final accountantRouterProvider = Provider<GoRouter>((ref) {
             path: AccPaths.investment,
             pageBuilder: (_, s) =>
                 _noAnim(s, const AccountantInvestmentScreen()),
+          ),
+          GoRoute(
+            path: AccPaths.installments,
+            pageBuilder: (_, s) =>
+                _noAnim(s, const InstallmentDashboardScreen()),
           ),
         ],
       ),

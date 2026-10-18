@@ -12,6 +12,7 @@ import '../../../customer/presentation/widget/customer_status_badge_widget.dart'
 import '../../data/model/user_model.dart';
 import '../provider/user_provider.dart';
 import '../widget/add_user_dialog.dart';
+import '../widget/user_detail_drawer.dart';
 import '../widget/user_empty_state_widget.dart';
 import '../widget/user_role_badge_widget.dart';
 
@@ -359,13 +360,21 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                                 DataCell(CustomerStatusBadge(
                                     isActive: u.isActive)),
                                 // ✅ Actions
-                                // Owner: edit + delete
-                                // Manager + Cashier: koi action nahi
-                                DataCell(
-                                  isOwner
-                                      ? Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
+                                // Sab: view. Owner: edit + delete
+                                DataCell(Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CustomerActionButton(
+                                      icon:      Icons.visibility_outlined,
+                                      iconAsset: 'ic_view',
+                                      color:     AppColor.info,
+                                      tooltip:   'View',
+                                      onTap:     () => showUserDetailDrawer(
+                                          context, u,
+                                          counterName: counterName),
+                                    ),
+                                    if (isOwner) ...[
+                                      const SizedBox(width: 6),
                                       CustomerActionButton(
                                         icon:      Icons.edit_outlined,
                                         iconAsset: 'ic_edit',
@@ -384,9 +393,8 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                                             _confirmDelete(context, u),
                                       ),
                                     ],
-                                  )
-                                      : const SizedBox.shrink(),
-                                ),
+                                  ],
+                                )),
                               ],
                             );
                           }).toList(),

@@ -63,7 +63,7 @@ class AccountantBranchDashboardDatasource {
   // ── Trend (charts) ───────────────────────────────────────
   // weekly  → [endDate] tak pichle 7 din, har din ek bucket
   // monthly → [endDate] tak pichle 6 mahine, har mahina ek bucket
-  // Har bucket usi RPC ki parallel call hai (max 7 calls).
+  // Saare buckets ek RPC call mein.
   Future<List<DashboardTrendPoint>> getTrend({
     required DateTime            endDate,
     required DashboardTrendPeriod period,
@@ -91,18 +91,27 @@ class AccountantBranchDashboardDatasource {
       }
     }
 
-    final rows = await Future.wait(
-        buckets.map((b) => _summary(b.$2, b.$3)));
+    // Ek hi RPC saare buckets ke liye (get_branch_dashboard_trend) —
+    // 2026_10_18_branch_dashboard_trend.sql.
+    final res = await _client.rpc('get_branch_dashboard_trend', params: {
+      'p_store_id': branchId,
+      'p_starts':   [for (final b in buckets) _fromStr(b.$2)],
+      'p_ends':     [for (final b in buckets) _toStr(b.$3)],
+    });
+    final byIdx = <int, Map<String, dynamic>>{
+      for (final r in (res as List))
+        (r['idx'] as num).toInt(): Map<String, dynamic>.from(r as Map),
+    };
 
     return [
       for (var i = 0; i < buckets.length; i++)
         DashboardTrendPoint(
           label:      buckets[i].$1,
-          sale:       _dbl(rows[i]['total_sale'])   ?? 0,
-          saleReturn: _dbl(rows[i]['total_return']) ?? 0,
-          profit:     _dbl(rows[i]['gross_profit']) ?? 0,
-          creditSale: _dbl(rows[i]['credit_sale'])  ?? 0,
-          installment: _dbl(rows[i]['installment']) ?? 0,
+          sale:       _dbl(byIdx[i + 1]?['total_sale'])   ?? 0,
+          saleReturn: _dbl(byIdx[i + 1]?['total_return']) ?? 0,
+          profit:     _dbl(byIdx[i + 1]?['gross_profit']) ?? 0,
+          creditSale: _dbl(byIdx[i + 1]?['credit_sale'])  ?? 0,
+          installment: _dbl(byIdx[i + 1]?['installment']) ?? 0,
         ),
     ];
   }

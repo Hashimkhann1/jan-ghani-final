@@ -1,3 +1,4 @@
+import '../../../common/action/report_refresh_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -238,12 +239,7 @@ class _AccountantBranchDashboardScreenState
           ],
         ),
         actions: [
-          IconButton(
-            icon: const AppIcon('ic_filter',
-                color: Color(0xFF6B7280), size: 20),
-            onPressed: _openFilters,
-            tooltip: 'Filters',
-          ),
+          ReportFilterButton(onPressed: _openFilters),
           IconButton(
             icon: const AppIcon('ic_calendar',
                 color: Color(0xFF6B7280), size: 20),
@@ -259,12 +255,7 @@ class _AccountantBranchDashboardScreenState
               toDate: state.toDate,
             ),
           ),
-          IconButton(
-            icon: const AppIcon('ic_refresh',
-                color: Color(0xFF6B7280), size: 20),
-            onPressed: notifier.load,
-            tooltip: 'Refresh',
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           const SizedBox(width: 8),
         ],
       ),

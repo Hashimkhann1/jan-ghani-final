@@ -25,6 +25,11 @@ import 'features/branch/authentication/presentation/screen/login_screen.dart';
 
 final supabase = Supabase.instance.client;
 
+/// Android / iOS par app Accountant login se start hoti hai (website nahi).
+final bool isMobileApp = !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS);
+
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   // Web URLs bina '#' ke: /login, /dashboard, /branches ... (non-web par no-op)
@@ -61,7 +66,8 @@ class MyApp extends ConsumerWidget {
     // Website → Accountant (go_router, har screen ka apna URL —
     // lib/core/routes/accountant_router.dart). Desktop (Windows/Mac) → Branch
     // (Warehouse ka apna alag entry point hai: lib/main_warehouse.dart).
-    if (kIsWeb) {
+    // Mobile (Android/iOS) → bhi Accountant app, website nahi: seedha login.
+    if (kIsWeb || isMobileApp) {
       return MaterialApp.router(
         title: 'Jan Ghani',
         debugShowCheckedModeBanner: false,

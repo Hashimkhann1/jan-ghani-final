@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -70,11 +72,7 @@ class ParetoReportScreen extends ConsumerWidget {
                 endDate: state.endDate,
               ),
             ),
-            IconButton(
-              icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
-              tooltip: 'Refresh',
-              onPressed: notifier.load,
-            ),
+            ReportRefreshButton(onPressed: notifier.load),
             const SizedBox(width: 4),
           ],
           bottom: const _ParetoTabBar(),
@@ -994,46 +992,13 @@ class _SimpleStatsBar extends StatelessWidget {
       child: Row(
         children: items.map((item) {
           return Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color:        item.color.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: item.color.withOpacity(0.15)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color:        item.color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: Icon(Icons.circle, size: 8, color: item.color),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.label,
-                            style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
-                        const SizedBox(height: 2),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(item.value,
-                              maxLines: 1,
-                              style: TextStyle(
-                                  fontSize:   14,
-                                  fontWeight: FontWeight.w800,
-                                  color:      item.color)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: DashboardStatCard(
+                title:   item.label,
+                value:   item.value,
+                color:   item.color,
+                compact: true,
               ),
             ),
           );

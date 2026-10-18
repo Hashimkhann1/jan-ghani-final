@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -285,39 +287,12 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              SizedBox(
-                width: 130,
-                child: OutlinedButton.icon(
-                  onPressed: onFilters,
-                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
-                  label: Text(_activeFilterCount(state) > 0 ? 'Filters (${_activeFilterCount(state)})' : 'Filters'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+              ReportFilterButton(
+                onPressed:   onFilters,
+                activeCount: _activeFilterCount(state),
               ),
-              const SizedBox(width: 10),
               exportButton(filled: true),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 120,
-                child: OutlinedButton.icon(
-                  onPressed: notifier.load,
-                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
-                  label: const Text('Refresh'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              ReportRefreshButton(onPressed: notifier.load),
             ],
           ),
         ),
@@ -402,53 +377,15 @@ class _DeskSummaryCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(
-          horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color:        selected
-            ? color.withOpacity(0.1)
-            : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: selected
-              ? color.withOpacity(0.4)
-              : const Color(0xFFEEEEEE),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color:        color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(7),
-            ),
-            child: AppIcon(icon, size: 14, color: color),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize:       MainAxisSize.min,
-            children: [
-              Text(value,
-                  style: TextStyle(
-                    fontSize:   15,
-                    fontWeight: FontWeight.w800,
-                    color:      color,
-                  )),
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color:    AppColor.textHint)),
-            ],
-          ),
-        ],
-      ),
+  Widget build(BuildContext context) => SizedBox(
+    width: 190,
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      selected:  selected,
+      onTap:     onTap,
     ),
   );
 }
@@ -469,20 +406,28 @@ class _CustomerTable extends StatelessWidget {
       children: [
         // Header
         Container(
-          color:   Colors.white,
+          color:   const Color(0xFFF9FAFB),
           padding: const EdgeInsets.symmetric(
               horizontal: 28, vertical: 12),
           child: Row(children: const [
-            SizedBox(width: 10),
             _TH(label: '#',          flex: 1),
-            _TH(label: 'Name',       flex: 5),
-            _TH(label: 'Code',       flex: 2),
+            _Gap(),
+            _TH(label: 'Name',       flex: 6),
+            _Gap(),
+            _TH(label: 'Code',       flex: 3),
+            _Gap(),
             _TH(label: 'Phone',      flex: 3),
+            _Gap(),
             _TH(label: 'Type',       flex: 2, center: true),
+            _Gap(),
             _TH(label: 'Balance',    flex: 3, right: true),
+            _Gap(),
             _TH(label: 'Limit',      flex: 3, right: true),
-            _TH(label: 'Usage',      flex: 3, center: true),
+            _Gap(),
+            _TH(label: 'Usage',      flex: 3),
+            _Gap(),
             _TH(label: 'Address',    flex: 4),
+            _Gap(),
             _TH(label: 'Status',     flex: 3, center: true),
           ]),
         ),
@@ -507,7 +452,6 @@ class _CustomerTable extends StatelessWidget {
   }
 }
 
-// Table Header Cell
 class _TH extends StatelessWidget {
   final String label;
   final int    flex;
@@ -539,6 +483,13 @@ class _TH extends StatelessWidget {
       ),
     ),
   );
+}
+
+// Column gutter — header aur rows ke beech same spacing.
+class _Gap extends StatelessWidget {
+  const _Gap();
+  @override
+  Widget build(BuildContext context) => const SizedBox(width: 14);
 }
 
 // Table Row
@@ -574,7 +525,7 @@ class _CustomerTableRow extends StatelessWidget {
 
     return Container(
       color:   Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 11),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -582,18 +533,16 @@ class _CustomerTableRow extends StatelessWidget {
           // #
           Expanded(
             flex: 1,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 10),
-              child: Text('$index',
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color:    AppColor.textHint)),
-            ),
+            child: Text('$index',
+                style: const TextStyle(
+                    fontSize: 12,
+                    color:    AppColor.textHint)),
           ),
+          const _Gap(),
 
           // Name + avatar letter
           Expanded(
-            flex: 5,
+            flex: 6,
             child: Row(
               children: [
                 Container(
@@ -654,15 +603,17 @@ class _CustomerTableRow extends StatelessWidget {
               ],
             ),
           ),
+          const _Gap(),
 
           // Code
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Text(item.code,
                 style: const TextStyle(
                     fontSize: 12,
                     color:    AppColor.textHint)),
           ),
+          const _Gap(),
 
           // Phone
           Expanded(
@@ -674,6 +625,7 @@ class _CustomerTableRow extends StatelessWidget {
                   color:    AppColor.textSecondary),
             ),
           ),
+          const _Gap(),
 
           // Type badge
           Expanded(
@@ -699,6 +651,7 @@ class _CustomerTableRow extends StatelessWidget {
               ),
             ),
           ),
+          const _Gap(),
 
           // Balance
           Expanded(
@@ -713,6 +666,7 @@ class _CustomerTableRow extends StatelessWidget {
               ),
             ),
           ),
+          const _Gap(),
 
           // Credit Limit
           Expanded(
@@ -727,59 +681,55 @@ class _CustomerTableRow extends StatelessWidget {
                   color:    AppColor.textSecondary),
             ),
           ),
+          const _Gap(),
 
           // Usage progress bar
           Expanded(
             flex: 3,
             child: item.creditLimit > 0
-                ? Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8),
-              child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius:
-                    BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value:       usageRatio.clamp(0.0, 1.0),
-                      minHeight:   6,
-                      backgroundColor: exceeded
-                          ? const Color(0xFFEF4444)
-                          .withOpacity(0.15)
-                          : const Color(0xFFE5E7EB),
-                      valueColor:
-                      AlwaysStoppedAnimation<Color>(
-                        exceeded
-                            ? const Color(0xFFEF4444)
-                            : usageRatio > 0.75
-                            ? const Color(0xFFF59E0B)
-                            : AppColor.success,
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value:           usageRatio.clamp(0.0, 1.0),
+                            minHeight:       7,
+                            backgroundColor: exceeded
+                                ? const Color(0xFFEF4444).withOpacity(0.15)
+                                : const Color(0xFFE5E7EB),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              exceeded
+                                  ? const Color(0xFFEF4444)
+                                  : usageRatio > 0.75
+                                      ? const Color(0xFFF59E0B)
+                                      : AppColor.success,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${(usageRatio * 100).toStringAsFixed(0)}%',
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 38,
+                        child: Text(
+                          '${(usageRatio * 100).toStringAsFixed(0)}%',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w700,
+                            color:      exceeded
+                                ? const Color(0xFFEF4444)
+                                : AppColor.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const Text('-',
                     style: TextStyle(
-                      fontSize: 9,
-                      color:    exceeded
-                          ? const Color(0xFFEF4444)
-                          : AppColor.textHint,
-                    ),
-                  ),
-                ],
-              ),
-            )
-                : const Center(
-              child: Text('-',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color:    AppColor.textHint)),
-            ),
+                        fontSize: 12, color: AppColor.textHint)),
           ),
+          const _Gap(),
 
           // Address
           Expanded(
@@ -793,6 +743,7 @@ class _CustomerTableRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          const _Gap(),
 
           // Status + WhatsApp
           Expanded(
@@ -922,11 +873,7 @@ class _MobileLayout extends StatelessWidget {
             activeCount: _activeFilterCount(state),
           ),
           exportButton(),
-          IconButton(
-            onPressed: notifier.load,
-            icon: const AppIcon('ic_refresh',
-                size: 22, color: AppColor.textSecondary),
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           const SizedBox(width: 4),
         ],
         bottom: PreferredSize(
@@ -1034,49 +981,12 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color:        color.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(10),
-        border:       Border.all(color: color.withOpacity(0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color:        color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: AppIcon(icon, size: 13, color: color),
-          ),
-          const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize:   13,
-                fontWeight: FontWeight.w800,
-                color:      color,
-              ),
-              maxLines: 1,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              color:    AppColor.textHint,
-            ),
-          ),
-        ],
-      ),
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      compact:   true,
     ),
   );
 }

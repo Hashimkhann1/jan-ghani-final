@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
+import '../../../authentication/presentation/providers/accoutant_session_provider.dart';
 import '../../data/model/accountant_warehouse_model.dart';
 import '../provider/accountant_warehouse_provider.dart';
 
@@ -142,15 +143,18 @@ class _AccountantAllWarehousesScreenState
 }
 
 // ── Warehouse Tile ────────────────────────────────────────────────────────────
-class _WarehouseTile extends StatelessWidget {
+class _WarehouseTile extends ConsumerWidget {
   final AccountantWarehouseModel warehouse;
   const _WarehouseTile({required this.warehouse});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // View user sirf reports dekh sakta hai — seedha reports kholo.
+    final isViewer = ref.watch(sessionProvider).user?.role == 'viewer';
     return GestureDetector(
       onTap: () => context.push(
-        AccPaths.warehouse(warehouse.id, name: warehouse.name),
+        AccPaths.warehouse(warehouse.id,
+            name: warehouse.name, sub: isViewer ? 'reports' : ''),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),

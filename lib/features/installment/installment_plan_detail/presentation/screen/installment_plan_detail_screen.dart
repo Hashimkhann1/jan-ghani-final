@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
+import 'package:jan_ghani_final/features/installment/installment_customer_detail/domain/customer_detail_helpers.dart';
 import 'package:jan_ghani_final/features/installment/installment_dashboard/domain/installment_customer.dart';
+import 'package:jan_ghani_final/features/installment/installment_dashboard/presentation/provider/installment_dashboard_provider.dart';
 import 'package:jan_ghani_final/features/installment/installment_plan_detail/domain/installment_schedule_item.dart';
+import 'package:jan_ghani_final/features/installment/installment_plan_detail/presentation/widget/record_payment_dialog.dart';
 import 'package:jan_ghani_final/features/installment/installment_plan_detail/presentation/widget/installment_schedule_row.dart';
 
 /// Ek product plan ki tafseel — schedule + record payment + contract.
-/// Sirf UI — schedule plan se mock generate hota hai.
-class InstallmentPlanDetailScreen extends StatelessWidget {
+/// Data database se; payment ke baad provider se taza plan aata hai.
+class InstallmentPlanDetailScreen extends ConsumerWidget {
   final InstallmentPlan plan;
   final String customerName;
 
@@ -17,13 +21,31 @@ class InstallmentPlanDetailScreen extends StatelessWidget {
     required this.customerName,
   });
 
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fresh = ref
+            .watch(installmentCustomersDataProvider)
+            .valueOrNull
+            ?.expand((c) => c.plans)
+            .where((p) => p.id == plan.id)
+            .firstOrNull ??
+        plan;
+    return _PlanDetailBody(plan: fresh, customerName: customerName);
+  }
+}
+
+class _PlanDetailBody extends StatelessWidget {
+  final InstallmentPlan plan;
+  final String customerName;
+
+  const _PlanDetailBody({required this.plan, required this.customerName});
+
   static const Color _canvas = Color(0xFFF7F7F9);
 
   @override
   Widget build(BuildContext context) {
     final schedule = buildScheduleFromPlan(plan);
-    final monthly =
-        plan.totalCount == 0 ? 0.0 : plan.totalPayable / plan.totalCount;
+    final monthly = plan.monthlyAmount;
     final endDate =
         schedule.isEmpty ? plan.startDate : schedule.last.dueDate;
 
@@ -37,7 +59,7 @@ class InstallmentPlanDetailScreen extends StatelessWidget {
           children: [
             _buildHeaderCard(),
             16.hBox,
-            _buildRecordPaymentButton(),
+            _buildRecordPaymentButton(context),
             16.hBox,
             _buildScheduleCard(schedule),
             16.hBox,
@@ -146,14 +168,14 @@ class InstallmentPlanDetailScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: _SummaryCell(
-                  label: 'Total Price',
+                  label: 'Total Payable',
                   value: 'Rs ${plan.totalPayable.pkrFormat}',
                 ),
               ),
               Expanded(
                 child: _SummaryCell(
                   label: 'Advance Paid',
-                  value: 'Rs 0',
+                  value: 'Rs ${plan.advance.pkrFormat}',
                 ),
               ),
             ],
@@ -200,11 +222,13 @@ class InstallmentPlanDetailScreen extends StatelessWidget {
   }
 
   // ── Record Payment ───────────────────────────────────────────────────────────
-  Widget _buildRecordPaymentButton() {
+  Widget _buildRecordPaymentButton(BuildContext context) {
     return SizedBox(
       height: 52,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: plan.nextDue == null
+            ? null
+            : () => showRecordPaymentDialog(context, plan),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColor.primary,
           foregroundColor: AppColor.white,
@@ -291,10 +315,10 @@ class InstallmentPlanDetailScreen extends StatelessWidget {
           12.hBox,
           _ContractRow(label: 'End Date', value: planDetailDmy(endDate)),
           12.hBox,
-          // NOTE: markup abhi mock — baad mein plan data se aayega.
-          const _ContractRow(
+          _ContractRow(
             label: 'Markup Rate',
-            value: '20%',
+            value:
+                '${(plan.chargeRate * plan.totalCount * 100).toStringAsFixed(1).replaceAll('.0', '')}%',
             valueColor: AppColor.warningDark,
           ),
           12.hBox,

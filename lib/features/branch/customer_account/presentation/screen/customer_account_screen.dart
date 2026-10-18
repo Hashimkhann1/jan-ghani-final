@@ -248,6 +248,136 @@ class _CustomerAccountScreenState
     );
   }
 
+  // ── Edit account (name + email) ───────────────────────────
+  void _showEditDialog(CustomerAccountModel account) {
+    final nameCtrl  = TextEditingController(text: account.fullName);
+    final emailCtrl = TextEditingController(text: account.email);
+    final formKey   = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Edit Account',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        content: SizedBox(
+          width: 360,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameCtrl,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: const Icon(Icons.person_outline,
+                        size: 18, color: AppColor.primary),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Name is required'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Username (email)',
+                    prefixIcon: const Icon(Icons.email_outlined,
+                        size: 18, color: AppColor.primary),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  validator: (v) {
+                    final t = v?.trim() ?? '';
+                    if (t.isEmpty) return 'Email is required';
+                    if (!t.contains('@')) return 'Enter a valid email';
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColor.grey500)),
+          ),
+          Consumer(builder: (_, ref, __) {
+            final saving = ref.watch(customerAccountProvider).saving;
+            return ElevatedButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                if (!formKey.currentState!.validate()) return;
+                final storeId = ref.read(authProvider).storeId ?? '';
+                await ref.read(customerAccountProvider.notifier).updateAccount(
+                  userId:   account.id,
+                  fullName: nameCtrl.text.trim(),
+                  email:    emailCtrl.text.trim(),
+                  storeId:  storeId,
+                );
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColor.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text(saving ? 'Saving...' : 'Save'),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ── Delete account ─────────────────────────────────────────
+  void _confirmDelete(CustomerAccountModel account) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Delete Account?',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Text(
+            '"${account.fullName}" ka account delete ho jayega aur wo login '
+            'nahi kar sakega. Customer record rahega.',
+            style: const TextStyle(fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColor.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColor.error,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8))),
+            onPressed: () {
+              final storeId = ref.read(authProvider).storeId ?? '';
+              ref.read(customerAccountProvider.notifier).deleteAccount(
+                  userId: account.id, storeId: storeId);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Build ─────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -494,6 +624,22 @@ class _CustomerAccountScreenState
                           color: AppColor.primary,
                           tooltip: 'Update Password',
                           onTap: () => _showUpdatePasswordDialog(account),
+                        ),
+                        const SizedBox(width: 6),
+                        CustomerActionButton(
+                          icon: Icons.edit_outlined,
+                          iconAsset: 'ic_edit',
+                          color: AppColor.primary,
+                          tooltip: 'Edit',
+                          onTap: () => _showEditDialog(account),
+                        ),
+                        const SizedBox(width: 6),
+                        CustomerActionButton(
+                          icon: Icons.delete_outline_rounded,
+                          iconAsset: 'ic_delete',
+                          color: AppColor.error,
+                          tooltip: 'Delete',
+                          onTap: () => _confirmDelete(account),
                         ),
                       ],
                     )),

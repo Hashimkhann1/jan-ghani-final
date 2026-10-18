@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../data/model/customer_invoice_model.dart';
 import '../../data/model/customer_return_model.dart';
 import '../../data/model/specific_customer_ledger_model.dart';
 import '../../data/service/customer_report_pdf_service.dart';
 import '../provider/customer_report_provider.dart';
+import '../widget/customer_avatar.dart';
 import 'package:jan_ghani_final/core/service/session/accountant_session.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
 import 'package:go_router/go_router.dart';
@@ -24,8 +24,8 @@ class _Clr {
   static const textPrimary = Color(0xFF101828);
   static const textSecond  = Color(0xFF475467);
   static const textMuted   = Color(0xFF98A2B3);
-  static const accent      = Color(0xFF1570EF);
-  static const accentBg    = Color(0xFFEFF8FF);
+  static const accent      = Color(0xFF0F5C3F);
+  static const accentBg    = Color(0xFFE3F0E8);
 
   static const blueBg   = Color(0xFFEFF8FF);
   static const blueText = Color(0xFF1570EF);
@@ -217,55 +217,53 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
     return Scaffold(
       backgroundColor: _Clr.bg,
       appBar: _buildAppBar(context),
-      body: Column(children: [
-        _CustomerHeader(
-          customerId: widget.customerId,
-          name:    widget.customerName,
-          phone:   widget.customerPhone,
-          balance: widget.customerBalance,
-          fmt:     _fmt,
-        ),
-        _FilterBar(
-          fromCtrl:  _fromCtrl,
-          toCtrl:    _toCtrl,
-          onPickFrom: () async {
-            final p = await _pickDate(saleState.fromDate);
-            if (p != null) {
-              _fromCtrl.text = _dateFmt.format(p);
-              _applyDateRange(p, saleState.toDate);
-            }
-          },
-          onPickTo: () async {
-            final p = await _pickDate(saleState.toDate);
-            if (p != null) {
-              _toCtrl.text = _dateFmt.format(p);
-              _applyDateRange(saleState.fromDate, p);
-            }
-          },
-        ),
-        _SearchBar(
-          controller: _searchCtrl,
-          onChanged: (q) => ref
-              .read(customerReportInvoiceProvider(_args).notifier)
-              .onSearchChanged(q),
-        ),
-        Expanded(
-          child: _FeedList(
-            isLoading: isLoading,
-            feed:      feed,
-            dateFmt:   _dateFmt,
-            timeFmt:   _timeFmt,
-            amtFmt:    _amtFmt,
-            onRefresh: () async {
-              await Future.wait([
-                ref.read(customerReportInvoiceProvider(_args).notifier).load(),
-                ref.read(customerReportReturnProvider(_args).notifier).load(),
-                ref.read(customerReportLedgerProvider(_args).notifier).load(),
-              ]);
+      body: _FeedList(
+        isLoading: isLoading,
+        feed:      feed,
+        dateFmt:   _dateFmt,
+        timeFmt:   _timeFmt,
+        amtFmt:    _amtFmt,
+        header: Column(children: [
+          _CustomerHeader(
+            balance: widget.customerBalance,
+            fmt:     _fmt,
+          ),
+          _FilterBar(
+            fromCtrl:  _fromCtrl,
+            toCtrl:    _toCtrl,
+            onPickFrom: () async {
+              final p = await _pickDate(saleState.fromDate);
+              if (p != null) {
+                _fromCtrl.text = _dateFmt.format(p);
+                _applyDateRange(p, saleState.toDate);
+              }
+            },
+            onPickTo: () async {
+              final p = await _pickDate(saleState.toDate);
+              if (p != null) {
+                _toCtrl.text = _dateFmt.format(p);
+                _applyDateRange(saleState.fromDate, p);
+              }
             },
           ),
-        ),
-      ]),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: _SearchBar(
+              controller: _searchCtrl,
+              onChanged: (q) => ref
+                  .read(customerReportInvoiceProvider(_args).notifier)
+                  .onSearchChanged(q),
+            ),
+          ),
+        ]),
+        onRefresh: () async {
+          await Future.wait([
+            ref.read(customerReportInvoiceProvider(_args).notifier).load(),
+            ref.read(customerReportReturnProvider(_args).notifier).load(),
+            ref.read(customerReportLedgerProvider(_args).notifier).load(),
+          ]);
+        },
+      ),
     );
   }
 
@@ -372,7 +370,7 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
       onPressed: () => Navigator.pop(context),
     ),
     title: Text(
-      'Customer Statement',
+      widget.hideAppBarBack ? 'My Invoices' : 'Customer Statement',
       style: const TextStyle(
           fontSize: 15, fontWeight: FontWeight.w600, color: _Clr.textPrimary),
     ),
@@ -401,71 +399,51 @@ class _CustomerReportScreenState extends ConsumerState<CustomerReportScreen> {
 // Customer Header — Mobile (horizontal)
 // ══════════════════════════════════════════════════════════════
 class _CustomerHeader extends StatelessWidget {
-  final String  customerId;
-  final String  name;
-  final String? phone;
   final double  balance;
   final String Function(double) fmt;
-  const _CustomerHeader({
-    required this.customerId, required this.name, this.phone,
-    required this.balance, required this.fmt,
-  });
+  const _CustomerHeader({required this.balance, required this.fmt});
 
   @override
   Widget build(BuildContext context) {
     final hasBalance = balance > 0;
+    final fg = hasBalance ? _Clr.amberText : _Clr.greenText;
     return Container(
       color: _Clr.card,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: Row(children: [
-        _CustomerAvatar(customerId: customerId, name: name, size: 46),
-        const SizedBox(width: 12),
-        // Name + phone
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700,
-                    color: _Clr.textPrimary),
-                overflow: TextOverflow.ellipsis),
-            if (phone != null && phone!.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(phone!,
-                  style: const TextStyle(fontSize: 12, color: _Clr.textMuted)),
-            ],
-          ]),
-        ),
-        // Balance pill
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(children: [
+        // Balance card
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color:        hasBalance ? _Clr.amberBg : _Clr.greenBg,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: hasBalance
                   ? const Color(0xFFFEC84B)
                   : const Color(0xFF6CE9A6),
-              width: 1,
             ),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(
-              hasBalance ? 'Outstanding' : 'Cleared',
-              style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: hasBalance ? _Clr.amberText : _Clr.greenText,
-                  letterSpacing: 0.3),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              fmt(balance.abs()),
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: hasBalance ? _Clr.amberText : _Clr.greenText),
-            ),
-          ]),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(hasBalance ? 'Outstanding balance' : 'Balance cleared',
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
+                const SizedBox(height: 2),
+                Text(fmt(balance.abs()),
+                    style: TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.w800, color: fg)),
+              ]),
+              Icon(
+                hasBalance
+                    ? Icons.account_balance_wallet_outlined
+                    : Icons.check_circle_outline_rounded,
+                size: 30, color: fg.withOpacity(0.7),
+              ),
+            ],
+          ),
         ),
       ]),
     );
@@ -491,7 +469,7 @@ class _CustomerHeaderVertical extends StatelessWidget {
     final hasBalance = balance > 0;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        _CustomerAvatar(customerId: customerId, name: name, size: 42),
+        CustomerAvatar(customerId: customerId, name: name, size: 42),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -538,98 +516,6 @@ class _CustomerHeaderVertical extends StatelessWidget {
         ]),
       ),
     ]);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// Customer Avatar — tap to upload photo (falls back to initial)
-// ══════════════════════════════════════════════════════════════
-class _CustomerAvatar extends ConsumerWidget {
-  final String customerId;
-  final String name;
-  final double size;
-  const _CustomerAvatar({
-    required this.customerId, required this.name, this.size = 46,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final photoUrl = ref.watch(customerPhotoProvider(customerId)).asData?.value;
-    final radius   = size * 0.3;
-
-    return GestureDetector(
-      onTap: () => _pickAndUploadCustomerPhoto(context, ref, customerId),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: size, height: size,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1570EF), Color(0xFF0E4FBB)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(radius),
-            ),
-            clipBehavior: Clip.antiAlias,
-            alignment: Alignment.center,
-            child: (photoUrl != null && photoUrl.isNotEmpty)
-                ? Image.network(
-              photoUrl,
-              width: size, height: size, fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _initial(),
-            )
-                : _initial(),
-          ),
-          Positioned(
-            right: -2, bottom: -2,
-            child: Container(
-              width: size * 0.36, height: size * 0.36,
-              decoration: BoxDecoration(
-                color:  _Clr.accent,
-                shape:  BoxShape.circle,
-                border: Border.all(color: _Clr.card, width: 2),
-              ),
-              child: Icon(Icons.camera_alt_rounded,
-                  size: size * 0.2, color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _initial() => Text(
-    name.isNotEmpty ? name[0].toUpperCase() : '?',
-    style: TextStyle(
-        color: Colors.white, fontSize: size * 0.43,
-        fontWeight: FontWeight.w700),
-  );
-}
-
-Future<void> _pickAndUploadCustomerPhoto(
-    BuildContext context, WidgetRef ref, String customerId) async {
-  try {
-    final file = await ImagePicker().pickImage(
-      source:      ImageSource.gallery,
-      maxWidth:    1024,
-      imageQuality: 85,
-    );
-    if (file == null) return;
-
-    final bytes = await file.readAsBytes();
-    final ext = file.name.contains('.')
-        ? file.name.split('.').last.toLowerCase()
-        : 'jpg';
-
-    await ref.read(customerPhotoProvider(customerId).notifier).upload(bytes, ext);
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Photo upload failed: $e'),
-        backgroundColor: _Clr.redText,
-      ));
-    }
   }
 }
 
@@ -703,48 +589,80 @@ class _FeedList extends StatelessWidget {
   final NumberFormat amtFmt;
   final bool isWide;
   final Future<void> Function() onRefresh;
+
+  /// Diya jaye to list ke saath scroll hota hai (header, filter, search upar
+  /// scroll ho kar chhup jate hain).
+  final Widget? header;
   const _FeedList({
     required this.isLoading, required this.feed,
     required this.dateFmt,   required this.timeFmt,
     required this.amtFmt,    required this.onRefresh,
     this.isWide = false,
+    this.header,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Rows: header, phir loading / empty / (count + date groups + cards).
+    // Hamesha ek hi ListView — taake search field loading par dobara na bane.
+    final rows = <Object>[];
+    if (header != null) rows.add(header!);
     if (isLoading) {
-      return const Center(
-          child: CircularProgressIndicator(color: _Clr.accent));
+      rows.add(const _LoadingRow());
+    } else if (feed.isEmpty) {
+      rows.add(const _EmptyState(message: 'No records found for this period'));
+    } else {
+      rows.add('${feed.length} records');
+      // Date ke hisaab se groups: Today / Yesterday / dd MMM yyyy.
+      final now = DateTime.now();
+      String? lastKey;
+      for (final it in feed) {
+        final d = it.date.toLocal();
+        final days = DateTime(now.year, now.month, now.day)
+            .difference(DateTime(d.year, d.month, d.day)).inDays;
+        final key = days == 0 ? 'Today' : days == 1 ? 'Yesterday' : dateFmt.format(d);
+        if (key != lastKey) {
+          rows.add(key);
+          lastKey = key;
+        }
+        rows.add(it);
+      }
     }
-    if (feed.isEmpty) {
-      return const _EmptyState(message: 'No records found for this period');
-    }
+
+    final pad = isWide ? 20.0 : 16.0;
     return RefreshIndicator(
       color: _Clr.accent,
       onRefresh: onRefresh,
       child: ListView.builder(
-        padding: EdgeInsets.fromLTRB(
-          isWide ? 20 : 16, 12,
-          isWide ? 20 : 16, 24,
-        ),
-        itemCount: feed.length + 1,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.only(top: header != null ? 0 : 12, bottom: 24),
+        itemCount: rows.length,
         itemBuilder: (ctx, i) {
-          if (i == 0) {
+          final row = rows[i];
+          if (row is Widget) {
+            // header / loading / empty — full width
+            return row is _LoadingRow || row is _EmptyState
+                ? row
+                : Padding(
+                    padding: EdgeInsets.only(bottom: header != null ? 12 : 0),
+                    child: row);
+          }
+          if (row is String) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: EdgeInsets.fromLTRB(pad, i <= 1 ? 0 : 6, pad, 8),
               child: Text(
-                'Activity  •  ${feed.length} records',
+                row,
                 style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _Clr.textMuted,
-                    letterSpacing: 0.4),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: _Clr.textSecond,
+                    letterSpacing: 0.3),
               ),
             );
           }
-          final item = feed[i - 1];
+          final item = row as _FeedItem;
           return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+            padding: EdgeInsets.fromLTRB(pad, 0, pad, 10),
             child: switch (item.type) {
               _FeedType.sale => _SaleCard(
                 inv: item.sale!, dateFmt: dateFmt,
@@ -763,6 +681,16 @@ class _FeedList extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LoadingRow extends StatelessWidget {
+  const _LoadingRow();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.symmetric(vertical: 64),
+    child: Center(child: CircularProgressIndicator(color: _Clr.accent)),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -907,11 +835,15 @@ class _SaleCardState extends State<_SaleCard> {
                       ]),
                       const SizedBox(height: 4),
                       Row(children: [
-                        _OutlineTag(label: payLabel),
+                        _Badge(
+                          label: payLabel,
+                          bg:    isCredit ? _Clr.amberBg : _Clr.greenBg,
+                          text:  isCredit ? _Clr.amberText : _Clr.greenText,
+                        ),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            '${widget.dateFmt.format(inv.invoiceDate)}, ${widget.timeFmt.format(inv.invoiceDate)}',
+                            '${inv.items.length} item${inv.items.length == 1 ? '' : 's'}  •  ${widget.timeFmt.format(inv.invoiceDate)}',
                             style: const TextStyle(fontSize: 11, color: _Clr.textMuted),
                           ),
                         ),
@@ -923,7 +855,7 @@ class _SaleCardState extends State<_SaleCard> {
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Text(inv.grandTotalLabel,
                       style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700,
+                          fontSize: 16, fontWeight: FontWeight.w800,
                           color: _Clr.textPrimary)),
                   AnimatedRotation(
                     turns:    _expanded ? 0.5 : 0,
@@ -942,8 +874,6 @@ class _SaleCardState extends State<_SaleCard> {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
             child: Column(children: [
-              const _ItemTableHeader(),
-              Container(height: 0.5, color: _Clr.borderSoft),
               ...inv.items.map((it) => _ItemRow(
                 name:     it.productName,
                 qty:      it.qtyLabel,
@@ -1063,8 +993,6 @@ class _ReturnCardState extends State<_ReturnCard> {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
             child: Column(children: [
-              const _ItemTableHeader(),
-              Container(height: 0.5, color: _Clr.borderSoft),
               ...ret.items.map((it) => _ItemRow(
                 name:     it.productName,
                 qty:      it.qtyLabel,
@@ -1263,31 +1191,6 @@ class _OutlineTag extends StatelessWidget {
   );
 }
 
-class _ItemTableHeader extends StatelessWidget {
-  const _ItemTableHeader();
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Row(children: const [
-      Expanded(flex: 3,
-          child: Text('Product', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted))),
-      Expanded(flex: 1,
-          child: Text('Qty', textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted))),
-      Expanded(flex: 2,
-          child: Text('Price', textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted))),
-      Expanded(flex: 2,
-          child: Text('Disc', textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted))),
-      Expanded(flex: 2,
-          child: Text('Sub total', textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _Clr.textMuted))),
-    ]),
-  );
-}
-
 class _ItemRow extends StatelessWidget {
   final String name, qty, price, discount, total;
   const _ItemRow({
@@ -1297,23 +1200,28 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(children: [
-      Expanded(flex: 3,
-          child: Text(name, style: const TextStyle(fontSize: 12, color: _Clr.textPrimary),
-              maxLines: 2, overflow: TextOverflow.ellipsis)),
-      Expanded(flex: 1,
-          child: Text(qty, textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: _Clr.textSecond))),
-      Expanded(flex: 2,
-          child: Text(price, textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: _Clr.textSecond))),
-      Expanded(flex: 2,
-          child: Text(discount, textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: _Clr.textSecond))),
-      Expanded(flex: 2,
-          child: Text(total, textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _Clr.textPrimary))),
+    padding: const EdgeInsets.symmetric(vertical: 7),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(name,
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600,
+                  color: _Clr.textPrimary),
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 3),
+          Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            Text('$qty × $price',
+                style: const TextStyle(fontSize: 11, color: _Clr.textMuted)),
+            if (discount != '—')
+              _Badge(label: '- $discount', bg: _Clr.greenBg, text: _Clr.greenText),
+          ]),
+        ]),
+      ),
+      const SizedBox(width: 10),
+      Text(total,
+          style: const TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w700, color: _Clr.textPrimary)),
     ]),
   );
 }

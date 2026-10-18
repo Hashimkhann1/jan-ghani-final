@@ -1,3 +1,4 @@
+import '../../../common/action/report_refresh_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:jan_ghani_final/core/routes/accountant_paths.dart';
@@ -152,25 +153,10 @@ class _DesktopLayout extends StatelessWidget {
                   onChanged:  notifier.search,
                 ),
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 120,
-                child: OutlinedButton.icon(
-                  onPressed: notifier.load,
-                  icon:  const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Refresh'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              const SizedBox(width: 7),
+              ReportRefreshButton(onPressed: notifier.load),
               if (isOwner) ...[
-                const SizedBox(width: 12),
+                const SizedBox(width: 5),
                 SizedBox(
                   width: 150,
                   child: ElevatedButton.icon(

@@ -54,4 +54,25 @@ class InventoryCountingRecord {
       countedDate: DateTime.parse(counting['counted_date'] as String),
     );
   }
+
+  /// `get_inventory_counting_report` RPC ki ek row (counting + inventory join).
+  factory InventoryCountingRecord.fromRpc(Map<String, dynamic> row) =>
+      InventoryCountingRecord.fromMerged(counting: row, inventory: row);
+}
+
+/// RPC ka ek page + poore filtered result ke counts.
+class InventoryCountingPage {
+  final List<InventoryCountingRecord> records;
+  final int totalCount;
+  final int surplusCount;
+  final int shortageCount;
+  final int matchedCount;
+
+  const InventoryCountingPage({
+    this.records       = const [],
+    this.totalCount    = 0,
+    this.surplusCount  = 0,
+    this.shortageCount = 0,
+    this.matchedCount  = 0,
+  });
 }

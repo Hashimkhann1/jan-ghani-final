@@ -138,6 +138,48 @@ class CustomerAccountNotifier extends StateNotifier<CustomerAccountState> {
     }
   }
 
+  // ── Edit name / email ─────────────────────────────────────
+  Future<void> updateAccount({
+    required String userId,
+    required String fullName,
+    required String email,
+    required String storeId,
+  }) async {
+    state = state.copyWith(saving: true, error: null, success: false);
+    try {
+      await _ds.updateAccount(userId: userId, fullName: fullName, email: email);
+      await loadAccounts(storeId);
+      state = state.copyWith(saving: false, success: true);
+    } catch (e) {
+      state = state.copyWith(
+        saving: false,
+        error: 'Failed to update account: $e',
+      );
+    }
+  }
+
+  // ── Delete account ────────────────────────────────────────
+  Future<void> deleteAccount({
+    required String userId,
+    required String storeId,
+  }) async {
+    state = state.copyWith(saving: true, error: null, success: false);
+    try {
+      await _ds.deleteAccount(userId);
+      // Customer wapas dropdown mein aa jaye
+      await Future.wait([
+        loadAccounts(storeId),
+        loadCustomers(storeId),
+      ]);
+      state = state.copyWith(saving: false, success: true);
+    } catch (e) {
+      state = state.copyWith(
+        saving: false,
+        error: 'Failed to delete account: $e',
+      );
+    }
+  }
+
   void resetSuccess() => state = state.copyWith(success: false);
   void clearError()   => state = state.copyWith(error: null);
 }

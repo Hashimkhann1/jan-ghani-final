@@ -1,3 +1,6 @@
+import '../../../common/action/report_refresh_button.dart';
+import '../../../../authentication/presentation/providers/accoutant_session_provider.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -257,21 +260,10 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              SizedBox(
-                width: 130,
-                child: OutlinedButton.icon(
-                  onPressed: onFilters,
-                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
-                  label: Text(hasFilter ? 'Filters (1)' : 'Filters'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+              ReportFilterButton(
+                onPressed:   onFilters,
+                activeCount: hasFilter ? 1 : 0,
               ),
-              const SizedBox(width: 10),
               ReportExportButton(
                 fileNamePrefix: 'branch_transactions',
                 filled: true,
@@ -283,23 +275,7 @@ class _DesktopLayout extends StatelessWidget {
                   endDate: state.endDate,
                 ),
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 120,
-                child: OutlinedButton.icon(
-                  onPressed: notifier.load,
-                  icon:  const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
-                  label: const Text('Refresh'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              ReportRefreshButton(onPressed: notifier.load),
             ],
           ),
         ),
@@ -379,43 +355,13 @@ class _DeskStatCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(
-        horizontal: 14, vertical: 10),
-    decoration: BoxDecoration(
-      color:        color.withOpacity(0.06),
-      borderRadius: BorderRadius.circular(10),
-      border:       Border.all(color: color.withOpacity(0.15)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color:        color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(7),
-          ),
-          child: AppIcon(icon, size: 14, color: color),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize:       MainAxisSize.min,
-          children: [
-            Text(value,
-                style: TextStyle(
-                  fontSize:   15,
-                  fontWeight: FontWeight.w800,
-                  color:      color,
-                )),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 11,
-                    color:    AppColor.textHint)),
-          ],
-        ),
-      ],
+  Widget build(BuildContext context) => SizedBox(
+    width: 190,
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
     ),
   );
 }
@@ -730,11 +676,7 @@ class _MobileLayout extends StatelessWidget {
               endDate: state.endDate,
             ),
           ),
-          IconButton(
-            onPressed: notifier.load,
-            icon: const AppIcon('ic_refresh',
-                size: 22, color: AppColor.textSecondary),
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           const SizedBox(width: 4),
         ],
         bottom: PreferredSize(
@@ -845,47 +787,12 @@ class _MobileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color:        color.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(12),
-        border:       Border.all(color: color.withOpacity(0.15)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color:        color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: AppIcon(icon, size: 16, color: color),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value,
-                    style: TextStyle(
-                      fontSize:   14,
-                      fontWeight: FontWeight.w800,
-                      color:      color,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color:    AppColor.textHint)),
-              ],
-            ),
-          ),
-        ],
-      ),
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      compact:   true,
     ),
   );
 }
@@ -1148,6 +1055,15 @@ class _ReceiveStatusState extends ConsumerState<_ReceiveStatus> {
           ],
         ),
       );
+    }
+
+    // View user read-only hai — receive nahi kar sakta.
+    if (ref.watch(sessionProvider).user?.role == 'viewer') {
+      return const Text('Pending',
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFEAB308)));
     }
 
     return SizedBox(

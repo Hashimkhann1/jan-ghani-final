@@ -8,31 +8,43 @@ class DashboardStatCard extends StatelessWidget {
   final String   title;
   final String   value;
   final String?  subtitle;
-  final IconData icon;
+  final IconData? icon;
   final String?  iconAsset;
   final Color    color;
-  final Color    bgColor;
+  final Color?   bgColor;
   final Color?   valueColor;
+
+  /// Chhota padding/fonts — mobile grids aur tang rows ke liye.
+  final bool          compact;
+  final bool          selected;
+  final VoidCallback? onTap;
 
   const DashboardStatCard({
     super.key,
     required this.title,
     required this.value,
-    required this.icon,
     required this.color,
-    required this.bgColor,
+    this.icon,
+    this.bgColor,
     this.subtitle,
     this.iconAsset,
     this.valueColor,
+    this.compact  = false,
+    this.selected = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
+    final iconSize = compact ? 16.0 : 20.0;
+    final badge    = bgColor ?? color.withOpacity(0.12);
+    final card = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: EdgeInsets.all(compact ? 10 : 14),
       decoration: BoxDecoration(
         color:        Colors.white,
         borderRadius: BorderRadius.circular(14),
+        border: selected ? Border.all(color: color, width: 1.5) : null,
         boxShadow: [
           BoxShadow(
             color:      Colors.black.withOpacity(0.05),
@@ -47,16 +59,17 @@ class DashboardStatCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(compact ? 6 : 8),
                 decoration: BoxDecoration(
-                  color:        bgColor,
+                  color:        badge,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: iconAsset != null
-                    ? AppIcon(iconAsset!, color: color, size: 20)
-                    : Icon(icon, color: color, size: 20),
+                    ? AppIcon(iconAsset!, color: color, size: iconSize)
+                    : Icon(icon ?? Icons.analytics_outlined,
+                        color: color, size: iconSize),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: compact ? 8 : 10),
               Expanded(
                 child: Text(title,
                     maxLines: 1,
@@ -68,13 +81,13 @@ class DashboardStatCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 8 : 12),
           FittedBox(
             fit:       BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(value,
                 style: TextStyle(
-                    fontSize:   18,
+                    fontSize:   compact ? 15 : 18,
                     fontWeight: FontWeight.w700,
                     color:      valueColor ?? const Color(0xFF1A1D23))),
           ),
@@ -91,5 +104,6 @@ class DashboardStatCard extends StatelessWidget {
         ],
       ),
     );
+    return onTap == null ? card : GestureDetector(onTap: onTap, child: card);
   }
 }

@@ -20,6 +20,39 @@ class AccountantAuthRepositoryImpl implements AccountantAuthRepository {
   }) => remote.login(email: username, password: password);
 
   @override
+  Future<void> signUp({
+    required String fullName,
+    required String email,
+    required String password,
+  }) => remote.signUp(fullName: fullName, email: email, password: password);
+
+  @override
+  Future<void> sendPasswordReset(String email) =>
+      remote.sendPasswordReset(email);
+
+  @override
+  Future<void> signInWithGoogle() => remote.signInWithGoogle();
+
+  @override
+  Future<AccountantUserEntity?> profileOfCurrentSession() =>
+      remote.profileOfCurrentSession();
+
+  @override
+  Future<void> signOut() => remote.signOut();
+
+  @override
+  Future<void> connectCustomerAccount(String customerId) =>
+      remote.connectCustomerAccount(customerId);
+
+  @override
+  Future<void> connectInstallmentAccount(String installmentId) =>
+      remote.connectInstallmentAccount(installmentId);
+
+  @override
+  Future<void> connectBranchUserAccount(String branchUserId) =>
+      remote.connectBranchUserAccount(branchUserId);
+
+  @override
   Future<void> saveSession(AccountantUserEntity user) async {
     await local.saveUser({
       'id'             : user.id,
@@ -29,6 +62,7 @@ class AccountantAuthRepositoryImpl implements AccountantAuthRepository {
       'branch_id'      : user.branchId,
       'warehouse_id'   : user.warehouseId,
       'customer_token' : user.customerToken,
+      'installment_id' : user.installmentId,
       'is_active'      : user.isActive,
       'created_at'     : user.createdAt.toIso8601String(),
     });

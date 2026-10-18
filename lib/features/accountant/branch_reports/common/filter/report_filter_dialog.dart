@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/color/app_color.dart';
 import '../../../../../core/widget/app_icon.dart';
+import '../action/report_action_style.dart';
 
-/// AppBar filter button with an active-filter count badge.
+/// Filters button shared by every branch report — wide screen par labelled
+/// outlined button, narrow par AppBar icon; dono mein active-filter count.
 class ReportFilterButton extends StatelessWidget {
   final VoidCallback onPressed;
   final int          activeCount;
@@ -14,40 +16,53 @@ class ReportFilterButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Stack(
-        clipBehavior: Clip.none,
-        children: [
-          IconButton(
-            onPressed: onPressed,
-            icon: const AppIcon('ic_filter',
-                size: 22, color: AppColor.textSecondary),
-            tooltip: 'Filters',
-          ),
-          if (activeCount > 0)
-            Positioned(
-              right: 6,
-              top:   6,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: AppColor.primary,
-                  shape: BoxShape.circle,
-                ),
-                constraints:
-                    const BoxConstraints(minWidth: 16, minHeight: 16),
-                child: Text(
-                  '$activeCount',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize:   9,
-                    color:      Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+  Widget build(BuildContext context) {
+    if (ReportActionStyle.isWide(context)) {
+      return Padding(
+        padding: ReportActionStyle.wideGap,
+        child: OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
+          label: Text(activeCount > 0 ? 'Filters ($activeCount)' : 'Filters'),
+          style: ReportActionStyle.outlined(),
+        ),
+      );
+    }
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          onPressed: onPressed,
+          icon: const AppIcon('ic_filter',
+              size: 22, color: AppColor.textSecondary),
+          tooltip: 'Filters',
+        ),
+        if (activeCount > 0)
+          Positioned(
+            right: 6,
+            top:   6,
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(
+                color: AppColor.primary,
+                shape: BoxShape.circle,
+              ),
+              constraints:
+                  const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                '$activeCount',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize:   9,
+                  color:      Colors.white,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-        ],
-      );
+          ),
+      ],
+    );
+  }
 }
 
 /// Shows every filter of a report inside one alert dialog.

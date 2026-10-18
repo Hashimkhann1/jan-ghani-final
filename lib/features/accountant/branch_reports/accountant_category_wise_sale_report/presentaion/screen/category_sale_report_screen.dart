@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -200,12 +202,7 @@ class _CategorySaleReportScreenState extends ConsumerState<CategorySaleReportScr
               );
             },
           ),
-          IconButton(
-            onPressed: notifier.load,
-            icon:    const AppIcon('ic_refresh',
-                size: 20, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           TextButton(
             onPressed: () {
               notifier.setToday();
@@ -767,27 +764,12 @@ class _SummaryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color:        color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: AppIcon(icon, size: 16, color: color),
-        ),
-        const SizedBox(height: 6),
-        Text(value,
-            style: TextStyle(
-                fontSize:   13,
-                fontWeight: FontWeight.w800,
-                color:      color)),
-        const SizedBox(height: 2),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 10, color: AppColor.textHint)),
-      ],
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      compact:   true,
     ),
   );
 }

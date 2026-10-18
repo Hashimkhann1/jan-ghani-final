@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/color/app_color.dart';
+import '../action/report_action_style.dart';
 import 'report_excel_export.dart';
 import 'report_file_export.dart';
 
@@ -30,7 +31,8 @@ class ReportExportButton extends StatefulWidget {
   final Future<void> Function()? customPdf;
   final bool enabled;
 
-  /// Renders as a labelled filled button (for toolbars) instead of an icon.
+  /// Deprecated: look ab screen width se tay hota hai (wide = labelled button,
+  /// narrow = icon). Purane call sites ke liye rakha hai.
   final bool filled;
 
   /// Text on the filled button.
@@ -98,6 +100,7 @@ class _ReportExportButtonState extends State<ReportExportButton> {
   @override
   Widget build(BuildContext context) {
     final enabled = widget.enabled && !_busy;
+    final wide    = ReportActionStyle.isWide(context);
     final spinner = const SizedBox(
         width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2));
 
@@ -125,28 +128,22 @@ class _ReportExportButtonState extends State<ReportExportButton> {
           child: _Item(Icons.download_for_offline_outlined, 'All 3 formats'),
         ),
       ],
-      child: widget.filled
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
-                color: enabled ? AppColor.primary : Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(8),
+      child: wide
+          ? Padding(
+              padding: ReportActionStyle.wideGap,
+              child: IgnorePointer(
+                child: ElevatedButton.icon(
+                  onPressed: enabled ? () {} : null,
+                  style: ReportActionStyle.filled(),
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.file_download_outlined, size: 18),
+                  label: Text(widget.label),
+                ),
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                _busy
-                    ? const SizedBox(
-                        width: 16, height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.file_download_outlined,
-                        size: 18, color: Colors.white),
-                const SizedBox(width: 6),
-                Text(widget.label,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
-              ]),
             )
           : Padding(
               padding: const EdgeInsets.all(8),
@@ -154,7 +151,9 @@ class _ReportExportButtonState extends State<ReportExportButton> {
                   ? spinner
                   : Icon(Icons.file_download_outlined,
                       size: 22,
-                      color: enabled ? AppColor.primary : Colors.grey),
+                      color: enabled
+                          ? AppColor.textSecondary
+                          : Colors.grey),
             ),
     );
   }

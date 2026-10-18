@@ -1,17 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/installment/installment_customer_detail/domain/customer_detail_helpers.dart';
+import 'package:jan_ghani_final/features/installment/installment_calculator/presentation/screen/installment_calculator_screen.dart';
+import 'package:jan_ghani_final/features/installment/installment_customer_detail/presentation/widget/installment_connect_qr_dialog.dart';
 import 'package:jan_ghani_final/features/installment/installment_customer_detail/presentation/widget/installment_plan_card.dart';
+import 'package:jan_ghani_final/features/installment/installment_dashboard/presentation/provider/installment_dashboard_provider.dart';
 import 'package:jan_ghani_final/features/installment/installment_dashboard/domain/installment_customer.dart';
 import 'package:jan_ghani_final/features/installment/installment_plan_detail/presentation/screen/installment_plan_detail_screen.dart';
 
 /// Ek customer ki detail — uske saare installment plans (multi-plan).
-/// Sirf UI — data mock se aata hai.
-class InstallmentCustomerDetailScreen extends StatelessWidget {
+/// Data database se; plan / payment ke baad provider se taza customer aata hai.
+class InstallmentCustomerDetailScreen extends ConsumerWidget {
   final InstallmentCustomer customer;
 
   const InstallmentCustomerDetailScreen({super.key, required this.customer});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fresh = ref
+            .watch(installmentCustomersDataProvider)
+            .valueOrNull
+            ?.where((c) => c.id == customer.id)
+            .firstOrNull ??
+        customer;
+    return _CustomerDetailBody(customer: fresh);
+  }
+}
+
+class _CustomerDetailBody extends StatelessWidget {
+  final InstallmentCustomer customer;
+
+  const _CustomerDetailBody({required this.customer});
 
   static const Color _canvas = Color(0xFFF7F7F9);
 
@@ -28,9 +49,24 @@ class InstallmentCustomerDetailScreen extends StatelessWidget {
             _buildHeader(),
             16.hBox,
             _buildSummaryCard(),
+            16.hBox,
+            _NewPlanButton(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) =>
+                    InstallmentCalculatorScreen(customerId: customer.id),
+              )),
+            ),
             20.hBox,
             _buildPlansHeader(),
             12.hBox,
+            if (customer.plans.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text('No plans yet. Tap "New Plan" to create one.',
+                      style: TextStyle(color: AppColor.textSecondary)),
+                ),
+              ),
             ...customer.plans.map(
               (p) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -75,8 +111,9 @@ class InstallmentCustomerDetailScreen extends StatelessWidget {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_vert, color: AppColor.textPrimary),
-          onPressed: () {},
+          tooltip: 'Connect account (QR)',
+          icon: const Icon(Icons.qr_code_2_rounded, color: AppColor.textPrimary),
+          onPressed: () => showInstallmentConnectQrDialog(context, customer),
         ),
       ],
       bottom: PreferredSize(
@@ -270,6 +307,29 @@ class InstallmentCustomerDetailScreen extends StatelessWidget {
       ],
     );
   }
+}
+
+class _NewPlanButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _NewPlanButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 50,
+        child: ElevatedButton.icon(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColor.primary,
+            foregroundColor: AppColor.white,
+            elevation: 0,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          icon: const Icon(Icons.calculate_outlined, size: 20),
+          label: const Text('New Plan',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        ),
+      );
 }
 
 class _MiniStat extends StatelessWidget {

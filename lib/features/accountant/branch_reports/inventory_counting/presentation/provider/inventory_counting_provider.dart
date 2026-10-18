@@ -1,15 +1,20 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasource/inventory_counting_datasource.dart';
 import '../../data/model/inventory_counting_report_model.dart';
 
 const _sentinel = Object();
-const int _pageSize = 100;
+const int _pageSize = InventoryCountingReportRemoteDatasource.pageSize;
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
 class InventoryCountingReportState {
+  /// Sirf current page ki rows (server-side pagination).
   final List<InventoryCountingRecord> records;
-  final List<InventoryCountingRecord> filtered;
+  final int                           totalCount;
+  final int                           surplusCount;
+  final int                           shortageCount;
+  final int                           matchedCount;
   final String                        searchQuery;
   final DateTime?                     startDate;
   final DateTime?                     endDate;
@@ -18,34 +23,31 @@ class InventoryCountingReportState {
   final String?                       errorMessage;
 
   const InventoryCountingReportState({
-    this.records     = const [],
-    this.filtered    = const [],
-    this.searchQuery = '',
+    this.records       = const [],
+    this.totalCount    = 0,
+    this.surplusCount  = 0,
+    this.shortageCount = 0,
+    this.matchedCount  = 0,
+    this.searchQuery   = '',
     this.startDate,
     this.endDate,
-    this.currentPage = 1,
-    this.isLoading   = false,
+    this.currentPage   = 1,
+    this.isLoading     = false,
     this.errorMessage,
   });
 
-  int get totalPages =>
-      filtered.isEmpty ? 1 : (filtered.length / _pageSize).ceil();
-
-  /// Current page ka data — hamesha 100 (ya kam, last page par) items
-  List<InventoryCountingRecord> get paginated {
-    if (filtered.isEmpty) return const [];
-    final start = (currentPage - 1) * _pageSize;
-    if (start >= filtered.length) return const [];
-    final end = (start + _pageSize) > filtered.length ? filtered.length : start + _pageSize;
-    return filtered.sublist(start, end);
-  }
+  int get pageSize   => _pageSize;
+  int get totalPages => totalCount == 0 ? 1 : (totalCount / _pageSize).ceil();
 
   bool get hasNextPage => currentPage < totalPages;
   bool get hasPrevPage => currentPage > 1;
 
   InventoryCountingReportState copyWith({
     List<InventoryCountingRecord>? records,
-    List<InventoryCountingRecord>? filtered,
+    int?                           totalCount,
+    int?                           surplusCount,
+    int?                           shortageCount,
+    int?                           matchedCount,
     String?                        searchQuery,
     Object?                        startDate    = _sentinel,
     Object?                        endDate      = _sentinel,
@@ -54,18 +56,21 @@ class InventoryCountingReportState {
     Object?                        errorMessage = _sentinel,
   }) {
     return InventoryCountingReportState(
-      records:      records     ?? this.records,
-      filtered:     filtered    ?? this.filtered,
-      searchQuery:  searchQuery ?? this.searchQuery,
-      startDate:    startDate == _sentinel
+      records:       records       ?? this.records,
+      totalCount:    totalCount    ?? this.totalCount,
+      surplusCount:  surplusCount  ?? this.surplusCount,
+      shortageCount: shortageCount ?? this.shortageCount,
+      matchedCount:  matchedCount  ?? this.matchedCount,
+      searchQuery:   searchQuery   ?? this.searchQuery,
+      startDate:     startDate == _sentinel
           ? this.startDate
           : startDate as DateTime?,
-      endDate:      endDate == _sentinel
+      endDate:       endDate == _sentinel
           ? this.endDate
           : endDate as DateTime?,
-      currentPage:  currentPage ?? this.currentPage,
-      isLoading:    isLoading ?? this.isLoading,
-      errorMessage: errorMessage == _sentinel
+      currentPage:   currentPage   ?? this.currentPage,
+      isLoading:     isLoading     ?? this.isLoading,
+      errorMessage:  errorMessage == _sentinel
           ? this.errorMessage
           : errorMessage as String?,
     );
@@ -78,6 +83,10 @@ class InventoryCountingReportNotifier extends StateNotifier<InventoryCountingRep
   final InventoryCountingReportRemoteDatasource _datasource;
   final String storeId;
 
+  Timer? _searchDebounce;
+  // Purane (late) response ko ignore karne ke liye.
+  int _requestId = 0;
+
   InventoryCountingReportNotifier({
     required InventoryCountingReportRemoteDatasource datasource,
     required this.storeId,
@@ -86,130 +95,94 @@ class InventoryCountingReportNotifier extends StateNotifier<InventoryCountingRep
     loadReport();
   }
 
-  Future<void> loadReport() async {
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  /// [page] 1-indexed. Filters state se aate hain.
+  Future<void> _load(int page) async {
+    final id = ++_requestId;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final records = await _datasource.fetchAllRecords(storeId: storeId);
-      final filtered = _applyFilters(
-        records,
-        state.searchQuery,
-        state.startDate,
-        state.endDate,
+      final result = await _datasource.fetchPage(
+        storeId: storeId,
+        page:    page - 1,
+        from:    state.startDate,
+        to:      state.endDate,
+        search:  state.searchQuery,
       );
+      if (id != _requestId || !mounted) return;
       state = state.copyWith(
-        records:     records,
-        filtered:    filtered,
-        currentPage: 1, // fresh load par page 1 par reset
-        isLoading:   false,
+        records:       result.records,
+        totalCount:    result.totalCount,
+        surplusCount:  result.surplusCount,
+        shortageCount: result.shortageCount,
+        matchedCount:  result.matchedCount,
+        currentPage:   page,
+        isLoading:     false,
       );
     } catch (e) {
+      if (id != _requestId || !mounted) return;
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
+  Future<void> loadReport() => _load(1);
+
+  /// Poora filtered data (export ke liye) — screen par load nahi hota.
+  Future<List<InventoryCountingRecord>> fetchAllForExport() =>
+      _datasource.fetchAll(
+        storeId: storeId,
+        from:    state.startDate,
+        to:      state.endDate,
+        search:  state.searchQuery,
+      );
+
+  /// Har keystroke par nahi — typing ruknay ke 400ms baad server se.
   void search(String q) {
-    final filtered = _applyFilters(
-      state.records,
-      q,
-      state.startDate,
-      state.endDate,
-    );
-    state = state.copyWith(searchQuery: q, filtered: filtered, currentPage: 1);
+    state = state.copyWith(searchQuery: q);
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () => _load(1));
   }
 
   /// Set start date (pass null to clear)
   void setStartDate(DateTime? date) {
-    final filtered = _applyFilters(
-      state.records,
-      state.searchQuery,
-      date,
-      state.endDate,
-    );
-    state = state.copyWith(startDate: date, filtered: filtered, currentPage: 1);
+    state = state.copyWith(startDate: date);
+    _load(1);
   }
 
   /// Set end date (pass null to clear)
   void setEndDate(DateTime? date) {
-    final filtered = _applyFilters(
-      state.records,
-      state.searchQuery,
-      state.startDate,
-      date,
-    );
-    state = state.copyWith(endDate: date, filtered: filtered, currentPage: 1);
+    state = state.copyWith(endDate: date);
+    _load(1);
   }
 
   /// Set both dates together (useful for range pickers)
   void setDateRange(DateTime? start, DateTime? end) {
-    final filtered = _applyFilters(
-      state.records,
-      state.searchQuery,
-      start,
-      end,
-    );
-    state = state.copyWith(startDate: start, endDate: end, filtered: filtered, currentPage: 1);
+    state = state.copyWith(startDate: start, endDate: end);
+    _load(1);
   }
 
   void clearDateFilter() {
-    final filtered = _applyFilters(
-      state.records,
-      state.searchQuery,
-      null,
-      null,
-    );
-    state = state.copyWith(startDate: null, endDate: null, filtered: filtered, currentPage: 1);
+    state = state.copyWith(startDate: null, endDate: null);
+    _load(1);
   }
 
   // ─── Pagination controls ────────────────────────────────────────────────
 
   void nextPage() {
-    if (state.hasNextPage) {
-      state = state.copyWith(currentPage: state.currentPage + 1);
-    }
+    if (state.hasNextPage && !state.isLoading) _load(state.currentPage + 1);
   }
 
   void prevPage() {
-    if (state.hasPrevPage) {
-      state = state.copyWith(currentPage: state.currentPage - 1);
-    }
+    if (state.hasPrevPage && !state.isLoading) _load(state.currentPage - 1);
   }
 
   void goToPage(int page) {
-    if (page < 1 || page > state.totalPages) return;
-    state = state.copyWith(currentPage: page);
-  }
-
-  // ─── Helpers ────────────────────────────────────────────────────────────
-
-  List<InventoryCountingRecord> _applyFilters(
-      List<InventoryCountingRecord> all,
-      String    q,
-      DateTime? start,
-      DateTime? end,
-      ) {
-    var list = all;
-
-    if (q.isNotEmpty) {
-      final lower = q.toLowerCase();
-      list = list.where((r) {
-        final nameMatch = r.productName.toLowerCase().contains(lower);
-        final barcodeMatch = r.barcodes.any((b) => b.toLowerCase().contains(lower));
-        return nameMatch || barcodeMatch;
-      }).toList();
-    }
-
-    if (start != null) {
-      final s = DateTime(start.year, start.month, start.day);
-      list = list.where((r) => !r.countedDate.isBefore(s)).toList();
-    }
-
-    if (end != null) {
-      // include the whole end day
-      final e = DateTime(end.year, end.month, end.day, 23, 59, 59, 999);
-      list = list.where((r) => !r.countedDate.isAfter(e)).toList();
-    }
-
-    return list;
+    if (page < 1 || page > state.totalPages || state.isLoading) return;
+    _load(page);
   }
 }
 

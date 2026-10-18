@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -236,24 +238,8 @@ class _ProductProfitLossReportScreenState
                     activeCount: (state.searchQuery.isNotEmpty ? 1 : 0) +
                         (state.categoryFilter != null ? 1 : 0),
                   ),
-                  const SizedBox(width: 6),
                   _exportButton(state, label: exportLabel, filled: true),
-                  const SizedBox(width: 10),
-                  OutlinedButton.icon(
-                    onPressed: notifier.load,
-                    icon: const AppIcon('ic_refresh',
-                        size: 18, color: AppColor.primary),
-                    label: const Text('Refresh'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      foregroundColor: AppColor.primary,
-                      side: const BorderSide(color: AppColor.primary),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
+                  ReportRefreshButton(onPressed: notifier.load),
                 ],
               ),
             ),
@@ -284,12 +270,7 @@ class _ProductProfitLossReportScreenState
             label: Text('$selCount'),
             child: _exportButton(state, label: exportLabel),
           ),
-          IconButton(
-            onPressed: notifier.load,
-            icon: const AppIcon('ic_refresh',
-                size: 22, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           const SizedBox(width: 4),
         ],
         bottom: PreferredSize(
@@ -567,7 +548,7 @@ class _SummaryRow extends StatelessWidget {
           ]);
         }
         return SizedBox(
-          height: 62,
+          height: 92,
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
@@ -589,27 +570,11 @@ class _StatCard extends StatelessWidget {
   const _StatCard({required this.label, required this.value, required this.color});
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(value,
-                style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w800, color: color),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Text(label,
-                style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
-          ],
-        ),
+  Widget build(BuildContext context) => DashboardStatCard(
+        title:   label,
+        value:   value,
+        color:   color,
+        compact: true,
       );
 }
 

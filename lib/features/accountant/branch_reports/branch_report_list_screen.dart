@@ -12,7 +12,6 @@ import 'accountant_category_wise_sale_report/presentaion/screen/category_sale_re
 import 'accountant_customer/presentation/screen/accountant_customer_report_screen.dart';
 import 'accountant_profit_loss_report/presentation/screen/accountant_profit_loss_report_screen.dart';
 import 'accountant_sale_summary_report/presentation/screen/sale_summary_screen.dart';
-import 'ai_chatbot_screen.dart';
 import 'branch_cash_counter_report/presentation/screen/branch_cash_counter_screen.dart';
 import 'branch_cash_difference/presentation/screen/branch_cash_difference_screen.dart';
 import 'branch_stock_damage_report/presentation/screen/accountant_branch_stock_damage_report_screen.dart';
@@ -288,14 +287,6 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
               reports: _reports,
               onTap:   _openMobile,
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => AIBusinessChatbotScreen()),
-        ),
-        backgroundColor: AppColor.primary,
-        child: const Icon(Icons.support_agent, color: Colors.white),
-      ),
     );
   }
 }

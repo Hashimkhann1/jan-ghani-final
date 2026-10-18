@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -375,37 +377,12 @@ class _DesktopLayout extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              SizedBox(
-                width: 130,
-                child: OutlinedButton.icon(
-                  onPressed: onFilters,
-                  icon: const AppIcon('ic_filter', size: 18, color: AppColor.primary),
-                  label: Text(_activeCount(state) > 0 ? 'Filters (${_activeCount(state)})' : 'Filters'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+              ReportFilterButton(
+                onPressed:   onFilters,
+                activeCount: _activeCount(state),
               ),
-              const SizedBox(width: 10),
               _exportButton(context, state, filled: true),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 120,
-                child: OutlinedButton.icon(
-                  onPressed: notifier.load,
-                  icon: const AppIcon('ic_refresh', size: 18, color: AppColor.primary),
-                  label: const Text('Refresh'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    side: const BorderSide(color: AppColor.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              ReportRefreshButton(onPressed: notifier.load),
             ],
           ),
         ),
@@ -489,35 +466,13 @@ class _DeskSummaryCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF9FAFB),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFEEEEEE)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(7),
-          ),
-          child: AppIcon(icon, size: 14, color: color),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(value,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color)),
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColor.textHint)),
-          ],
-        ),
-      ],
+  Widget build(BuildContext context) => SizedBox(
+    width: 190,
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
     ),
   );
 }
@@ -703,11 +658,7 @@ class _MobileLayout extends StatelessWidget {
             activeCount: _activeCount(state),
           ),
           _exportButton(context, state),
-          IconButton(
-            onPressed: notifier.load,
-            icon: const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           const SizedBox(width: 4),
         ],
         bottom: PreferredSize(
@@ -807,30 +758,12 @@ class _MobileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-            child: AppIcon(icon, size: 12, color: color),
-          ),
-          const SizedBox(height: 7),
-          Text(value,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColor.textHint)),
-        ],
-      ),
+    child: DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      compact:   true,
     ),
   );
 }
@@ -843,27 +776,13 @@ class _ValueCard extends StatelessWidget {
   const _ValueCard({required this.label, required this.value, required this.icon, required this.color});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-    decoration: BoxDecoration(
-      color: color.withOpacity(0.07),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: color.withOpacity(0.2)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppIcon(icon, size: 14, color: color),
-        const SizedBox(height: 5),
-        Text(value,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 9, color: AppColor.textHint)),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) => DashboardStatCard(
+      title:     label,
+      value:     value,
+      iconAsset: icon,
+      color:     color,
+      compact:   true,
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

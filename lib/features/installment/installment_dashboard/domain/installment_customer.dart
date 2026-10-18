@@ -26,6 +26,47 @@ extension InstallmentStatusX on InstallmentStatus {
       };
 }
 
+/// Schedule ki ek qist (database: installment_schedule).
+class InstallmentDue {
+  final String id;
+  final int number;
+  final DateTime dueDate;
+  final double amount;
+  final double paidAmount;
+
+  const InstallmentDue({
+    required this.id,
+    required this.number,
+    required this.dueDate,
+    required this.amount,
+    this.paidAmount = 0,
+  });
+
+  bool get isPaid => paidAmount >= amount - 0.5;
+  double get remaining => (amount - paidAmount).clamp(0, double.infinity).toDouble();
+}
+
+/// Ek payment (database: installment_payment) — advance ya qist.
+class InstallmentPayment {
+  final String id;
+  final String kind; // 'advance' | 'installment'
+  final double amount;
+  final DateTime paidAt;
+  final int? installmentNumber;
+  final String? note;
+
+  const InstallmentPayment({
+    required this.id,
+    required this.kind,
+    required this.amount,
+    required this.paidAt,
+    this.installmentNumber,
+    this.note,
+  });
+
+  bool get isAdvance => kind == 'advance';
+}
+
 /// Ek product ka installment plan (ek customer ke multiple ho sakte hain).
 class InstallmentPlan {
   final String id;
@@ -37,6 +78,13 @@ class InstallmentPlan {
   final InstallmentStatus status;
   final DateTime startDate;
 
+  /// Asli data (database): qeemat, advance, charge rate, schedule, payments.
+  final double price;
+  final double advance;
+  final double chargeRate; // har mahine ka, jaise 0.025
+  final List<InstallmentDue> dues;
+  final List<InstallmentPayment> payments;
+
   const InstallmentPlan({
     required this.id,
     required this.product,
@@ -46,7 +94,20 @@ class InstallmentPlan {
     required this.totalCount,
     required this.status,
     required this.startDate,
+    this.price = 0,
+    this.advance = 0,
+    this.chargeRate = 0.025,
+    this.dues = const [],
+    this.payments = const [],
   });
+
+  /// Agli unpaid qist (schedule ke hisaab se), na ho to null.
+  InstallmentDue? get nextDue {
+    for (final d in dues) {
+      if (!d.isPaid) return d;
+    }
+    return null;
+  }
 
   double get remaining =>
       (totalPayable - paidAmount).clamp(0, double.infinity).toDouble();
@@ -66,6 +127,11 @@ class InstallmentCustomer {
   final List<InstallmentPlan> plans;
   final String phone;
   final String cnic;
+  final String address;
+
+  /// Database ka `amount` (outstanding) — plan banne se pehle 0.
+  final double amount;
+  final DateTime? createdAt;
 
   const InstallmentCustomer({
     required this.id,
@@ -73,6 +139,9 @@ class InstallmentCustomer {
     required this.plans,
     this.phone = '',
     this.cnic = '',
+    this.address = '',
+    this.amount = 0,
+    this.createdAt,
   });
 
   int get planCount => plans.length;
@@ -93,6 +162,8 @@ class InstallmentCustomer {
 
   /// Priority: koi plan overdue → overdue; koi active → active; warna completed.
   InstallmentStatus get status {
+    // Abhi koi plan nahi (naya customer) — completed na dikhao.
+    if (plans.isEmpty) return InstallmentStatus.active;
     if (plans.any((p) => p.status == InstallmentStatus.overdue)) {
       return InstallmentStatus.overdue;
     }

@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -7,9 +9,12 @@ import '../../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../common/export/report_export_button.dart';
 import '../../data/service/sale_summary_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
+import '../../../common/pagination/branch_report_pagination.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
 import '../../data/model/sale_summary_model.dart';
 import '../provider/sale_summary_provider.dart';
+import '../widget/sale_invoice_detail_panel.dart';
+import '../widget/sale_invoice_table.dart';
 import '../widget/sale_summary_trend_dialog.dart';
 
 class SaleSummaryScreen extends ConsumerStatefulWidget {
@@ -256,12 +261,7 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
               );
             },
           ),
-          IconButton(
-            onPressed: notifier.load,
-            icon:    const AppIcon('ic_refresh',
-                size: 22, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           TextButton(
             onPressed: notifier.setToday,
             child: const Text('Today'),
@@ -329,17 +329,31 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
                   else
                     Padding(
                       padding: EdgeInsets.fromLTRB(pad, 0, pad, 12),
-                      child: Column(
-                        children: [
-                          for (final inv in state.invoices)
-                            _InvoiceTile(
-                              invoice: inv,
-                              dateFmt: _dateFmt,
-                              timeFmt: _timeFmt,
-                              fmtAmt:  _fmtAmt,
+                      child: isWide
+                          ? SaleInvoiceTable(
+                              invoices:   state.invoices,
+                              startIndex: state.pagination.page *
+                                  BranchReportPagination.pageSize,
+                              dateFmt:    _dateFmt,
+                              timeFmt:    _timeFmt,
+                              fmtAmt:     _fmtAmt,
+                              onView: (inv) => showSaleInvoiceDetailPanel(
+                                context: context,
+                                invoice: inv,
+                                fmtAmt:  _fmtAmt,
+                              ),
+                            )
+                          : Column(
+                              children: [
+                                for (final inv in state.invoices)
+                                  _InvoiceTile(
+                                    invoice: inv,
+                                    dateFmt: _dateFmt,
+                                    timeFmt: _timeFmt,
+                                    fmtAmt:  _fmtAmt,
+                                  ),
+                              ],
                             ),
-                        ],
-                      ),
                     ),
                   if (state.invoices.isNotEmpty)
                     BranchReportPaginationControls(
@@ -432,55 +446,12 @@ class _StatCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color:        color.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(14),
-          border:       Border.all(color: color.withOpacity(0.18)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color:        color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: AppIcon(icon, size: 24, color: color),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FittedBox(
-                    fit:       BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      value,
-                      style: TextStyle(
-                        fontSize:   22,
-                        fontWeight: FontWeight.w800,
-                        color:      color,
-                      ),
-                      maxLines: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color:    AppColor.textHint,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) => DashboardStatCard(
+    title:     label,
+    value:     value,
+    iconAsset: icon,
+    color:     color,
+  );
 }
 
 

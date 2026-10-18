@@ -1,3 +1,5 @@
+import '../../../common/action/report_refresh_button.dart';
+import 'package:jan_ghani_final/features/accountant/branch_reports/accountant_dashboard/presentation/widget/dashboard_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -169,11 +171,7 @@ class _StockMovementScreenState extends ConsumerState<StockMovementScreen> {
             fileNamePrefix: 'stock_movement_log',
             loadSheets: _exportSheets,
           ),
-          IconButton(
-            onPressed: notifier.load,
-            icon:    const AppIcon('ic_refresh', size: 22, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-          ),
+          ReportRefreshButton(onPressed: notifier.load),
           TextButton(onPressed: notifier.setToday, child: const Text('Today')),
           const SizedBox(width: 4),
         ],
@@ -573,19 +571,14 @@ class _StatPill extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-    decoration: BoxDecoration(
-      color:        color.withOpacity(0.08),
-      borderRadius: BorderRadius.circular(10),
-      border:       Border.all(color: color.withOpacity(0.18)),
+  Widget build(BuildContext context) => SizedBox(
+    width: 170,
+    child: DashboardStatCard(
+      title:   label,
+      value:   value,
+      color:   color,
+      compact: true,
     ),
-    child: Text('$label: $value',
-        style: TextStyle(
-          fontSize:   12,
-          fontWeight: FontWeight.w700,
-          color:      color,
-        )),
   );
 }
 

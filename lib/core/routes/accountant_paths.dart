@@ -3,6 +3,9 @@
 //
 //   /                                    (public website — login popup)
 //   /login
+//   /sign-up
+//   /forgot-password
+//   /connect-account                     (role null — branch se connect karo)
 //   /dashboard
 //   /branches
 //   /branches/:branchId
@@ -15,6 +18,7 @@
 //   /cash-transfers
 //   /inventory-review
 //   /investment
+//   /installments                       (owner)
 //   /inventory-counting                  (inventory_counter role)
 //   /customer/:customerId                (customer portal)
 class AccPaths {
@@ -23,12 +27,16 @@ class AccPaths {
   static const home            = '/';
   static const splash          = '/splash';
   static const login           = '/login';
+  static const signUp          = '/sign-up';
+  static const forgotPassword  = '/forgot-password';
+  static const connectAccount  = '/connect-account';
   static const dashboard       = '/dashboard';
   static const branches        = '/branches';
   static const warehouses      = '/warehouses';
   static const cashTransfers   = '/cash-transfers';
   static const inventoryReview = '/inventory-review';
   static const investment      = '/investment';
+  static const installments    = '/installments';
   static const inventoryCount  = '/inventory-counting';
   static const customerPrefix  = '/customer';
 
