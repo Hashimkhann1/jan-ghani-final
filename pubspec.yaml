@@ -50,6 +50,22 @@ dev_dependencies:
   build_runner: ^2.13.1
   flutter_lints: ^6.0.0
   flutter_launcher_icons: "^0.14.4"
+  msix: ^3.16.7
+
+# Microsoft Store (Branch desktop, lib/main.dart). Build:
+#   flutter build windows --release
+#   dart run msix:create --store
+# TODO: identity_name / publisher / publisher_display_name Partner Center ->
+#   Product management -> Product identity se copy karke yahan bharo.
+msix_config:
+  display_name: Jan Ghani
+  publisher_display_name: Shahab Mustafa
+  identity_name: ShahabMustafa.JanGhani
+  publisher: CN=C1D0CF88-3F3F-484E-B07B-7422AF1A7C2B
+  msix_version: 1.0.0.0
+  logo_path: assets/images/jan_ghani.png
+  capabilities: internetClient,privateNetworkClientServer
+  store: true
 
 flutter_launcher_icons:
   android: "launcher_icon"

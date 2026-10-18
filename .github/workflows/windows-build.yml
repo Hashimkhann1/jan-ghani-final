@@ -37,6 +37,16 @@ jobs:
       - name: Build Windows (Branch)
         run: flutter build windows --release -t lib/main.dart
 
+      - name: Create MSIX (Microsoft Store)
+        run: dart run msix:create --store --build-windows false
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-windows-msix
+          path: build/windows/x64/runner/Release/*.msix
+          retention-days: 30
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
