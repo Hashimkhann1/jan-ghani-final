@@ -79,44 +79,85 @@ class _AccountantInventoryReviewScreenState
           ]),
         ),
 
-        // Tab bar with badge for pending count
+        // Segmented tab bar — pending count badge ke saath
         Container(
           color: Colors.white,
-          child: TabBar(
-            controller: _tabs,
-            indicatorColor: AppColor.primary,
-            indicatorWeight: 3,
-            labelColor: AppColor.primary,
-            unselectedLabelColor: AppColor.textMuted,
-            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-            unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            tabs: [
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Pending Review'),
-                    if (pendingCount > 0) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: AppColor.error,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text('$pendingCount',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ],
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F2F6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                controller: _tabs,
+                dividerColor: Colors.transparent,
+                splashBorderRadius: BorderRadius.circular(9),
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicator: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
+                    ),
                   ],
                 ),
+                labelColor: AppColor.primary,
+                unselectedLabelColor: AppColor.textMuted,
+                labelStyle:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                unselectedLabelStyle:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                tabs: [
+                  Tab(
+                    height: 38,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.pending_actions_rounded, size: 17),
+                        const SizedBox(width: 6),
+                        const Text('Pending'),
+                        if (pendingCount > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppColor.error,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text('$pendingCount',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const Tab(
+                    height: 38,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.history_rounded, size: 17),
+                        SizedBox(width: 6),
+                        Text('History'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const Tab(text: 'History'),
-            ],
+            ),
           ),
         ),
         const Divider(height: 1, color: Color(0xFFEEEEEE)),

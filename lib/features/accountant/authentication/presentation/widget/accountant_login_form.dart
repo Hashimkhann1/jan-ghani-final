@@ -39,7 +39,11 @@ class _AccountantLoginFormState extends ConsumerState<AccountantLoginForm> {
 
   void _go(String path) {
     ref.read(accountantAuthNotifierProvider.notifier).resetState();
-    context.push(path);
+    final router = GoRouter.of(context);
+    // Website ke login popup mein ho to pehle popup band karo, warna Sign up /
+    // Forgot password screen ke neeche popup khula reh jata hai.
+    if (ModalRoute.of(context) is PopupRoute) Navigator.of(context).pop();
+    router.push(path);
   }
 
   @override

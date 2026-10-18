@@ -44,15 +44,24 @@ final _rootKey  = GlobalKey<NavigatorState>(debugLabel: 'accRoot');
 final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'accShell');
 
 // ── Role → kaun se sidebar tabs ─────────────────────────────────────────────
+// owner/accountant: sab kuch. manager/cashier: sirf apni branch.
+// warehouse_manager: sirf apna warehouse. viewer: branch + warehouse reports.
+// installment_officer: viewer jaisa access + installments.
 const Map<String, List<String>> _tabRoles = {
   AccPaths.dashboard:       ['owner', 'accountant'],
-  AccPaths.branches:        ['owner', 'accountant', 'manager', 'viewer'],
-  AccPaths.warehouses:      ['owner', 'accountant', 'warehouse_manager', 'viewer'],
-  AccPaths.cashTransfers:   ['owner', 'warehouse_manager'],
-  AccPaths.inventoryReview: ['owner'],
+  AccPaths.branches:        ['owner', 'accountant', 'manager', 'cashier', 'viewer', 'installment_officer'],
+  AccPaths.warehouses:      ['owner', 'accountant', 'warehouse_manager', 'viewer', 'installment_officer'],
+  AccPaths.cashTransfers:   ['owner', 'accountant', 'warehouse_manager'],
+  AccPaths.inventoryReview: ['owner', 'accountant', 'warehouse_manager'],
   AccPaths.investment:      ['owner', 'accountant'],
-  AccPaths.installments:    ['owner', 'installment_officer'],
+  AccPaths.installments:    ['owner', 'accountant', 'installment_officer'],
 };
+
+/// Branch tak mehdood roles (sirf apni `branch_id`).
+const _branchScopedRoles = {'manager', 'cashier'};
+
+/// Sirf reports dekhne wale roles (warehouse mein list + reports).
+const _reportsOnlyRoles = {'viewer', 'installment_officer'};
 
 bool _hasToken(AccountantUserEntity u) =>
     (u.customerToken ?? '').isNotEmpty || (u.installmentId ?? '').isNotEmpty;
@@ -66,6 +75,7 @@ String accountantHomeFor(AccountantUserEntity u) {
   if (u.role.isEmpty) return AccPaths.connectAccount;
   if (_hasToken(u)) return AccPaths.customer(_portalId(u));
   if (u.role == 'inventory_counter') return AccPaths.inventoryCount;
+  if (u.role == 'installment_officer') return AccPaths.installments;
   for (final e in _tabRoles.entries) {
     if (e.value.contains(u.role)) return e.key;
   }
@@ -79,11 +89,26 @@ bool _isAllowed(AccountantUserEntity u, String path) {
   if (u.role == 'inventory_counter') return path == AccPaths.inventoryCount;
   final segs = Uri.parse(path).pathSegments;
   final tab = '/${segs.firstOrNull ?? ''}';
-  // Viewer: branch ke saare reports, warehouse mein sirf list + reports.
-  if (u.role == 'viewer' && tab == AccPaths.warehouses && segs.length > 1) {
+  if (!(_tabRoles[tab]?.contains(u.role) ?? false)) return false;
+  // Manager / cashier: /branches/:id sirf apni branch ki.
+  if (_branchScopedRoles.contains(u.role) &&
+      tab == AccPaths.branches &&
+      segs.length > 1) {
+    return segs[1] == u.branchId;
+  }
+  // Warehouse manager: /warehouses/:id/... sirf apna warehouse.
+  if (u.role == 'warehouse_manager' &&
+      tab == AccPaths.warehouses &&
+      segs.length > 1) {
+    return segs[1] == u.warehouseId;
+  }
+  // Viewer / installment officer: warehouse mein sirf list + reports.
+  if (_reportsOnlyRoles.contains(u.role) &&
+      tab == AccPaths.warehouses &&
+      segs.length > 1) {
     return segs.length == 3 && segs[2] == 'reports';
   }
-  return _tabRoles[tab]?.contains(u.role) ?? false;
+  return true;
 }
 
 String? _redirect(Ref ref, GoRouterState state) {

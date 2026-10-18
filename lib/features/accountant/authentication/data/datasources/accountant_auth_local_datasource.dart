@@ -30,14 +30,14 @@ class AccountantAuthLocalDatasourceImpl
     await prefs.setBool  (_kIsActive, map['is_active'] ?? true);
     await prefs.setString(_kCreatedAt,map['created_at']);
 
-    if (map['branch_id'] != null)
-      await prefs.setString(_kBranchId, map['branch_id']);
-    if (map['warehouse_id'] != null)
-      await prefs.setString(_kWarehouseId, map['warehouse_id']);
-    if (map['customer_token'] != null)
-      await prefs.setString(_kCustomerToken, map['customer_token']);
-    if (map['installment_id'] != null)
-      await prefs.setString(_kInstallmentId, map['installment_id']);
+    // null ho to purani value hata do — warna pichle login ki branch/installment
+    // id naye user par chipki rehti hai.
+    Future<void> putOrRemove(String key, dynamic value) =>
+        value == null ? prefs.remove(key) : prefs.setString(key, value);
+    await putOrRemove(_kBranchId,      map['branch_id']);
+    await putOrRemove(_kWarehouseId,   map['warehouse_id']);
+    await putOrRemove(_kCustomerToken, map['customer_token']);
+    await putOrRemove(_kInstallmentId, map['installment_id']);
   }
 
   @override

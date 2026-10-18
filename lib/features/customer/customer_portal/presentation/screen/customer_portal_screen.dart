@@ -20,6 +20,8 @@ const _green = Color(0xFF0F5C3F);
 /// se, data database se) aur Invoices (branch ke customer ki invoice history —
 /// sirf unke liye jinka `customer_token` hai). installment_id na ho (ya plan na
 /// ho) to pehle teen tabs par empty screen dikhti hai.
+/// installment_id null ho to sirf Invoices screen dikhti hai (koi bottom nav
+/// nahi); installment_id ho to installment tabs bhi dikhte hain.
 class CustomerPortalScreen extends ConsumerStatefulWidget {
   /// Route ki id (customer_token ya installment_id) — asli ids session se aati hain.
   final String customerId;
@@ -31,7 +33,7 @@ class CustomerPortalScreen extends ConsumerStatefulWidget {
 }
 
 class _CustomerPortalScreenState extends ConsumerState<CustomerPortalScreen> {
-  int _tab = 0;
+  int? _tab; // null = pehla available tab (installment ho to Home, warna Invoices)
   int _planIndex = 0;
   String? _name; // branch `customer` table se (sirf customer_token wale)
 
@@ -70,15 +72,23 @@ class _CustomerPortalScreenState extends ConsumerState<CustomerPortalScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final installmentId = user?.installmentId;
-    final hasInstallment = installmentId != null && installmentId.isNotEmpty;
+    final hasId = installmentId != null && installmentId.isNotEmpty;
     final async =
-        hasInstallment ? ref.watch(installmentCustomerProvider(installmentId)) : null;
+        hasId ? ref.watch(installmentCustomerProvider(installmentId)) : null;
     final customer = async?.valueOrNull;
     final loading = async != null && async.isLoading && !async.hasValue;
+    // installment_id null ho, ya us id ki koi installment row hi na ho, to
+    // installment tabs nahi dikhte (sirf Invoices).
+    final hasInstallment = hasId && (loading || customer != null);
     final token = _token;
     final showInvoices = token != null;
     final invoicesTab = 3;
-    final tab = (_tab == invoicesTab && !showInvoices) ? 0 : _tab;
+    // Available tabs: installment (0..2) sirf installment_id par, invoices sirf token par.
+    final tabs = [
+      if (hasInstallment) ...[0, 1, 2],
+      if (showInvoices) invoicesTab,
+    ];
+    final tab = tabs.contains(_tab) ? _tab! : (tabs.isEmpty ? 0 : tabs.first);
 
     return Theme(
       data: Theme.of(context).copyWith(
@@ -94,16 +104,30 @@ class _CustomerPortalScreenState extends ConsumerState<CustomerPortalScreen> {
                 children: [
                   Expanded(
                     child: tab == invoicesTab
-                        ? CustomerInvoicesTab(customerId: token!)
+                        ? Column(
+                            children: [
+                              // Sirf invoices wale customer ke liye Home tab nahi,
+                              // is liye logout yahin hai.
+                              if (!hasInstallment)
+                                _InvoicesHeader(
+                                  avatar: _avatar(null),
+                                  name: _displayName(null),
+                                  onLogout: _logout,
+                                ),
+                              Expanded(
+                                  child: CustomerInvoicesTab(customerId: token!)),
+                            ],
+                          )
                         : loading
                             ? const Center(child: CircularProgressIndicator())
                             : _page(tab, customer),
                   ),
-                  _PortalBottomNav(
-                    index: tab,
-                    showInvoices: showInvoices,
-                    onTap: (i) => setState(() => _tab = i),
-                  ),
+                  if (tabs.length > 1)
+                    _PortalBottomNav(
+                      index: tab,
+                      showInvoices: showInvoices,
+                      onTap: (i) => setState(() => _tab = i),
+                    ),
                 ],
               ),
             ),
@@ -200,4 +224,42 @@ class _PortalBottomNav extends StatelessWidget {
       ),
     );
   }
+}
+
+class _InvoicesHeader extends StatelessWidget {
+  final Widget avatar;
+  final String name;
+  final VoidCallback onLogout;
+  const _InvoicesHeader({
+    required this.avatar,
+    required this.name,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: _line)),
+        ),
+        child: Row(
+          children: [
+            avatar,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+            IconButton(
+              tooltip: 'Logout',
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout_rounded, color: _muted),
+            ),
+          ],
+        ),
+      );
 }

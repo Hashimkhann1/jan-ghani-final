@@ -83,7 +83,14 @@ class _AccountantAllWarehousesScreenState
                 onRefresh: () async =>
                     ref.invalidate(accAllWarehousesProvider),
                 child: warehousesAsync.when(
-                  data: (all) {
+                  data: (allWarehouses) {
+                    // Warehouse manager sirf apna warehouse dekhe.
+                    final user = ref.watch(currentUserProvider);
+                    final all = user?.role == 'warehouse_manager'
+                        ? allWarehouses
+                            .where((w) => w.id == user?.warehouseId)
+                            .toList()
+                        : allWarehouses;
                     final list = _query.isEmpty
                         ? all
                         : all
@@ -149,8 +156,9 @@ class _WarehouseTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // View user sirf reports dekh sakta hai — seedha reports kholo.
-    final isViewer = ref.watch(sessionProvider).user?.role == 'viewer';
+    // View user / installment officer sirf reports dekh sakte hain — seedha reports kholo.
+    final role = ref.watch(sessionProvider).user?.role;
+    final isViewer = role == 'viewer' || role == 'installment_officer';
     return GestureDetector(
       onTap: () => context.push(
         AccPaths.warehouse(warehouse.id,

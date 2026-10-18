@@ -28,11 +28,16 @@ class InventoryReviewRemoteDatasource {
   // Pending items — reviewer ke queue ke liye
   //   status = 'review_pending'
   // ─────────────────────────────────────────────────────────
-  Future<List<BalanceItemModel>> fetchPendingItems({int limit = 500}) async {
-    final rows = await _client
+  Future<List<BalanceItemModel>> fetchPendingItems({
+    String? warehouseId,
+    int limit = 500,
+  }) async {
+    var q = _client
         .from('inventory_balance_items')
         .select()
-        .eq('status', BalanceStatus.reviewPending.code)
+        .eq('status', BalanceStatus.reviewPending.code);
+    if (warehouseId != null) q = q.eq('warehouse_id', warehouseId);
+    final rows = await q
         .order('created_at', ascending: true)
         .limit(limit);
     return (rows as List)
@@ -48,9 +53,11 @@ class InventoryReviewRemoteDatasource {
     DateTime?      toDate,
     BalanceStatus? status,
     String?        storeId,
+    String?        warehouseId,
     int            limit = 500,
   }) async {
     var q = _client.from('inventory_balance_items').select();
+    if (warehouseId != null) q = q.eq('warehouse_id', warehouseId);
     if (status != null)  q = q.eq('status', status.code);
     if (storeId != null) q = q.eq('store_id', storeId);
     if (fromDate != null) q = q.gte('created_at', _dayStart(fromDate));

@@ -39,19 +39,19 @@ const List<_NavItem> _allNavItems = [
     icon: 'ic_cash_registration',
     label: 'Branch',
     path: AccPaths.branches,
-    allowedRoles: ['owner', 'accountant', 'manager', 'viewer'],
+    allowedRoles: ['owner', 'accountant', 'manager', 'cashier', 'viewer', 'installment_officer'],
   ),
   _NavItem(
     icon: 'sidebar_icons/branch_stock',
     label: 'Warehouse',
     path: AccPaths.warehouses,
-    allowedRoles: ['owner', 'accountant', 'warehouse_manager', 'viewer'],
+    allowedRoles: ['owner', 'accountant', 'warehouse_manager', 'viewer', 'installment_officer'],
   ),
   _NavItem(
     icon: 'ic_sale_price_trend',
     label: 'Inventory Review',
     path: AccPaths.inventoryReview,
-    allowedRoles: ['owner'],
+    allowedRoles: ['owner', 'accountant', 'warehouse_manager'],
   ),
   _NavItem(
     icon: 'ic_sale_price_trend',
@@ -63,7 +63,7 @@ const List<_NavItem> _allNavItems = [
     icon: 'ic_top_customers',
     label: 'Installments',
     path: AccPaths.installments,
-    allowedRoles: ['owner', 'installment_officer'],
+    allowedRoles: ['owner', 'accountant', 'installment_officer'],
   ),
 ];
 
@@ -148,7 +148,8 @@ class AccountantDashboardScreen extends ConsumerWidget {
     final selectedIndex = found < 0 ? 0 : found;
     void onItemTap(int i) => context.go(navItems[i].path);
 
-    if (role == 'manager') {
+    // Sirf ek tab wale roles (jaise manager) ko mobile par bottom nav nahi chahiye.
+    if (navItems.length == 1) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F5F7),
         body: desktop
@@ -289,6 +290,8 @@ class _Sidebar extends ConsumerWidget {
     'manager'           => const Color(0xFF1D9E75),
     'accountant'        => const Color(0xFF378ADD),
     'warehouse_manager' => const Color(0xFFBA7517),
+    'cashier'           => const Color(0xFF0EA5E9),
+    'installment_officer' => const Color(0xFF0D9488),
     'viewer'            => const Color(0xFF7C3AED),
     _                   => AppColor.textMuted,
   };

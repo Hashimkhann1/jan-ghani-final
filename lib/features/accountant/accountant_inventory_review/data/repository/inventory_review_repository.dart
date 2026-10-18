@@ -15,16 +15,18 @@ class InventoryReviewRepository {
 
   final _remote = InventoryReviewRemoteDatasource();
 
-  Future<List<BalanceItemModel>> getPendingItems() =>
-      _remote.fetchPendingItems();
+  Future<List<BalanceItemModel>> getPendingItems({String? warehouseId}) =>
+      _remote.fetchPendingItems(warehouseId: warehouseId);
 
   Future<List<BalanceItemModel>> getItems({
     DateTime? fromDate,
     DateTime? toDate,
     BalanceStatus? status,
     String? storeId,
+    String? warehouseId,
   }) => _remote.fetchItems(
     fromDate: fromDate, toDate: toDate, status: status, storeId: storeId,
+    warehouseId: warehouseId,
   );
 
   Future<List<BalanceBatchModel>> getBatchesByIds(Set<String> ids) =>

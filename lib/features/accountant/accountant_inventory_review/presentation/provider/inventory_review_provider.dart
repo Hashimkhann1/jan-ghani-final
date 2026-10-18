@@ -47,6 +47,14 @@ class ReviewQueueState {
   );
 }
 
+/// Warehouse manager sirf apne warehouse ki requests dekhe — baaki roles sab.
+final _reviewWarehouseScope = Provider<String?>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user?.role != 'warehouse_manager') return null;
+  // warehouse_id na ho to kuch bhi na dikhe (sab dikhane se behtar).
+  return user?.warehouseId ?? '00000000-0000-0000-0000-000000000000';
+});
+
 class ReviewQueueNotifier extends StateNotifier<ReviewQueueState> {
   final Ref _ref;
   ReviewQueueNotifier(this._ref) : super(const ReviewQueueState()) {
@@ -56,7 +64,8 @@ class ReviewQueueNotifier extends StateNotifier<ReviewQueueState> {
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final items = await InventoryReviewRepository.instance.getPendingItems();
+      final items = await InventoryReviewRepository.instance
+          .getPendingItems(warehouseId: _ref.read(_reviewWarehouseScope));
       final batchIds = items.map((i) => i.batchId).toSet();
       final batches = await InventoryReviewRepository.instance
           .getBatchesByIds(batchIds);
@@ -176,7 +185,8 @@ class ReviewHistoryState {
 }
 
 class ReviewHistoryNotifier extends StateNotifier<ReviewHistoryState> {
-  ReviewHistoryNotifier() : super(_initial()) {
+  final Ref _ref;
+  ReviewHistoryNotifier(this._ref) : super(_initial()) {
     load();
   }
 
@@ -199,6 +209,7 @@ class ReviewHistoryNotifier extends StateNotifier<ReviewHistoryState> {
         fromDate: state.fromDate,
         toDate:   _toExclusive,
         status:   state.statusFilter,
+        warehouseId: _ref.read(_reviewWarehouseScope),
       );
       state = state.copyWith(isLoading: false, items: items);
     } catch (e) {
@@ -223,5 +234,5 @@ class ReviewHistoryNotifier extends StateNotifier<ReviewHistoryState> {
 
 final reviewHistoryProvider = StateNotifierProvider.autoDispose<
     ReviewHistoryNotifier, ReviewHistoryState>(
-  (ref) => ReviewHistoryNotifier(),
+  (ref) => ReviewHistoryNotifier(ref),
 );
