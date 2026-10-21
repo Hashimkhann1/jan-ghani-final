@@ -4,15 +4,10 @@ class AppColor {
   /// Private constructor to prevent instantiation
   AppColor._();
 
-  /// Jan Ghani brand colors
-  static const Color janGhaniRed = Color(0xFFED0015);
-  static const Color janGhaniBlack = Color(0xFF000000);
-  static const Color janGhaniWhite = Color(0xFFFFFFFF);
-
   /// Primary Colors
-  static const Color primary = janGhaniRed;
-  static const Color primaryLight = Color(0xFFFF5C6C);
-  static const Color primaryDark = Color(0xFFC00012);
+  static const Color primary = Color(0xFF6C63FF);
+  static const Color primaryLight = Color(0xFF9D97FF);
+  static const Color primaryDark = Color(0xFF3D35CC);
 
 
   static const Color textMuted = Color(0xFF6B7280);
@@ -21,9 +16,9 @@ class AppColor {
   static const Color cardBg = Color(0xFFFFFFFF);
 
   /// Secondary Colors
-  static const Color secondary = janGhaniBlack;
-  static const Color secondaryLight = Color(0xFF424242);
-  static const Color secondaryDark = Color(0xFF212121);
+  static const Color secondary = Color(0xFF03DAC6);
+  static const Color secondaryLight = Color(0xFF66FFF8);
+  static const Color secondaryDark = Color(0xFF00A896);
 
   /// Background Colors
   static const Color background = Colors.white;
@@ -68,7 +63,7 @@ class AppColor {
   /// Divider & Border
   static const Color divider = Color(0xFFE0E0E0);
   static const Color border = Color(0xFFBDBDBD);
-  static const Color borderFocused = janGhaniRed;
+  static const Color borderFocused = Color(0xFF6C63FF);
 
   /// Shadow
   static const Color shadow = Color(0x1A000000);
@@ -76,13 +71,13 @@ class AppColor {
 
   /// Gradient Colors
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFFED0015), Color(0xFF8E000D)],
+    colors: [Color(0xFF6C63FF), Color(0xFF3D35CC)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient secondaryGradient = LinearGradient(
-    colors: [Color(0xFF000000), Color(0xFF212121)],
+    colors: [Color(0xFF03DAC6), Color(0xFF00A896)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

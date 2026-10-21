@@ -164,7 +164,7 @@ class _AccountantCustomerReportScreenState
                 _FilterChip(
                     label:    'Petrol',
                     selected: state.filterType == 'petrol',
-                    color:    const Color(0xFFC00012),
+                    color:    const Color(0xFF8B5CF6),
                     onTap:    () => notifier.setFilter('petrol')),
                 _ExceededChip(
                   selected: state.filterType == 'exceeded',
@@ -507,7 +507,7 @@ class _CustomerTableRow extends StatelessWidget {
   Color get _typeColor {
     switch (item.customerType) {
       case 'credit': return const Color(0xFFF59E0B);
-      case 'petrol': return const Color(0xFFC00012);
+      case 'petrol': return const Color(0xFF8B5CF6);
       default:       return AppColor.success;
     }
   }
@@ -1006,7 +1006,7 @@ class _CustomerCard extends StatelessWidget {
   Color get _typeColor {
     switch (customer.customerType) {
       case 'credit': return const Color(0xFFF59E0B);
-      case 'petrol': return const Color(0xFFC00012);
+      case 'petrol': return const Color(0xFF8B5CF6);
       default:       return AppColor.success;
     }
   }

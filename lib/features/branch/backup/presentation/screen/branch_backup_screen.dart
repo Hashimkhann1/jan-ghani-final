@@ -120,7 +120,7 @@ class BackupScreen extends ConsumerWidget {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.indigo,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade300,
                   disabledForegroundColor: Colors.grey.shade500,
@@ -148,7 +148,7 @@ class _InfoCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.red.shade600, Colors.red.shade400],
+          colors: [Colors.indigo.shade600, Colors.indigo.shade400],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -229,7 +229,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: Colors.red),
+              Icon(icon, size: 18, color: Colors.indigo),
               const SizedBox(width: 8),
               Text(
                 title,
@@ -290,7 +290,7 @@ class _BranchDropdown extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FF),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.red.shade100),
+        border: Border.all(color: Colors.indigo.shade100),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<BackupBranchModel>(
@@ -301,7 +301,7 @@ class _BranchDropdown extends StatelessWidget {
           ),
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down_rounded,
-              color: Colors.red),
+              color: Colors.indigo),
           items: branches.map((branch) {
             return DropdownMenuItem<BackupBranchModel>(
               value: branch,
@@ -311,7 +311,7 @@ class _BranchDropdown extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
+                      color: Colors.indigo.shade50,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -319,7 +319,7 @@ class _BranchDropdown extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Colors.red.shade700,
+                        color: Colors.indigo.shade700,
                       ),
                     ),
                   ),
@@ -370,7 +370,7 @@ class _ProgressWidget extends StatelessWidget {
                   minHeight: 10,
                   backgroundColor: Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isDone ? Colors.green : Colors.red,
+                    isDone ? Colors.green : Colors.indigo,
                   ),
                 ),
               ),
@@ -381,7 +381,7 @@ class _ProgressWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: isDone ? Colors.green : Colors.red,
+                color: isDone ? Colors.green : Colors.indigo,
               ),
             ),
           ],
@@ -575,7 +575,7 @@ class _SummaryCard extends StatelessWidget {
           _SummaryRow(
             label: 'Total Rows Saved',
             value: '${progress.totalRowsUpserted}',
-            valueColor: Colors.red,
+            valueColor: Colors.indigo,
           ),
         ],
       ),

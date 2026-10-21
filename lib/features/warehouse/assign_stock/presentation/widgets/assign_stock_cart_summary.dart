@@ -495,7 +495,7 @@ class _AssignStockConfirmDialog extends ConsumerWidget {
                     icon: Icons.person_outline_rounded,
                     label: 'Assigned By',
                     value: assignedByName,
-                    color: Colors.red,
+                    color: Colors.indigo,
                   ),
                   _MetaChip(
                     icon: Icons.calendar_today_outlined,
