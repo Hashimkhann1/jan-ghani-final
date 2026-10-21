@@ -62,7 +62,7 @@ msix_config:
   publisher_display_name: Shahab Mustafa
   identity_name: ShahabMustafa.JanGhani
   publisher: CN=C1D0CF88-3F3F-484E-B07B-7422AF1A7C2B
-  msix_version: 1.0.0.0
+  msix_version: 1.3.11.0
   logo_path: assets/images/jan_ghani.png
   capabilities: internetClient,privateNetworkClientServer
   store: true
