@@ -20,6 +20,7 @@ import 'customer_logs/presentation/screen/customer_logs_screen.dart';
 import 'inventory_counting/presentation/screen/inventory_counting_report_screen.dart';
 import 'product_profit_loss_report/presentation/screen/product_profit_loss_report_screen.dart';
 import 'stock_movement_log/presentation/screen/stock_movement_screen.dart';
+import 'assigned_stock_report/presentation/screen/assigned_stock_report_screen.dart';
 
 /// Web/desktop par sidebar dikhane ke liye minimum width.
 const double _kSidebarBreakpoint = 900;
@@ -199,6 +200,13 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       subtitle: 'Every stock in/out event with reason',
       color:    Color(0xFF0EA5E9),
     ),
+    _ReportItem(
+      slug:     'assigned-stock',
+      iconAsset: 'sidebar_icons/branch_stock',
+      label:    'Assigned Stock Report',
+      subtitle: 'Stock assigned to this branch from warehouse',
+      color:    Color(0xFF7C3AED),
+    ),
   ];
 
   bool _isDesktop(BuildContext context) =>
@@ -224,6 +232,7 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       case 14: return BranchStockInventoryLogsScreen(branchId: branchId);
       case 15: return ProductProfitLossReportScreen(branchId: branchId);
       case 16: return StockMovementScreen(branchId: branchId);
+      case 17: return AssignedStockReportScreen(branchId: branchId);
       default: return const SizedBox.shrink();
     }
   }
