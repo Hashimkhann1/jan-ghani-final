@@ -24,6 +24,7 @@ class ReportExportButton extends StatefulWidget {
     this.enabled = true,
     this.filled = false,
     this.label = 'Export',
+    this.labeled,
   });
 
   final String fileNamePrefix;
@@ -37,6 +38,9 @@ class ReportExportButton extends StatefulWidget {
 
   /// Text on the filled button.
   final String label;
+
+  /// null = screen width se tay hota hai; true = hamesha labelled button.
+  final bool? labeled;
 
   @override
   State<ReportExportButton> createState() => _ReportExportButtonState();
@@ -100,7 +104,7 @@ class _ReportExportButtonState extends State<ReportExportButton> {
   @override
   Widget build(BuildContext context) {
     final enabled = widget.enabled && !_busy;
-    final wide    = ReportActionStyle.isWide(context);
+    final wide    = widget.labeled ?? ReportActionStyle.isWide(context);
     final spinner = const SizedBox(
         width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2));
 

@@ -9,15 +9,19 @@ class ReportFilterButton extends StatelessWidget {
   final VoidCallback onPressed;
   final int          activeCount;
 
+  /// null = screen width se tay hota hai; true = hamesha labelled button.
+  final bool?        labeled;
+
   const ReportFilterButton({
     super.key,
     required this.onPressed,
     this.activeCount = 0,
+    this.labeled,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (ReportActionStyle.isWide(context)) {
+    if (labeled ?? ReportActionStyle.isWide(context)) {
       return Padding(
         padding: ReportActionStyle.wideGap,
         child: OutlinedButton.icon(

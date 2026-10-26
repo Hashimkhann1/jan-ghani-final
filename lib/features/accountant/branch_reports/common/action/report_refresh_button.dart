@@ -6,11 +6,14 @@ import 'report_action_style.dart';
 /// Refresh control shared by every branch report.
 class ReportRefreshButton extends StatelessWidget {
   final VoidCallback? onPressed;
-  const ReportRefreshButton({super.key, required this.onPressed});
+  /// null = screen width se tay hota hai; true = hamesha labelled button.
+  final bool? labeled;
+  const ReportRefreshButton(
+      {super.key, required this.onPressed, this.labeled});
 
   @override
   Widget build(BuildContext context) {
-    if (!ReportActionStyle.isWide(context)) {
+    if (!(labeled ?? ReportActionStyle.isWide(context))) {
       return IconButton(
         onPressed: onPressed,
         icon: const AppIcon('ic_refresh',

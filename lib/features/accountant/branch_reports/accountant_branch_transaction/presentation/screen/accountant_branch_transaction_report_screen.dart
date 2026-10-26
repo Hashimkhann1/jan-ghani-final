@@ -661,24 +661,6 @@ class _MobileLayout extends StatelessWidget {
                 )),
           ],
         ),
-        actions: [
-          ReportFilterButton(
-            onPressed:   onFilters,
-            activeCount: hasFilter ? 1 : 0,
-          ),
-          ReportExportButton(
-            fileNamePrefix: 'branch_transactions',
-            enabled: state.transactions.isNotEmpty,
-            loadSheets: () async => BranchTransactionExportSheets.build(
-              transactions: await notifier.fetchAllForExport(),
-            branchName: state.branchName,
-              startDate: state.startDate,
-              endDate: state.endDate,
-            ),
-          ),
-          ReportRefreshButton(onPressed: notifier.load),
-          const SizedBox(width: 4),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(height: 1, color: const Color(0xFFE5E7EB)),
@@ -686,6 +668,42 @@ class _MobileLayout extends StatelessWidget {
       ),
       body: Column(
         children: [
+          // ── Actions ──────────────────────────────────────────────────
+          Container(
+            color:   Colors.white,
+            padding: const EdgeInsets.fromLTRB(11, 8, 11, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ReportFilterButton(
+                    labeled:     true,
+                    onPressed:   onFilters,
+                    activeCount: hasFilter ? 1 : 0,
+                  ),
+                ),
+                Expanded(
+                  child: ReportExportButton(
+                    labeled: true,
+                    fileNamePrefix: 'branch_transactions',
+                    enabled: state.transactions.isNotEmpty,
+                    loadSheets: () async => BranchTransactionExportSheets.build(
+                      transactions: await notifier.fetchAllForExport(),
+                      branchName: state.branchName,
+                      startDate: state.startDate,
+                      endDate: state.endDate,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ReportRefreshButton(
+                    labeled:   true,
+                    onPressed: notifier.load,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           Container(height: 1, color: const Color(0xFFE5E7EB)),
 
           // ── Summary Cards ────────────────────────────────────────────

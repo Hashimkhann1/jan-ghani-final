@@ -754,9 +754,11 @@ class _TransactionsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _Panel(
     title: 'Transaction History',
-    trailing: recentAsync.asData?.value == null
-        ? null
-        : Container(
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (recentAsync.asData?.value != null) ...[
+          Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color:        AppColor.primary.withValues(alpha: 0.08),
@@ -768,6 +770,26 @@ class _TransactionsPanel extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color:      AppColor.primary)),
           ),
+          const SizedBox(width: 8),
+        ],
+        Builder(
+          builder: (context) => OutlinedButton(
+            onPressed: () => context.push(AccPaths.cashTransfers),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColor.primary,
+              side:            const BorderSide(color: AppColor.primary),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              minimumSize: const Size(0, 34),
+              textStyle: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w700),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('View All'),
+          ),
+        ),
+      ],
+    ),
     child: recentAsync.when(
       data: (list) => list.isEmpty
           ? const _EmptyState(
