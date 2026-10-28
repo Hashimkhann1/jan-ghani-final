@@ -28,6 +28,8 @@ class CartItem {
   final double           salePrice;
   final double           taxAmount;
   final double           discountAmount;
+  /// Digital lines: purchase price is typed in the invoice. Null = product cost.
+  final double?          purchasePriceOverride;
 
   const CartItem({
     required this.cartId,
@@ -36,7 +38,10 @@ class CartItem {
     required this.salePrice,
     this.taxAmount      = 0,
     this.discountAmount = 0,
+    this.purchasePriceOverride,
   });
+
+  double get purchasePrice => purchasePriceOverride ?? product.costPrice;
 
   double get subTotal => (salePrice * quantity) + taxAmount - discountAmount;
 
@@ -45,6 +50,7 @@ class CartItem {
     double? salePrice,
     double? taxAmount,
     double? discountAmount,
+    double? purchasePriceOverride,
   }) =>
       CartItem(
         cartId:         cartId,
@@ -53,6 +59,8 @@ class CartItem {
         salePrice:      salePrice       ?? this.salePrice,
         taxAmount:      taxAmount       ?? this.taxAmount,
         discountAmount: discountAmount  ?? this.discountAmount,
+        purchasePriceOverride:
+            purchasePriceOverride ?? this.purchasePriceOverride,
       );
 
   /// ── JSON serialization (for hold/resume) ──────────────────────
@@ -74,6 +82,8 @@ class CartItem {
     'reorderPoint':   product.reorderPoint,
     'isActive':       product.isActive,
     'isTrackStock':   product.isTrackStock,
+    'productType':    product.productType,
+    'purchasePriceOverride': purchasePriceOverride,
     'stock':          product.quantity,
     'reservedQty':    product.reservedQuantity,
     'quantity':       quantity,
@@ -100,6 +110,7 @@ class CartItem {
       reorderPoint:     (j['reorderPoint']   as num?)?.toInt()    ?? 0,
       isActive:         j['isActive']        as bool?  ?? true,
       isTrackStock:     j['isTrackStock']    as bool?  ?? true,
+      productType:      j['productType']     as String? ?? 'physical',
       quantity:         (j['stock']          as num?)?.toDouble() ?? 0.0,
       reservedQuantity: (j['reservedQty']    as num?)?.toDouble() ?? 0.0,
       updatedAt:        DateTime.now(),
@@ -111,6 +122,8 @@ class CartItem {
       salePrice:      (j['salePrice']      as num).toDouble(),
       taxAmount:      (j['taxAmount']      as num?)?.toDouble() ?? 0,
       discountAmount: (j['discountAmount'] as num?)?.toDouble() ?? 0,
+      purchasePriceOverride:
+          (j['purchasePriceOverride'] as num?)?.toDouble(),
     );
   }
 }
@@ -150,6 +163,12 @@ class SaleInvoiceState {
   double get totalTax       => cartItems.fold(0, (s, i) => s + i.taxAmount);
   double get totalDiscount  => cartItems.fold(0, (s, i) => s + i.discountAmount);
   double get grandTotal     => cartItems.fold(0, (s, i) => s + i.subTotal);
+
+  bool get hasDigital   => cartItems.any((i) => i.product.isDigital);
+  bool get hasPhysical  => cartItems.any((i) => !i.product.isDigital);
+  bool get hasWithdraw  => cartItems.any((i) => i.product.isDigitalWithdraw);
+  /// Digital lines are cash-only and carry no credit.
+  bool get isDigitalInvoice => hasDigital;
 
   double get cashAmount   => payments.where((p) => p.method == 'cash').fold(0, (s, p) => s + p.amount);
   double get cardAmount   => payments.where((p) => p.method == 'card').fold(0, (s, p) => s + p.amount);

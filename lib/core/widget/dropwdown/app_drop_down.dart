@@ -286,7 +286,7 @@ class _AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
       ),
     );
 
-    if (isDesktop) {
+    if (isDesktop && !widget.fullWidth) {
       return SizedBox(width: widget.desktopWidth, child: field);
     }
 

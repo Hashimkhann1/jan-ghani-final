@@ -803,10 +803,12 @@ Future<bool?> showPaymentDialog(BuildContext context, WidgetRef ref) async {
   if (_dialogOpen) return null;          // ← guard
   _dialogOpen = true;
   try {
+    final isDigital = ref.read(saleInvoiceProvider).hasDigital;
     return await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const _PaymentDialog(),
+      builder: (_) =>
+          isDigital ? const _DigitalConfirmDialog() : const _PaymentDialog(),
     );
   } finally {
     _dialogOpen = false;                 // ← hamesha reset
@@ -1574,6 +1576,338 @@ class CustomerForm extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+// ── Digital invoice (Bank Transfer / Pay Bill / SIM Load / Withdraw) ──
+// No credit, no quantity, no split payment: cash in (or cash out for
+// withdraw) against the counter's digital balance.
+class _DigitalConfirmDialog extends ConsumerStatefulWidget {
+  const _DigitalConfirmDialog();
+  @override
+  ConsumerState<_DigitalConfirmDialog> createState() =>
+      _DigitalConfirmDialogState();
+}
+
+class _DigitalConfirmDialogState extends ConsumerState<_DigitalConfirmDialog> {
+  bool _saving       = false;
+  bool _printReceipt = false;
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_handleKey);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKey);
+    super.dispose();
+  }
+
+  bool _handleKey(KeyEvent event) {
+    if (!mounted || event is! KeyDownEvent) return false;
+    final pressed = HardwareKeyboard.instance.logicalKeysPressed;
+    final ctrl = pressed.contains(LogicalKeyboardKey.controlLeft) ||
+        pressed.contains(LogicalKeyboardKey.controlRight) ||
+        pressed.contains(LogicalKeyboardKey.metaLeft) ||
+        pressed.contains(LogicalKeyboardKey.metaRight);
+    if (ctrl && event.logicalKey == LogicalKeyboardKey.keyS) {
+      _confirm();
+      return true;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape && !_saving) {
+      Navigator.of(context).pop(false);
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _confirm() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    final notifier = ref.read(saleInvoiceProvider.notifier);
+    // saveInvoice() clears the cart, so capture what the receipt needs first.
+    final state    = ref.read(saleInvoiceProvider);
+
+    if (!state.hasWithdraw) notifier.setQuickPayment('cash');
+    final ok = await notifier.saveInvoice(payAmount: state.grandTotal);
+    if (!mounted) return;
+    if (ok) {
+      if (_printReceipt) await _print(state);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _print(SaleInvoiceState state) async {
+    try {
+      final auth   = ref.read(authProvider);
+      final branch = await ref.read(branchProvider(auth.storeId).future);
+      await ThermalPrintService.printSaleInvoice(
+        storeName:     branch?.name ?? '',
+        branchAddress: branch?.address ?? '',
+        branchPhone:   branch?.phone ?? '',
+        invoiceNo:     state.invoiceNo,
+        date:          state.date,
+        customerName:  state.selectedCustomer?.name,
+        customerId:    state.selectedCustomer?.id,
+        items:         state.cartItems,
+        totalAmount:   state.totalBeforeTax,
+        totalDiscount: state.totalDiscount,
+        grandTotal:    state.grandTotal,
+        // Withdraw: customer transferred the amount to us (card), else cash.
+        payments: [
+          PaymentEntry(
+              method: state.hasWithdraw ? 'card' : 'cash',
+              amount: state.grandTotal),
+        ],
+        cashierName: auth.user?.fullName ?? 'Unknown',
+        notes:       state.notes,
+      );
+    } catch (e) {
+      debugPrint('❌ Digital print error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Print failed but invoice saved'),
+          backgroundColor: AppColor.warning,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state    = ref.watch(saleInvoiceProvider);
+    final sale     = state.grandTotal;
+    final purchase = state.cartItems.fold<double>(0, (s, i) => s + i.purchasePrice);
+    final withdraw = state.hasWithdraw;
+
+    Widget line(String label, double v,
+        {Color? tint, String? sign, bool dim = false}) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          if (tint != null) ...[
+            Container(
+              width: 22, height: 22,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color:        tint.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(sign ?? '',
+                  style: TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w800, color: tint)),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: dim ? AppColor.textSecondary : Colors.black)),
+          ),
+          Text('Rs ${_fmtNum(v)}',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: tint ?? Colors.black)),
+        ]),
+      );
+
+    final profit      = sale - purchase;
+    final profitColor = profit >= 0 ? AppColor.success : AppColor.error;
+
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color:        AppColor.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                      withdraw
+                          ? Icons.account_balance_wallet_outlined
+                          : Icons.credit_card_rounded,
+                      size: 22, color: AppColor.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(withdraw ? 'Cash Withdraw' : 'Digital Sale',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800,
+                              color: Colors.black)),
+                      const Text('Transaction summary',
+                          style: TextStyle(
+                              fontSize: 12, color: AppColor.textSecondary)),
+                    ],
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 16),
+
+              // Items
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color:        AppColor.grey100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(children: [
+                  for (final i in state.cartItems)
+                    line(i.product.name, i.salePrice),
+                ]),
+              ),
+              const SizedBox(height: 12),
+
+              // Money movement
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border:       Border.all(color: AppColor.grey200),
+                ),
+                child: Column(children: [
+                  if (withdraw) ...[
+                    line('Customer ne transfer kiya (Card +)', sale,
+                        tint: AppColor.success, sign: '+'),
+                    line('Customer ko cash diya (Cash -)', purchase,
+                        tint: AppColor.error, sign: '−'),
+                  ] else ...[
+                    line('Customer se cash liya (Cash +)', sale,
+                        tint: AppColor.success, sign: '+'),
+                    line('Card se kata (Card -)', purchase,
+                        tint: AppColor.error, sign: '−'),
+                  ],
+                ]),
+              ),
+              const SizedBox(height: 12),
+
+              // Profit
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color:        profitColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(children: [
+                  Icon(Icons.trending_up_rounded, size: 20, color: profitColor),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text('Profit',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700,
+                            color: Colors.black)),
+                  ),
+                  Text('Rs ${_fmtNum(profit)}',
+                      style: TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w800,
+                          color: profitColor)),
+                ]),
+              ),
+              const SizedBox(height: 12),
+
+              // Print toggle
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: _saving
+                    ? null
+                    : () => setState(() => _printReceipt = !_printReceipt),
+                child: Container(
+                  padding: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: _printReceipt
+                        ? AppColor.primary.withOpacity(0.06)
+                        : AppColor.grey100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: _printReceipt
+                            ? AppColor.primary
+                            : AppColor.grey200),
+                  ),
+                  child: Row(children: [
+                    Checkbox(
+                      value:       _printReceipt,
+                      activeColor: AppColor.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                      onChanged: _saving
+                          ? null
+                          : (v) => setState(() => _printReceipt = v ?? false),
+                    ),
+                    const Icon(Icons.print_outlined,
+                        size: 18, color: Colors.black87),
+                    const SizedBox(width: 8),
+                    const Text('Print Thermal Receipt',
+                        style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black)),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Actions
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed:
+                        _saving ? null : () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                      foregroundColor: Colors.black,
+                      side: const BorderSide(color: AppColor.grey200),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Cancel',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _confirm,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text(_saving ? 'Saving...' : 'Confirm',
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ]),
+            ],
+          ),
+        ),
       ),
     );
   }

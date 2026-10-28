@@ -90,7 +90,7 @@ class SaleInvoiceDatasource {
             'sku':           item.product.sku,
             'barcode':       item.product.barcode,
             'salePrice':     item.salePrice,
-            'purchasePrice': item.product.costPrice,
+            'purchasePrice': item.purchasePrice,
             'quantity':      item.quantity,
             'subtotal':      item.salePrice * item.quantity,
             'discount':      item.discountAmount,

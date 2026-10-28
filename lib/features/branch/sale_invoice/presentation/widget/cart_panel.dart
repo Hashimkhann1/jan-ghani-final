@@ -1197,6 +1197,7 @@ class InvoiceHeaderWidget extends ConsumerWidget {
               customers:        customers,
               selectedCustomer: isReturn ? returnState.selectedCustomer : state.selectedCustomer,
               isReturn:         isReturn,
+              disabled:         !isReturn && state.hasDigital,
               onSelected:       isReturn
                   ? (c) => returnNotifier.selectCustomer(c)
                   : (c) => notifier.selectCustomer(c),
@@ -1216,6 +1217,36 @@ class InvoiceHeaderWidget extends ConsumerWidget {
       ]),
     );
   }
+}
+
+const double _kFieldHeight = 44;
+
+const TextStyle _kFieldLabelStyle = TextStyle(
+    fontSize: 11, fontWeight: FontWeight.w600, color: AppColor.textSecondary);
+
+InputDecoration _fieldDecoration({
+  required String   hint,
+  required IconData icon,
+  Color?            fill,
+  Color?            borderColor,
+  Color?            focusColor,
+}) {
+  OutlineInputBorder border(Color c, double w) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide:   BorderSide(color: c, width: w),
+      );
+  return InputDecoration(
+    hintText:  hint,
+    hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
+    prefixIcon: Icon(icon, size: 18, color: AppColor.grey500),
+    filled:     true,
+    fillColor:  fill ?? AppColor.grey100,
+    isDense:    true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    border:        border(borderColor ?? AppColor.grey200, 1),
+    enabledBorder: border(borderColor ?? AppColor.grey200, 1),
+    focusedBorder: border(focusColor ?? AppColor.primary, 1.6),
+  );
 }
 
 // ── Note TextField ────────────────────────────────────────────────
@@ -1258,18 +1289,26 @@ class _NoteTextFieldState extends State<_NoteTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Note"),
-        const SizedBox(height: 5),
-        TextField(
-          controller:      _ctrl,
-          onChanged:       widget.onChanged,
-          keyboardType:    TextInputType.multiline,
-          textInputAction: TextInputAction.newline,
-          style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
-          decoration: InputDecoration(
-            labelText: 'Invoice note (optional)...',
-            filled:    true,
-            fillColor: AppColor.grey100,
+        const SizedBox(
+          height: 18,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Note', style: _kFieldLabelStyle),
+          ),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: _kFieldHeight,
+          child: TextField(
+            controller:      _ctrl,
+            onChanged:       widget.onChanged,
+            maxLines:        1,
+            textInputAction: TextInputAction.done,
+            style: const TextStyle(fontSize: 13, color: AppColor.textPrimary),
+            decoration: _fieldDecoration(
+              hint: 'Invoice note (optional)...',
+              icon: Icons.sticky_note_2_outlined,
+            ),
           ),
         ),
       ],
@@ -1317,9 +1356,11 @@ class _CustomerDropdown extends ConsumerWidget {
   final List<CustomerModel>          customers;
   final CustomerModel?               selectedCustomer;
   final bool                         isReturn;
+  final bool                         disabled;
   final ValueChanged<CustomerModel?> onSelected;
 
   const _CustomerDropdown({
+    this.disabled = false,
     required this.customers,
     required this.selectedCustomer,
     required this.isReturn,
@@ -1334,11 +1375,8 @@ class _CustomerDropdown extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          const Text('Customer',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w600,
-                  color: AppColor.textSecondary)),
+        SizedBox(height: 18, child: Row(children: [
+          const Text('Customer', style: _kFieldLabelStyle),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -1351,8 +1389,8 @@ class _CustomerDropdown extends ConsumerWidget {
                     fontSize: 9, color: AppColor.primary,
                     fontWeight: FontWeight.w600)),
           ),
-        ]),
-        const SizedBox(height: 5),
+        ])),
+        const SizedBox(height: 4),
         Focus(
           focusNode: customerFocus,
           child: AnimatedContainer(
@@ -1370,38 +1408,19 @@ class _CustomerDropdown extends ConsumerWidget {
               filterFn:   (c, filter) => c == null
                   ? 'Walk In'.toLowerCase().contains(filter.toLowerCase())
                   : c.name.toLowerCase().contains(filter.toLowerCase()),
-              selectedItem: selectedCustomer,
+              enabled:    !disabled,
+              selectedItem: disabled ? null : selectedCustomer,
               compareFn:  (a, b) => (a?.id ?? '') == (b?.id ?? ''),
               itemAsString: (c) =>
               c == null ? 'Walk In' : '${c.name} — ${c.code}',
               onSelected: onSelected,
               decoratorProps: DropDownDecoratorProps(
-                decoration: InputDecoration(
-                  hintText:  'Customer (optional)',
-                  hintStyle: const TextStyle(
-                      fontSize: 13, color: AppColor.textHint),
-                  prefixIcon: Icon(Icons.person_outline,
-                      size: 18, color: AppColor.grey500),
-                  filled:    true,
-                  fillColor: isReturn
-                      ? AppColor.error.withOpacity(0.05)
-                      : AppColor.grey100,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 12),
-                  border: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                      borderSide:   BorderSide.none),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius:
-                      const BorderRadius.all(Radius.circular(8)),
-                      borderSide: BorderSide(
-                          color: isReturn ? AppColor.error : AppColor.grey200,
-                          width: isReturn ? 1.2 : 1.0)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius:
-                      const BorderRadius.all(Radius.circular(8)),
-                      borderSide:
-                      BorderSide(color: accent, width: 1.5)),
+                decoration: _fieldDecoration(
+                  hint:        disabled ? 'Digital sale — no customer' : 'Customer (optional)',
+                  icon:        Icons.person_outline,
+                  fill:        isReturn ? AppColor.error.withOpacity(0.05) : null,
+                  borderColor: isReturn ? AppColor.error : null,
+                  focusColor:  accent,
                 ),
               ),
               popupProps: PopupProps.menu(

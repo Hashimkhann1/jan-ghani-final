@@ -306,8 +306,8 @@ class StockTransferRemoteDataSource {
             r'''INSERT INTO public.branch_stock_inventory
               (store_id, product_id, barcode, sku, product_name,
                purchase_price, sale_price, wholesale_price,
-               stock, min_stock, max_stock, unit, category_id)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)''',
+               stock, min_stock, max_stock, unit, category_id, product_type)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'physical')''',
             parameters: [
               storeId,            // $1
               item.productId,     // $2

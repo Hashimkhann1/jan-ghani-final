@@ -62,6 +62,11 @@ class SaleReturnNotifier extends StateNotifier<SaleReturnState> {
 
   // ── Cart ───────────────────────────────────────────────────────
   void addToCart(BranchStockModel product) {
+    if (product.isDigital) {
+      state = state.copyWith(
+          errorMessage: 'Digital product ka return nahi ho sakta');
+      return;
+    }
     final idx = state.cartItems
         .indexWhere((i) => i.product.productId == product.productId);
 

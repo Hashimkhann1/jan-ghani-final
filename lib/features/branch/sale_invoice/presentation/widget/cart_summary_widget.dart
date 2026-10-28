@@ -25,8 +25,8 @@ class CartSummaryWidget extends ConsumerWidget {
         _SummaryRow(label: 'Items',          value: '${state.totalItems}', isCount: true),
         const SizedBox(height: 5),
         _SummaryRow(label: 'Sub Total',      value: _fmt(state.totalBeforeTax)),
-        _SummaryRow(label: 'Total Tax',      value: _fmt(state.totalTax),       color: AppColor.warning),
-        _SummaryRow(label: 'Total Discount', value: '-${_fmt(state.totalDiscount)}', color: AppColor.success),
+        _SummaryRow(label: 'Total Tax',      value: _fmt(state.totalTax)),
+        _SummaryRow(label: 'Total Discount', value: '-${_fmt(state.totalDiscount)}'),
         const Divider(color: AppColor.grey200, height: 16),
 
         // ── Grand Total ─────────────────────────────────────
@@ -339,10 +339,10 @@ class _SummaryRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: const TextStyle(fontSize: 13, color: AppColor.textSecondary)),
+            style: const TextStyle(fontSize: 13, color: Colors.black)),
         Text(isCount ? value : 'Rs $value',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                color: color ?? AppColor.textPrimary)),
+                color: Colors.black)),
       ],
     ),
   );

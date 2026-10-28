@@ -60,10 +60,10 @@ class _SaleTypeDropdownState extends State<SaleTypeDropdown> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Label with shortcut hint
-        Row(children: [
+        SizedBox(height: 18, child: Row(children: [
           const Text('Type',
               style: TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w600,
+                  fontSize: 11, fontWeight: FontWeight.w600,
                   color: AppColor.textSecondary)),
           const SizedBox(width: 4),
           Container(
@@ -77,7 +77,7 @@ class _SaleTypeDropdownState extends State<SaleTypeDropdown> {
                     fontSize: 8, color: AppColor.primary,
                     fontWeight: FontWeight.w700)),
           ),
-        ]),
+        ])),
         const SizedBox(height: 4),
 
         // KeyboardListener wraps the dropdown
@@ -103,12 +103,13 @@ class _SaleTypeDropdownState extends State<SaleTypeDropdown> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   color: isReturn
                       ? AppColor.errorLight.withOpacity(0.2)
                       : AppColor.success.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: _focus.hasFocus
                         ? accent
@@ -121,7 +122,7 @@ class _SaleTypeDropdownState extends State<SaleTypeDropdown> {
                     isReturn
                         ? Icons.assignment_return_outlined
                         : Icons.point_of_sale_outlined,
-                    size:  15,
+                    size:  18,
                     color: accent,
                   ),
                   const SizedBox(width: 6),

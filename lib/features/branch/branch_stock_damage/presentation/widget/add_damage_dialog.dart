@@ -80,18 +80,29 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                 // ── Header ──────────────────────────────────────
                 Row(children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: AppColor.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.warning_amber_rounded,
-                        color: AppColor.error, size: 20),
+                        color: AppColor.error, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  const Text('Add Damage Record',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                  const Spacer(),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Add Damage Record',
+                            style: TextStyle(
+                                fontSize: 17, fontWeight: FontWeight.w800,
+                                color: Colors.black)),
+                        Text('Damaged stock will be removed from inventory',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColor.textSecondary)),
+                      ],
+                    ),
+                  ),
                   IconButton(
                     onPressed: isMutating ? null : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded, size: 18),
@@ -99,7 +110,9 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                   ),
                 ]),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
+                const Divider(height: 1, color: AppColor.grey200),
+                const SizedBox(height: 18),
 
                 // ── Product Dropdown ─────────────────────────────
                 const _Label('Select Product *'),
@@ -136,10 +149,11 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                 // ── Product info card ─────────────────────────────
                 if (_selectedProduct != null) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       color: AppColor.grey100,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColor.grey200),
                     ),
                     child: Row(children: [
                       Expanded(
@@ -539,8 +553,8 @@ class _Label extends StatelessWidget {
   const _Label(this.text);
   @override
   Widget build(BuildContext context) => Text(text,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-          color: AppColor.textSecondary));
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+          color: Colors.black));
 }
 
 class _InfoRow extends StatelessWidget {
@@ -558,17 +572,19 @@ class _WarningBanner extends StatelessWidget {
   const _WarningBanner(this.message);
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(10),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
     decoration: BoxDecoration(
-      color: AppColor.warning.withOpacity(0.08),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: AppColor.warning.withOpacity(0.3)),
+      color: AppColor.warning.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: AppColor.warning.withOpacity(0.35)),
     ),
     child: Row(children: [
-      const Icon(Icons.info_outline_rounded, size: 15, color: AppColor.warning),
-      const SizedBox(width: 8),
+      const Icon(Icons.info_outline_rounded, size: 17, color: AppColor.warning),
+      const SizedBox(width: 10),
       Expanded(child: Text(message,
-          style: const TextStyle(fontSize: 12, color: AppColor.warning))),
+          style: const TextStyle(
+              fontSize: 12.5, fontWeight: FontWeight.w500,
+              color: Colors.black87))),
     ]),
   );
 }
@@ -594,11 +610,13 @@ class _DialogButtons extends StatelessWidget {
       child: OutlinedButton(
         onPressed: isMutating ? null : onCancel,
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColor.textSecondary,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          foregroundColor: Colors.black,
+          side: const BorderSide(color: AppColor.grey300),
+          minimumSize: const Size.fromHeight(46),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        child: const Text('Cancel'),
+        child: const Text('Cancel',
+            style: TextStyle(fontWeight: FontWeight.w600)),
       ),
     ),
     const SizedBox(width: 12),
@@ -608,33 +626,37 @@ class _DialogButtons extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: confirmColor,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+          minimumSize: const Size.fromHeight(46),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         child: isMutating
             ? const SizedBox(width: 18, height: 18,
             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : Text(confirmLabel),
+            : Text(confirmLabel,
+                style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
     ),
   ]);
 }
 
-InputDecoration _inputDecor(String hint) => InputDecoration(
-  hintText:  hint,
-  hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
-  filled:    true,
-  fillColor: AppColor.grey100,
-  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-  border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-  focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColor.primary, width: 1.2)),
-  errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColor.error, width: 1.2)),
-  focusedErrorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColor.error, width: 1.2)),
-);
+InputDecoration _inputDecor(String hint) {
+  OutlineInputBorder b(Color c, double w) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: c, width: w));
+  return InputDecoration(
+    hintText:  hint,
+    hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
+    prefixIcon: const Icon(Icons.inventory_2_outlined,
+        size: 18, color: AppColor.grey500),
+    filled:    true,
+    fillColor: AppColor.grey100,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+    border:         b(AppColor.grey200, 1),
+    enabledBorder:  b(AppColor.grey200, 1),
+    disabledBorder: b(AppColor.grey200, 1),
+    focusedBorder:  b(AppColor.primary, 1.6),
+    errorBorder:    b(AppColor.error, 1.2),
+    focusedErrorBorder: b(AppColor.error, 1.6),
+  );
+}

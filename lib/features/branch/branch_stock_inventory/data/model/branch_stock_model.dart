@@ -23,6 +23,7 @@ class BranchStockModel {
   final DateTime? lastMovementAt;
   final DateTime  updatedAt;
   final String?  shelfName; // ✅ NEW
+  final String   productType; // physical | digital | digital_withdraw
 
   const BranchStockModel({
     required this.id,
@@ -49,9 +50,13 @@ class BranchStockModel {
     this.lastMovementAt,
     required this.updatedAt,
     this.shelfName, // ✅ NEW
+    this.productType = 'physical',
   });
 
   // ── Getters ───────────────────────────────────────────────
+  bool get isDigital         => productType != 'physical';
+  bool get isDigitalWithdraw => productType == 'digital_withdraw';
+
   double get availableQuantity => quantity - reservedQuantity;
 
   bool get isLowStock =>
@@ -104,6 +109,7 @@ class BranchStockModel {
       lastMovementAt:   _date(map['last_movement_at']),
       updatedAt:        _date(map['updated_at'])       ?? DateTime.now(),
       shelfName:        _str(map['shelf_name']),       // ✅ NEW
+      productType:      _str(map['product_type'])      ?? 'physical',
     );
   }
 

@@ -17,6 +17,7 @@ import 'package:jan_ghani_final/features/branch/reports/presentation/screen/pnl_
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/product_profit_loss_screen.dart';
 import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale_return_report_screen.dart';
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
+import '../../../features/branch/assign_stock_to_branch/presentation/provider/pending_transfer_badge_provider.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
 import '../../../features/branch/branch_transcation/presentation/screen/branch_transaction_screen.dart';
 import '../../../features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
@@ -530,12 +531,57 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
     );
   }
 
+  void _showIncomingTransfer(PendingTransferState t, List<NavItem> items) {
+    final idx = items.indexWhere((i) => i.screen is BranchTransferListScreen);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(
+      behavior: SnackBarBehavior.floating,
+      width: 420,
+      duration: const Duration(seconds: 8),
+      backgroundColor: const Color(0xFF1F2937),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      content: Row(children: [
+        const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('New stock assigned',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700)),
+              Text(
+                '${t.incomingUnits} units'
+                '${t.incomingNumber != null ? ' • ${t.incomingNumber}' : ''}',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ]),
+      action: idx < 0
+          ? null
+          : SnackBarAction(
+              label: 'VIEW',
+              textColor: const Color(0xFF93C5FD),
+              onPressed: () => _onTap(idx, items),
+            ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth      = ref.watch(authProvider);
     final perms     = ref.watch(permissionsProvider);
     final items     = _visibleItems(auth, perms);
     final safeIndex = _index < items.length ? _index : 0;
+
+    ref.listen<PendingTransferState>(pendingTransferBadgeProvider, (prev, next) {
+      if (prev == null || next.incomingSeq == prev.incomingSeq) return;
+      _showIncomingTransfer(next, items);
+    });
 
     return Scaffold(
       backgroundColor: _kBg,
@@ -727,6 +773,7 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
   /// Nav list ke rows banata hai — har naye `section` par ek heading
   /// (expanded me uppercase text, collapsed me patli divider line).
   List<Widget> _buildNavRows(List<NavItem> items, int safeIndex) {
+    final pending = ref.watch(pendingTransferBadgeProvider);
     final rows = <Widget>[];
     String? lastSection;
 
@@ -760,7 +807,12 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
       lastSection = item.section ?? lastSection;
 
       final shortcut = items[i].shortcutKey;
+      final isTransfer = items[i].screen is BranchTransferListScreen;
       rows.add(_NavTile(
+        badgeCount: isTransfer ? pending.count : 0,
+        badgeTooltip: isTransfer && pending.count > 0
+            ? '${pending.count} pending • ${pending.units} units'
+            : null,
         icon:       items[i].icon,
         iconAsset:  _navIconAsset[items[i].permKey],
         label:      items[i].label,
@@ -801,9 +853,13 @@ class _NavTile extends StatelessWidget {
   final bool       isSelected;
   final bool       collapsed;
   final String?    shortcutHint;
+  final int        badgeCount;
+  final String?    badgeTooltip;
   final VoidCallback onTap;
 
   const _NavTile({
+    this.badgeCount = 0,
+    this.badgeTooltip,
     required this.icon,
     required this.label,
     required this.isSelected,
@@ -827,12 +883,37 @@ class _NavTile extends StatelessWidget {
         )
       : Icon(icon, size: size, color: fg);
 
+  String get _badgeText => badgeCount > 99 ? '99+' : '$badgeCount';
+
+  Widget _badge() => Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        constraints: const BoxConstraints(minWidth: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEF4444),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(_badgeText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.white)),
+      );
+
   @override
   Widget build(BuildContext context) {
     final fg = isSelected ? _kPrimary : _kMid;
 
     final Widget content = collapsed
-        ? Center(child: _icon(fg, 22))
+        ? Center(
+            child: badgeCount > 0
+                ? Badge(
+                    label: Text(_badgeText),
+                    backgroundColor: const Color(0xFFEF4444),
+                    child: _icon(fg, 22),
+                  )
+                : _icon(fg, 22))
         : Row(
             children: [
               _icon(fg, 20),
@@ -851,6 +932,7 @@ class _NavTile extends StatelessWidget {
                   ),
                 ),
               ),
+              if (badgeCount > 0) _badge(),
               if (shortcutHint != null)
                 Text(
                   shortcutHint!,
@@ -869,7 +951,8 @@ class _NavTile extends StatelessWidget {
       padding: EdgeInsets.symmetric(
           horizontal: collapsed ? 12 : 10, vertical: 2),
       child: Tooltip(
-        message: shortcutHint != null ? '$label  ($shortcutHint)' : label,
+        message: badgeTooltip ??
+            (shortcutHint != null ? '$label  ($shortcutHint)' : label),
         preferBelow: false,
         child: Material(
           color: Colors.transparent,

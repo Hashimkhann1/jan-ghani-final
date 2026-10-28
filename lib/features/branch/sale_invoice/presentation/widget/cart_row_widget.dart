@@ -480,7 +480,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
   void initState() {
     super.initState();
     final item = widget.cartItem;
-    _qtyCtrl   = TextEditingController(text: _fmtNum(item.quantity));
+    _qtyCtrl   = TextEditingController(text: _fmtNum(_col0(item)));
     _priceCtrl = TextEditingController(text: _fmtNum(item.salePrice));
     _taxCtrl   = TextEditingController(text: _fmtNum(item.taxAmount));
     _disCtrl   = TextEditingController(text: _fmtNum(item.discountAmount));
@@ -518,7 +518,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     final item = widget.cartItem;
 
     if (!_qtyFocused) {
-      final q = _fmtNum(item.quantity);
+      final q = _fmtNum(_col0(item));
       if (_qtyCtrl.text != q) _qtyCtrl.text = q;
     }
     if (!_priceFocused) {
@@ -548,6 +548,10 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     super.dispose();
   }
 
+  // Column 0: quantity for normal products, purchase price for digital ones.
+  double _col0(CartItem i) =>
+      i.product.isDigital ? i.purchasePrice : i.quantity;
+
   List<TextEditingController> get _ctrls =>
       [_qtyCtrl, _priceCtrl, _taxCtrl, _disCtrl, _subCtrl];
 
@@ -567,6 +571,15 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
 
   void _commitQty() {
     final v = double.tryParse(_qtyCtrl.text.trim());
+    if (widget.cartItem.product.isDigital) {
+      final notifier = ref.read(saleInvoiceProvider.notifier);
+      if (v == null || v < 0) {
+        _qtyCtrl.text = _fmtNum(widget.cartItem.purchasePrice);
+      } else {
+        notifier.updatePurchasePrice(widget.cartItem.cartId, v);
+      }
+      return;
+    }
     if (v == null || v <= 0) {
       ref.read(saleInvoiceProvider.notifier)
           .removeFromCart(widget.cartItem.cartId);
@@ -704,8 +717,15 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
               controller:  _qtyCtrl,
               focusNode:   _fn[0],
               isNavActive: isNavRow && nav.col == 0,
+              prefix: item.product.isDigital ? 'Rs' : null,
               onChanged: (v) {
                 final val = double.tryParse(v);
+                if (item.product.isDigital) {
+                  if (val != null && val >= 0) {
+                    notifier.updatePurchasePrice(item.cartId, val);
+                  }
+                  return;
+                }
                 // ✅ Live update — onChanged mein hi update karo
                 if (val != null && val > 0)
                   notifier.updateQuantity(item.cartId, val);

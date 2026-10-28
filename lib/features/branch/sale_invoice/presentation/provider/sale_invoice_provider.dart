@@ -47,6 +47,8 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
 
   // ── Customer ──────────────────────────────────────────────
   void selectCustomer(CustomerModel? customer) {
+    // Digital invoices are walk-in only — no customer, no credit.
+    if (state.hasDigital) customer = null;
     state = state.copyWith(
       selectedCustomer: customer,
       clearCustomer:    customer == null,
@@ -76,14 +78,32 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   }
 
   void addToCart(BranchStockModel product) {
+    // Digital lines: separate invoice from physical, withdraw stands alone.
+    if (state.cartItems.isNotEmpty) {
+      final cartDigital = state.hasDigital;
+      if (cartDigital != product.isDigital) {
+        state = state.copyWith(
+            errorMessage: 'Digital aur normal products alag invoice mein bechein');
+        return;
+      }
+      if (product.isDigital &&
+          (state.hasWithdraw || product.isDigitalWithdraw)) {
+        state = state.copyWith(
+            errorMessage: 'Cash Withdraw ka alag invoice banayein');
+        return;
+      }
+    }
+
     final idx = state.cartItems
         .indexWhere((i) => i.product.productId == product.productId);
+    if (idx != -1 && product.isDigital) return; // qty stays 1
     if (idx != -1) {
       final items = [...state.cartItems];
       items[idx] = items[idx].copyWith(quantity: items[idx].quantity + 1);
       state = state.copyWith(cartItems: items);
     } else {
       state = state.copyWith(
+        clearCustomer: product.isDigital,
         cartItems: [
           ...state.cartItems,
           CartItem(
@@ -109,6 +129,9 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
 
   void updateQuantity(String cartId, double qty) {
     if (qty <= 0) return;
+    if (state.cartItems.any((i) => i.cartId == cartId && i.product.isDigital)) {
+      return;
+    }
     _update(cartId, (i) => i.copyWith(quantity: qty));
     _resetPayments();
   }
@@ -117,6 +140,11 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     if (price < 0) return;
     _update(cartId, (i) => i.copyWith(salePrice: price));
     _resetPayments();
+  }
+
+  void updatePurchasePrice(String cartId, double price) {
+    if (price < 0) return;
+    _update(cartId, (i) => i.copyWith(purchasePriceOverride: price));
   }
 
   void updateTax(String cartId, double tax) {
@@ -157,6 +185,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   void _resetPayments() => state = state.copyWith(payments: []);
 
   updatePayment(String method, double amount) {
+    if (state.hasDigital && method != 'cash') return;
     if (method == 'credit' && state.selectedCustomer == null) {
       state = state.copyWith(
           errorMessage: 'Credit payment ke liye customer select karein');
@@ -169,6 +198,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   }
 
   void setQuickPayment(String method) {
+    if (state.hasDigital && method != 'cash') return;
     if (method == 'credit' && state.selectedCustomer == null) {
       state = state.copyWith(
           errorMessage: 'Credit payment ke liye customer select karein');
@@ -269,11 +299,27 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
           errorMessage: 'Credit payment ke liye customer select karein');
       return false;
     }
-    if (state.payments.isEmpty) {
+    for (final i in state.cartItems.where((i) => i.product.isDigital)) {
+      if (i.salePrice <= 0 || i.purchasePrice <= 0) {
+        state = state.copyWith(
+            errorMessage:
+            '${i.product.name}: sale aur purchase price likhna zaroori hai');
+        return false;
+      }
+      if (i.purchasePrice > i.salePrice) {
+        state = state.copyWith(
+            errorMessage:
+            '${i.product.name}: purchase price sale price se zyada nahi ho sakta');
+        return false;
+      }
+    }
+    // Cash Withdraw: cash goes out, nothing is collected here — no payment rows.
+    final isWithdraw = state.hasWithdraw;
+    if (!isWithdraw && state.payments.isEmpty) {
       state = state.copyWith(errorMessage: 'Payment method select karein');
       return false;
     }
-    if (!state.isPaymentValid) {
+    if (!isWithdraw && !state.isPaymentValid) {
       state = state.copyWith(
           errorMessage:
           'Payment total Rs ${state.totalPaid.toStringAsFixed(0)} grand total '
@@ -298,7 +344,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
         grandTotal:     state.grandTotal,
         notes:          state.notes,
         items:          state.cartItems,
-        payments:       state.payments,
+        payments:       isWithdraw ? const [] : state.payments,
         previousAmount: previousAmount,
         newAmount:      newAmount,
         payAmount:      payAmount,
