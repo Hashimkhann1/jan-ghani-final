@@ -28,12 +28,11 @@ class AccountantBranchTransactionScreen extends ConsumerStatefulWidget {
 class _AccountantBranchTransactionScreenState
     extends ConsumerState<AccountantBranchTransactionScreen> {
   final _startCtrl = TextEditingController();
-  final _endCtrl   = TextEditingController();
-  final _dateFmt   = DateFormat('dd MMM yyyy');
-  final _amtFmt    = NumberFormat('#,##,###', 'en_IN');
+  final _endCtrl = TextEditingController();
+  final _dateFmt = DateFormat('dd MMM yyyy');
+  final _amtFmt = NumberFormat('#,##,###', 'en_IN');
 
-  bool _isDesktop(BuildContext ctx) =>
-      MediaQuery.of(ctx).size.width >= 800;
+  bool _isDesktop(BuildContext ctx) => MediaQuery.of(ctx).size.width >= 800;
 
   @override
   void dispose() {
@@ -43,20 +42,19 @@ class _AccountantBranchTransactionScreenState
   }
 
   Future<void> _pickStartDate() async {
-    final state  = ref.read(branchTransactionProvider(widget.branchId));
+    final state = ref.read(branchTransactionProvider(widget.branchId));
     final picked = await showDatePicker(
-      context:     context,
+      context: context,
       initialDate: state.startDate ?? DateTime.now(),
-      firstDate:   DateTime(2020),
-      lastDate:    DateTime.now().add(const Duration(days: 1)),
-      builder:     _dateTheme,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      builder: _dateTheme,
     );
     if (picked == null) return;
     _startCtrl.text = _dateFmt.format(picked);
-    final endDate   = state.endDate;
-    final newEnd    = (endDate != null && endDate.isBefore(picked))
-        ? null
-        : endDate;
+    final endDate = state.endDate;
+    final newEnd =
+        (endDate != null && endDate.isBefore(picked)) ? null : endDate;
     if (newEnd == null) _endCtrl.clear();
     await ref
         .read(branchTransactionProvider(widget.branchId).notifier)
@@ -64,13 +62,13 @@ class _AccountantBranchTransactionScreenState
   }
 
   Future<void> _pickEndDate() async {
-    final state  = ref.read(branchTransactionProvider(widget.branchId));
+    final state = ref.read(branchTransactionProvider(widget.branchId));
     final picked = await showDatePicker(
-      context:     context,
+      context: context,
       initialDate: state.endDate ?? state.startDate ?? DateTime.now(),
-      firstDate:   state.startDate ?? DateTime(2020),
-      lastDate:    DateTime.now().add(const Duration(days: 1)),
-      builder:     _dateTheme,
+      firstDate: state.startDate ?? DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      builder: _dateTheme,
     );
     if (picked == null) return;
     _endCtrl.text = _dateFmt.format(picked);
@@ -80,22 +78,20 @@ class _AccountantBranchTransactionScreenState
   }
 
   Widget _dateTheme(BuildContext ctx, Widget? child) => Theme(
-    data: Theme.of(ctx).copyWith(
-      colorScheme: const ColorScheme.light(
-        primary:   AppColor.primary,
-        onPrimary: Colors.white,
-        onSurface: Color(0xFF1A1D23),
-      ),
-    ),
-    child: child!,
-  );
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColor.primary,
+            onPrimary: Colors.white,
+            onSurface: Color(0xFF1A1D23),
+          ),
+        ),
+        child: child!,
+      );
 
   void _clearFilter() {
     _startCtrl.clear();
     _endCtrl.clear();
-    ref
-        .read(branchTransactionProvider(widget.branchId).notifier)
-        .clearFilter();
+    ref.read(branchTransactionProvider(widget.branchId).notifier).clearFilter();
   }
 
   void _openFilters() {
@@ -105,16 +101,16 @@ class _AccountantBranchTransactionScreenState
       onReset: _clearFilter,
       content: Consumer(builder: (ctx, ref, _) {
         final state = ref.watch(provider);
-        final n     = ref.read(provider.notifier);
+        final n = ref.read(provider.notifier);
         return Row(
           children: [
             Expanded(
               child: _DateField(
                 controller: _startCtrl,
-                hint:       'Start Date',
-                icon:       'ic_calendar',
-                onTap:      _pickStartDate,
-                onClear:    _startCtrl.text.isNotEmpty
+                hint: 'Start Date',
+                icon: 'ic_calendar',
+                onTap: _pickStartDate,
+                onClear: _startCtrl.text.isNotEmpty
                     ? () {
                         _startCtrl.clear();
                         n.applyDateFilter(null, state.endDate);
@@ -126,16 +122,16 @@ class _AccountantBranchTransactionScreenState
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text('—',
                   style: TextStyle(
-                      color:      Colors.grey.shade400,
+                      color: Colors.grey.shade400,
                       fontWeight: FontWeight.w600)),
             ),
             Expanded(
               child: _DateField(
                 controller: _endCtrl,
-                hint:       'End Date',
-                icon:       'ic_calendar',
-                onTap:      _pickEndDate,
-                onClear:    _endCtrl.text.isNotEmpty
+                hint: 'End Date',
+                icon: 'ic_calendar',
+                onTap: _pickEndDate,
+                onClear: _endCtrl.text.isNotEmpty
                     ? () {
                         _endCtrl.clear();
                         n.applyDateFilter(state.startDate, null);
@@ -151,26 +147,24 @@ class _AccountantBranchTransactionScreenState
 
   @override
   Widget build(BuildContext context) {
-    final state    = ref.watch(
-        branchTransactionProvider(widget.branchId));
-    final notifier = ref.read(
-        branchTransactionProvider(widget.branchId).notifier);
-    final desktop  = _isDesktop(context);
-    final hasFilter =
-        state.startDate != null || state.endDate != null;
+    final state = ref.watch(branchTransactionProvider(widget.branchId));
+    final notifier =
+        ref.read(branchTransactionProvider(widget.branchId).notifier);
+    final desktop = _isDesktop(context);
+    final hasFilter = state.startDate != null || state.endDate != null;
 
     ref.listen<BranchTransactionState>(
       branchTransactionProvider(widget.branchId),
-          (_, next) {
+      (_, next) {
         if (next.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content:         Text(next.errorMessage!),
+            content: Text(next.errorMessage!),
             backgroundColor: AppColor.error,
-            behavior:        SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             action: SnackBarAction(
-              label:     'OK',
+              label: 'OK',
               textColor: Colors.white,
               onPressed: notifier.clearError,
             ),
@@ -183,19 +177,19 @@ class _AccountantBranchTransactionScreenState
       backgroundColor: const Color(0xFFF5F6FA),
       body: desktop
           ? _DesktopLayout(
-        state:      state,
-        notifier:   notifier,
-        amtFmt:     _amtFmt,
-        hasFilter:  hasFilter,
-        onFilters:  _openFilters,
-      )
+              state: state,
+              notifier: notifier,
+              amtFmt: _amtFmt,
+              hasFilter: hasFilter,
+              onFilters: _openFilters,
+            )
           : _MobileLayout(
-        state:      state,
-        notifier:   notifier,
-        amtFmt:     _amtFmt,
-        hasFilter:  hasFilter,
-        onFilters:  _openFilters,
-      ),
+              state: state,
+              notifier: notifier,
+              amtFmt: _amtFmt,
+              hasFilter: hasFilter,
+              onFilters: _openFilters,
+            ),
     );
   }
 }
@@ -204,11 +198,11 @@ class _AccountantBranchTransactionScreenState
 // DESKTOP LAYOUT
 // ══════════════════════════════════════════════════════════════════════════════
 class _DesktopLayout extends StatelessWidget {
-  final BranchTransactionState  state;
-  final dynamic                 notifier;
-  final NumberFormat            amtFmt;
-  final bool                    hasFilter;
-  final VoidCallback            onFilters;
+  final BranchTransactionState state;
+  final dynamic notifier;
+  final NumberFormat amtFmt;
+  final bool hasFilter;
+  final VoidCallback onFilters;
 
   const _DesktopLayout({
     required this.state,
@@ -223,10 +217,9 @@ class _DesktopLayout extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         // ── Top bar ──────────────────────────────────────────────────────────
         Container(
-          color:   Colors.white,
+          color: Colors.white,
           padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
           child: Row(
             children: [
@@ -243,25 +236,25 @@ class _DesktopLayout extends StatelessWidget {
               const SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize:       MainAxisSize.min,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text('Branch Transactions',
                       style: TextStyle(
-                        fontSize:   22,
+                        fontSize: 22,
                         fontWeight: FontWeight.w700,
-                        color:      Color(0xFF1A1D23),
+                        color: Color(0xFF1A1D23),
                       )),
                   const SizedBox(height: 2),
                   Text(state.branchName,
                       style: const TextStyle(
-                          fontSize:   13,
-                          color:      AppColor.primary,
+                          fontSize: 13,
+                          color: AppColor.primary,
                           fontWeight: FontWeight.w500)),
                 ],
               ),
               const Spacer(),
               ReportFilterButton(
-                onPressed:   onFilters,
+                onPressed: onFilters,
                 activeCount: hasFilter ? 1 : 0,
               ),
               ReportExportButton(
@@ -270,7 +263,7 @@ class _DesktopLayout extends StatelessWidget {
                 enabled: state.transactions.isNotEmpty,
                 loadSheets: () async => BranchTransactionExportSheets.build(
                   transactions: await notifier.fetchAllForExport(),
-            branchName: state.branchName,
+                  branchName: state.branchName,
                   startDate: state.startDate,
                   endDate: state.endDate,
                 ),
@@ -283,31 +276,30 @@ class _DesktopLayout extends StatelessWidget {
 
         // ── Filters + Summary row ────────────────────────────────────────────
         Container(
-          color:   Colors.white,
+          color: Colors.white,
           padding: const EdgeInsets.fromLTRB(28, 14, 28, 14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-
               // Summary cards
               _DeskStatCard(
                 label: 'Total Transactions',
                 value: '${state.totalCount}',
-                icon:  'ic_total_sale',
+                icon: 'ic_total_sale',
                 color: AppColor.primary,
               ),
               const SizedBox(width: 10),
               _DeskStatCard(
                 label: 'Total Amount',
                 value: 'Rs ${amtFmt.format(state.totalCashOut.toInt())}',
-                icon:  'ic_net_amount',
+                icon: 'ic_net_amount',
                 color: const Color(0xFFF97316),
               ),
               const SizedBox(width: 10),
               _DeskStatCard(
                 label: 'Pending',
                 value: 'Rs ${amtFmt.format(state.pendingAmount.toInt())}',
-                icon:  'ic_net_amount',
+                icon: 'ic_net_amount',
                 color: const Color(0xFFEAB308),
               ),
             ],
@@ -320,20 +312,20 @@ class _DesktopLayout extends StatelessWidget {
           child: state.isLoading
               ? const Center(child: CircularProgressIndicator())
               : state.transactions.isEmpty
-              ? const _EmptyState()
-              : _TransactionTable(
-            items:      state.transactions,
-            branchName: state.branchName,
-            amtFmt:     amtFmt,
-          ),
+                  ? const _EmptyState()
+                  : _TransactionTable(
+                      items: state.transactions,
+                      branchName: state.branchName,
+                      amtFmt: amtFmt,
+                    ),
         ),
         if (!state.isLoading && state.transactions.isNotEmpty)
           BranchReportPaginationControls(
-            page:        state.pagination.page,
+            page: state.pagination.page,
             hasNextPage: state.pagination.hasNextPage,
-            isLoading:   state.pagination.isLoadingPage,
-            onNext:      notifier.nextPage,
-            onPrevious:  notifier.previousPage,
+            isLoading: state.pagination.isLoadingPage,
+            onNext: notifier.nextPage,
+            onPrevious: notifier.previousPage,
           ),
       ],
     );
@@ -345,7 +337,7 @@ class _DeskStatCard extends StatelessWidget {
   final String label;
   final String value;
   final String icon;
-  final Color  color;
+  final Color color;
 
   const _DeskStatCard({
     required this.label,
@@ -356,21 +348,21 @@ class _DeskStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 190,
-    child: DashboardStatCard(
-      title:     label,
-      value:     value,
-      iconAsset: icon,
-      color:     color,
-    ),
-  );
+        width: 190,
+        child: DashboardStatCard(
+          title: label,
+          value: value,
+          iconAsset: icon,
+          color: color,
+        ),
+      );
 }
 
 // ── Transaction Table ──────────────────────────────────────────────────────
 class _TransactionTable extends StatelessWidget {
   final List<BranchTransactionModel> items;
-  final String                       branchName;
-  final NumberFormat                 amtFmt;
+  final String branchName;
+  final NumberFormat amtFmt;
 
   const _TransactionTable({
     required this.items,
@@ -384,18 +376,17 @@ class _TransactionTable extends StatelessWidget {
       children: [
         // Header
         Container(
-          color:   Colors.white,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 28, vertical: 12),
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
           child: Row(children: const [
             SizedBox(width: 10),
-            _TH(label: '#',          flex: 1),
-            _TH(label: 'Branch',     flex: 4),
-            _TH(label: 'Assigned By',flex: 4),
-            _TH(label: 'Type',       flex: 2, center: true),
-            _TH(label: 'Amount',     flex: 3, right: true),
-            _TH(label: 'Date & Time',flex: 4),
-            _TH(label: 'Status',     flex: 3, center: true),
+            _TH(label: '#', flex: 1),
+            _TH(label: 'Branch', flex: 4),
+            _TH(label: 'Assigned By', flex: 4),
+            _TH(label: 'Type', flex: 2, center: true),
+            _TH(label: 'Amount', flex: 3, right: true),
+            _TH(label: 'Date & Time', flex: 4),
+            _TH(label: 'Status', flex: 3, center: true),
           ]),
         ),
         const Divider(height: 1, color: Color(0xFFEEEEEE)),
@@ -404,14 +395,14 @@ class _TransactionTable extends StatelessWidget {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
-            itemCount:        items.length,
+            itemCount: items.length,
             separatorBuilder: (_, __) =>
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                const Divider(height: 1, color: Color(0xFFF0F0F0)),
             itemBuilder: (_, i) => _TransactionTableRow(
-              index:      i + 1,
-              item:       items[i],
+              index: i + 1,
+              item: items[i],
               branchName: branchName,
-              amtFmt:     amtFmt,
+              amtFmt: amtFmt,
             ),
           ),
         ),
@@ -422,42 +413,42 @@ class _TransactionTable extends StatelessWidget {
 
 class _TH extends StatelessWidget {
   final String label;
-  final int    flex;
-  final bool   right;
-  final bool   center;
+  final int flex;
+  final bool right;
+  final bool center;
 
   const _TH({
     required this.label,
-    this.flex   = 1,
-    this.right  = false,
+    this.flex = 1,
+    this.right = false,
     this.center = false,
   });
 
   @override
   Widget build(BuildContext context) => Expanded(
-    flex: flex,
-    child: Text(
-      label,
-      textAlign: right
-          ? TextAlign.right
-          : center
-          ? TextAlign.center
-          : TextAlign.left,
-      style: const TextStyle(
-        fontSize:      11,
-        fontWeight:    FontWeight.w700,
-        color:         AppColor.textHint,
-        letterSpacing: 0.3,
-      ),
-    ),
-  );
+        flex: flex,
+        child: Text(
+          label,
+          textAlign: right
+              ? TextAlign.right
+              : center
+                  ? TextAlign.center
+                  : TextAlign.left,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColor.textHint,
+            letterSpacing: 0.3,
+          ),
+        ),
+      );
 }
 
 class _TransactionTableRow extends StatelessWidget {
-  final int                  index;
+  final int index;
   final BranchTransactionModel item;
-  final String               branchName;
-  final NumberFormat         amtFmt;
+  final String branchName;
+  final NumberFormat amtFmt;
 
   const _TransactionTableRow({
     required this.index,
@@ -468,29 +459,25 @@ class _TransactionTableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt  = DateFormat('dd MMM yyyy  •  hh:mm a');
+    final dateFmt = DateFormat('dd MMM yyyy  •  hh:mm a');
     final isCashIn = item.isCashIn;
-    final color    = isCashIn
-        ? const Color(0xFF10B981)
-        : const Color(0xFFF97316);
+    final color = isCashIn ? const Color(0xFF10B981) : const Color(0xFFF97316);
     final typeLabel = isCashIn ? 'Cash In' : 'Cash Out';
 
     return Container(
-      color:   Colors.white,
+      color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-
           // #
           Expanded(
             flex: 1,
             child: Padding(
               padding: const EdgeInsets.only(left: 10),
               child: Text('$index',
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color:    AppColor.textHint)),
+                  style:
+                      const TextStyle(fontSize: 12, color: AppColor.textHint)),
             ),
           ),
 
@@ -500,16 +487,16 @@ class _TransactionTableRow extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width:  32,
+                  width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color:        color.withOpacity(0.1),
+                    color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: AppIcon(
                     isCashIn ? 'ic_cash_in' : 'ic_cash_out',
                     color: color,
-                    size:  15,
+                    size: 15,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -517,9 +504,9 @@ class _TransactionTableRow extends StatelessWidget {
                   child: Text(
                     branchName,
                     style: const TextStyle(
-                      fontSize:   13,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color:      Color(0xFF1A1D23),
+                      color: Color(0xFF1A1D23),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -533,12 +520,9 @@ class _TransactionTableRow extends StatelessWidget {
           Expanded(
             flex: 4,
             child: Text(
-              item.assignByName.isNotEmpty
-                  ? item.assignByName
-                  : '—',
-              style: const TextStyle(
-                  fontSize: 12,
-                  color:    AppColor.textSecondary),
+              item.assignByName.isNotEmpty ? item.assignByName : '—',
+              style:
+                  const TextStyle(fontSize: 12, color: AppColor.textSecondary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -549,29 +533,27 @@ class _TransactionTableRow extends StatelessWidget {
             flex: 2,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 9, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
-                  color:        color.withOpacity(0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: color.withOpacity(0.3)),
+                  border: Border.all(color: color.withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 6, height: 6,
-                      decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle),
+                      width: 6,
+                      height: 6,
+                      decoration:
+                          BoxDecoration(color: color, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 4),
                     Text(typeLabel,
                         style: TextStyle(
-                          fontSize:   10,
+                          fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color:      color,
+                          color: color,
                         )),
                   ],
                 ),
@@ -586,9 +568,9 @@ class _TransactionTableRow extends StatelessWidget {
               'Rs ${amtFmt.format(item.payAmount.toInt())}',
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontSize:   13,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color:      color,
+                color: color,
               ),
             ),
           ),
@@ -600,9 +582,7 @@ class _TransactionTableRow extends StatelessWidget {
               padding: const EdgeInsets.only(left: 16),
               child: Text(
                 dateFmt.format(item.createdAt.toLocal()),
-                style: const TextStyle(
-                    fontSize: 11,
-                    color:    AppColor.textHint),
+                style: const TextStyle(fontSize: 11, color: AppColor.textHint),
               ),
             ),
           ),
@@ -623,10 +603,10 @@ class _TransactionTableRow extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 class _MobileLayout extends StatelessWidget {
   final BranchTransactionState state;
-  final dynamic                notifier;
-  final NumberFormat           amtFmt;
-  final bool                   hasFilter;
-  final VoidCallback           onFilters;
+  final dynamic notifier;
+  final NumberFormat amtFmt;
+  final bool hasFilter;
+  final VoidCallback onFilters;
 
   const _MobileLayout({
     required this.state,
@@ -641,22 +621,22 @@ class _MobileLayout extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor:  Colors.white,
-        elevation:        0,
+        backgroundColor: Colors.white,
+        elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Branch Transactions',
                 style: TextStyle(
-                  fontSize:   17,
+                  fontSize: 17,
                   fontWeight: FontWeight.w800,
-                  color:      Color(0xFF1A1D23),
+                  color: Color(0xFF1A1D23),
                 )),
             Text(state.branchName,
                 style: const TextStyle(
-                  fontSize:   12,
-                  color:      AppColor.primary,
+                  fontSize: 12,
+                  color: AppColor.primary,
                   fontWeight: FontWeight.w500,
                 )),
           ],
@@ -670,14 +650,14 @@ class _MobileLayout extends StatelessWidget {
         children: [
           // ── Actions ──────────────────────────────────────────────────
           Container(
-            color:   Colors.white,
+            color: Colors.white,
             padding: const EdgeInsets.fromLTRB(11, 8, 11, 4),
             child: Row(
               children: [
                 Expanded(
                   child: ReportFilterButton(
-                    labeled:     true,
-                    onPressed:   onFilters,
+                    labeled: true,
+                    onPressed: onFilters,
                     activeCount: hasFilter ? 1 : 0,
                   ),
                 ),
@@ -696,7 +676,7 @@ class _MobileLayout extends StatelessWidget {
                 ),
                 Expanded(
                   child: ReportRefreshButton(
-                    labeled:   true,
+                    labeled: true,
                     onPressed: notifier.load,
                   ),
                 ),
@@ -709,30 +689,28 @@ class _MobileLayout extends StatelessWidget {
           // ── Summary Cards ────────────────────────────────────────────
           if (!state.isLoading)
             Container(
-              color:   Colors.white,
+              color: Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
               child: Row(
                 children: [
                   _MobileSummaryCard(
                     label: 'Transactions',
                     value: '${state.totalCount}',
-                    icon:  'ic_total_sale',
+                    icon: 'ic_total_sale',
                     color: AppColor.primary,
                   ),
                   const SizedBox(width: 10),
                   _MobileSummaryCard(
                     label: 'Total Amount',
-                    value:
-                    'Rs ${amtFmt.format(state.totalCashOut.toInt())}',
-                    icon:  'ic_net_amount',
+                    value: 'Rs ${amtFmt.format(state.totalCashOut.toInt())}',
+                    icon: 'ic_net_amount',
                     color: const Color(0xFFF97316),
                   ),
                   const SizedBox(width: 10),
                   _MobileSummaryCard(
                     label: 'Pending',
-                    value:
-                    'Rs ${amtFmt.format(state.pendingAmount.toInt())}',
-                    icon:  'ic_net_amount',
+                    value: 'Rs ${amtFmt.format(state.pendingAmount.toInt())}',
+                    icon: 'ic_net_amount',
                     color: const Color(0xFFEAB308),
                   ),
                 ],
@@ -748,8 +726,7 @@ class _MobileLayout extends StatelessWidget {
               child: Row(children: [
                 Text('${state.totalCount} transactions',
                     style: const TextStyle(
-                        fontSize: 12,
-                        color:    AppColor.textHint)),
+                        fontSize: 12, color: AppColor.textHint)),
               ]),
             ),
 
@@ -758,30 +735,29 @@ class _MobileLayout extends StatelessWidget {
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : state.transactions.isEmpty
-                ? const _EmptyState()
-                : RefreshIndicator(
-              onRefresh: notifier.load,
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(
-                    16, 0, 16, 24),
-                itemCount: state.transactions.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 8),
-                itemBuilder: (_, i) => _TransactionCard(
-                  transaction: state.transactions[i],
-                  branchName:  state.branchName,
-                  amtFmt:      amtFmt,
-                ),
-              ),
-            ),
+                    ? const _EmptyState()
+                    : RefreshIndicator(
+                        onRefresh: notifier.load,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          itemCount: state.transactions.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (_, i) => _TransactionCard(
+                            transaction: state.transactions[i],
+                            branchName: state.branchName,
+                            amtFmt: amtFmt,
+                          ),
+                        ),
+                      ),
           ),
           if (!state.isLoading && state.transactions.isNotEmpty)
             BranchReportPaginationControls(
-              page:        state.pagination.page,
+              page: state.pagination.page,
               hasNextPage: state.pagination.hasNextPage,
-              isLoading:   state.pagination.isLoadingPage,
-              onNext:      notifier.nextPage,
-              onPrevious:  notifier.previousPage,
+              isLoading: state.pagination.isLoadingPage,
+              onNext: notifier.nextPage,
+              onPrevious: notifier.previousPage,
             ),
         ],
       ),
@@ -794,7 +770,7 @@ class _MobileSummaryCard extends StatelessWidget {
   final String label;
   final String value;
   final String icon;
-  final Color  color;
+  final Color color;
 
   const _MobileSummaryCard({
     required this.label,
@@ -805,14 +781,14 @@ class _MobileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: DashboardStatCard(
-      title:     label,
-      value:     value,
-      iconAsset: icon,
-      color:     color,
-      compact:   true,
-    ),
-  );
+        child: DashboardStatCard(
+          title: label,
+          value: value,
+          iconAsset: icon,
+          color: color,
+          compact: true,
+        ),
+      );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -820,8 +796,8 @@ class _MobileSummaryCard extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 class _TransactionCard extends StatelessWidget {
   final BranchTransactionModel transaction;
-  final String                 branchName;
-  final NumberFormat           amtFmt;
+  final String branchName;
+  final NumberFormat amtFmt;
 
   const _TransactionCard({
     required this.transaction,
@@ -831,148 +807,152 @@ class _TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt  = DateFormat('dd MMM yyyy  •  hh:mm a');
+    final dateFmt = DateFormat('dd MMM yyyy  •  hh:mm a');
     final isCashIn = transaction.isCashIn;
-    final color    = isCashIn
-        ? const Color(0xFF10B981)
-        : const Color(0xFFF97316);
+    final color = isCashIn ? const Color(0xFF10B981) : const Color(0xFFF97316);
     final typeLabel = isCashIn ? 'Cash In' : 'Cash Out';
 
     return Container(
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border:       Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withOpacity(0.03),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 6,
-            offset:     const Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 13),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-
-            // Icon
-            Container(
-              width:  46,
-              height: 46,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    color.withOpacity(0.15),
-                    color.withOpacity(0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end:   Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: AppIcon(
-                isCashIn ? 'ic_cash_in' : 'ic_cash_out',
-                color: color,
-                size:  20,
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Branch + Assigned By + Date
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    branchName,
-                    style: const TextStyle(
-                      fontSize:   14,
-                      fontWeight: FontWeight.w700,
-                      color:      Color(0xFF1A1D23),
-                    ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Column(children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Icon
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withOpacity(0.15),
+                      color.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(height: 3),
-                  if (transaction.assignByName.isNotEmpty)
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: AppIcon(
+                  isCashIn ? 'ic_cash_in' : 'ic_cash_out',
+                  color: color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Branch + Assigned By + Date
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      branchName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A1D23),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    if (transaction.assignByName.isNotEmpty)
+                      Row(children: [
+                        const AppIcon('ic_role_cashier',
+                            size: 11, color: AppColor.textHint),
+                        const SizedBox(width: 3),
+                        Flexible(
+                            child: Text(
+                          transaction.assignByName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColor.textSecondary),
+                        )),
+                      ]),
+                    const SizedBox(height: 3),
                     Row(children: [
-                      const AppIcon('ic_role_cashier',
-                          size: 11, color: AppColor.textHint),
+                      const AppIcon('ic_calendar',
+                          size: 10, color: AppColor.textHint),
                       const SizedBox(width: 3),
                       Text(
-                        transaction.assignByName,
+                        dateFmt.format(transaction.createdAt.toLocal()),
                         style: const TextStyle(
-                            fontSize: 12,
-                            color:    AppColor.textSecondary),
+                            fontSize: 10, color: AppColor.textHint),
                       ),
                     ]),
-                  const SizedBox(height: 3),
-                  Row(children: [
-                    const AppIcon('ic_calendar',
-                        size: 10, color: AppColor.textHint),
-                    const SizedBox(width: 3),
-                    Text(
-                      dateFmt.format(
-                          transaction.createdAt.toLocal()),
-                      style: const TextStyle(
-                          fontSize: 10,
-                          color:    AppColor.textHint),
+                  ],
+                ),
+              ),
+
+              // Amount + Type badge
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Rs ${amtFmt.format(transaction.payAmount.toInt())}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: color,
                     ),
-                  ]),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: color.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                              color: color, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(typeLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: color,
+                            )),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-
-            // Amount + Type badge
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'Rs ${amtFmt.format(transaction.payAmount.toInt())}',
-                  style: TextStyle(
-                    fontSize:   14,
-                    fontWeight: FontWeight.w800,
-                    color:      color,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color:        color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: color.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6, height: 6,
-                        decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(typeLabel,
-                          style: TextStyle(
-                            fontSize:   10,
-                            fontWeight: FontWeight.w700,
-                            color:      color,
-                          )),
-                    ],
-                  ),
-                ),
-                if (transaction.isCashOut) ...[
-                  const SizedBox(height: 6),
-                  _ReceiveStatus(item: transaction),
-                ],
-              ],
+            ],
+          ),
+          // Status alag row mein — "Pending · Receive" button wide hai, right
+          // column mein rakhne se branch/assigned-by/date ki jagah khatam ho jati thi.
+          if (transaction.isCashOut) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _ReceiveStatus(item: transaction),
             ),
           ],
-        ),
+        ]),
       ),
     );
   }
@@ -997,12 +977,12 @@ class _ReceiveStatusState extends ConsumerState<_ReceiveStatus> {
   bool _busy = false;
 
   Future<void> _receive() async {
-    final t      = widget.item;
+    final t = widget.item;
     final amtFmt = NumberFormat('#,##0.##');
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title:   const Text('Cash Receive karein?'),
+        title: const Text('Cash Receive karein?'),
         content: Text(
           'Rs ${amtFmt.format(t.payAmount)} — ${t.assignByName}\n\n'
           'Ye amount Jan Ghani net amount (cash in hand) mein add ho jayega. '
@@ -1011,7 +991,7 @@ class _ReceiveStatusState extends ConsumerState<_ReceiveStatus> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child:     const Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -1037,7 +1017,7 @@ class _ReceiveStatusState extends ConsumerState<_ReceiveStatus> {
         content: Text(
             'Rs ${amtFmt.format(t.payAmount)} receive ho gaye — net amount mein add'),
         backgroundColor: const Color(0xFF10B981),
-        behavior:        SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.floating,
       ));
     }
   }
@@ -1055,9 +1035,9 @@ class _ReceiveStatusState extends ConsumerState<_ReceiveStatus> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
-          color:        green.withOpacity(0.1),
+          color: green.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
-          border:       Border.all(color: green.withOpacity(0.3)),
+          border: Border.all(color: green.withOpacity(0.3)),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
@@ -1066,9 +1046,9 @@ class _ReceiveStatusState extends ConsumerState<_ReceiveStatus> {
             SizedBox(width: 4),
             Text('Received',
                 style: TextStyle(
-                  fontSize:   10,
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color:      green,
+                  color: green,
                 )),
           ],
         ),
@@ -1091,31 +1071,30 @@ class _ReceiveStatusState extends ConsumerState<_ReceiveStatus> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFEAB308),
           foregroundColor: Colors.white,
-          elevation:       0,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         icon: _busy
             ? const SizedBox(
-                width:  12,
+                width: 12,
                 height: 12,
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: Colors.white))
             : const Icon(Icons.hourglass_top_rounded, size: 13),
         label: Text(_busy ? '...' : 'Pending · Receive',
-            style: const TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w700)),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
       ),
     );
   }
 }
+
 class _DateField extends StatelessWidget {
   final TextEditingController controller;
-  final String                hint;
-  final String                icon;
-  final VoidCallback          onTap;
-  final VoidCallback?         onClear;
+  final String hint;
+  final String icon;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
 
   const _DateField({
     required this.controller,
@@ -1127,50 +1106,47 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AbsorbPointer(
-      child: TextField(
-        controller:   controller,
-        readOnly:     true,
-        cursorHeight: 14,
-        style: const TextStyle(
-            fontSize: 12, fontWeight: FontWeight.w600),
-        decoration: InputDecoration(
-          hintText:  hint,
-          hintStyle: const TextStyle(
-              fontSize: 12, color: AppColor.textHint),
-          prefixIcon: AppIcon(icon,
-              size: 16, color: AppColor.primary),
-          suffixIcon: onClear != null
-              ? GestureDetector(
-            onTap: onClear,
-            child: const AppIcon('ic_clear',
-                size: 14, color: AppColor.textHint),
-          )
-              : null,
-          filled:    true,
-          fillColor: AppColor.grey100,
-          isDense:   true,
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 10, vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide:   BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide:
-            const BorderSide(color: AppColor.grey200),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(
-                color: AppColor.primary, width: 1.5),
+        onTap: onTap,
+        child: AbsorbPointer(
+          child: TextField(
+            controller: controller,
+            readOnly: true,
+            cursorHeight: 14,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle:
+                  const TextStyle(fontSize: 12, color: AppColor.textHint),
+              prefixIcon: AppIcon(icon, size: 16, color: AppColor.primary),
+              suffixIcon: onClear != null
+                  ? GestureDetector(
+                      onTap: onClear,
+                      child: const AppIcon('ic_clear',
+                          size: 14, color: AppColor.textHint),
+                    )
+                  : null,
+              filled: true,
+              fillColor: AppColor.grey100,
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppColor.grey200),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide:
+                    const BorderSide(color: AppColor.primary, width: 1.5),
+              ),
+            ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 class _EmptyState extends StatelessWidget {
@@ -1178,23 +1154,21 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppIcon('ic_transfer',
-            size: 64, color: Colors.grey.shade300),
-        const SizedBox(height: 16),
-        Text('Koi transaction nahi mili',
-            style: TextStyle(
-              fontSize:   16,
-              fontWeight: FontWeight.w600,
-              color:      Colors.grey.shade500,
-            )),
-        const SizedBox(height: 6),
-        Text('Date filter change karein',
-            style: TextStyle(
-                fontSize: 13, color: Colors.grey.shade400)),
-      ],
-    ),
-  );
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIcon('ic_transfer', size: 64, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            Text('Koi transaction nahi mili',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade500,
+                )),
+            const SizedBox(height: 6),
+            Text('Date filter change karein',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+          ],
+        ),
+      );
 }

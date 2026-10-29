@@ -156,9 +156,9 @@ class _WarehouseTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // View user / installment officer sirf reports dekh sakte hain — seedha reports kholo.
+    // View user sirf reports dekh sakte hain — seedha reports kholo.
     final role = ref.watch(sessionProvider).user?.role;
-    final isViewer = role == 'viewer' || role == 'installment_officer';
+    final isViewer = role == 'viewer';
     return GestureDetector(
       onTap: () => context.push(
         AccPaths.warehouse(warehouse.id,

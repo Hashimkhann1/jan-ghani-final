@@ -8,6 +8,8 @@ import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 import 'package:jan_ghani_final/features/accountant/authentication/presentation/providers/accountant_auth_providers.dart';
 
 import '../../../authentication/presentation/providers/accoutant_session_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../branch_reports/accountant_branch_transaction/data/datasource/accountant_branch_transaction_datasource.dart';
 import '../../data/model/dashboard_model.dart';
 import '../provider/dashboard_provider.dart';
 
@@ -39,13 +41,13 @@ const List<_NavItem> _allNavItems = [
     icon: 'ic_cash_registration',
     label: 'Branch',
     path: AccPaths.branches,
-    allowedRoles: ['owner', 'accountant', 'manager', 'cashier', 'viewer', 'installment_officer'],
+    allowedRoles: ['owner', 'accountant', 'manager', 'cashier', 'viewer'],
   ),
   _NavItem(
     icon: 'sidebar_icons/branch_stock',
     label: 'Warehouse',
     path: AccPaths.warehouses,
-    allowedRoles: ['owner', 'accountant', 'warehouse_manager', 'viewer', 'installment_officer'],
+    allowedRoles: ['owner', 'accountant', 'warehouse_manager', 'viewer'],
   ),
   _NavItem(
     icon: 'ic_sale_price_trend',
@@ -58,12 +60,6 @@ const List<_NavItem> _allNavItems = [
     label: 'Investment',
     path: AccPaths.investment,
     allowedRoles: ['owner', 'accountant'],
-  ),
-  _NavItem(
-    icon: 'ic_top_customers',
-    label: 'Installments',
-    path: AccPaths.installments,
-    allowedRoles: ['owner', 'accountant', 'installment_officer'],
   ),
 ];
 
@@ -280,7 +276,6 @@ class _Sidebar extends ConsumerWidget {
     'cashier'           => 'Cashier',
     'warehouse_manager' => 'Warehouse Manager',
     'customer'          => 'Customer',
-    'installment_officer' => 'Installment Officer',
     'viewer'            => 'View User',
     _                   => role,
   };
@@ -291,7 +286,6 @@ class _Sidebar extends ConsumerWidget {
     'accountant'        => const Color(0xFF378ADD),
     'warehouse_manager' => const Color(0xFFBA7517),
     'cashier'           => const Color(0xFF0EA5E9),
-    'installment_officer' => const Color(0xFF0D9488),
     'viewer'            => const Color(0xFF7C3AED),
     _                   => AppColor.textMuted,
   };
@@ -774,7 +768,13 @@ class _TransactionsPanel extends StatelessWidget {
         ],
         Builder(
           builder: (context) => OutlinedButton(
-            onPressed: () => context.push(AccPaths.cashTransfers),
+            onPressed: () {
+              final list = recentAsync.asData?.value ?? const [];
+              final branchId = list.isEmpty ? '' : list.first.branchId;
+              context.push(branchId.isEmpty
+                  ? AccPaths.branches
+                  : AccPaths.branchReport(branchId, 'transactions'));
+            },
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColor.primary,
               side:            const BorderSide(color: AppColor.primary),
@@ -1144,9 +1144,120 @@ class _EyeButton extends StatelessWidget {
 }
 
 // ── Recent Tile ───────────────────────────────────────────────────────────────
-class _RecentTile extends StatelessWidget {
+class _RecentTile extends ConsumerStatefulWidget {
   final RecentTransactionModel tx;
   const _RecentTile({required this.tx});
+
+  @override
+  ConsumerState<_RecentTile> createState() => _RecentTileState();
+}
+
+class _RecentTileState extends ConsumerState<_RecentTile> {
+  bool _busy = false;
+
+  RecentTransactionModel get tx => widget.tx;
+
+  // Cash out receive: amount janghani_net_amount mein add hota hai.
+  Future<void> _receive() async {
+    final amt = _money(tx.amount);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cash Receive karein?'),
+        content: Text(
+          '$amt — ${tx.branchName}\n\n'
+          'Ye amount Jan Ghani net amount (cash in hand) mein add ho jayega. '
+          'Ye wapas nahi hota.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Receive'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await BranchTransactionDatasource(client: Supabase.instance.client)
+          .receiveCashOut(tx.id);
+      ref.invalidate(recentTransactionsProvider);
+      ref.invalidate(janghaniAmountProvider);
+      messenger.showSnackBar(SnackBar(
+        content: Text('$amt receive ho gaye — net amount mein add'),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } catch (e) {
+      ref.invalidate(recentTransactionsProvider);
+      messenger.showSnackBar(SnackBar(
+        content: Text(
+            'Receive nahi ho saka — ${e is PostgrestException ? e.message : e}'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _statusWidget() {
+    const green = Color(0xFF10B981);
+    if (tx.isReceived) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color:        green.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border:       Border.all(color: green.withValues(alpha: 0.3)),
+        ),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.check_circle_rounded, size: 12, color: green),
+          SizedBox(width: 4),
+          Text('Received',
+              style: TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.w700, color: green)),
+        ]),
+      );
+    }
+    return SizedBox(
+      height: 30,
+      child: ElevatedButton.icon(
+        onPressed: _busy ? null : _receive,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFEAB308),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          minimumSize: const Size(0, 30),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8)),
+        ),
+        icon: _busy
+            ? const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.hourglass_top_rounded, size: 13),
+        label: Text(_busy ? '...' : 'Receive',
+            style: const TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
 
   String _formatDate(DateTime dt) {
     final now  = DateTime.now();
@@ -1198,7 +1309,11 @@ class _RecentTile extends StatelessWidget {
                       color:      AppColor.textDark)),
               const SizedBox(height: 2),
               const SizedBox(height: 3),
-              Row(children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 2,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 6, vertical: 1),
@@ -1212,7 +1327,6 @@ class _RecentTile extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                           color:      color)),
                 ),
-                const SizedBox(width: 8),
                 Text(_formatDate(tx.createdAt),
                     style: const TextStyle(
                         fontSize: 11, color: AppColor.textMuted)),
@@ -1221,12 +1335,21 @@ class _RecentTile extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Text(
-          '${isIn ? '+' : '−'} ${_money(tx.amount)}',
-          style: TextStyle(
-              fontSize:   13,
-              fontWeight: FontWeight.w800,
-              color:      color),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${isIn ? '+' : '−'} ${_money(tx.amount)}',
+              style: TextStyle(
+                  fontSize:   13,
+                  fontWeight: FontWeight.w800,
+                  color:      color),
+            ),
+            if (!isIn) ...[
+              const SizedBox(height: 6),
+              _statusWidget(),
+            ],
+          ],
         ),
       ]),
     );

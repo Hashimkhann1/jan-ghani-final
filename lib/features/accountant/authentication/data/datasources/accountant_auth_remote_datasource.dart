@@ -35,10 +35,6 @@ abstract class AccountantAuthRemoteDatasource {
   /// `connect_customer_account` (supabase/migrations/2026_10_17_connect_customer_account.sql).
   Future<void> connectCustomerAccount(String customerId);
 
-  /// Installment customer ke QR (`inst:<id>`) se account connect — RPC
-  /// `connect_installment_account` (supabase/migrations/2026_10_18_installment_system.sql).
-  Future<void> connectInstallmentAccount(String installmentId);
-
   /// Branch User drawer ke QR (`user:<id>`) se account connect — RPC
   /// `connect_branch_user_account` (supabase/migrations/2026_10_19_connect_branch_user_account.sql).
   Future<void> connectBranchUserAccount(String branchUserId);
@@ -113,16 +109,6 @@ class AccountantAuthRemoteDatasourceImpl
 
   @override
   Future<void> signOut() => _client.auth.signOut();
-
-  @override
-  Future<void> connectInstallmentAccount(String installmentId) async {
-    try {
-      await _client.rpc('connect_installment_account',
-          params: {'p_installment_id': installmentId});
-    } on PostgrestException catch (e) {
-      throw Exception(e.message);
-    }
-  }
 
   @override
   Future<void> connectBranchUserAccount(String branchUserId) async {

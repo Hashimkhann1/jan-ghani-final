@@ -16,7 +16,6 @@ class AccountantAuthLocalDatasourceImpl
   static const _kBranchId      = 'acc_branch_id';
   static const _kWarehouseId   = 'acc_warehouse_id';
   static const _kCustomerToken = 'acc_customer_token';
-  static const _kInstallmentId = 'acc_installment_id';
   static const _kIsActive      = 'acc_is_active';
   static const _kCreatedAt     = 'acc_created_at';
 
@@ -37,7 +36,6 @@ class AccountantAuthLocalDatasourceImpl
     await putOrRemove(_kBranchId,      map['branch_id']);
     await putOrRemove(_kWarehouseId,   map['warehouse_id']);
     await putOrRemove(_kCustomerToken, map['customer_token']);
-    await putOrRemove(_kInstallmentId, map['installment_id']);
   }
 
   @override
@@ -54,7 +52,6 @@ class AccountantAuthLocalDatasourceImpl
       'branch_id'      : prefs.getString(_kBranchId),
       'warehouse_id'   : prefs.getString(_kWarehouseId),
       'customer_token' : prefs.getString(_kCustomerToken),
-      'installment_id' : prefs.getString(_kInstallmentId),
       'is_active'      : prefs.getBool(_kIsActive) ?? true,
       'created_at'     : prefs.getString(_kCreatedAt) ?? DateTime.now().toIso8601String(),
     };
@@ -70,7 +67,6 @@ class AccountantAuthLocalDatasourceImpl
     await prefs.remove(_kBranchId);
     await prefs.remove(_kWarehouseId);
     await prefs.remove(_kCustomerToken);
-    await prefs.remove(_kInstallmentId);
     await prefs.remove(_kIsActive);
     await prefs.remove(_kCreatedAt);
   }

@@ -36,7 +36,6 @@ class SessionNotifier extends StateNotifier<SessionState> {
   static const _kBranchId      = 'session_branch_id';
   static const _kWarehouseId   = 'session_warehouse_id';
   static const _kCustomerToken = 'session_customer_token';
-  static const _kInstallmentId = 'session_installment_id';
   static const _kIsActive      = 'session_is_active';
   static const _kCreatedAt     = 'session_created_at';
 
@@ -66,7 +65,6 @@ class SessionNotifier extends StateNotifier<SessionState> {
             : branchIdRaw, // ✅ empty string → null
         warehouseId:   prefs.getString(_kWarehouseId),
         customerToken: prefs.getString(_kCustomerToken),
-        installmentId: _nullIfEmpty(prefs.getString(_kInstallmentId)),
         isActive:      prefs.getBool(_kIsActive)        ?? true,
         createdAt:     DateTime.tryParse(
             prefs.getString(_kCreatedAt) ?? '') ??
@@ -85,7 +83,6 @@ class SessionNotifier extends StateNotifier<SessionState> {
     await prefs.setString(_kBranchId,      user.branchId      ?? '');
     await prefs.setString(_kWarehouseId,   user.warehouseId   ?? '');
     await prefs.setString(_kCustomerToken, user.customerToken ?? '');
-    await prefs.setString(_kInstallmentId, user.installmentId ?? '');
     await prefs.setBool(  _kIsActive,      user.isActive);
     await prefs.setString(_kCreatedAt,     user.createdAt.toIso8601String());
   }
@@ -100,7 +97,6 @@ class SessionNotifier extends StateNotifier<SessionState> {
     await prefs.remove(_kBranchId);
     await prefs.remove(_kWarehouseId);
     await prefs.remove(_kCustomerToken);
-    await prefs.remove(_kInstallmentId);
     await prefs.remove(_kIsActive);
     await prefs.remove(_kCreatedAt);
   }

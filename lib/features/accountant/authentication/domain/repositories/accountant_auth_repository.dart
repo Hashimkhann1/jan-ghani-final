@@ -22,7 +22,7 @@ abstract class AccountantAuthRepository {
 
   Future<void> connectCustomerAccount(String customerId);
 
-  Future<void> connectInstallmentAccount(String installmentId);
+
   Future<void> connectBranchUserAccount(String branchUserId);
 
   Future<void> saveSession(AccountantUserEntity user);

@@ -41,11 +41,9 @@ class _AccountantConnectScanScreenState
         .firstOrNull;
     if (code == null) return;
 
-    // `inst:<id>` = installment customer, `user:<id>` = branch user (staff),
-    // sirf `<id>` = branch ka customer.
-    final isInstallment = code.startsWith('inst:');
+    // `user:<id>` = branch user (staff), sirf `<id>` = branch ka customer.
     final isBranchUser = code.startsWith('user:');
-    final id = (isInstallment || isBranchUser) ? code.substring(code.indexOf(':') + 1) : code;
+    final id = isBranchUser ? code.substring(code.indexOf(':') + 1) : code;
     if (!_uuidRe.hasMatch(id)) {
       setState(() => _error = 'This is not a Jan Ghani customer QR');
       return;
@@ -56,9 +54,7 @@ class _AccountantConnectScanScreenState
       _error = null;
     });
     final notifier = ref.read(accountantAuthNotifierProvider.notifier);
-    if (isInstallment) {
-      await notifier.connectInstallment(id);
-    } else if (isBranchUser) {
+    if (isBranchUser) {
       await notifier.connectBranchUser(id);
     } else {
       await notifier.connectCustomer(id);

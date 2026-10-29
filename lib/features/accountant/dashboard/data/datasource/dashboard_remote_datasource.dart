@@ -34,7 +34,7 @@ class DashboardRemoteDatasourceImpl implements DashboardRemoteDatasource {
     try {
       final res = await _client
           .from('branch_transaction_to_janghani')
-          .select('id, pay_amount, type, created_at, branch_id, assign_by_name')
+          .select('id, pay_amount, type, created_at, branch_id, assign_by_name, is_received')
           .order('created_at', ascending: false)
           .limit(10);
 

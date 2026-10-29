@@ -11,24 +11,24 @@ import '../../data/model/accountant_branch_transaction_model.dart';
 // ─────────────────────────────────────────────────────────
 class BranchTransactionState {
   final List<BranchTransactionModel> transactions;
-  final int       totalCount;
-  final double    totalCashOut;
-  final double    pendingAmount;
-  final String    branchName;
+  final int totalCount;
+  final double totalCashOut;
+  final double pendingAmount;
+  final String branchName;
   final BranchReportPageState pagination;
-  final bool      isLoading;
-  final String?   errorMessage;
+  final bool isLoading;
+  final String? errorMessage;
   final DateTime? startDate;
   final DateTime? endDate;
 
   const BranchTransactionState({
     this.transactions = const [],
-    this.totalCount   = 0,
+    this.totalCount = 0,
     this.totalCashOut = 0,
     this.pendingAmount = 0,
-    this.branchName   = '',
-    this.pagination   = const BranchReportPageState(),
-    this.isLoading    = false,
+    this.branchName = '',
+    this.pagination = const BranchReportPageState(),
+    this.isLoading = false,
     this.errorMessage,
     this.startDate,
     this.endDate,
@@ -36,33 +36,30 @@ class BranchTransactionState {
 
   BranchTransactionState copyWith({
     List<BranchTransactionModel>? transactions,
-    int?                          totalCount,
-    double?                       totalCashOut,
-    double?                       pendingAmount,
-    String?                       branchName,
-    BranchReportPageState?        pagination,
-    bool?                         isLoading,
-    Object?                       errorMessage = _sentinel,
-    Object?                       startDate    = _sentinel,
-    Object?                       endDate      = _sentinel,
+    int? totalCount,
+    double? totalCashOut,
+    double? pendingAmount,
+    String? branchName,
+    BranchReportPageState? pagination,
+    bool? isLoading,
+    Object? errorMessage = _sentinel,
+    Object? startDate = _sentinel,
+    Object? endDate = _sentinel,
   }) =>
       BranchTransactionState(
         transactions: transactions ?? this.transactions,
-        totalCount:   totalCount   ?? this.totalCount,
+        totalCount: totalCount ?? this.totalCount,
         totalCashOut: totalCashOut ?? this.totalCashOut,
         pendingAmount: pendingAmount ?? this.pendingAmount,
-        branchName:   branchName   ?? this.branchName,
-        pagination:   pagination   ?? this.pagination,
-        isLoading:    isLoading    ?? this.isLoading,
+        branchName: branchName ?? this.branchName,
+        pagination: pagination ?? this.pagination,
+        isLoading: isLoading ?? this.isLoading,
         errorMessage: errorMessage == _sentinel
             ? this.errorMessage
             : errorMessage as String?,
-        startDate: startDate == _sentinel
-            ? this.startDate
-            : startDate as DateTime?,
-        endDate: endDate == _sentinel
-            ? this.endDate
-            : endDate as DateTime?,
+        startDate:
+            startDate == _sentinel ? this.startDate : startDate as DateTime?,
+        endDate: endDate == _sentinel ? this.endDate : endDate as DateTime?,
       );
 }
 
@@ -71,8 +68,7 @@ const _sentinel = Object();
 // ─────────────────────────────────────────────────────────
 // Notifier
 // ─────────────────────────────────────────────────────────
-class BranchTransactionNotifier
-    extends StateNotifier<BranchTransactionState> {
+class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
   final BranchTransactionDatasource _datasource;
   final String _branchId;
 
@@ -90,54 +86,55 @@ class BranchTransactionNotifier
       await load();
     } catch (e) {
       state = state.copyWith(
-        isLoading:    false,
+        isLoading: false,
         errorMessage: e.toString(),
       );
     }
   }
 
   /// Every row matching the current date filter — for export, not paging.
-  Future<List<BranchTransactionModel>> fetchAllForExport() => _datasource.fetchAllTransactions(
-        branchId:  _branchId,
+  Future<List<BranchTransactionModel>> fetchAllForExport() =>
+      _datasource.fetchAllTransactions(
+        branchId: _branchId,
         startDate: state.startDate,
-        endDate:   state.endDate,
+        endDate: state.endDate,
       );
 
   // ── Load — resets to page 0 and refreshes the cash-out total ───────────
   Future<void> load() async {
     state = state.copyWith(
-      isLoading:  true,
+      isLoading: true,
       errorMessage: null,
       pagination: const BranchReportPageState(),
     );
     try {
       final results = await Future.wait([
         _datasource.fetchTransactionsPage(
-          branchId:  _branchId,
+          branchId: _branchId,
           startDate: state.startDate,
-          endDate:   state.endDate,
-          page:      0,
+          endDate: state.endDate,
+          page: 0,
         ),
         _datasource.fetchTransactionTotals(
-          branchId:  _branchId,
+          branchId: _branchId,
           startDate: state.startDate,
-          endDate:   state.endDate,
+          endDate: state.endDate,
         ),
       ]);
-      final paged  = results[0] as PagedBranchTransactions;
+      final paged = results[0] as PagedBranchTransactions;
       final totals = results[1] as BranchTransactionTotals;
       state = state.copyWith(
         transactions: paged.transactions,
-        totalCount:   totals.totalCount,
+        totalCount: totals.totalCount,
         totalCashOut: totals.totalCashOut,
         pendingAmount: totals.pendingAmount,
-        isLoading:    false,
-        pagination:   BranchReportPageState(
-            page: 0, hasNextPage: paged.hasNextPage),
+        isLoading: false,
+        pagination:
+            BranchReportPageState(page: 0, hasNextPage: paged.hasNextPage),
       );
     } catch (e) {
       state = state.copyWith(
-        isLoading:    false,
+        isLoading: false,
         errorMessage: e.toString(),
       );
     }
@@ -151,22 +148,22 @@ class BranchTransactionNotifier
     );
     try {
       final paged = await _datasource.fetchTransactionsPage(
-        branchId:  _branchId,
+        branchId: _branchId,
         startDate: state.startDate,
-        endDate:   state.endDate,
-        page:      page,
+        endDate: state.endDate,
+        page: page,
       );
       state = state.copyWith(
         transactions: [...state.transactions, ...paged.transactions],
-        pagination:   BranchReportPageState(
-          page:          page,
-          hasNextPage:   paged.hasNextPage,
+        pagination: BranchReportPageState(
+          page: page,
+          hasNextPage: paged.hasNextPage,
           isLoadingPage: false,
         ),
       );
     } catch (e) {
       state = state.copyWith(
-        pagination:   state.pagination.copyWith(isLoadingPage: false),
+        pagination: state.pagination.copyWith(isLoadingPage: false),
         errorMessage: e.toString(),
       );
     }
@@ -186,8 +183,7 @@ class BranchTransactionNotifier
     await _loadPage(state.pagination.page - 1);
   }
 
-  Future<void> applyDateFilter(
-      DateTime? startDate, DateTime? endDate) async {
+  Future<void> applyDateFilter(DateTime? startDate, DateTime? endDate) async {
     state = state.copyWith(startDate: startDate, endDate: endDate);
     await load();
   }
@@ -231,9 +227,9 @@ class BranchTransactionNotifier
 // ─────────────────────────────────────────────────────────
 final branchTransactionProvider = StateNotifierProvider.autoDispose
     .family<BranchTransactionNotifier, BranchTransactionState, String>(
-      (ref, branchId) {
-    final datasource = BranchTransactionDatasource(
-        client: Supabase.instance.client);
+  (ref, branchId) {
+    final datasource =
+        BranchTransactionDatasource(client: Supabase.instance.client);
     return BranchTransactionNotifier(datasource, branchId);
   },
 );

@@ -38,19 +38,19 @@ class BranchTransactionExportSheets {
 
     return [
       ExcelSheetData(
-        name:     'Branch Transactions',
-        title:    'Branch Transaction Report',
+        name: 'Branch Transactions',
+        title: 'Branch Transaction Report',
         subtitle: '$subtitle   •   ${transactions.length} transactions'
             '   •   Cash In: ${cashIn.toStringAsFixed(2)}'
             '   •   Cash Out: ${cashOut.toStringAsFixed(2)}',
         columns: const [
-          ExcelColumn('Date',           width: 20, type: ExcelColType.dateTime),
-          ExcelColumn('Type',           width: 12),
-          ExcelColumn('Assigned By',    width: 24),
-          ExcelColumn('Before Amount',  width: 16, type: ExcelColType.amount),
-          ExcelColumn('Amount',         width: 16, type: ExcelColType.amount),
-          ExcelColumn('After Amount',   width: 16, type: ExcelColType.amount),
-          ExcelColumn('Status',         width: 12),
+          ExcelColumn('Date', width: 20, type: ExcelColType.dateTime),
+          ExcelColumn('Type', width: 12),
+          ExcelColumn('Assigned By', width: 24),
+          ExcelColumn('Before Amount', width: 16, type: ExcelColType.amount),
+          ExcelColumn('Amount', width: 16, type: ExcelColType.amount),
+          ExcelColumn('After Amount', width: 16, type: ExcelColType.amount),
+          ExcelColumn('Status', width: 12),
         ],
         rows: rows,
       ),

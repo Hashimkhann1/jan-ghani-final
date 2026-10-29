@@ -142,18 +142,6 @@ class AccountantAuthNotifier extends StateNotifier<AccountantAuthState> {
     }
   }
 
-  /// Installment customer ke QR se account connect, phir profile refresh.
-  Future<void> connectInstallment(String installmentId) async {
-    state = state.copyWith(status: AuthStatus.loading);
-    try {
-      await _repo.connectInstallmentAccount(installmentId);
-      await refreshProfile();
-    } catch (e) {
-      state = state.copyWith(
-          status: AuthStatus.error, errorMessage: _message(e));
-    }
-  }
-
   /// Branch User ke QR se account connect (role + branch assign), phir profile refresh.
   Future<void> connectBranchUser(String branchUserId) async {
     state = state.copyWith(status: AuthStatus.loading);

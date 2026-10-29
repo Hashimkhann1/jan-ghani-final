@@ -45,10 +45,6 @@ class AccountantAuthRepositoryImpl implements AccountantAuthRepository {
       remote.connectCustomerAccount(customerId);
 
   @override
-  Future<void> connectInstallmentAccount(String installmentId) =>
-      remote.connectInstallmentAccount(installmentId);
-
-  @override
   Future<void> connectBranchUserAccount(String branchUserId) =>
       remote.connectBranchUserAccount(branchUserId);
 
@@ -62,7 +58,6 @@ class AccountantAuthRepositoryImpl implements AccountantAuthRepository {
       'branch_id'      : user.branchId,
       'warehouse_id'   : user.warehouseId,
       'customer_token' : user.customerToken,
-      'installment_id' : user.installmentId,
       'is_active'      : user.isActive,
       'created_at'     : user.createdAt.toIso8601String(),
     });

@@ -12,60 +12,55 @@ class BranchTransactionDatasource {
 
   /// Branch ID se sirf naam fetch karo
   Future<String> fetchBranchName(String branchId) async {
-    final row = await _client
-        .from('branch')
-        .select('name')
-        .eq('id', branchId)
-        .single();
+    final row =
+        await _client.from('branch').select('name').eq('id', branchId).single();
     return (row['name'] as String?) ?? '';
   }
 
   // ── One page of transactions (20 rows) ──────────────────
   Future<PagedBranchTransactions> fetchTransactionsPage({
-    required String  branchId,
-    required int     page,
-    DateTime?        startDate,
-    DateTime?        endDate,
+    required String branchId,
+    required int page,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     var query = _client
         .from('branch_transaction_to_janghani')
         .select(
-      'id, branch_id, assign_by_id, assign_by_name, assign_to_id, '
+          'id, branch_id, assign_by_id, assign_by_name, assign_to_id, '
           'type, before_amount, pay_amount, after_amount, '
           'is_synced, is_received, received_at, created_at, updated_at',
-    )
+        )
         .eq('branch_id', branchId);
 
     if (startDate != null) {
       query = query.gte('created_at', startDate.toIso8601String());
     }
     if (endDate != null) {
-      final end = DateTime(
-          endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+      final end =
+          DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
       query = query.lte('created_at', end.toIso8601String());
     }
 
     final (start, end) = BranchReportPagination.range(page);
-    final rows = await query
-        .order('created_at', ascending: false)
-        .range(start, end);
+    final rows =
+        await query.order('created_at', ascending: false).range(start, end);
 
     final transactions = (rows as List)
-        .map((r) => BranchTransactionModel.fromMap(
-        r as Map<String, dynamic>))
+        .map((r) => BranchTransactionModel.fromMap(r as Map<String, dynamic>))
         .toList();
 
     return PagedBranchTransactions(
       transactions: transactions,
-      hasNextPage:  BranchReportPagination.hasNextPage(rows.length),
+      hasNextPage: BranchReportPagination.hasNextPage(rows.length),
     );
   }
 
-    // ── Every matching row, for export (all pages, not just the visible one) ──
+  // ── Every matching row, for export (all pages, not just the visible one) ──
   Future<List<BranchTransactionModel>> fetchAllTransactions({
-    required String  branchId,
-    DateTime?        startDate,
-    DateTime?        endDate,
+    required String branchId,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final all = <BranchTransactionModel>[];
     const pageSize = 1000;
@@ -74,18 +69,18 @@ class BranchTransactionDatasource {
       var query = _client
           .from('branch_transaction_to_janghani')
           .select(
-        'id, branch_id, assign_by_id, assign_by_name, assign_to_id, '
+            'id, branch_id, assign_by_id, assign_by_name, assign_to_id, '
             'type, before_amount, pay_amount, after_amount, '
             'is_synced, is_received, received_at, created_at, updated_at',
-      )
+          )
           .eq('branch_id', branchId);
-  
+
       if (startDate != null) {
         query = query.gte('created_at', startDate.toIso8601String());
       }
       if (endDate != null) {
-        final end = DateTime(
-            endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+        final end =
+            DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
         query = query.lte('created_at', end.toIso8601String());
       }
       final rows = await query
@@ -103,16 +98,16 @@ class BranchTransactionDatasource {
   // Kept separate from the page fetch so the summary cards still reflect
   // the whole filtered date range, not just the 20 rows on screen.
   Future<BranchTransactionTotals> fetchTransactionTotals({
-    required String  branchId,
-    DateTime?        startDate,
-    DateTime?        endDate,
+    required String branchId,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
-    int    totalCount = 0;
+    int totalCount = 0;
     double totalCashOut = 0;
     double pendingAmount = 0;
-    int    rangeStart = 0;
-    const  int pageSize = 1000;
-    bool   hasMore = true;
+    int rangeStart = 0;
+    const int pageSize = 1000;
+    bool hasMore = true;
 
     while (hasMore) {
       var query = _client
@@ -124,8 +119,8 @@ class BranchTransactionDatasource {
         query = query.gte('created_at', startDate.toIso8601String());
       }
       if (endDate != null) {
-        final end = DateTime(
-            endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+        final end =
+            DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
         query = query.lte('created_at', end.toIso8601String());
       }
 
@@ -135,8 +130,7 @@ class BranchTransactionDatasource {
       for (final r in list) {
         totalCount++;
         if (r['type'] == 'cash_out') {
-          final amt =
-              double.tryParse(r['pay_amount']?.toString() ?? '0') ?? 0;
+          final amt = double.tryParse(r['pay_amount']?.toString() ?? '0') ?? 0;
           totalCashOut += amt;
           if (r['is_received'] != true) pendingAmount += amt;
         }
@@ -150,8 +144,8 @@ class BranchTransactionDatasource {
     }
 
     return BranchTransactionTotals(
-        totalCount:    totalCount,
-        totalCashOut:  totalCashOut,
+        totalCount: totalCount,
+        totalCashOut: totalCashOut,
         pendingAmount: pendingAmount);
   }
 

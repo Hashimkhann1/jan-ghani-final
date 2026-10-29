@@ -19,25 +19,31 @@ class JanghaniAmountModel {
 
 class RecentTransactionModel {
   final String id;
+  final String branchId;
   final String branchName;
   final String transactionType;
   final double amount;
+  final bool isReceived;
   final DateTime createdAt;
 
   const RecentTransactionModel({
     required this.id,
+    required this.branchId,
     required this.branchName,
     required this.transactionType,
     required this.amount,
+    required this.isReceived,
     required this.createdAt,
   });
 
   factory RecentTransactionModel.fromMap(Map<String, dynamic> map) {
     return RecentTransactionModel(
       id:              map['id']?.toString() ?? '',
+      branchId:        map['branch_id']?.toString() ?? '',
       branchName:      map['assign_by_name']?.toString() ?? 'Unknown',
       transactionType: map['type']?.toString() ?? '',
       amount:          (map['pay_amount'] as num?)?.toDouble() ?? 0,
+      isReceived:      map['is_received'] as bool? ?? false,
       createdAt:       DateTime.tryParse(
         map['created_at']?.toString() ?? '',
       ) ?? DateTime.now(),

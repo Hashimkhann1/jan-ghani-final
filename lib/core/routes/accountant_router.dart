@@ -30,7 +30,6 @@ import '../../features/accountant/investment/presentation/screen/investment_scre
 import '../../features/accountant/supplier/presentation/screen/all_supplier_screen.dart';
 import '../../features/accountant/supplier/presentation/screen/supplier_detail_screen.dart';
 import '../../features/branch/inventory_management/presentation/screen/inventory_counting_screen.dart';
-import '../../features/installment/installment_dashboard/presentation/screen/installment_dashboard_screen.dart';
 import '../../features/website/presentation/screen/website_screen.dart';
 import '../../features/warehouse/employee/presentation/screens/salary_tracking_screen.dart';
 import '../../features/warehouse/warehouse_reports/inventory/presentation/providers/inventory_report_provider.dart'
@@ -46,36 +45,31 @@ final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'accShell');
 // ── Role → kaun se sidebar tabs ─────────────────────────────────────────────
 // owner/accountant: sab kuch. manager/cashier: sirf apni branch.
 // warehouse_manager: sirf apna warehouse. viewer: branch + warehouse reports.
-// installment_officer: viewer jaisa access + installments.
 const Map<String, List<String>> _tabRoles = {
   AccPaths.dashboard:       ['owner', 'accountant'],
-  AccPaths.branches:        ['owner', 'accountant', 'manager', 'cashier', 'viewer', 'installment_officer'],
-  AccPaths.warehouses:      ['owner', 'accountant', 'warehouse_manager', 'viewer', 'installment_officer'],
+  AccPaths.branches:        ['owner', 'accountant', 'manager', 'cashier', 'viewer'],
+  AccPaths.warehouses:      ['owner', 'accountant', 'warehouse_manager', 'viewer'],
   AccPaths.cashTransfers:   ['owner', 'accountant', 'warehouse_manager'],
   AccPaths.inventoryReview: ['owner', 'accountant', 'warehouse_manager'],
   AccPaths.investment:      ['owner', 'accountant'],
-  AccPaths.installments:    ['owner', 'accountant', 'installment_officer'],
 };
 
 /// Branch tak mehdood roles (sirf apni `branch_id`).
 const _branchScopedRoles = {'manager', 'cashier'};
 
 /// Sirf reports dekhne wale roles (warehouse mein list + reports).
-const _reportsOnlyRoles = {'viewer', 'installment_officer'};
+const _reportsOnlyRoles = {'viewer'};
 
-bool _hasToken(AccountantUserEntity u) =>
-    (u.customerToken ?? '').isNotEmpty || (u.installmentId ?? '').isNotEmpty;
+bool _hasToken(AccountantUserEntity u) => (u.customerToken ?? '').isNotEmpty;
 
-/// Customer portal ki id: branch customer ka token, warna installment customer ki id.
-String _portalId(AccountantUserEntity u) =>
-    (u.customerToken ?? '').isNotEmpty ? u.customerToken! : u.installmentId!;
+/// Customer portal ki id: branch customer ka token.
+String _portalId(AccountantUserEntity u) => u.customerToken!;
 
 /// Login ke baad user ka pehla screen (website ka "My Account" bhi yahi).
 String accountantHomeFor(AccountantUserEntity u) {
   if (u.role.isEmpty) return AccPaths.connectAccount;
   if (_hasToken(u)) return AccPaths.customer(_portalId(u));
   if (u.role == 'inventory_counter') return AccPaths.inventoryCount;
-  if (u.role == 'installment_officer') return AccPaths.installments;
   for (final e in _tabRoles.entries) {
     if (e.value.contains(u.role)) return e.key;
   }
@@ -102,7 +96,7 @@ bool _isAllowed(AccountantUserEntity u, String path) {
       segs.length > 1) {
     return segs[1] == u.warehouseId;
   }
-  // Viewer / installment officer: warehouse mein sirf list + reports.
+  // Viewer: warehouse mein sirf list + reports.
   if (_reportsOnlyRoles.contains(u.role) &&
       tab == AccPaths.warehouses &&
       segs.length > 1) {
@@ -298,11 +292,6 @@ final accountantRouterProvider = Provider<GoRouter>((ref) {
             path: AccPaths.investment,
             pageBuilder: (_, s) =>
                 _noAnim(s, const AccountantInvestmentScreen()),
-          ),
-          GoRoute(
-            path: AccPaths.installments,
-            pageBuilder: (_, s) =>
-                _noAnim(s, const InstallmentDashboardScreen()),
           ),
         ],
       ),

@@ -18,7 +18,6 @@
 //   /cash-transfers
 //   /inventory-review
 //   /investment
-//   /installments                       (owner)
 //   /inventory-counting                  (inventory_counter role)
 //   /customer/:customerId                (customer portal)
 class AccPaths {
@@ -36,7 +35,6 @@ class AccPaths {
   static const cashTransfers   = '/cash-transfers';
   static const inventoryReview = '/inventory-review';
   static const investment      = '/investment';
-  static const installments    = '/installments';
   static const inventoryCount  = '/inventory-counting';
   static const customerPrefix  = '/customer';
 
