@@ -6,6 +6,7 @@ import 'package:jan_ghani_final/features/accountant/authentication/presentation/
 import 'package:jan_ghani_final/features/customer/customer_invoices/data/datasource/customer_report_datasource.dart';
 import 'package:jan_ghani_final/features/customer/customer_invoices/presentation/widget/customer_avatar.dart';
 import 'package:jan_ghani_final/features/customer/customer_invoices/presentation/widget/customer_invoices_tab.dart';
+import 'package:jan_ghani_final/features/customer/push/push_toggle_button.dart';
 
 const _bg = Color(0xFFF4F5F0);
 const _muted = Color(0xFF5A6660);
@@ -115,6 +116,7 @@ class _InvoicesHeader extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w700)),
             ),
+            const PushToggleButton(),
             IconButton(
               tooltip: 'Logout',
               onPressed: onLogout,
