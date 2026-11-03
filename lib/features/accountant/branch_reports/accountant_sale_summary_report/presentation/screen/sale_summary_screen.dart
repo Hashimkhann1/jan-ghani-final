@@ -29,6 +29,13 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
   final _dateFmt = DateFormat('dd MMM yyyy');
   final _timeFmt = DateFormat('hh:mm a');
   final _amtFmt  = NumberFormat('#,##,###', 'en_IN');
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   String _fmtAmt(double v) =>
       '${v < 0 ? '- ' : ''}Rs ${_amtFmt.format(v.abs().round())}';
@@ -304,6 +311,46 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
                                 cards[i],
                               ],
                             ]),
+                ),
+                // Outside the loading guard so the field keeps focus while typing.
+                Padding(
+                  padding: EdgeInsets.fromLTRB(pad, 0, pad, 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: TextField(
+                        controller: _searchCtrl,
+                        onChanged:  notifier.search,
+                        decoration: InputDecoration(
+                          hintText:   'Search invoice no...',
+                          hintStyle:  const TextStyle(
+                              fontSize: 13, color: AppColor.textHint),
+                          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                          suffixIcon: state.searchQuery.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.close_rounded, size: 18),
+                                  onPressed: () {
+                                    _searchCtrl.clear();
+                                    notifier.search('');
+                                  },
+                                ),
+                          isDense:   true,
+                          filled:    true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:   const BorderSide(color: AppColor.grey200),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:   const BorderSide(color: AppColor.grey200),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 if (!state.isLoading) ...[
                   Padding(

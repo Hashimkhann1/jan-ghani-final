@@ -30,11 +30,12 @@ class SaleSummaryDatasource {
     required DateTime toDate,
     required int      page,
     String?           customerId,
+    String?           search,
   }) async {
     final (start, end) = BranchReportPagination.range(page);
     final invoices = await _fetchInvoices(
       fromDate: fromDate, toDate: toDate, start: start, end: end,
-      customerId: customerId,
+      customerId: customerId, search: search,
     );
     return PagedSummaryInvoices(
       invoices:    invoices,
@@ -70,6 +71,7 @@ class SaleSummaryDatasource {
     required int      start,
     required int      end,
     String?           customerId,
+    String?           search,
   }) async {
     var query = _client
         .from('sale_invoices')
@@ -88,6 +90,10 @@ class SaleSummaryDatasource {
 
     if (customerId != null && customerId.isNotEmpty) {
       query = query.eq('customer_id', customerId);
+    }
+    final term = search?.trim().replaceAll(RegExp(r'[%,()]'), '') ?? '';
+    if (term.isNotEmpty) {
+      query = query.ilike('invoice_no', '%$term%');
     }
 
     final rows = await query

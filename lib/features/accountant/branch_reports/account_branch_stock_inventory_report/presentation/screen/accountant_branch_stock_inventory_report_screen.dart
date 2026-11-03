@@ -340,52 +340,6 @@ class _DesktopLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Stock status cards
-                Row(children: [
-                  _DeskSummaryCard(
-                    label: 'Total',
-                    value: '${state.summary.totalProducts}',
-                    icon: 'ic_total_products',
-                    color: AppColor.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  _DeskSummaryCard(
-                    label: 'In Stock',
-                    value: '${state.summary.inStock}',
-                    icon: 'ic_active_check',
-                    color: AppColor.success,
-                    selected: state.stockFilter == StockStatus.inStock,
-                    onTap: () => _toggle(StockStatus.inStock),
-                  ),
-                  const SizedBox(width: 12),
-                  _DeskSummaryCard(
-                    label: 'Low Stock',
-                    value: '${state.summary.lowStock}',
-                    icon: 'ic_pending',
-                    color: AppColor.warning,
-                    selected: state.stockFilter == StockStatus.lowStock,
-                    onTap: () => _toggle(StockStatus.lowStock),
-                  ),
-                  const SizedBox(width: 12),
-                  _DeskSummaryCard(
-                    label: 'Out of Stock',
-                    value: '${state.summary.outOfStock}',
-                    icon: 'ic_inactive',
-                    color: AppColor.error,
-                    selected: state.stockFilter == StockStatus.outOfStock,
-                    onTap: () => _toggle(StockStatus.outOfStock),
-                  ),
-                  const SizedBox(width: 12),
-                  _DeskSummaryCard(
-                    label: 'Diet Product',
-                    value: '${state.summary.deadStock}',
-                    icon: 'ic_sale_price_trend',
-                    color: const Color(0xFF8B5CF6),
-                    selected: state.deadStockOnly,
-                    onTap: notifier.toggleDeadStockOnly,
-                  ),
-                ]),
-                const SizedBox(height: 12),
 
                 // Values row — hamesha filtered list se
                 _ValuesRow(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
 import '../../data/datasource/sale_summary_datasource.dart';
@@ -11,6 +12,7 @@ class SaleSummaryState {
   final DateTime             fromDate;
   final DateTime             toDate;
   final String?              selectedCustomerId;
+  final String               searchQuery;
   final bool                 isLoading;
   final String?              errorMessage;
 
@@ -22,6 +24,7 @@ class SaleSummaryState {
     DateTime?               fromDate,
     DateTime?               toDate,
     this.selectedCustomerId,
+    this.searchQuery        = '',
     this.isLoading          = false,
     this.errorMessage,
   })  : fromDate = fromDate ?? startOfToday(),
@@ -46,6 +49,7 @@ class SaleSummaryState {
     DateTime?              toDate,
     String?                selectedCustomerId,
     bool                   clearCustomer = false,
+    String?                searchQuery,
     bool?                  isLoading,
     String?                errorMessage,
   }) =>
@@ -58,6 +62,7 @@ class SaleSummaryState {
         toDate:             toDate    ?? this.toDate,
         selectedCustomerId: clearCustomer
             ? null : (selectedCustomerId ?? this.selectedCustomerId),
+        searchQuery:        searchQuery ?? this.searchQuery,
         isLoading:          isLoading ?? this.isLoading,
         errorMessage:       errorMessage,
       );
@@ -118,6 +123,7 @@ class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
           fromDate:   state.fromDate,
           toDate:     state.toDate,
           customerId: state.selectedCustomerId,
+          search:     state.searchQuery,
           page:       0,
         ),
       ]);
@@ -142,6 +148,7 @@ class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
         fromDate:   state.fromDate,
         toDate:     state.toDate,
         customerId: state.selectedCustomerId,
+        search:     state.searchQuery,
         page:       page,
       );
       state = state.copyWith(
@@ -164,6 +171,20 @@ class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
   Future<void> previousPage() async {
     if (!state.pagination.hasPreviousPage || state.pagination.isLoadingPage) return;
     await _loadPage(state.pagination.page - 1);
+  }
+
+  Timer? _searchDebounce;
+
+  void search(String q) {
+    state = state.copyWith(searchQuery: q);
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), load);
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 
   void setFromDate(DateTime d) {
