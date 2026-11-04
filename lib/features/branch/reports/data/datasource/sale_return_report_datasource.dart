@@ -295,8 +295,8 @@ class SaleReturnDatasource {
         id:              id,
         returnNo:        m['return_no']?.toString()    ?? '',
         returnDate:      m['return_date'] is DateTime
-            ? m['return_date'] as DateTime
-            : DateTime.tryParse(m['return_date'].toString()) ?? DateTime.now(),
+            ? (m['return_date'] as DateTime).toLocal()
+            : DateTime.tryParse(m['return_date'].toString())?.toLocal() ?? DateTime.now(),
         refundType:      m['refund_type']?.toString()  ?? 'cash',
         status:          m['status']?.toString()       ?? 'completed',
         totalAmount:     _dbl(m['total_amount'])       ?? 0,

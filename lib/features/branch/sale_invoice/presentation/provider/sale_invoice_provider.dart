@@ -138,13 +138,26 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
 
   void updateSalePrice(String cartId, double price) {
     if (price < 0) return;
+    if (_isFeeLine(cartId)) return;
     _update(cartId, (i) => i.copyWith(salePrice: price));
     _resetPayments();
   }
 
   void updatePurchasePrice(String cartId, double price) {
     if (price < 0) return;
-    _update(cartId, (i) => i.copyWith(purchasePriceOverride: price));
+    _update(cartId, (i) {
+      // Fee-rule digital lines: amount typed → fee added automatically.
+      if (i.product.usesFeeRule) {
+        return i.copyWith(
+          purchasePriceOverride: price,
+          salePrice: price + i.product.feeFor(price),
+        );
+      }
+      return i.copyWith(purchasePriceOverride: price);
+    });
+    if (state.cartItems.any((i) => i.cartId == cartId && i.product.usesFeeRule)) {
+      _resetPayments();
+    }
   }
 
   void updateTax(String cartId, double tax) {
@@ -161,6 +174,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
 
   void updateSubTotal(String cartId, double newSubTotal) {
     if (newSubTotal < 0) return;
+    if (_isFeeLine(cartId)) return;
     final item = state.cartItems.firstWhere((i) => i.cartId == cartId);
     if (item.salePrice <= 0) return;
     final newQty =
@@ -169,6 +183,9 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     _update(cartId, (i) => i.copyWith(quantity: newQty));
     _resetPayments();
   }
+
+  bool _isFeeLine(String cartId) =>
+      state.cartItems.any((i) => i.cartId == cartId && i.product.usesFeeRule);
 
   void _update(String cartId, CartItem Function(CartItem) fn) {
     state = state.copyWith(

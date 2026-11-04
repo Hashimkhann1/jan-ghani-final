@@ -7,6 +7,7 @@ import '../../../../../core/color/app_color.dart';
 import '../../../../../core/widget/app_icon.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
+import '../../../customer_ledger/presentation/widget/add_ledger_dialog.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../provider/cart_nav_provider.dart';
 import '../provider/held_invoice_provider.dart';
@@ -36,6 +37,9 @@ final saleTypeFocusProvider = Provider<FocusNode>((ref) {
   ref.onDispose(fn.dispose);
   return fn;
 });
+
+/// Ctrl+1 → Physical (false), Ctrl+2 → Digital (true). Panel consume karke null kar deta hai.
+final productTabRequestProvider = StateProvider<bool?>((ref) => null);
 
 final customerDropdownKeyProvider = Provider<GlobalKey<DropdownSearchState<CustomerModel?>>>((ref) => GlobalKey<DropdownSearchState<CustomerModel?>>(),);
 
@@ -141,9 +145,16 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       return true;
     }
 
-    // Ctrl+K — Customer dropdown
-    if (ctrl && key == LogicalKeyboardKey.keyK) {
+    // Ctrl+R — Customer Recovery dialog
+    if (ctrl && key == LogicalKeyboardKey.keyR) {
       if (Navigator.of(context).canPop()) return true;
+      _openRecovery();
+      return true;
+    }
+
+    // Ctrl+K — Customer dropdown (dialog khula ho to dialog khud handle kare)
+    if (ctrl && key == LogicalKeyboardKey.keyK) {
+      if (Navigator.of(context).canPop()) return false;
       ref.read(customerDropdownKeyProvider).currentState?.openDropDownSearch();
       return true;
     }
@@ -205,6 +216,15 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
       }
     }
 
+    // Ctrl+1 / Ctrl+2 — Physical / Digital product tab
+    if (ctrl && (key == LogicalKeyboardKey.digit1 || key == LogicalKeyboardKey.numpad1 ||
+        key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2)) {
+      if (Navigator.of(context).canPop()) return true;
+      ref.read(productTabRequestProvider.notifier).state =
+          key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2;
+      return true;
+    }
+
     // Ctrl+T — Sale type toggle
     if (ctrl && key == LogicalKeyboardKey.keyT) {
       if (Navigator.of(context).canPop()) return true;
@@ -255,6 +275,15 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     }
 
     return false;
+  }
+
+  void _openRecovery() {
+    if (ref.read(authProvider).counterId == null) return;
+    showDialog(
+      context:            context,
+      barrierDismissible: false,
+      builder: (_) => const AddLedgerDialog(),
+    );
   }
 
   void _triggerPayNow() {
@@ -398,6 +427,49 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
         ]),
         actions: [
           _ShortcutHintButton(),
+          const SizedBox(width: 6),
+
+          // ── Customer Recovery (wasooli) — direct from the POS ──
+          Builder(builder: (context) {
+            final noCounter = ref.watch(authProvider).counterId == null;
+            return Tooltip(
+              message: noCounter
+                  ? 'Counter assign nahi'
+                  : 'Customer se wasooli (Cash / Card)',
+              child: InkWell(
+                onTap: noCounter ? null : _openRecovery,
+                borderRadius: BorderRadius.circular(10),
+                child: Opacity(
+                  opacity: noCounter ? 0.5 : 1,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color:        AppColor.success.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColor.success, width: 1.5),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.account_balance_wallet_outlined,
+                            size: 15, color: AppColor.success),
+                        SizedBox(width: 6),
+                        Text('Customer Recovery',
+                            style: TextStyle(
+                                fontSize:   12,
+                                fontWeight: FontWeight.w600,
+                                color:      AppColor.success)),
+                        SizedBox(width: 8),
+                        _RecoveryKeyBadge(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
           const SizedBox(width: 6),
 
           if (holds.isNotEmpty) ...[
@@ -596,9 +668,11 @@ class _ShortcutsDialog extends StatelessWidget {
       ('Ctrl+S',      'Invoice save karo (Sirf dialog ke andar)',    Icons.save_outlined),
       ('Ctrl+C',      'Cart edit mode on/off',                      Icons.edit_outlined),
       ('↑↓ ← →',     'Cart row / column navigate',                 Icons.open_with_rounded),
+      ('Ctrl+1 / Ctrl+2', 'Physical / Digital products',            Icons.devices_other_rounded),
       ('Ctrl+T',      'Sale type toggle (Sale/Return)',             Icons.swap_horiz_rounded),
       ('Ctrl+H / F3', 'Hold invoice',                              Icons.pause_circle_outline_rounded),
       ('Ctrl+K',      'Customer dropdown',                          Icons.person_outline),
+      ('Ctrl+R',      'Customer Recovery (wasooli) dialog kholo',   Icons.account_balance_wallet_outlined),
       ('Ctrl+F / F1', 'Search focus',                              Icons.search_rounded),
       ('F4',          'Held invoices',                              Icons.list_alt_rounded),
       ('Ctrl+N / F5', 'New invoice',                               Icons.add_circle_outline_rounded),
@@ -666,4 +740,22 @@ class _ShortcutsDialog extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RecoveryKeyBadge extends StatelessWidget {
+  const _RecoveryKeyBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+        decoration: BoxDecoration(
+          color:        AppColor.success.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Text('Ctrl+R',
+            style: TextStyle(
+                fontSize:   9,
+                fontWeight: FontWeight.w600,
+                color:      AppColor.success)),
+      );
 }

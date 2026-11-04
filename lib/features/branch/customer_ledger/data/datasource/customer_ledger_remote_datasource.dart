@@ -37,7 +37,7 @@ class CustomerLedgerRemoteDataSource {
         SELECT
           cl.id, cl.store_id, cl.customer_id, cl.customer_name,
           cl.counter_id, cl.user_id, cl.previous_amount, cl.pay_amount,
-          cl.new_amount, cl.notes, cl.created_at, cl.updated_at, cl.deleted_at,
+          cl.new_amount, cl.notes, cl.payment_method, cl.created_at, cl.updated_at, cl.deleted_at,
           bu.full_name AS user_full_name
         FROM public.customer_ledger cl
         LEFT JOIN public.branch_users bu ON bu.id = cl.user_id
@@ -116,7 +116,7 @@ class CustomerLedgerRemoteDataSource {
         SELECT
           cl.id, cl.store_id, cl.customer_id, cl.customer_name,
           cl.counter_id, cl.user_id, cl.previous_amount, cl.pay_amount,
-          cl.new_amount, cl.notes, cl.created_at, cl.updated_at, cl.deleted_at,
+          cl.new_amount, cl.notes, cl.payment_method, cl.created_at, cl.updated_at, cl.deleted_at,
           bu.full_name AS user_full_name
         FROM public.customer_ledger cl
         LEFT JOIN public.branch_users bu ON bu.id = cl.user_id
@@ -147,7 +147,7 @@ class CustomerLedgerRemoteDataSource {
         SELECT
           cl.id, cl.store_id, cl.customer_id, cl.customer_name,
           cl.counter_id, cl.user_id, cl.previous_amount, cl.pay_amount,
-          cl.new_amount, cl.notes, cl.created_at, cl.updated_at, cl.deleted_at,
+          cl.new_amount, cl.notes, cl.payment_method, cl.created_at, cl.updated_at, cl.deleted_at,
           bu.full_name AS user_full_name
         FROM public.customer_ledger cl
         LEFT JOIN public.branch_users bu ON bu.id = cl.user_id
@@ -169,11 +169,11 @@ class CustomerLedgerRemoteDataSource {
       Sql.named('''
       INSERT INTO public.customer_ledger (
         store_id, customer_id, customer_name,
-        counter_id, user_id, pay_amount, notes
+        counter_id, user_id, pay_amount, notes, payment_method
       )
       VALUES (
         @storeId, @customerId, @customerName,
-        @counterId, @userId, @payAmount, @notes
+        @counterId, @userId, @payAmount, @notes, @paymentMethod
       )
       RETURNING id
     '''),
@@ -185,6 +185,7 @@ class CustomerLedgerRemoteDataSource {
         'userId':       ledger.userId,
         'payAmount':    ledger.payAmount,
         'notes':        ledger.notes,
+        'paymentMethod': ledger.paymentMethod,
       },
     );
 
@@ -196,7 +197,7 @@ class CustomerLedgerRemoteDataSource {
         SELECT
           cl.id, cl.store_id, cl.customer_id, cl.customer_name,
           cl.counter_id, cl.user_id, cl.previous_amount, cl.pay_amount,
-          cl.new_amount, cl.notes, cl.created_at, cl.updated_at, cl.deleted_at,
+          cl.new_amount, cl.notes, cl.payment_method, cl.created_at, cl.updated_at, cl.deleted_at,
           bu.full_name AS user_full_name
         FROM public.customer_ledger cl
         LEFT JOIN public.branch_users bu ON bu.id = cl.user_id
@@ -266,7 +267,7 @@ class CustomerLedgerRemoteDataSource {
       SELECT
         cl.id, cl.store_id, cl.customer_id, cl.customer_name,
         cl.counter_id, cl.user_id, cl.previous_amount, cl.pay_amount,
-        cl.new_amount, cl.notes, cl.created_at, cl.updated_at, cl.deleted_at,
+        cl.new_amount, cl.notes, cl.payment_method, cl.created_at, cl.updated_at, cl.deleted_at,
         bu.full_name AS user_full_name
       FROM public.customer_ledger cl
       LEFT JOIN public.branch_users bu ON bu.id = cl.user_id
@@ -307,6 +308,7 @@ class CustomerLedgerRemoteDataSource {
       'pay_amount':      m['pay_amount'],
       'new_amount':      m['new_amount'],
       'notes':           m['notes']?.toString(),
+      'payment_method':  m['payment_method']?.toString(),
       'created_at':      m['created_at']?.toString()     ?? DateTime.now().toIso8601String(),
       'updated_at':      m['updated_at']?.toString()     ?? DateTime.now().toIso8601String(),
       'deleted_at':      m['deleted_at']?.toString(),

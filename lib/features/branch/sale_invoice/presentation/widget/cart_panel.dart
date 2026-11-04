@@ -1352,7 +1352,7 @@ class _HoldButton extends StatelessWidget {
 }
 
 // ── Customer Dropdown ─────────────────────────────────────────────
-class _CustomerDropdown extends ConsumerWidget {
+class _CustomerDropdown extends ConsumerStatefulWidget {
   final List<CustomerModel>          customers;
   final CustomerModel?               selectedCustomer;
   final bool                         isReturn;
@@ -1368,7 +1368,80 @@ class _CustomerDropdown extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CustomerDropdown> createState() => _CustomerDropdownState();
+}
+
+class _CustomerDropdownState extends ConsumerState<_CustomerDropdown> {
+  final _searchCtrl  = TextEditingController();
+  final _searchFocus = FocusNode();
+  final _highlight   = ValueNotifier<int>(0);
+  final _itemKeys    = <int, GlobalKey>{};
+
+  List<CustomerModel> get customers => widget.customers;
+  CustomerModel? get selectedCustomer => widget.selectedCustomer;
+  bool get isReturn => widget.isReturn;
+  bool get disabled => widget.disabled;
+  ValueChanged<CustomerModel?> get onSelected => widget.onSelected;
+
+  bool _matches(CustomerModel? c, String filter) => c == null
+      ? 'walk in'.contains(filter.toLowerCase())
+      : c.name.toLowerCase().contains(filter.toLowerCase());
+
+  List<CustomerModel?> get _filtered =>
+      [null, ...customers].where((c) => _matches(c, _searchCtrl.text)).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() => _highlight.value = 0);
+    _searchFocus.onKeyEvent = (node, event) {
+      if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+        return KeyEventResult.ignored;
+      }
+      final list = _filtered;
+      if (list.isEmpty) return KeyEventResult.ignored;
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.arrowDown) {
+        _highlight.value = (_highlight.value + 1).clamp(0, list.length - 1);
+        _scrollToHighlight();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowUp) {
+        _highlight.value = (_highlight.value - 1).clamp(0, list.length - 1);
+        _scrollToHighlight();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter) {
+        final item = list[_highlight.value.clamp(0, list.length - 1)];
+        final dd = ref.read(customerDropdownKeyProvider).currentState;
+        dd?.closeDropDownSearch();
+        dd?.changeSelectedItem(item);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    };
+  }
+
+  void _scrollToHighlight() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _itemKeys[_highlight.value]?.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 80));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
+    _highlight.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final accent        = isReturn ? AppColor.error : AppColor.primary;
     final customerFocus = ref.watch(posCustomerFocusProvider);
 
@@ -1426,6 +1499,8 @@ class _CustomerDropdown extends ConsumerWidget {
               popupProps: PopupProps.menu(
                 showSearchBox: true,
                 searchFieldProps: TextFieldProps(
+                  controller:  _searchCtrl,
+                  focusNode:   _searchFocus,
                   cursorHeight: 16,
                   autofocus:   true,
                   decoration: InputDecoration(
@@ -1451,7 +1526,15 @@ class _CustomerDropdown extends ConsumerWidget {
                       ? AppColor.success
                       : AppColor.error;
 
-                  return ListTile(
+                  final idx = _filtered.indexWhere(
+                      (c) => (c?.id ?? '') == (customer?.id ?? ''));
+                  final itemKey = _itemKeys.putIfAbsent(idx, () => GlobalKey());
+
+                  return ValueListenableBuilder<int>(
+                    valueListenable: _highlight,
+                    builder: (_, hi, __) => ListTile(
+                    key: itemKey,
+                    tileColor: hi == idx ? accent.withOpacity(0.12) : null,
                     leading: CircleAvatar(
                       radius:          16,
                       backgroundColor: accent.withOpacity(0.1),
@@ -1504,7 +1587,7 @@ class _CustomerDropdown extends ConsumerWidget {
                         ),
                       ],
                     ),
-                  );
+                  ));
                 },
                 fit:         FlexFit.loose,
                 constraints: const BoxConstraints(maxHeight: 300),

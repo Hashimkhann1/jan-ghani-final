@@ -42,7 +42,7 @@ class StockTransfer {
       toStoreName:    json['to_store_name'] ?? '',
       warehouseId:    json['warehouse_id'],
       assignedByName: json['assigned_by_name'],
-      assignedAt:     DateTime.parse(json['assigned_at']),
+      assignedAt:     DateTime.parse(json['assigned_at']).toLocal(),
       notes:          json['notes'],
       totalItems:     (json['total_items'] as num?)?.toInt() ?? 0,
       totalCost:      _toDouble(json['total_cost']),

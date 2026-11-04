@@ -10,6 +10,8 @@ class CustomerLedgerModel {
   final double   payAmount;
   final double   newAmount;
   final String?  notes;
+  /// 'cash' | 'card' — card payments go to card_sale, cash to cash_sale.
+  final String   paymentMethod;
   final DateTime  createdAt;
   final DateTime  updatedAt;
   final DateTime? deletedAt;
@@ -26,6 +28,7 @@ class CustomerLedgerModel {
     required this.payAmount,
     required this.newAmount,
     this.notes,
+    this.paymentMethod = 'cash',
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -60,6 +63,7 @@ class CustomerLedgerModel {
       payAmount:      _toDouble(map['pay_amount']),
       newAmount:      _toDouble(map['new_amount']),
       notes:          _str(map['notes']),
+      paymentMethod:  _str(map['payment_method']) ?? 'cash',
       createdAt:      _date(map['created_at'])     ?? DateTime.now(),
       updatedAt:      _date(map['updated_at'])     ?? DateTime.now(),
       deletedAt:      _date(map['deleted_at']),
@@ -76,14 +80,15 @@ class CustomerLedgerModel {
     'pay_amount':     payAmount,
     'new_amount':     newAmount,
     'notes':          notes,
+    'payment_method': paymentMethod,
   };
 
   static String?   _str(dynamic v) => v?.toString();
 
   static DateTime? _date(dynamic v) {
     if (v == null)     return null;
-    if (v is DateTime) return v;
-    return DateTime.tryParse(v.toString());
+    if (v is DateTime) return v.toLocal();
+    return DateTime.tryParse(v.toString())?.toLocal();
   }
 
   @override

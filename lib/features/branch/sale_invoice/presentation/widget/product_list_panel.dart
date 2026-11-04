@@ -34,6 +34,22 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 
   OverlayEntry? _feedbackOverlay;
 
+  /// Physical / Digital product tab (sale only; returns are physical-only).
+  bool _showDigital = false;
+
+  void _setDigitalTab(bool digital) {
+    if (ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn) return;
+    setState(() {
+      _showDigital  = digital;
+      _hoveredIndex = -1;
+    });
+  }
+
+  List<BranchStockModel> _byTab(List<BranchStockModel> all, bool isReturn) {
+    final digital = _showDigital && !isReturn;
+    return all.where((p) => p.isDigital == digital).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -52,7 +68,13 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     super.dispose();
   }
 
+  String _lastSearchText = '';
+
   void _onSearchChanged() {
+    // Up/Down arrow caret move bhi controller notify karta hai —
+    // sirf asal text change par hovered index reset karo.
+    if (_searchCtrl.text == _lastSearchText) return;
+    _lastSearchText = _searchCtrl.text;
     final isReturn = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
     if (isReturn) {
       ref.read(saleReturnProvider.notifier).updateSearch(_searchCtrl.text);
@@ -92,7 +114,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       final products = _currentProducts();
       if (products.isEmpty) return;
       setState(() =>
-      _hoveredIndex = (_hoveredIndex - 1).clamp(0, products.length - 1));
+      _hoveredIndex = _hoveredIndex <= 0 ? 0 : _hoveredIndex - 1);
       _scrollToHovered();
       return;
     }
@@ -167,8 +189,9 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     final q = isReturn
         ? ref.read(saleReturnProvider).searchQuery
         : invoiceState.searchQuery;
-    if (q.isEmpty) return allProducts;
-    return allProducts.where((p) =>
+    final tabProducts = _byTab(allProducts, isReturn);
+    if (q.isEmpty) return tabProducts;
+    return tabProducts.where((p) =>
     p.name.toLowerCase().contains(q.toLowerCase()) ||
         p.sku.toLowerCase().contains(q.toLowerCase()) ||
         (p.barcode?.toLowerCase().contains(q.toLowerCase()) ?? false))
@@ -331,6 +354,11 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool?>(productTabRequestProvider, (_, v) {
+      if (v == null) return;
+      _setDigitalTab(v);
+      ref.read(productTabRequestProvider.notifier).state = null;
+    });
     _searchFocusFromProvider ??= ref.read(posSearchFocusProvider);
 
     final invoiceState = ref.watch(saleInvoiceProvider);
@@ -342,10 +370,10 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     final notifier    = ref.read(saleInvoiceProvider.notifier);
     final retNotifier = ref.read(saleReturnProvider.notifier);
 
-    final allProducts = ref.watch(branchStockProvider).allProducts;
+    final tabProducts = _byTab(ref.watch(branchStockProvider).allProducts, isReturn);
     final products    = searchQuery.isEmpty
-        ? allProducts
-        : allProducts.where((p) =>
+        ? tabProducts
+        : tabProducts.where((p) =>
     p.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
         p.sku.toLowerCase().contains(searchQuery.toLowerCase()) ||
         (p.barcode
@@ -405,6 +433,40 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
               ]),
 
               const SizedBox(height: 8),
+
+              // ── Physical / Digital ───────────────────────
+              if (!isReturn) ...[
+                Row(children: [
+                  Expanded(
+                    child: _TypeButton(
+                      label:    'Physical',
+                      shortcut: 'Ctrl+1',
+                      icon:     Icons.inventory_2_outlined,
+                      selected: !_showDigital,
+                      color:    accent,
+                      onTap:    () => setState(() {
+                        _showDigital  = false;
+                        _hoveredIndex = -1;
+                      }),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TypeButton(
+                      label:    'Digital',
+                      shortcut: 'Ctrl+2',
+                      icon:     Icons.phone_android_rounded,
+                      selected: _showDigital,
+                      color:    accent,
+                      onTap:    () => setState(() {
+                        _showDigital  = true;
+                        _hoveredIndex = -1;
+                      }),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+              ],
 
               // ── Search + Qty Row ─────────────────────────
               Row(children: [
@@ -605,6 +667,67 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 // ══════════════════════════════════════════════════════════════════
 // Product Card
 // ══════════════════════════════════════════════════════════════════
+class _TypeButton extends StatelessWidget {
+  final String       label;
+  final IconData     icon;
+  final bool         selected;
+  final Color        color;
+  final VoidCallback onTap;
+  final String?      shortcut;
+
+  const _TypeButton({
+    this.shortcut,
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      decoration: BoxDecoration(
+        color:        selected ? color : AppColor.grey100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: selected ? color : AppColor.grey200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 15, color: selected ? Colors.white : AppColor.textPrimary),
+          const SizedBox(width: 6),
+          Text(label,
+              style: TextStyle(
+                  fontSize:   12,
+                  fontWeight: FontWeight.w700,
+                  color:      selected ? Colors.white : AppColor.textPrimary)),
+          if (shortcut != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: selected
+                    ? Colors.white.withOpacity(0.2)
+                    : color.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(shortcut!,
+                  style: TextStyle(
+                      fontSize:   9,
+                      fontWeight: FontWeight.w600,
+                      color:      selected ? Colors.white : color)),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
 class _ProductCard extends StatefulWidget {
   final BranchStockModel product;
   final VoidCallback     onDoubleTap;

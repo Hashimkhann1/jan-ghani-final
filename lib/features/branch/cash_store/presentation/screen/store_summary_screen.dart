@@ -106,7 +106,7 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
-                  title: 'Net Amount',
+                  title: 'Overall Amount',
                   value: 'Rs ${state.grandTotalAmount.toStringAsFixed(0)}',
                   icon:  Icons.account_balance_outlined,
                   color: AppColor.success,
@@ -174,13 +174,13 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
                             DataColumn(label: Text('Date')),
                             DataColumn(label: Text('Cash Sale')),
                             DataColumn(label: Text('Card Sale')),
-                            DataColumn(label: Text('Credit Sale')),
+                            DataColumn(label: Text('Udhar Sale')),
                             DataColumn(label: Text('Total Sale')),
-                            DataColumn(label: Text('Installment')),
+                            DataColumn(label: Text('Customer Recovery')),
                             DataColumn(label: Text('Cash In')),
                             DataColumn(label: Text('Cash Out')),
                             DataColumn(label: Text('Expense')),
-                            DataColumn(label: Text('Net Amount')),
+                            DataColumn(label: Text('Overall Amount')),
                           ],
                           rows: records.map((r) => DataRow(
                             cells: [
@@ -217,7 +217,7 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
                               DataCell(_Cell(value: r.totalCashOutLabel,     color: AppColor.error)),
                               DataCell(_Cell(value: r.totalExpenseLabel,     color: AppColor.error)),
 
-                              // Net Amount
+                              // Overall Amount
                               DataCell(Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 5),

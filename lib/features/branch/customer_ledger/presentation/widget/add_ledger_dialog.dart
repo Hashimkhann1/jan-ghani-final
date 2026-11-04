@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/branch/customer/data/model/customer_model.dart';
@@ -28,6 +29,12 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
   CustomerModel? _selectedCustomer;
   bool _isSaving   = false;
   bool _printReceipt = true;
+  String _paymentMethod = 'cash'; // 'cash' | 'card'
+
+  // Keyboard flow: customer (Ctrl+K / F2) → pay amount → method → Ctrl+S
+  final _customerKey = GlobalKey<AppSearchableDropdownState<CustomerModel>>();
+  final _payFocus    = FocusNode();
+  final _methodFocus = FocusNode();
 
   double get _previousAmount =>
       _isEdit ? widget.ledger!.previousAmount : (_selectedCustomer?.balance ?? 0.0);
@@ -69,9 +76,11 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
   @override
   void initState() {
     super.initState();
+    _methodFocus.addListener(() => setState(() {}));
     if (widget.ledger != null) {
       _payCtrl.text   = widget.ledger!.payAmount.toStringAsFixed(0);
       _notesCtrl.text = widget.ledger!.notes ?? '';
+      _paymentMethod  = widget.ledger!.paymentMethod;
       final customers = ref.read(customerProvider).allCustomers;
       try {
         _selectedCustomer =
@@ -84,11 +93,42 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
   void dispose() {
     _payCtrl.dispose();
     _notesCtrl.dispose();
+    _payFocus.dispose();
+    _methodFocus.dispose();
     super.dispose();
   }
 
-  void _onCustomerChanged(CustomerModel? customer) =>
-      setState(() => _selectedCustomer = customer);
+  void _onCustomerChanged(CustomerModel? customer) {
+    setState(() => _selectedCustomer = customer);
+    // Customer select hote hi seedha Pay Amount par
+    if (customer != null) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _payFocus.requestFocus());
+    }
+  }
+
+  void _saveByShortcut() {
+    if (!_isSaving) _save();
+  }
+
+  KeyEventResult _onMethodKey(FocusNode node, KeyEvent e) {
+    if (e is! KeyDownEvent || _isEdit) return KeyEventResult.ignored;
+    final k = e.logicalKey;
+    if (k == LogicalKeyboardKey.arrowLeft || k == LogicalKeyboardKey.arrowRight ||
+        k == LogicalKeyboardKey.space) {
+      setState(() => _paymentMethod = _paymentMethod == 'cash' ? 'card' : 'cash');
+      return KeyEventResult.handled;
+    }
+    if (k == LogicalKeyboardKey.keyC) {
+      setState(() => _paymentMethod = 'cash');
+      return KeyEventResult.handled;
+    }
+    if (k == LogicalKeyboardKey.keyD) {
+      setState(() => _paymentMethod = 'card');
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -110,6 +150,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
           payAmount:      _appliedAmount,
           newAmount:      _newAmount,
           notes:          _buildNotes(),
+          paymentMethod:  _paymentMethod,
         );
       }
 
@@ -165,7 +206,17 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
 
     final hasReturn = _returnAmount > 0;
 
-    return Dialog(
+    return CallbackShortcuts(
+     bindings: {
+      const SingleActivator(LogicalKeyboardKey.keyS, control: true): _saveByShortcut,
+      const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+          _customerKey.currentState?.open(),
+      const SingleActivator(LogicalKeyboardKey.f2): () =>
+          _customerKey.currentState?.open(),
+     },
+     child: Focus(
+      autofocus: true,
+      child: Dialog(
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
@@ -218,6 +269,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                 const _Label('Customer *'),
                 const SizedBox(height: 6),
                 AppSearchableDropdown<CustomerModel>(
+                  key: _customerKey,
                   items: dropdownItems,
                   value: _selectedCustomer,
                   hint: 'Select customer...',
@@ -245,6 +297,9 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                 const SizedBox(height: 6),
                 TextFormField(
                   controller:   _payCtrl,
+                  focusNode:    _payFocus,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) => _methodFocus.requestFocus(),
                   onChanged:    (_) => setState(() {}),
                   keyboardType: const TextInputType.numberWithOptions(
                       decimal: true),
@@ -290,6 +345,44 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                         borderRadius: BorderRadius.circular(8),
                         borderSide:
                         const BorderSide(color: AppColor.error)),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ── Payment Method ───────────────────────
+                const _Label('Payment Method *'),
+                const SizedBox(height: 6),
+                Focus(
+                  focusNode:  _methodFocus,
+                  onKeyEvent: _onMethodKey,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _methodFocus.hasFocus
+                            ? AppColor.primary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                        value: 'cash',
+                        label: Text('Cash'),
+                        icon:  Icon(Icons.payments_outlined, size: 16)),
+                    ButtonSegment(
+                        value: 'card',
+                        label: Text('Card'),
+                        icon:  Icon(Icons.credit_card_rounded, size: 16)),
+                  ],
+                  selected: {_paymentMethod},
+                  // Edit mein method change nahi hota (counter pehle hi apply ho chuka)
+                  onSelectionChanged: _isEdit
+                      ? null
+                      : (s) => setState(() => _paymentMethod = s.first),
+                ),
                   ),
                 ),
 
@@ -469,6 +562,8 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
           ),
         ),
       ),
+      ),
+     ),
     );
   }
 }

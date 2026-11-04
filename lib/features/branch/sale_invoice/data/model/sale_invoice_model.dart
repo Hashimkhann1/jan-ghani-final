@@ -43,6 +43,9 @@ class CartItem {
 
   double get purchasePrice => purchasePriceOverride ?? product.costPrice;
 
+  /// Digital fee lines: fee (our profit) = sale price - amount paid out.
+  double get digitalFee => salePrice - purchasePrice;
+
   double get subTotal => (salePrice * quantity) + taxAmount - discountAmount;
 
   CartItem copyWith({
@@ -166,6 +169,7 @@ class SaleInvoiceState {
 
   bool get hasDigital   => cartItems.any((i) => i.product.isDigital);
   bool get hasPhysical  => cartItems.any((i) => !i.product.isDigital);
+  bool get hasFeeDigital => cartItems.any((i) => i.product.usesFeeRule);
   bool get hasWithdraw  => cartItems.any((i) => i.product.isDigitalWithdraw);
   /// Digital lines are cash-only and carry no credit.
   bool get isDigitalInvoice => hasDigital;

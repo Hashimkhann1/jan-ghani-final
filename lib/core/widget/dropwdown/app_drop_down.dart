@@ -39,10 +39,10 @@ class AppSearchableDropdown<T> extends StatefulWidget {
   final double desktopWidth;
 
   @override
-  State<AppSearchableDropdown<T>> createState() => _AppSearchableDropdownState<T>();
+  State<AppSearchableDropdown<T>> createState() => AppSearchableDropdownState<T>();
 }
 
-class _AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
+class AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
   final _searchCtrl = TextEditingController();
   final _layerLink = LayerLink();
   OverlayEntry? _overlay;
@@ -71,6 +71,11 @@ class _AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
     } catch (_) {
       return '';
     }
+  }
+
+  /// Opens the dropdown from the keyboard (no-op if already open).
+  void open() {
+    if (!_isOpen && mounted) _openDropdown();
   }
 
   void _toggleDropdown() {
@@ -140,6 +145,10 @@ class _AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
                         child: TextField(
                           controller: _searchCtrl,
                           autofocus: true,
+                          // Enter = first match select
+                          onSubmitted: (_) {
+                            if (_filtered.isNotEmpty) _selectItem(_filtered.first);
+                          },
                           onChanged: (q) {
                             _onSearch(q);
                             _overlay?.markNeedsBuild();

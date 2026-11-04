@@ -32,7 +32,7 @@ class SummaryCardsRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             SummaryCard(
-              title:     'Credit Sale',
+              title:     'Udhar Sale',
               value:     _fmt(data.creditSale),
               icon:      Icons.receipt_long_outlined,
               iconAsset: 'ic_credit_sale',
@@ -45,7 +45,7 @@ class SummaryCardsRow extends StatelessWidget {
         Row(
           children: [
             SummaryCard(
-              title:     'Installment',
+              title:     'Customer Recovery',
               value:     _fmt(data.installment),
               icon:      Icons.calendar_month_outlined,
               iconAsset: 'ic_installment',
@@ -63,7 +63,7 @@ class SummaryCardsRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             SummaryCard(
-              title:     'Net Amount',
+              title:     'Overall Amount',
               value:     _fmt(data.totalAmount),
               icon:      Icons.account_balance_wallet_outlined,
               iconAsset: 'ic_net_amount',

@@ -56,6 +56,17 @@ class BranchStockModel {
   // ── Getters ───────────────────────────────────────────────
   bool get isDigital         => productType != 'physical';
   bool get isDigitalWithdraw => productType == 'digital_withdraw';
+  bool get isSimLoad         => sku == 'DIG-SIM';
+  /// All digital products (Bank Transfer / Pay Bill / SIM Load / Cash
+  /// Withdraw): cashier types the amount, the fee (= our profit) is added
+  /// automatically.
+  bool get usesFeeRule       => isDigital;
+
+  /// SIM Load: flat Rs 10 per transaction. Others: Rs 10 per Rs 1000.
+  double feeFor(double amount) {
+    if (amount <= 0) return 0;
+    return isSimLoad ? 10 : amount * 10 / 1000;
+  }
 
   double get availableQuantity => quantity - reservedQuantity;
 
@@ -127,8 +138,8 @@ class BranchStockModel {
   }
   static DateTime? _date(dynamic v) {
     if (v == null)     return null;
-    if (v is DateTime) return v;
-    return DateTime.tryParse(v.toString());
+    if (v is DateTime) return v.toLocal();
+    return DateTime.tryParse(v.toString())?.toLocal();
   }
 
   @override

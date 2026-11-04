@@ -12,6 +12,7 @@ class CartTableHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final digital = ref.watch(saleInvoiceProvider.select((s) => s.hasDigital));
+    final fee     = ref.watch(saleInvoiceProvider.select((s) => s.hasFeeDigital));
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -22,9 +23,9 @@ class CartTableHeader extends ConsumerWidget {
       child: Row(children: [
         Expanded(flex: 1, child: _H(text: '#', textAlign: TextAlign.start)),
         Expanded(flex: 3, child: _H(text: 'Product', textAlign: TextAlign.start)),
-        Expanded(flex: 2, child: _H(text: digital ? 'Purchase' : 'Qty')),
-        Expanded(flex: 2, child: _H(text: 'Price')),
-        Expanded(flex: 2, child: _H(text: 'Tax (Rs)')),
+        Expanded(flex: 2, child: _H(text: fee ? 'Amount' : digital ? 'Purchase' : 'Qty')),
+        Expanded(flex: 2, child: _H(text: fee ? 'Fee (Profit)' : 'Price')),
+        if (!fee) Expanded(flex: 2, child: _H(text: 'Tax (Rs)')),
         Expanded(flex: 2, child: _H(text: 'Dis (Rs)')),
         Expanded(flex: 2, child: _H(text: 'Sub Total')),
         const SizedBox(width: 28),

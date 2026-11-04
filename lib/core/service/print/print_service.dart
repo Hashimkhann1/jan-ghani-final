@@ -140,7 +140,7 @@ class ThermalPrintService {
           _thinDashedLine(),
 
           // ── Items ──────────────────────────────────────────
-          ...items.map(_itemRow),
+          ...items.asMap().entries.map((e) => _itemRow(e.value, e.key + 1)),
           pw.SizedBox(height: 2),
           _dashedLine(),
 
@@ -405,7 +405,7 @@ class ThermalPrintService {
           _dashedLine(),
           _itemsHeader(),
           _thinDashedLine(),
-          ...items.map(_returnItemRow),
+          ...items.asMap().entries.map((e) => _returnItemRow(e.value, e.key + 1)),
           pw.SizedBox(height: 2),
           _dashedLine(),
           _infoRow('SUB TOTAL:', _fmt(totalAmount)),
@@ -561,6 +561,11 @@ class ThermalPrintService {
       );
 
   static pw.Widget _itemsHeader() => pw.Row(children: [
+    pw.SizedBox(
+        width: 12,
+        child: pw.Text('#',
+            style: pw.TextStyle(
+                fontSize: 7.5, fontWeight: pw.FontWeight.bold))),
     pw.Expanded(
         flex: 5,
         child: pw.Text('ITEM',
@@ -593,11 +598,15 @@ class ThermalPrintService {
             textAlign: pw.TextAlign.right)),
   ]);
 
-  static pw.Widget _itemRow(CartItem item) => pw.Padding(
+  static pw.Widget _itemRow(CartItem item, int no) => pw.Padding(
     padding: const pw.EdgeInsets.only(bottom: 2),
     child: pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
+        pw.SizedBox(
+            width: 12,
+            child: pw.Text('$no',
+                style: const pw.TextStyle(fontSize: 7.5))),
         pw.Expanded(
             flex: 5,
             child: pw.Text(item.product.name,
@@ -629,11 +638,15 @@ class ThermalPrintService {
     ),
   );
 
-  static pw.Widget _returnItemRow(ReturnCartItem item) => pw.Padding(
+  static pw.Widget _returnItemRow(ReturnCartItem item, int no) => pw.Padding(
     padding: const pw.EdgeInsets.only(bottom: 2),
     child: pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
+        pw.SizedBox(
+            width: 12,
+            child: pw.Text('$no',
+                style: const pw.TextStyle(fontSize: 7.5))),
         pw.Expanded(
             flex: 5,
             child: pw.Text(item.product.name,

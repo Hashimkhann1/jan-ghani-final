@@ -919,6 +919,12 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     final ctrl = pressed.contains(LogicalKeyboardKey.controlLeft) ||
         pressed.contains(LogicalKeyboardKey.controlRight);
     if (ctrl && event.logicalKey == LogicalKeyboardKey.keyS) { _confirm(); return true; }
+    if (ctrl && event.logicalKey == LogicalKeyboardKey.keyP) {
+      if (_saving) return true;
+      setState(() => _printReceipt = true);
+      _confirm();
+      return true;
+    }
     if (event.logicalKey == LogicalKeyboardKey.tab) { if (_cashFocus.hasFocus) _cardFocus.requestFocus(); return true; }
     if (event.logicalKey == LogicalKeyboardKey.escape) { Navigator.of(context).pop(false); return true; }
     return false;

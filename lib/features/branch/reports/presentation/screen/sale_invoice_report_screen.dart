@@ -682,7 +682,7 @@ class _CustomerStatsBanner extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             SummaryCard(
-              title: 'Credit Sale',
+              title: 'Udhar Sale',
               value: 'Rs ${state.customerCreditSale.toStringAsFixed(0)}',
               icon:  Icons.credit_card_outlined,
               color: AppColor.warning,

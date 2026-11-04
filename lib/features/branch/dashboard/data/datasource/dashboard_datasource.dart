@@ -212,7 +212,7 @@ class LowStockDatasource {
         sellingPrice: _dbl(m['selling_price']) ?? 0,
         costPrice:    _dbl(m['cost_price'])    ?? 0,
         updatedAt:    m['updated_at'] is DateTime
-            ? m['updated_at'] as DateTime
+            ? (m['updated_at'] as DateTime).toLocal()
             : DateTime.tryParse(m['updated_at'].toString()),
       );
     }).toList();

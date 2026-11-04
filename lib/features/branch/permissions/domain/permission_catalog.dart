@@ -119,7 +119,7 @@ class PermissionCatalog {
           actions: [PermAction.view, PermAction.create, PermAction.edit],
         ),
         PermModule(
-          key: 'customer_ledger', label: 'Customer Ledger',
+          key: 'customer_ledger', label: 'Customer Recovery',
           icon: Icons.account_balance_wallet_rounded,
           actions: [
             PermAction.view, PermAction.edit, PermAction.delete,

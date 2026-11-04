@@ -164,7 +164,7 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
-                  title: 'Net Amount',
+                  title: 'Overall Amount',
                   value: 'Rs ${state.grandTotalAmount.toStringAsFixed(0)}',
                   iconAsset: 'ic_bank_net',
                   color: AppColor.info,
@@ -237,12 +237,12 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                             DataColumn(label: Text('Counter')),
                             DataColumn(label: Text('Cash Sale')),
                             DataColumn(label: Text('Card Sale')),
-                            DataColumn(label: Text('Credit Sale')),
+                            DataColumn(label: Text('Udhar Sale')),
                             DataColumn(label: Text('Total Sale')),
-                            DataColumn(label: Text('Installment')),
+                            DataColumn(label: Text('Customer Recovery')),
                             DataColumn(label: Text('Cash In')),
                             DataColumn(label: Text('Cash Out')),
-                            DataColumn(label: Text('Net Amount')),
+                            DataColumn(label: Text('Overall Amount')),
                           ],
                           rows: pageSlice(records, _page).map((r) {
                             final counterName = r.counterId != null
@@ -287,7 +287,7 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                                 DataCell(_Cell(value: r.cashInLabel,     color: AppColor.success)),
                                 DataCell(_Cell(value: r.cashOutLabel,    color: AppColor.error)),
 
-                                // Net Amount
+                                // Overall Amount
                                 DataCell(Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 5),

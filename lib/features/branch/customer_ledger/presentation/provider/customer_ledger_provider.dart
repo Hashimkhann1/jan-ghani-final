@@ -175,6 +175,7 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
     required double payAmount,
     required double newAmount,
     String? notes,
+    String paymentMethod = 'cash',
   }) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -194,6 +195,7 @@ class CustomerLedgerNotifier extends StateNotifier<CustomerLedgerState> {
         payAmount:      payAmount,
         newAmount:      newAmount,
         notes:          notes,
+        paymentMethod:  paymentMethod,
         createdAt:      DateTime.now(),
         updatedAt:      DateTime.now(),
       ));

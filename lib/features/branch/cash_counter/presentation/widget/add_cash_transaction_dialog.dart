@@ -137,8 +137,8 @@ class _AddCashTransactionDialogState
                 const Divider(color: AppColor.grey200),
                 const SizedBox(height: 16),
 
-                // ── System Net Amount ─────────────────────
-                const _Label('System Net Amount'),
+                // ── System Overall Amount ─────────────────────
+                const _Label('System Overall Amount'),
                 const SizedBox(height: 6),
                 Container(
                   width:   double.infinity,

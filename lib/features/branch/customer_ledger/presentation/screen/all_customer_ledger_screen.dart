@@ -215,7 +215,7 @@ class _CounterCustomerLedgerScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$counterName — Ledger', style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text('$counterName — Customer Recovery', style: const TextStyle(fontWeight: FontWeight.w700)),
         toolbarHeight: 60,
         actions: [
           IconButton(
@@ -385,7 +385,7 @@ class _CounterCustomerLedgerScreenState
                     child: LayoutBuilder(
                 builder: (context, constraints) {
                   final availableWidth = constraints.maxWidth;
-                  const double minTableWidth = 1050;
+                  const double minTableWidth = 1150;
                   final tableWidth =
                   availableWidth > minTableWidth ? availableWidth : minTableWidth;
 
@@ -407,6 +407,7 @@ class _CounterCustomerLedgerScreenState
                             DataColumn(label: Text('User')),
                             DataColumn(label: Text('Previous')),
                             DataColumn(label: Text('Paid')),
+                            DataColumn(label: Text('Method')),
                             DataColumn(label: Text('Remaining')),
                             DataColumn(label: Text('Notes')),
                             DataColumn(label: Text('Date & Time')),
@@ -424,6 +425,8 @@ class _CounterCustomerLedgerScreenState
                                 DataCell(AmountBadge(amount: l.previousAmount, color: AppColor.grey500)),
 
                                 DataCell(AmountBadge(amount: l.payAmount, color: AppColor.success)),
+
+                                DataCell(_MethodChip(method: l.paymentMethod)),
 
                                 DataCell(AmountBadge(
                                   amount: l.newAmount,
@@ -499,6 +502,32 @@ class _CounterCustomerLedgerScreenState
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MethodChip extends StatelessWidget {
+  final String method;
+  const _MethodChip({required this.method});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCard = method == 'card';
+    final color  = isCard ? AppColor.info : AppColor.success;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color:        color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(isCard ? Icons.credit_card_rounded : Icons.payments_outlined,
+            size: 12, color: color),
+        const SizedBox(width: 5),
+        Text(isCard ? 'Card' : 'Cash',
+            style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+      ]),
     );
   }
 }

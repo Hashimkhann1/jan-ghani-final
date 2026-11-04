@@ -39,8 +39,8 @@ class BranchTransactionHistoryModel {
       payAmount:     _toDouble(m['pay_amount']),
       afterAmount:   _toDouble(m['after_amount']),
       isSynced:      m['is_synced'] as bool?         ?? false,
-      createdAt:     DateTime.tryParse(m['created_at']?.toString() ?? '') ?? DateTime.now(),
-      updatedAt:     DateTime.tryParse(m['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:     DateTime.tryParse(m['created_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+      updatedAt:     DateTime.tryParse(m['updated_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
     );
   }
 

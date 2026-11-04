@@ -121,7 +121,7 @@ final _stockOfficerItems = <NavItem>[
     permKey: 'customer_account',
   ),
   NavItem(
-    icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
+    icon: Icons.account_balance_wallet_rounded, label: 'Customer Recovery',
     screen: const CounterCustomerLedgerScreen(),
     section: 'PARTIES',
     shortcutKey: LogicalKeyboardKey.keyL,
@@ -242,7 +242,7 @@ final _managerItems = <NavItem>[
     permKey: 'customer_account',
   ),
   NavItem(
-    icon: Icons.account_balance_wallet_rounded, label: 'Customer Ledger',
+    icon: Icons.account_balance_wallet_rounded, label: 'Customer Recovery',
     screen: const CounterCustomerLedgerScreen(),
     section: 'PARTIES',
     shortcutKey: LogicalKeyboardKey.keyL,

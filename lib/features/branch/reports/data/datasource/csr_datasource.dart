@@ -107,8 +107,8 @@ class CsrDatasource {
         type: CsrType.sale,
         invoiceNo: m['invoice_no']?.toString() ?? '',
         invoiceDate: m['invoice_date'] is DateTime
-            ? m['invoice_date'] as DateTime
-            : DateTime.tryParse(m['invoice_date'].toString()) ?? DateTime.now(),
+            ? (m['invoice_date'] as DateTime).toLocal()
+            : DateTime.tryParse(m['invoice_date'].toString())?.toLocal() ?? DateTime.now(),
         paymentType: m['payment_type']?.toString() ?? 'cash',
         notes: m['notes']?.toString(),
         status: m['status']?.toString() ?? 'completed',
@@ -229,8 +229,8 @@ class CsrDatasource {
         type: CsrType.saleReturn,
         returnNo: m['return_no']?.toString() ?? '',
         returnDate: m['return_date'] is DateTime
-            ? m['return_date'] as DateTime
-            : DateTime.tryParse(m['return_date'].toString()) ?? DateTime.now(),
+            ? (m['return_date'] as DateTime).toLocal()
+            : DateTime.tryParse(m['return_date'].toString())?.toLocal() ?? DateTime.now(),
         refundType: m['refund_type']?.toString() ?? 'cash',
         returnReason: m['return_reason']?.toString(),
         invoiceId: m['invoice_id']?.toString(),
@@ -298,8 +298,8 @@ class CsrDatasource {
         type: CsrType.ledgerPayment,
         invoiceNo: 'PMT-${m['id'].toString().substring(0, 8).toUpperCase()}',
         invoiceDate: m['created_at'] is DateTime
-            ? m['created_at'] as DateTime
-            : DateTime.tryParse(m['created_at'].toString()) ?? DateTime.now(),
+            ? (m['created_at'] as DateTime).toLocal()
+            : DateTime.tryParse(m['created_at'].toString())?.toLocal() ?? DateTime.now(),
         notes: m['notes']?.toString(),
         previousAmount: _dbl(m['previous_amount']) ?? 0,
         payAmount: payAmt,

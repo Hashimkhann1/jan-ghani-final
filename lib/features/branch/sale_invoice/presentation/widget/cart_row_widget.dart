@@ -481,7 +481,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     super.initState();
     final item = widget.cartItem;
     _qtyCtrl   = TextEditingController(text: _fmtNum(_col0(item)));
-    _priceCtrl = TextEditingController(text: _fmtNum(item.salePrice));
+    _priceCtrl = TextEditingController(text: _fmtNum(_col1(item)));
     _taxCtrl   = TextEditingController(text: _fmtNum(item.taxAmount));
     _disCtrl   = TextEditingController(text: _fmtNum(item.discountAmount));
     _subCtrl   = TextEditingController(text: _fmtNum(item.subTotal));
@@ -522,7 +522,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
       if (_qtyCtrl.text != q) _qtyCtrl.text = q;
     }
     if (!_priceFocused) {
-      final p = _fmtNum(item.salePrice);
+      final p = _fmtNum(_col1(item));
       if (_priceCtrl.text != p) _priceCtrl.text = p;
     }
     if (!_taxFocused) {
@@ -551,6 +551,10 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
   // Column 0: quantity for normal products, purchase price for digital ones.
   double _col0(CartItem i) =>
       i.product.isDigital ? i.purchasePrice : i.quantity;
+
+  // Column 1: sale price, or the auto fee for fee-rule digital lines.
+  double _col1(CartItem i) =>
+      i.product.usesFeeRule ? i.digitalFee : i.salePrice;
 
   List<TextEditingController> get _ctrls =>
       [_qtyCtrl, _priceCtrl, _taxCtrl, _disCtrl, _subCtrl];
@@ -650,6 +654,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     final item      = widget.cartItem;
     final nav       = ref.watch(cartNavProvider);
     final costPrice = item.product.costPrice;
+    final feeLine   = item.product.usesFeeRule;
 
     final isNavRow = nav.isActive && nav.row == widget.rowIndex;
 
@@ -741,6 +746,8 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
               controller:   _priceCtrl,
               focusNode:    _fn[1],
               isNavActive:  isNavRow && nav.col == 1,
+              readOnly:     feeLine,
+              prefix:       feeLine ? 'Rs' : null,
               hasError:     _priceError,
               errorMessage: _priceErrorMsg,
               onChanged: (v) {
@@ -762,8 +769,8 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
             ),
           ),
 
-          // Tax
-          Expanded(
+          // Tax (hidden for fee-rule digital lines)
+          if (!feeLine) Expanded(
             flex: 2,
             child: _CellTF(
               controller:  _taxCtrl,
@@ -804,6 +811,7 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
               focusNode:   _fn[4],
               isNavActive: isNavRow && nav.col == 4,
               highlighted: true,
+              readOnly:    feeLine,
               onChanged:   (v) {
                 final val = double.tryParse(v);
                 if (val != null && val >= 0)

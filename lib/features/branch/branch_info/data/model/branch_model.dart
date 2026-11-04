@@ -33,16 +33,16 @@ class BranchModel {
         ? m['is_active'] as bool
         : (m['is_active']?.toString() == 'true'),
     createdAt: m['created_at'] is DateTime
-        ? m['created_at'] as DateTime
-        : DateTime.parse(m['created_at'].toString()),
+        ? (m['created_at'] as DateTime).toLocal()
+        : DateTime.parse(m['created_at'].toString()).toLocal(),
     updatedAt: m['updated_at'] is DateTime
-        ? m['updated_at'] as DateTime
-        : DateTime.parse(m['updated_at'].toString()),
+        ? (m['updated_at'] as DateTime).toLocal()
+        : DateTime.parse(m['updated_at'].toString()).toLocal(),
     deletedAt: m['deleted_at'] == null
         ? null
         : (m['deleted_at'] is DateTime
-        ? m['deleted_at'] as DateTime
-        : DateTime.parse(m['deleted_at'].toString())),
+        ? (m['deleted_at'] as DateTime).toLocal()
+        : DateTime.parse(m['deleted_at'].toString()).toLocal()),
   );
 
   Map<String, dynamic> toMap() => {
