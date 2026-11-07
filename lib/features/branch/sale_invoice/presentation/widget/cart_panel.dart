@@ -1147,7 +1147,7 @@ class InvoiceHeaderWidget extends ConsumerWidget {
     final returnNotifier = ref.read(saleReturnProvider.notifier);
     final isReturn       = state.saleType == SaleType.saleReturn;
     final customers      = ref.watch(customerProvider).allCustomers
-        .where((c) => c.deletedAt == null && c.isActive)
+        .where((c) => c.deletedAt == null)
         .toList();
     final dateFmt = DateFormat('dd-MM-yyyy');
 
@@ -1423,6 +1423,15 @@ class _CustomerDropdownState extends ConsumerState<_CustomerDropdown> {
     };
   }
 
+  @override
+  void didUpdateWidget(covariant _CustomerDropdown old) {
+    super.didUpdateWidget(old);
+    // Customer badla / invoice save ke baad reset — purana search text saaf.
+    if ((old.selectedCustomer?.id ?? '') != (widget.selectedCustomer?.id ?? '')) {
+      _searchCtrl.clear();
+    }
+  }
+
   void _scrollToHighlight() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = _itemKeys[_highlight.value]?.currentContext;
@@ -1485,8 +1494,17 @@ class _CustomerDropdownState extends ConsumerState<_CustomerDropdown> {
               selectedItem: disabled ? null : selectedCustomer,
               compareFn:  (a, b) => (a?.id ?? '') == (b?.id ?? ''),
               itemAsString: (c) =>
-              c == null ? 'Walk In' : '${c.name} — ${c.code}',
-              onSelected: onSelected,
+              c == null
+                  ? 'Walk In'
+                  : '${c.name} — ${c.code}${c.isActive ? '' : ' (Inactive)'}',
+              onSelected: (c) {
+                _searchCtrl.clear();
+                onSelected(c);
+              },
+              onBeforePopupOpening: (_) async {
+                _searchCtrl.clear(); // har baar dropdown khulne par fresh search
+                return true;
+              },
               decoratorProps: DropDownDecoratorProps(
                 decoration: _fieldDecoration(
                   hint:        disabled ? 'Digital sale — no customer' : 'Customer (optional)',
@@ -1549,7 +1567,9 @@ class _CustomerDropdownState extends ConsumerState<_CustomerDropdown> {
                       ),
                     ),
                     title: Text(
-                      customer == null ? 'Walk In' : customer.name,
+                      customer == null
+                          ? 'Walk In'
+                          : '${customer.name}${customer.isActive ? '' : ' (Inactive)'}',
                       style: TextStyle(
                           fontSize:   14,
                           fontWeight: isSelected

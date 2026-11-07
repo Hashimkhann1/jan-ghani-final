@@ -203,6 +203,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
     final perms     = ref.watch(permissionsProvider);
     final canEdit   = perms.isGranted(auth.userId, auth.role, 'customer.edit');
     final canDelete = perms.isGranted(auth.userId, auth.role, 'customer.delete');
+    final canCreate = perms.isGranted(auth.userId, auth.role, 'customer.create');
 
     // ── Page maths ───────────────────────────────────────────
     final totalRows = allRows.length;
@@ -256,6 +257,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
             style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
+          if (canCreate)
           IntrinsicWidth(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),

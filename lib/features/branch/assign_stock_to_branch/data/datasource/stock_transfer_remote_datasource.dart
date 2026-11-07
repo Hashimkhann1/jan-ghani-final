@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/service/sync/sync_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -329,5 +330,6 @@ class StockTransferRemoteDataSource {
         }
       }
     });
+    SyncService().syncSoon();
   }
 }

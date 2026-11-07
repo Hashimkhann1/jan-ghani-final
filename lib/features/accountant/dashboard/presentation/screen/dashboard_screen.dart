@@ -12,6 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../branch_reports/accountant_branch_transaction/data/datasource/accountant_branch_transaction_datasource.dart';
 import '../../data/model/dashboard_model.dart';
 import '../provider/dashboard_provider.dart';
+import 'package:jan_ghani_final/features/customer/push/push_toggle_button.dart';
 
 
 // ── Role-based nav config ─────────────────────────────────────────────────────
@@ -507,6 +508,8 @@ class AccountantDashboardBody extends ConsumerWidget {
                   ],
                 ),
               ),
+              // Installment (wasooli) notifications on/off — PWA push
+              const PushToggleButton(what: 'installment'),
               PopupMenuButton<String>(
                 offset: const Offset(0, 48),
                 shape: RoundedRectangleBorder(

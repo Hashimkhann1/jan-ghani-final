@@ -5,6 +5,7 @@ import '../../../../../core/color/app_color.dart';
 import '../../../../../core/widget/app_icon.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
+import '../../../permissions/presentation/provider/permissions_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
 import '../../../customer/presentation/widget/customer_action_button_widget.dart';
 import '../../data/model/customer_account_model.dart';
@@ -382,6 +383,10 @@ class _CustomerAccountScreenState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(customerAccountProvider);
+    final authP = ref.watch(authProvider);
+    final permsP = ref.watch(permissionsProvider);
+    final canCreate =
+        permsP.isGranted(authP.userId, authP.role, 'customer_account.create');
 
     return Scaffold(
       appBar: AppBar(
@@ -399,6 +404,7 @@ class _CustomerAccountScreenState
             style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
+          if (canCreate)
           IntrinsicWidth(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),

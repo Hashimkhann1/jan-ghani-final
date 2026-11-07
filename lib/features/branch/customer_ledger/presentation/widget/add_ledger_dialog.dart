@@ -193,13 +193,13 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
   Widget build(BuildContext context) {
     final customers = ref.watch(customerProvider)
         .allCustomers
-        .where((c) => c.deletedAt == null && c.isActive)
+        .where((c) => c.deletedAt == null)
         .toList();
 
     final dropdownItems = customers
         .map((c) => DropdownItem<CustomerModel>(
       value: c,
-      label: '${c.name} — ${c.code}',
+      label: '${c.name} — ${c.code}${c.isActive ? '' : ' (Inactive)'}',
       icon:  Icons.person_outline_rounded,
     ))
         .toList();
