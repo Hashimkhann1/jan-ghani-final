@@ -5,7 +5,9 @@ import 'customer_push_service.dart';
 /// Customer portal header mein "Sale notifications" on/off. Jahan push
 /// available nahi (desktop/purana browser/key set nahi) wahan kuch nahi dikhata.
 class PushToggleButton extends StatefulWidget {
-  const PushToggleButton({super.key});
+  /// 'sale' (customer, default) ya 'installment' (manager/accountant).
+  final String what;
+  const PushToggleButton({super.key, this.what = 'sale'});
 
   @override
   State<PushToggleButton> createState() => _PushToggleButtonState();
@@ -41,7 +43,9 @@ class _PushToggleButtonState extends State<PushToggleButton> {
         if (!mounted) return;
         setState(() => _on = ok);
         _msg(ok
-            ? 'Ab aap ki har khareedari par notification aayegi'
+            ? (widget.what == 'installment'
+                ? 'Ab har customer ki installment (wasooli) par notification aayegi'
+                : 'Ab aap ki har khareedari par notification aayegi')
             : 'Notification ki ijazat nahi mili (browser settings dekhein)');
       }
     } catch (e) {
@@ -55,7 +59,9 @@ class _PushToggleButtonState extends State<PushToggleButton> {
   Widget build(BuildContext context) {
     if (!CustomerPushService.available) return const SizedBox.shrink();
     return IconButton(
-      tooltip: _on ? 'Sale notifications band karein' : 'Sale notifications on karein',
+      tooltip: widget.what == 'installment'
+          ? (_on ? 'Installment notifications band karein' : 'Installment notifications on karein')
+          : (_on ? 'Sale notifications band karein' : 'Sale notifications on karein'),
       onPressed: _busy ? null : _toggle,
       icon: Icon(
         _on ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,

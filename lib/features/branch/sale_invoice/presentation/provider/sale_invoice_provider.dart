@@ -198,6 +198,9 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   void updateSearch(String query) =>
       state = state.copyWith(searchQuery: query);
 
+  static const _inactiveCreditMsg =
+      'Aap apna samaan nahi le sakte, aap ka credit zyada hai. Manager se contact karein taake aap ka account bahal kiya jaye.';
+
   // ── Payments ──────────────────────────────────────────────
   void _resetPayments() => state = state.copyWith(payments: []);
 
@@ -206,6 +209,11 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     if (method == 'credit' && state.selectedCustomer == null) {
       state = state.copyWith(
           errorMessage: 'Credit payment ke liye customer select karein');
+      return;
+    }
+    if (method == 'credit' && state.selectedCustomer != null &&
+        !state.selectedCustomer!.isActive) {
+      state = state.copyWith(errorMessage: _inactiveCreditMsg);
       return;
     }
     final existing =
@@ -219,6 +227,11 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     if (method == 'credit' && state.selectedCustomer == null) {
       state = state.copyWith(
           errorMessage: 'Credit payment ke liye customer select karein');
+      return;
+    }
+    if (method == 'credit' && state.selectedCustomer != null &&
+        !state.selectedCustomer!.isActive) {
+      state = state.copyWith(errorMessage: _inactiveCreditMsg);
       return;
     }
     state = state.copyWith(
@@ -314,6 +327,11 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     if (state.hasCreditPayment && state.selectedCustomer == null) {
       state = state.copyWith(
           errorMessage: 'Credit payment ke liye customer select karein');
+      return false;
+    }
+    if (state.hasCreditPayment && state.selectedCustomer != null &&
+        !state.selectedCustomer!.isActive) {
+      state = state.copyWith(errorMessage: _inactiveCreditMsg);
       return false;
     }
     for (final i in state.cartItems.where((i) => i.product.isDigital)) {

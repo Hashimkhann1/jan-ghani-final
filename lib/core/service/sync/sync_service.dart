@@ -785,6 +785,20 @@ class SyncConfig {
     'branch_stock_damage',
   ];
 
+  // ── Naya record banne par FORAN sync hone wali tables (5-min wait nahi).
+  // `tables` ki dependency-order mein, parent pehle. Child rows (items /
+  // payments / logs) saath hain taake invoice adhoori Supabase na pahunche.
+  static const Set<String> quickTables = {
+    'customer',
+    'customer_logs',
+    'branch_stock_inventory',
+    'branch_stock_inventory_logs',
+    'sale_invoices',
+    'sale_invoice_items',
+    'sale_invoice_payments',
+    'customer_ledger',
+  };
+
   static String timestampColumn(String table) =>
       _timestampColumns[table] ?? 'updated_at';
 
@@ -868,12 +882,14 @@ class _IsolateArgs {
   final String   supabaseUrl;
   final String   supabaseKey;
   final bool     fullCheck;
+  final List<String>? onlyTables; // null = saari tables
 
   const _IsolateArgs({
     required this.sendPort,
     required this.supabaseUrl,
     required this.supabaseKey,
     required this.fullCheck,
+    this.onlyTables,
   });
 }
 
@@ -916,6 +932,21 @@ class SyncService {
     );
   }
 
+  // ── Naya customer / ledger / invoice / stock bane to foran sync ──
+  // Burst (jaise invoice ke kai writes) ek hi sync mein sameta jata hai.
+  // Internet na ho to chup-chap skip — agli periodic sync pakad legi
+  // (watermark + lookback ki wajah se kuch miss nahi hota).
+  Timer? _soonTimer;
+  bool   _quickPending = false;
+
+  void syncSoon() {
+    if (!_running) return;
+    _soonTimer?.cancel();
+    _soonTimer = Timer(const Duration(seconds: 3), () {
+      _runSync(quick: true);
+    });
+  }
+
   Future<void> syncNow() async {
     _log('🔁 Manual sync...');
     await _runSync();
@@ -923,6 +954,7 @@ class SyncService {
 
   void stop() {
     _syncTimer?.cancel();
+    _soonTimer?.cancel();
     _internetTimer?.cancel();
     _killIsolate();
     _running = false;
@@ -948,9 +980,11 @@ class SyncService {
     });
   }
 
-  Future<void> _runSync() async {
+  Future<void> _runSync({bool quick = false}) async {
     if (_status.isSyncing) {
       _log('⏳ Pehle se chal rahi hai — skip');
+      // Chalti sync mein shayad yeh naya record na aaya ho — baad mein dobara.
+      if (quick) _quickPending = true;
       return;
     }
     final hasNet = await _checkInternet();
@@ -959,7 +993,7 @@ class SyncService {
       _emit(_status.copyWith(hasInternet: false));
       return;
     }
-    _currentRunFull = !_fullCheckDone;
+    _currentRunFull = !quick && !_fullCheckDone;
     _emit(_status.copyWith(isSyncing: true, hasInternet: true));
     _killIsolate();
     _receivePort = ReceivePort();
@@ -971,6 +1005,11 @@ class SyncService {
           supabaseUrl: SyncConfig.supabaseUrl,
           supabaseKey: SyncConfig.supabaseKey,
           fullCheck:   _currentRunFull,
+          onlyTables:  quick
+              ? SyncConfig.tables
+                  .where(SyncConfig.quickTables.contains)
+                  .toList()
+              : null,
         ),
         errorsAreFatal: false,
         debugName: 'SyncIsolate',
@@ -994,6 +1033,10 @@ class SyncService {
       // to har agla _runSync "pehle se chal rahi hai" keh kar skip hota.
       if (_status.isSyncing) {
         _emit(_status.copyWith(isSyncing: false, lastError: _status.lastError));
+      }
+      if (_quickPending) {
+        _quickPending = false;
+        syncSoon();
       }
     }
   }
@@ -1094,7 +1137,7 @@ class SyncService {
       _log('  🏪 Store ID: $storeId');
 
       // ── Har table sync karo ───────────────────
-      for (final table in SyncConfig.tables) {
+      for (final table in (args.onlyTables ?? SyncConfig.tables)) {
         final count = await _syncTable(db, supabase, table, storeId, send);
         _log(count > 0
             ? '  🔄 $table: $count rows synced'

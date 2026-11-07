@@ -932,6 +932,19 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
 
   Future<void> _confirm() async {
     if (!_isValid || _saving) return;
+
+    // Inactive customer ko udhar (credit) par samaan nahi — dialog khula
+    // rakho aur message dikhao (save/pop nahi, warna route khali ho sakta hai).
+    final cust = ref.read(saleInvoiceProvider).selectedCustomer;
+    if (cust != null && !cust.isActive && _creditForInvoice > 0) {
+      _showSnack(
+        'Aap apna samaan nahi le sakte, aap ka credit zyada hai. '
+        'Manager se contact karein taake aap ka account bahal kiya jaye.',
+        AppColor.error,
+      );
+      return;
+    }
+
     setState(() => _saving = true);
 
     // ✅ saveInvoice() se PEHLE — in getters ko baad mein call mat karo
