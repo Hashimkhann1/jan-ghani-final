@@ -35,7 +35,17 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows (Branch)
-        run: flutter build windows --release -t lib/main.dart
+        # printing plugin CMake mein pdfium download karta hai — network flake
+        # ho to 3 baar tak retry.
+        shell: pwsh
+        run: |
+          for ($i = 1; $i -le 3; $i++) {
+            flutter build windows --release -t lib/main.dart
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Write-Host "Build attempt $i failed, retrying in 20s..."
+            Start-Sleep -Seconds 20
+          }
+          exit 1
 
       - name: Create MSIX (Microsoft Store)
         run: dart run msix:create --store --build-windows false
