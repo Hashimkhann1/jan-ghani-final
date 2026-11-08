@@ -110,6 +110,13 @@ class _BranchHome extends ConsumerWidget {
               const SizedBox(height: 12),
               const Text('Database se connect nahi ho saka'),
               const SizedBox(height: 12),
+              SelectableText(
+                'Target: ${DataBaseService.target}\n'
+                'Error: ${DataBaseService.lastError ?? "(koi connection error record nahi hua — config/JSON check karein)"}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 12),
               FilledButton(
                 onPressed: () =>
                     ref.read(authProvider.notifier).retryInit(),

@@ -5,6 +5,13 @@ class DataBaseService {
   static Connection? _connection;
   static Future<Connection>? _opening;
 
+  /// Last connection failure (for the "cannot connect" screen).
+  static String? lastError;
+
+  /// Human-readable target currently configured.
+  static String get target =>
+      '${StoreConfig.dbUser}@${StoreConfig.dbHost}:${StoreConfig.dbPort}/${StoreConfig.dbName}';
+
   static Future<Connection> getConnection() async {
     final existing = _connection;
     if (existing != null && existing.isOpen) return existing;
@@ -35,10 +42,12 @@ class DataBaseService {
         ),
       ).timeout(const Duration(seconds: 15));
       _connection = conn;
+      lastError = null;
       print('PostgreSQL connected!');
       return conn;
     } catch (e) {
-      print('Connection Error: $e');
+      lastError = e.toString();
+      print('Connection Error ($target): $e');
       rethrow;
     } finally {
       _opening = null;
