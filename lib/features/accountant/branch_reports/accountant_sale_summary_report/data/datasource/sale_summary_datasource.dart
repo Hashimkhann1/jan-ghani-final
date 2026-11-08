@@ -9,6 +9,61 @@ class SaleSummaryDatasource {
 
   SaleSummaryDatasource({required this.branchId});
 
+  // ── Digital products (Bank Transfer / Pay Bill / SIM Load / Cash Withdraw) ──
+  // Sale Summary sirf physical products dikhata hai. Digital invoice = jis
+  // mein koi digital item ho (digital invoices sirf digital items ki hoti hain).
+  Set<String>? _digitalIds;
+
+  Future<Set<String>> _digitalProductIds() async {
+    final cached = _digitalIds;
+    if (cached != null) return cached;
+    final rows = await _client
+        .from('branch_stock_inventory')
+        .select('product_id')
+        .eq('store_id', branchId)
+        .neq('product_type', 'physical') as List;
+    return _digitalIds = {for (final r in rows) r['product_id'].toString()};
+  }
+
+  /// Range ki digital invoices: (id, date, grand_total, customer_id), deduped.
+  Future<List<({String id, DateTime date, double total})>> _digitalInvoices(
+    DateTime from,
+    DateTime to,
+    String? cid,
+  ) async {
+    final ids = await _digitalProductIds();
+    if (ids.isEmpty) return const [];
+    final out = <String, ({String id, DateTime date, double total})>{};
+    var start = 0;
+    while (true) {
+      var q = _client
+          .from('sale_invoice_items')
+          .select('invoice_id, sale_invoices!inner(id, invoice_date, grand_total)')
+          .inFilter('product_id', ids.toList())
+          .eq('sale_invoices.store_id', branchId)
+          .eq('sale_invoices.status', 'completed')
+          .filter('sale_invoices.deleted_at', 'is', null)
+          .gte('sale_invoices.invoice_date', from.toIso8601String())
+          .lte('sale_invoices.invoice_date', to.toIso8601String());
+      if (cid != null) q = q.eq('sale_invoices.customer_id', cid);
+      final rows = await q
+          .order('invoice_id')
+          .range(start, start + _chunk - 1) as List;
+      for (final r in rows) {
+        final inv = r['sale_invoices'] as Map;
+        final id = inv['id'].toString();
+        out[id] = (
+          id: id,
+          date: DateTime.parse(inv['invoice_date'].toString()).toLocal(),
+          total: _dbl(inv['grand_total']),
+        );
+      }
+      if (rows.length < _chunk) break;
+      start += _chunk;
+    }
+    return out.values.toList();
+  }
+
   Future<List<SummaryCustomer>> getCustomers() async {
     final result = await _client
         .from('customer')
@@ -33,13 +88,13 @@ class SaleSummaryDatasource {
     String?           search,
   }) async {
     final (start, end) = BranchReportPagination.range(page);
-    final invoices = await _fetchInvoices(
+    final (invoices, rawCount) = await _fetchInvoices(
       fromDate: fromDate, toDate: toDate, start: start, end: end,
       customerId: customerId, search: search,
     );
     return PagedSummaryInvoices(
       invoices:    invoices,
-      hasNextPage: BranchReportPagination.hasNextPage(invoices.length),
+      hasNextPage: BranchReportPagination.hasNextPage(rawCount),
     );
   }
 
@@ -54,18 +109,19 @@ class SaleSummaryDatasource {
     final all = <SummaryInvoice>[];
     var from = 0;
     while (true) {
-      final rows = await _fetchInvoices(
+      final (rows, rawCount) = await _fetchInvoices(
         fromDate: fromDate, toDate: toDate, start: from,
         end: from + chunk - 1, customerId: customerId,
       );
       all.addAll(rows);
-      if (rows.length < chunk) break;
+      if (rawCount < chunk) break;
       from += chunk;
     }
     return all;
   }
 
-  Future<List<SummaryInvoice>> _fetchInvoices({
+  /// (physical invoices, raw row count) — raw count pagination ke liye.
+  Future<(List<SummaryInvoice>, int)> _fetchInvoices({
     required DateTime fromDate,
     required DateTime toDate,
     required int      start,
@@ -80,7 +136,7 @@ class SaleSummaryDatasource {
           previous_amount, new_amount, pay_amount, deleted_at,
           customer (name),
           sale_invoice_payments (payment_method),
-          sale_invoice_items (product_name, sale_price, purchase_price, quantity, total_amount)
+          sale_invoice_items (product_id, product_name, sale_price, purchase_price, quantity, total_amount)
         ''')
         .eq('store_id', branchId)
         .eq('status', 'completed')
@@ -100,7 +156,12 @@ class SaleSummaryDatasource {
         .order('invoice_date', ascending: false)
         .range(start, end) as List;
 
-    final invoices = rows.map((r) {
+    final digital = await _digitalProductIds();
+    // Jis invoice mein koi digital item ho wo poori hide.
+    final physicalRows = rows.where((r) => !(r['sale_invoice_items'] as List? ?? [])
+        .any((i) => digital.contains(i['product_id']?.toString()))).toList();
+
+    final invoices = physicalRows.map((r) {
       final methods = (r['sale_invoice_payments'] as List? ?? [])
           .map((p) => p['payment_method']?.toString() ?? '')
           .toSet()
@@ -129,7 +190,7 @@ class SaleSummaryDatasource {
       );
     }).toList();
 
-    return invoices;
+    return (invoices, rows.length);
   }
 
   /// Every return in the range, for export. Fetched in chunks of 500 because
@@ -234,7 +295,9 @@ class SaleSummaryDatasource {
       'p_customer_id':  cid,
       'p_payment_type': null,
     });
-    return _dbl((rows as List).first['total_sale']);
+    final total = _dbl((rows as List).first['total_sale']);
+    final digital = await _digitalInvoices(from, to, cid);
+    return total - digital.fold<double>(0, (a, d) => a + d.total);
   }
 
   Future<double> _totalReturn(DateTime from, DateTime to, String? cid) async {
@@ -333,7 +396,12 @@ class SaleSummaryDatasource {
       return out;
     }
 
-    final sale = bucket(rows[0]);
+    final digitalInv = await _digitalInvoices(fromDate, toDate, cid);
+    final saleRows = [
+      ...rows[0],
+      for (final d in digitalInv) (d.date, -d.total),
+    ];
+    final sale = bucket(saleRows);
     final ret  = bucket(rows[1]);
     final col  = bucket(rows[2]);
     return [

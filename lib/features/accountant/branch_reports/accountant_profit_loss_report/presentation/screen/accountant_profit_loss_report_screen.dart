@@ -324,9 +324,11 @@ class _PnlBody extends StatelessWidget {
                         icon:  'ic_calendar'),
                     Expanded(
                       child: _DailyTab(
-                        daily:  summary.daily,
-                        dayFmt: dayFmt,
-                        fmtAmt: fmtAmt,
+                        daily:       summary.daily,
+                        dayFmt:      dayFmt,
+                        fmtAmt:      fmtAmt,
+                        selectedDay: state.selectedDay,
+                        onSelect:    notifier.selectDay,
                       ),
                     ),
                   ]),
@@ -336,8 +338,10 @@ class _PnlBody extends StatelessWidget {
                     color: const Color(0xFFE5E7EB)),
                 Expanded(
                   child: Column(children: [
-                    const _PanelHeader(
-                        title: 'Invoices',
+                    _PanelHeader(
+                        title: state.selectedDay == null
+                            ? 'Invoices'
+                            : 'Invoices  •  ${dayFmt.format(state.selectedDay!)}',
                         icon:  'ic_total_sale'),
                     Expanded(
                       child: _InvoicesTab(
@@ -345,6 +349,7 @@ class _PnlBody extends StatelessWidget {
                         notifier: notifier,
                         timeFmt:  timeFmt,
                         fmtAmt:   fmtAmt,
+                        dayFmt:   dayFmt,
                       ),
                     ),
                   ]),
@@ -417,15 +422,21 @@ class _PnlBody extends StatelessWidget {
           controller: tabCtrl,
           children: [
             _DailyTab(
-              daily:  summary.daily,
-              dayFmt: dayFmt,
-              fmtAmt: fmtAmt,
+              daily:       summary.daily,
+              dayFmt:      dayFmt,
+              fmtAmt:      fmtAmt,
+              selectedDay: state.selectedDay,
+              onSelect: (d) {
+                notifier.selectDay(d);
+                tabCtrl.animateTo(1);
+              },
             ),
             _InvoicesTab(
               state:    state,
               notifier: notifier,
               timeFmt:  timeFmt,
               fmtAmt:   fmtAmt,
+              dayFmt:   dayFmt,
             ),
           ],
         ),
@@ -559,11 +570,15 @@ class _DailyTab extends StatelessWidget {
   final List<PnlDaySummary>     daily;
   final DateFormat              dayFmt;
   final String Function(double) fmtAmt;
+  final DateTime?               selectedDay;
+  final ValueChanged<DateTime>  onSelect;
 
   const _DailyTab({
     required this.daily,
     required this.dayFmt,
     required this.fmtAmt,
+    required this.selectedDay,
+    required this.onSelect,
   });
 
   @override
@@ -573,21 +588,33 @@ class _DailyTab extends StatelessWidget {
       padding:          const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount:        daily.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) =>
-          _DayCard(day: daily[i], dayFmt: dayFmt, fmtAmt: fmtAmt),
+      itemBuilder: (_, i) => _DayCard(
+        day:      daily[i],
+        dayFmt:   dayFmt,
+        fmtAmt:   fmtAmt,
+        selected: selectedDay != null && _sameDay(selectedDay!, daily[i].date),
+        onTap:    () => onSelect(daily[i].date),
+      ),
     );
   }
 }
+
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
 
 class _DayCard extends StatelessWidget {
   final PnlDaySummary           day;
   final DateFormat              dayFmt;
   final String Function(double) fmtAmt;
+  final bool                    selected;
+  final VoidCallback            onTap;
 
   const _DayCard({
     required this.day,
     required this.dayFmt,
     required this.fmtAmt,
+    required this.selected,
+    required this.onTap,
   });
 
   @override
@@ -596,11 +623,18 @@ class _DayCard extends StatelessWidget {
     final isProfit = net >= 0;
     final color    = isProfit ? AppColor.success : AppColor.error;
 
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color:        selected ? AppColor.primary.withOpacity(0.06) : Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: selected ? AppColor.primary : Colors.transparent,
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
               color:      Colors.black.withOpacity(0.04),
@@ -673,6 +707,7 @@ class _DayCard extends StatelessWidget {
                   color:      color)),
         ]),
       ]),
+    ),
     );
   }
 }
@@ -689,19 +724,80 @@ class _InvoicesTab extends StatelessWidget {
   final PnlReportNotifier       notifier;
   final DateFormat              timeFmt;
   final String Function(double) fmtAmt;
+  final DateFormat              dayFmt;
 
   const _InvoicesTab({
     required this.state,
     required this.notifier,
     required this.timeFmt,
     required this.fmtAmt,
+    required this.dayFmt,
   });
 
   @override
   Widget build(BuildContext context) {
     final rows = state.rows;
+    final sel  = state.selectedDay;
+    PnlDaySummary? dayInfo;
+    if (sel != null) {
+      for (final d in state.summary?.daily ?? const <PnlDaySummary>[]) {
+        if (_sameDay(d.date, sel)) { dayInfo = d; break; }
+      }
+    }
 
     return Column(children: [
+
+      // ── Selected day profit strip ───────────────────
+      if (sel != null)
+        Container(
+          width:   double.infinity,
+          margin:  const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+          decoration: BoxDecoration(
+            color: (dayInfo == null || dayInfo.netProfit >= 0
+                    ? AppColor.success
+                    : AppColor.error)
+                .withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(dayFmt.format(sel),
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColor.textHint)),
+                  const SizedBox(height: 2),
+                  Text(
+                    dayInfo == null
+                        ? '—'
+                        : 'Net Profit: ${fmtAmt(dayInfo.netProfit)}',
+                    style: TextStyle(
+                      fontSize:   15,
+                      fontWeight: FontWeight.w800,
+                      color: dayInfo == null || dayInfo.netProfit >= 0
+                          ? AppColor.success
+                          : AppColor.error,
+                    ),
+                  ),
+                  if (dayInfo != null)
+                    Text(
+                      'Sale ${fmtAmt(dayInfo.saleProfit)}  •  '
+                      'Return ${fmtAmt(dayInfo.returnProfit)}',
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColor.textSecondary),
+                    ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Show all days',
+              icon: const Icon(Icons.close_rounded, size: 18),
+              onPressed: () => notifier.selectDay(sel),
+            ),
+          ]),
+        ),
 
       // ── Filter Buttons ──────────────────────────────
       Padding(

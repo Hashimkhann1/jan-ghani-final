@@ -9,6 +9,8 @@ export '../../data/datasource/accountant_profit_loss_datasource.dart'
 //  STATE
 // ═══════════════════════════════════════════════════════════
 
+const Object _keepDay = Object();
+
 class PnlReportState {
   final PnlSummary? summary;
   final DateTime    fromDate;
@@ -27,6 +29,9 @@ class PnlReportState {
   final int                     profitCount;
   final int                     lossCount;
 
+  /// Daily Breakdown mein click kiya hua din — Invoices panel sirf is din ka.
+  final DateTime?               selectedDay;
+
   PnlReportState({
     this.summary,
     required this.storeId,
@@ -42,6 +47,7 @@ class PnlReportState {
     this.totalCount    = 0,
     this.profitCount   = 0,
     this.lossCount     = 0,
+    this.selectedDay,
   })  : fromDate = fromDate ?? _monthStart(),
         toDate   = toDate   ?? _today();
 
@@ -70,6 +76,7 @@ class PnlReportState {
     int?  totalCount,
     int?  profitCount,
     int?  lossCount,
+    Object? selectedDay = _keepDay,
   }) =>
       PnlReportState(
         summary:       summary       ?? this.summary,
@@ -86,7 +93,14 @@ class PnlReportState {
         totalCount:    totalCount    ?? this.totalCount,
         profitCount:   profitCount   ?? this.profitCount,
         lossCount:     lossCount     ?? this.lossCount,
+        selectedDay:   identical(selectedDay, _keepDay)
+            ? this.selectedDay
+            : selectedDay as DateTime?,
       );
+
+  /// Invoices panel ki date range: click kiya din ya poori range.
+  DateTime get listFrom => selectedDay ?? fromDate;
+  DateTime get listTo   => selectedDay ?? toDate;
 
   int get totalPages => totalCount == 0
       ? 1
@@ -145,21 +159,21 @@ class PnlReportNotifier extends StateNotifier<PnlReportState> {
           storeId:  state.storeId,
         ),
         _ds.getTransactionsPage(
-          fromDate: state.fromDate,
-          toDate:   state.toDate,
+          fromDate: state.listFrom,
+          toDate:   state.listTo,
           storeId:  state.storeId,
           filter:   state.filter,
           page:     0,
         ),
         _ds.getFilterCount(
-          fromDate: state.fromDate,
-          toDate:   state.toDate,
+          fromDate: state.listFrom,
+          toDate:   state.listTo,
           storeId:  state.storeId,
           filter:   PnlInvoiceFilter.profit,
         ),
         _ds.getFilterCount(
-          fromDate: state.fromDate,
-          toDate:   state.toDate,
+          fromDate: state.listFrom,
+          toDate:   state.listTo,
           storeId:  state.storeId,
           filter:   PnlInvoiceFilter.loss,
         ),
@@ -192,8 +206,8 @@ class PnlReportNotifier extends StateNotifier<PnlReportState> {
     state = state.copyWith(filter: filter, isLoadingPage: true, page: 0);
     try {
       final page = await _ds.getTransactionsPage(
-        fromDate: state.fromDate,
-        toDate:   state.toDate,
+        fromDate: state.listFrom,
+          toDate:   state.listTo,
         storeId:  state.storeId,
         filter:   filter,
         page:     0,
@@ -223,8 +237,8 @@ class PnlReportNotifier extends StateNotifier<PnlReportState> {
     state = state.copyWith(isLoadingPage: true);
     try {
       final result = await _ds.getTransactionsPage(
-        fromDate: state.fromDate,
-        toDate:   state.toDate,
+        fromDate: state.listFrom,
+          toDate:   state.listTo,
         storeId:  state.storeId,
         filter:   state.filter,
         page:     page,
@@ -241,22 +255,65 @@ class PnlReportNotifier extends StateNotifier<PnlReportState> {
     }
   }
 
+  /// Daily Breakdown ka din click: us din ke invoices (aur counts) dikhao.
+  /// Wahi din dobara click → selection hat jaye (poori range wapas).
+  /// Summary / daily list dobara load nahi hoti — sirf invoices panel.
+  Future<void> selectDay(DateTime day) async {
+    final d = DateTime(day.year, day.month, day.day);
+    final cur = state.selectedDay;
+    final same = cur != null && cur == d;
+    state = state.copyWith(
+      selectedDay:   same ? null : d,
+      filter:        PnlInvoiceFilter.all,
+      isLoadingPage: true,
+      page:          0,
+    );
+    try {
+      final results = await Future.wait([
+        _ds.getTransactionsPage(
+          fromDate: state.listFrom, toDate: state.listTo,
+          storeId: state.storeId, filter: PnlInvoiceFilter.all, page: 0,
+        ),
+        _ds.getFilterCount(
+          fromDate: state.listFrom, toDate: state.listTo,
+          storeId: state.storeId, filter: PnlInvoiceFilter.profit,
+        ),
+        _ds.getFilterCount(
+          fromDate: state.listFrom, toDate: state.listTo,
+          storeId: state.storeId, filter: PnlInvoiceFilter.loss,
+        ),
+      ]);
+      final page = results[0] as PnlTransactionsPage;
+      state = state.copyWith(
+        rows:          page.rows,
+        totalCount:    page.totalCount,
+        hasNextPage:   page.rows.length == PnlReportDatasource.pageSize,
+        profitCount:   results[1] as int,
+        lossCount:     results[2] as int,
+        isLoadingPage: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoadingPage: false, errorMessage: 'Load error: $e');
+    }
+  }
+
   Future<List<PnlItem>> loadItems(PnlTransactionRow row) =>
       _ds.getTransactionItems(type: row.type, id: row.id);
 
   void setFromDate(DateTime d) {
-    state = state.copyWith(fromDate: d);
+    state = state.copyWith(selectedDay: null, fromDate: d);
     load();
   }
 
   void setToDate(DateTime d) {
-    state = state.copyWith(toDate: d);
+    state = state.copyWith(selectedDay: null, toDate: d);
     load();
   }
 
   void setThisMonth() {
     final n = DateTime.now();
     state = state.copyWith(
+      selectedDay: null,
       fromDate: DateTime(n.year, n.month, 1),
       toDate:   DateTime(n.year, n.month, n.day),
     );
@@ -265,7 +322,7 @@ class PnlReportNotifier extends StateNotifier<PnlReportState> {
 
   void setToday() {
     final d = PnlReportState._today();
-    state = state.copyWith(fromDate: d, toDate: d);
+    state = state.copyWith(selectedDay: null, fromDate: d, toDate: d);
     load();
   }
 

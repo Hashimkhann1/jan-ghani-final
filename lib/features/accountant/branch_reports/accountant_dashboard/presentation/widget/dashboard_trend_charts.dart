@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../../../core/color/app_color.dart';
@@ -227,11 +229,29 @@ void _text(Canvas c, String s, Offset at,
 }
 
 /// Y-axis range (0 hamesha shamil — negative values bhi sahi dikhen).
+/// Grid ke 4 barabar hisse hon aur tick values "nice" (1/2/5 x 10^n) hon,
+/// taake axis par 93k / 70k / 47k jaisi bejod values na aayen.
 (double, double) _range(List<double> values) {
-  var lo = values.fold<double>(0, (a, b) => a < b ? a : b);
-  var hi = values.fold<double>(0, (a, b) => a > b ? a : b);
-  if (hi == lo) hi = lo + 1;
-  return (lo, hi);
+  final lo0 = values.fold<double>(0, (a, b) => a < b ? a : b);
+  var   hi0 = values.fold<double>(0, (a, b) => a > b ? a : b);
+  if (hi0 == lo0) hi0 = lo0 + 1;
+
+  double nice(double raw) {
+    final mag = math.pow(10, (math.log(raw) / math.ln10).floor()).toDouble();
+    for (final m in const [1.0, 2.0, 5.0, 10.0]) {
+      if (m * mag >= raw) return m * mag;
+    }
+    return 10 * mag;
+  }
+
+  var step = nice((hi0 - lo0) / 4);
+  for (var i = 0; i < 6; i++) {
+    final lo = (lo0 / step).floorToDouble() * step;
+    final hi = lo + step * 4;
+    if (hi >= hi0) return (lo, hi);
+    step = nice(step * 1.01);
+  }
+  return (lo0, hi0);
 }
 
 /// Grid lines + Y labels; value → y mapper return karta hai.

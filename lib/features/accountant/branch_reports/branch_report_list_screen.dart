@@ -17,6 +17,7 @@ import 'branch_cash_difference/presentation/screen/branch_cash_difference_screen
 import 'branch_stock_damage_report/presentation/screen/accountant_branch_stock_damage_report_screen.dart';
 import 'branch_stock_inventory_logs/presentation/screen/branch_stock_inventory_logs_screen.dart';
 import 'customer_logs/presentation/screen/customer_logs_screen.dart';
+import 'customer_ledger/presentation/screen/customer_ledger_report_screen.dart';
 import 'inventory_counting/presentation/screen/inventory_counting_report_screen.dart';
 import 'product_profit_loss_report/presentation/screen/product_profit_loss_report_screen.dart';
 import 'stock_movement_log/presentation/screen/stock_movement_screen.dart';
@@ -29,7 +30,8 @@ const double _kSidebarBreakpoint = 900;
 /// /branches/:branchId/:report). Warehouse desktop app (linked stores) mein
 /// bina router ke push hoti hai — wahan selection local state se.
 class BranchReportListScreen extends StatefulWidget {
-  const BranchReportListScreen({super.key, required this.branchId, this.report});
+  const BranchReportListScreen(
+      {super.key, required this.branchId, this.report});
   final String branchId;
 
   /// URL ka report slug (null = list / pehli report).
@@ -42,6 +44,9 @@ class BranchReportListScreen extends StatefulWidget {
 class _BranchReportListScreenState extends State<BranchReportListScreen> {
   /// Desktop sidebar par abhi kaunsi report khuli hai.
   int _selected = 0;
+
+  /// Sidebar compressed (sirf icons) ya expanded.
+  bool _collapsed = false;
 
   bool get _hasRouter => GoRouter.maybeOf(context) != null;
 
@@ -70,142 +75,139 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
     }
   }
 
-  void _back() {
-    if (!_hasRouter) {
-      Navigator.pop(context);
-    } else if (widget.report == null && context.canPop()) {
-      context.pop();
-    } else {
-      context.go(AccPaths.branches);
-    }
-  }
-
   static const List<_ReportItem> _reports = [
     _ReportItem(
-      slug:     'dashboard',
+      slug: 'dashboard',
       iconAsset: 'sidebar_icons/dashboard',
-      label:    'Dashboard',
+      label: 'Dashboard',
       subtitle: 'Overview of branch activities',
-      color:    AppColor.primary,
+      color: AppColor.primary,
     ),
     _ReportItem(
-      slug:     'sale-summary',
+      slug: 'sale-summary',
       iconAsset: 'sidebar_icons/sale_invoice_report',
-      label:    'Sale Summary',
+      label: 'Sale Summary',
       subtitle: 'Sale, return, net sale and customer collection',
-      color:    Color(0xFF10B981),
+      color: Color(0xFF10B981),
     ),
     _ReportItem(
-      slug:     'inventory',
+      slug: 'inventory',
       iconAsset: 'sidebar_icons/branch_stock',
-      label:    'Inventory Report',
+      label: 'Inventory Report',
       subtitle: 'Stock and items list',
-      color:    Color(0xFF8B5CF6),
+      color: Color(0xFF8B5CF6),
     ),
     _ReportItem(
-      slug:     'cash-counter',
+      slug: 'cash-counter',
       iconAsset: 'sidebar_icons/cash_counter',
-      label:    'Cash Counter Report',
+      label: 'Cash Counter Report',
       subtitle: 'Cash transactions record',
-      color:    Color(0xFF06B6D4),
+      color: Color(0xFF06B6D4),
     ),
     _ReportItem(
-      slug:     'inventory-counting',
+      slug: 'inventory-counting',
       iconAsset: 'ic_total_products',
-      label:    'Branch Inventory Counting Report',
+      label: 'Branch Inventory Counting Report',
       subtitle: 'Complete Branch Inventory Counting Report',
-      color:    Color(0xFFEC4899),
+      color: Color(0xFFEC4899),
     ),
     _ReportItem(
-      slug:     'transactions',
+      slug: 'transactions',
       iconAsset: 'sidebar_icons/branch_transactions',
-      label:    'Branch Transaction Report',
+      label: 'Branch Transaction Report',
       subtitle: 'Details of all transactions',
-      color:    Color(0xFFF97316),
+      color: Color(0xFFF97316),
     ),
     _ReportItem(
-      slug:     'customers',
+      slug: 'customers',
       iconAsset: 'sidebar_icons/customer',
-      label:    'Customer Report',
+      label: 'Customer Report',
       subtitle: 'Complete customers list',
-      color:    Color(0xFF14B8A6),
+      color: Color(0xFF14B8A6),
     ),
     _ReportItem(
-      slug:     'profit-loss',
+      slug: 'profit-loss',
       iconAsset: 'ic_sale_price_trend',
-      label:    'Profit and Loss Report',
+      label: 'Profit and Loss Report',
       subtitle: 'Sale profit and loss report',
-      color:    Color(0xFF059669),
+      color: Color(0xFF059669),
     ),
     _ReportItem(
-      slug:     'category-sales',
+      slug: 'category-sales',
       iconAsset: 'ic_top_products',
-      label:    'Category Wise Sale Report',
+      label: 'Category Wise Sale Report',
       subtitle: 'Track sales by category',
-      color:    Color(0xFFD97706),
+      color: Color(0xFFD97706),
     ),
     _ReportItem(
-      slug:     'discount-sales',
+      slug: 'discount-sales',
       iconAsset: 'ic_net_amount',
-      label:    'Discount Wise Sale Report',
+      label: 'Discount Wise Sale Report',
       subtitle: 'Details of Discount Wise items',
-      color:    Color(0xFFF59E0B),
+      color: Color(0xFFF59E0B),
     ),
     _ReportItem(
-      slug:     'stock-damage',
+      slug: 'stock-damage',
       iconAsset: 'sidebar_icons/stock_damage',
-      label:    'Inventory Stock Damage Report',
+      label: 'Inventory Stock Damage Report',
       subtitle: 'Show All damage Stock',
-      color:    Color(0xFF8B5CF6),
+      color: Color(0xFF8B5CF6),
     ),
     _ReportItem(
-      slug:     'pareto',
+      slug: 'pareto',
       iconAsset: 'ic_top_customers',
-      label:    'Pareto Principle Report',
+      label: 'Pareto Principle Report',
       subtitle: 'Top 20% products, customers & balance',
-      color:    Color(0xFF8B5CF6),
+      color: Color(0xFF8B5CF6),
     ),
     _ReportItem(
-      slug:     'cash-difference',
+      slug: 'cash-difference',
       iconAsset: 'sidebar_icons/difference',
-      label:    'Cash Difference Report',
+      label: 'Cash Difference Report',
       subtitle: 'Cash in/out transaction record',
-      color:    Color(0xFF0EA5E9),
+      color: Color(0xFF0EA5E9),
     ),
     _ReportItem(
-      slug:     'customer-logs',
+      slug: 'customer-ledger',
       iconAsset: 'sidebar_icons/customer_account',
-      label:    'Customer Logs',
+      label: 'Customer Ledger',
+      subtitle: 'Customer payments and balance entries',
+      color: Color(0xFF6366F1),
+    ),
+    _ReportItem(
+      slug: 'customer-logs',
+      iconAsset: 'sidebar_icons/customer_account',
+      label: 'Customer Logs',
       subtitle: 'Customer balance change history',
-      color:    Color(0xFF7C3AED),
+      color: Color(0xFF7C3AED),
     ),
     _ReportItem(
-      slug:     'stock-logs',
+      slug: 'stock-logs',
       iconAsset: 'sidebar_icons/branch_stock',
-      label:    'Stock Inventory Logs',
+      label: 'Stock Inventory Logs',
       subtitle: 'Product stock and price change history',
-      color:    Color(0xFF0891B2),
+      color: Color(0xFF0891B2),
     ),
     _ReportItem(
-      slug:     'product-profit-loss',
+      slug: 'product-profit-loss',
       iconAsset: 'ic_sale_price_trend',
-      label:    'Product Profit & Loss Report',
+      label: 'Product Profit & Loss Report',
       subtitle: 'Stock, sales, returns and profit per product',
-      color:    Color(0xFF16A34A),
+      color: Color(0xFF16A34A),
     ),
     _ReportItem(
-      slug:     'stock-movement',
+      slug: 'stock-movement',
       iconAsset: 'sidebar_icons/branch_stock',
-      label:    'Stock Movement Log',
+      label: 'Stock Movement Log',
       subtitle: 'Every stock in/out event with reason',
-      color:    Color(0xFF0EA5E9),
+      color: Color(0xFF0EA5E9),
     ),
     _ReportItem(
-      slug:     'assigned-stock',
+      slug: 'assigned-stock',
       iconAsset: 'sidebar_icons/branch_stock',
-      label:    'Assigned Stock Report',
+      label: 'Assigned Stock Report',
       subtitle: 'Stock assigned to this branch from warehouse',
-      color:    Color(0xFF7C3AED),
+      color: Color(0xFF7C3AED),
     ),
   ];
 
@@ -215,31 +217,53 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
   /// Index -> uski report screen (mobile push aur desktop pane dono use karte hain).
   Widget _screenForIndex(int index, String branchId) {
     switch (index) {
-      case 0:  return AccountantBranchDashboardScreen(branchId: branchId);
-      case 1:  return SaleSummaryScreen(branchId: branchId);
-      case 2:  return AccountantBranchInventoryReportScreen(branchId: branchId);
-      case 3:  return BranchCashCounterReportScreen(branchId: branchId);
-      case 4:  return InventoryCountingReportScreen(storeId: branchId);
-      case 5:  return AccountantBranchTransactionScreen(branchId: branchId);
-      case 6:  return AccountantCustomerReportScreen(branchId: branchId);
-      case 7:  return PnlReportScreen(branchId: branchId);
-      case 8:  return CategorySaleReportScreen(branchId: branchId);
-      case 9:  return DiscountWiseSaleReportScreen(branchId: branchId);
-      case 10: return AccountantBranchStockDamageReportScreen(branchId: branchId);
-      case 11: return ParetoReportScreen(branchId: branchId);
-      case 12: return BranchCashDifferenceScreen(branchId: branchId);
-      case 13: return CustomerLogsScreen(branchId: branchId);
-      case 14: return BranchStockInventoryLogsScreen(branchId: branchId);
-      case 15: return ProductProfitLossReportScreen(branchId: branchId);
-      case 16: return StockMovementScreen(branchId: branchId);
-      case 17: return AssignedStockReportScreen(branchId: branchId);
-      default: return const SizedBox.shrink();
+      case 0:
+        return AccountantBranchDashboardScreen(branchId: branchId);
+      case 1:
+        return SaleSummaryScreen(branchId: branchId);
+      case 2:
+        return AccountantBranchInventoryReportScreen(branchId: branchId);
+      case 3:
+        return BranchCashCounterReportScreen(branchId: branchId);
+      case 4:
+        return InventoryCountingReportScreen(storeId: branchId);
+      case 5:
+        return AccountantBranchTransactionScreen(branchId: branchId);
+      case 6:
+        return AccountantCustomerReportScreen(branchId: branchId);
+      case 7:
+        return PnlReportScreen(branchId: branchId);
+      case 8:
+        return CategorySaleReportScreen(branchId: branchId);
+      case 9:
+        return DiscountWiseSaleReportScreen(branchId: branchId);
+      case 10:
+        return AccountantBranchStockDamageReportScreen(branchId: branchId);
+      case 11:
+        return ParetoReportScreen(branchId: branchId);
+      case 12:
+        return BranchCashDifferenceScreen(branchId: branchId);
+      case 13:
+        return CustomerLedgerReportScreen(branchId: branchId);
+      case 14:
+        return CustomerLogsScreen(branchId: branchId);
+      case 15:
+        return BranchStockInventoryLogsScreen(branchId: branchId);
+      case 16:
+        return ProductProfitLossReportScreen(branchId: branchId);
+      case 17:
+        return StockMovementScreen(branchId: branchId);
+      case 18:
+        return AssignedStockReportScreen(branchId: branchId);
+      default:
+        return const SizedBox.shrink();
     }
   }
 
   void _openMobile(int index) {
     if (_hasRouter) {
-      context.push(AccPaths.branchReport(widget.branchId, _reports[index].slug));
+      context
+          .push(AccPaths.branchReport(widget.branchId, _reports[index].slug));
       return;
     }
     Navigator.push(
@@ -266,10 +290,11 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _ReportSidebar(
-                  reports:  _reports,
+                  reports: _reports,
                   selected: _selected,
                   onSelect: _select,
-                  onBack:   _back,
+                  collapsed: _collapsed,
+                  onToggle: () => setState(() => _collapsed = !_collapsed),
                 ),
                 const VerticalDivider(width: 1, color: Color(0xFFE5E7EB)),
                 Expanded(
@@ -294,7 +319,7 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
             )
           : _MobileLayout(
               reports: _reports,
-              onTap:   _openMobile,
+              onTap: _openMobile,
             ),
     );
   }
@@ -305,151 +330,195 @@ class _ReportSidebar extends StatelessWidget {
   final List<_ReportItem> reports;
   final int selected;
   final ValueChanged<int> onSelect;
-  final VoidCallback onBack;
+  final bool collapsed;
+  final VoidCallback onToggle;
 
   const _ReportSidebar({
     required this.reports,
     required this.selected,
     required this.onSelect,
-    required this.onBack,
+    required this.collapsed,
+    required this.onToggle,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 300,
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header ───────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back_rounded,
-                      color: Color(0xFF1A1D23), size: 20),
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFFF5F6FA),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Branch Reports',
-                        style: TextStyle(
-                          fontSize:   17,
-                          fontWeight: FontWeight.w800,
-                          color:      Color(0xFF1A1D23),
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Select a report',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColor.textHint),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+    final toggle = IconButton(
+      tooltip: collapsed ? 'Expand' : 'Collapse',
+      onPressed: onToggle,
+      icon: Icon(
+        collapsed ? Icons.menu_rounded : Icons.menu_open_rounded,
+        color: const Color(0xFF1A1D23),
+        size: 20,
+      ),
+      style: IconButton.styleFrom(
+        backgroundColor: const Color(0xFFF5F6FA),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
 
-          // ── Report list ──────────────────────────────────────
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: reports.length,
-              itemBuilder: (_, i) => _SidebarItem(
-                item:     reports[i],
-                selected: i == selected,
-                onTap:    () => onSelect(i),
+    return Container(
+      width: collapsed ? 76 : 320,
+      color: Colors.white,
+      child: ClipRect(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ───────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+              child: collapsed
+                  ? Center(child: toggle)
+                  : Row(
+                      children: [
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Branch Reports',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1A1D23),
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Select a report',
+                                style: TextStyle(
+                                    fontSize: 12, color: AppColor.textHint),
+                              ),
+                            ],
+                          ),
+                        ),
+                        toggle,
+                      ],
+                    ),
+            ),
+            const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+            // ── Report list ──────────────────────────────────────
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: reports.length,
+                itemBuilder: (_, i) => _SidebarItem(
+                  item: reports[i],
+                  selected: i == selected,
+                  collapsed: collapsed,
+                  onTap: () => onSelect(i),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _SidebarItem extends StatelessWidget {
-  final _ReportItem  item;
-  final bool         selected;
+  final _ReportItem item;
+  final bool selected;
+  final bool collapsed;
   final VoidCallback onTap;
 
   const _SidebarItem({
     required this.item,
     required this.selected,
+    required this.collapsed,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? item.color.withOpacity(0.10) : Colors.transparent,
-          border: Border(
-            left: BorderSide(
-              color: selected ? item.color : Colors.transparent,
-              width: 3,
+    if (collapsed) {
+      return Tooltip(
+        message: item.label,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+          child: Material(
+            color: selected ? item.color.withOpacity(0.14) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                height: 46,
+                child: Center(
+                  child: AppIcon(item.iconAsset, color: item.color, size: 20),
+                ),
+              ),
             ),
           ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width:  36,
-              height: 36,
-              decoration: BoxDecoration(
-                color:        item.color.withOpacity(selected ? 0.16 : 0.10),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: AppIcon(item.iconAsset, color: item.color, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.label,
-                    style: TextStyle(
-                      fontSize:   13,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                      color: selected ? item.color : const Color(0xFF1A1D23),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      child: Material(
+        color: selected ? item.color.withOpacity(0.10) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: item.color.withOpacity(0.05),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: item.color.withOpacity(selected ? 0.18 : 0.10),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  if (item.subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      item.subtitle,
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColor.textHint),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
+                  child: AppIcon(item.iconAsset, color: item.color, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        item.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.25,
+                          fontWeight:
+                              selected ? FontWeight.w800 : FontWeight.w600,
+                          color:
+                              selected ? item.color : const Color(0xFF1A1D23),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (item.subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          item.subtitle,
+                          style: const TextStyle(
+                              fontSize: 11,
+                              height: 1.3,
+                              color: AppColor.textHint),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -471,15 +540,15 @@ class _MobileLayout extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor:  Colors.white,
-        elevation:        0,
+        backgroundColor: Colors.white,
+        elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: const Text(
           'Branch Reports',
           style: TextStyle(
-            fontSize:   17,
+            fontSize: 17,
             fontWeight: FontWeight.w700,
-            color:      Color(0xFF1A1D23),
+            color: Color(0xFF1A1D23),
           ),
         ),
         bottom: PreferredSize(
@@ -488,11 +557,11 @@ class _MobileLayout extends StatelessWidget {
         ),
       ),
       body: ListView.separated(
-        padding:          const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        itemCount:        reports.length,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        itemCount: reports.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (_, i) => _ReportListCard(
-          item:  reports[i],
+          item: reports[i],
           onTap: () => onTap(i),
         ),
       ),
@@ -502,7 +571,7 @@ class _MobileLayout extends StatelessWidget {
 
 // ── Report List Card (Mobile) ─────────────────────────────────────────────────
 class _ReportListCard extends StatelessWidget {
-  final _ReportItem  item;
+  final _ReportItem item;
   final VoidCallback onTap;
 
   const _ReportListCard({
@@ -516,26 +585,25 @@ class _ReportListCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color:        Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color:      Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 6,
-              offset:     const Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: Row(
             children: [
               Container(
-                width:  46,
+                width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color:        item.color.withOpacity(0.1),
+                  color: item.color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: AppIcon(item.iconAsset, color: item.color, size: 22),
@@ -548,9 +616,9 @@ class _ReportListCard extends StatelessWidget {
                     Text(
                       item.label,
                       style: const TextStyle(
-                        fontSize:   14,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color:      Color(0xFF1A1D23),
+                        color: Color(0xFF1A1D23),
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -563,10 +631,10 @@ class _ReportListCard extends StatelessWidget {
                 ),
               ),
               Container(
-                width:  30,
+                width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color:        item.color.withOpacity(0.08),
+                  color: item.color.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(Icons.arrow_forward_ios_rounded,
@@ -587,7 +655,7 @@ class _ReportItem {
   final String iconAsset;
   final String label;
   final String subtitle;
-  final Color  color;
+  final Color color;
 
   const _ReportItem({
     required this.slug,
