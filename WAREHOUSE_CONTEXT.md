@@ -1,4 +1,4 @@
-<!-- Updated on 2026-11-08 10:37 AM -->
+<!-- Updated on 2026-11-08 03:54 PM -->
 
 # Jan Ghani POS — Project Context
 
@@ -1652,7 +1652,7 @@ Store counting (Supabase inventory_counting)
 
 ### Kaise kaam karta hai
 - `pg_dump -h -p -U -d <AppConfig> -Fc --no-password -f "<folder>\<CODE>_backup_yyyy-MM-dd_HH-mm-ss_STEP2_data.backup"` — password **`PGPASSWORD` env** se (`AppConfig.dbPassword`), command/code mein nahi. Restore: `pg_restore` (manual — app restore NAHI karti).
-- **pg_dump dhoondna:** `config.json` `pg_dump_path` (optional, naya `AppConfig.pgDumpPath`) → Windows `C:\Program Files[ (x86)]\PostgreSQL\<sab se naya ver>\bin\pg_dump.exe` → macOS Homebrew / `/Library/PostgreSQL` / Postgres.app → PATH (`where`/`which`).
+- **pg_dump dhoondna:** `config.json` `pg_dump_path` (optional, naya `AppConfig.pgDumpPath`) → Windows (fix 2026-11-08, production par "pg_dump nahi mila" aaya tha): chalti PostgreSQL service ka `bin` (PowerShell `Win32_Service`, `pg_ctl`) → registry `HKLM\SOFTWARE\PostgreSQL\Installations` "Base Directory" → har drive par `Program Files[ (x86)]\PostgreSQL\<ver>` / `\PostgreSQL\<ver>` → pgAdmin `runtime\pg_dump.exe` → macOS Homebrew / `/Library/PostgreSQL` / Postgres.app → PATH (`where`/`which`).
 - **Version check:** pg_dump major < `SHOW server_version_num` major → saaf error.
 - **2 files har backup:** `…_STEP1_user.sql` (roles — restore guide dekho) + `…_STEP2_data.backup`.
 - **Safety check:** pg_dump ke baad `pg_restore --list` (pg_dump ke saath wala `pg_restore`) se file padhi jati hai — padhi na jaye ya `TABLE DATA` 0 ho → **failed** + dono files delete. STEP1 file na bane (ya pg_restore na mile) → backup **success + note** (`error_message` mein, screen par amber) — data file theek.

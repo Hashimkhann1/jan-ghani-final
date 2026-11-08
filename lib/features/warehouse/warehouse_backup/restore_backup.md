@@ -1,4 +1,4 @@
-<!-- Updated on 2026-11-08 10:37 AM -->
+<!-- Updated on 2026-11-08 03:54 PM -->
 
 # Jan Ghani Warehouse — Backup RESTORE Guide (step by step)
 
@@ -172,6 +172,17 @@ Matlab data file (`STEP2`) theek hai lekin `STEP1` file nahi bani. Section **C**
 | `unsupported version (1.x) in file header` | PostgreSQL purana hai | Wahi ya naya version install karein |
 | `password authentication failed for user "warehouseuser"` (app mein) | config.json ka password STEP1 wale se mukhtalif | Purana `db_password` daalein, ya STEP1 dobara chalayein |
 | Processes mein "Failed" | Restore mein masla | Processes mein **"View details"** (📄) se poora error parhein |
+
+---
+
+### Backup lete waqt: "pg_dump nahi mila"
+App `pg_dump.exe` khud dhoondti hai: chalti PostgreSQL service, registry, har drive ke PostgreSQL folders, phir pgAdmin ka `runtime` folder. Phir bhi na mile to:
+1. Command Prompt mein dhoondein: `where /r C:\ pg_dump.exe` (doosri drive ho to `D:\`).
+2. Mil jaye to installed app ki `data\flutter_assets\assets\json\config.json` mein yeh line add karein. **Har `\` do dafa likhein**, warna app start nahi hogi:
+   ```json
+   "pg_dump_path": "C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe",
+   ```
+3. Kahin na mile to PostgreSQL installer dobara chala kar **Command Line Tools** tick karein, ya pgAdmin 4 install karein.
 
 ---
 

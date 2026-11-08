@@ -1,11 +1,11 @@
-// Updated on 2026-11-08 09:48 AM
+// Updated on 2026-11-08 03:54 PM
 // =============================================================
 // warehouse_backup_repository.dart
 // Local Postgres ka poora backup (schema + data) — pg_dump(.exe) se.
 //
 //   • pg_dump kahan se: config.json `pg_dump_path` → warna khud dhoondo
-//     (Windows: C:\Program Files\PostgreSQL\<ver>\bin\pg_dump.exe — sab se
-//      naya version; macOS: Homebrew / Postgres.app; aakhir mein PATH)
+//     (Windows: chalti service → registry → har drive ka PostgreSQL folder →
+//      pgAdmin runtime; macOS: Homebrew / Postgres.app; aakhir mein PATH)
 //   • Password: PGPASSWORD env var (AppConfig.dbPassword) — command mein NAHI
 //   • Format: -Fc (custom, compressed) → restore: pg_restore
 //   • Har koshish (success ya fail) ka record `warehouse_backups` mein
@@ -436,12 +436,7 @@ class WarehouseBackupRepository {
 
     final candidates = <String>[];
     if (Platform.isWindows) {
-      for (final root in const [
-        r'C:\Program Files\PostgreSQL',
-        r'C:\Program Files (x86)\PostgreSQL',
-      ]) {
-        candidates.addAll(await _versionedBins(root, r'bin\pg_dump.exe'));
-      }
+      candidates.addAll(await _windowsPgDumpCandidates());
     } else if (Platform.isMacOS) {
       candidates.addAll(const [
         '/opt/homebrew/bin/pg_dump',
@@ -466,9 +461,91 @@ class WarehouseBackupRepository {
     } catch (_) {}
 
     throw const _BackupError(
-        'pg_dump nahi mila. PostgreSQL install check karein, ya config.json mein '
-        '"pg_dump_path" daalein (jaise C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe).');
+        'pg_dump nahi mila. Is computer par PostgreSQL ke "Command Line Tools" ya '
+        'pgAdmin install karein, ya config.json mein "pg_dump_path" daalein — har \\ '
+        'do dafa likhein, jaise "C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\pg_dump.exe".');
   }
+
+  // Windows: pehle wahi install jo asal mein chal raha hai, phir baaki jagahein.
+  Future<List<String>> _windowsPgDumpCandidates() async {
+    const exe = r'\pg_dump.exe';
+    final out = <String>[];
+
+    // 1. Chalti hui PostgreSQL service ka folder (kisi bhi drive par ho)
+    final services = await _runQuiet('powershell', [
+      '-NoProfile', '-NonInteractive', '-Command',
+      r"Get-CimInstance Win32_Service | Where-Object { $_.PathName -like '*pg_ctl*' } | ForEach-Object { $_.PathName }",
+    ]);
+    for (final line in services.split(RegExp(r'[\r\n]+'))) {
+      final bin = parseServiceBinDir(line);
+      if (bin != null) out.add('$bin$exe');
+    }
+
+    // 2. Installer ka registry record
+    final reg = await _runQuiet('reg', [
+      'query', r'HKLM\SOFTWARE\PostgreSQL\Installations',
+      '/s', '/v', 'Base Directory',
+    ]);
+    for (final base in parseRegistryBaseDirs(reg)) {
+      out.add('$base\\bin$exe');
+    }
+
+    // 3. Aam folders — har drive par
+    for (final letter in 'CDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) {
+      final drive = '$letter:';
+      if (!await Directory('$drive\\').exists()) continue;
+      for (final root in [
+        '$drive\\Program Files\\PostgreSQL',
+        '$drive\\Program Files (x86)\\PostgreSQL',
+        '$drive\\PostgreSQL',
+      ]) {
+        out.addAll(await _versionedBins(root, r'bin\pg_dump.exe'));
+        // PostgreSQL installer ka apna pgAdmin
+        out.addAll(await _versionedBins(root, r'pgAdmin 4\runtime\pg_dump.exe'));
+      }
+    }
+
+    // 4. Alag se install pgAdmin — is ke saath pg_dump + pg_restore aate hain
+    final local = Platform.environment['LOCALAPPDATA'];
+    for (final root in [
+      r'C:\Program Files\pgAdmin 4',
+      r'C:\Program Files (x86)\pgAdmin 4',
+      if (local != null) '$local\\Programs\\pgAdmin 4',
+    ]) {
+      out.add('$root\\runtime$exe');
+      final dir = Directory(root);
+      if (!await dir.exists()) continue;
+      await for (final e in dir.list(followLinks: false)) {
+        if (e is Directory) out.add('${e.path}\\runtime$exe');
+      }
+    }
+    return out;
+  }
+
+  /// Command chalao — fail / timeout par khaali string (dhoondne mein rukawat nahi).
+  Future<String> _runQuiet(String exe, List<String> args) async {
+    try {
+      final r = await Process.run(exe, args).timeout(const Duration(seconds: 15));
+      return r.exitCode == 0 ? r.stdout.toString() : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Service PathName (`"C:\\…\\bin\\pg_ctl.exe" runservice …`) → bin folder.
+  static String? parseServiceBinDir(String line) {
+    final m = RegExp(r'^\s*"?(.*?)[\\/]pg_ctl(?:\.exe)?"?(?:\s|$)', caseSensitive: false)
+        .firstMatch(line);
+    final dir = m?.group(1)?.trim();
+    return (dir == null || dir.isEmpty) ? null : dir;
+  }
+
+  /// `reg query … /v "Base Directory"` ki output → install folders.
+  static List<String> parseRegistryBaseDirs(String output) =>
+      RegExp(r'Base Directory\s+REG_\w+\s+(.+?)\s*$', multiLine: true, caseSensitive: false)
+          .allMatches(output)
+          .map((m) => m.group(1)!.replaceAll(RegExp(r'\\+$'), ''))
+          .toList();
 
   /// `<root>/<version>/<rel>` — sab se naya (bara) version pehle.
   Future<List<String>> _versionedBins(String root, String rel) async {
