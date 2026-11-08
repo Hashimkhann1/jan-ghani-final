@@ -1,13 +1,13 @@
-// Updated on 2026-10-05 06:40 PM
+// Updated on 2026-11-08 09:48 AM
 // =============================================================
 // purchase_invoice_provider.dart
 // SubTotal ↔ QTY / PRICE model — product ke unit par depend karta hai:
 //
-//  CONTINUOUS units (kg, g, liter, ml, meter) — PRICE anchor:
-//   • updateSubTotal      → qty = subTotal / price (price fix)
+//  CONTINUOUS units (kg, g, liter, ml, meter):
+//   • updateSubTotal      → price = subTotal / qty (qty fix) — PCS jaisa
+//                           (10 kg + subtotal 3000 → price 300)
 //   • updatePurchasePrice → (subtotal anchor) qty = subTotal / newPrice
 //   • updateQuantity      → qty anchor, subtotal = price × qty (formula)
-//   • Price 0 par qty derive nahi hoti (UI "Purchase Price daalein")
 //
 //  COUNTABLE units (pcs, box, pack, dozen, bottle, carton) — QTY anchor:
 //   • updateSubTotal      → price = subTotal / qty (qty > 0 zaroori)
@@ -329,16 +329,9 @@ class PurchaseInvoiceNotifier
   void updateSubTotal(String cartId, double newSubTotal) {
     if (newSubTotal < 0) return;
     _update(cartId, (i) {
-      if (i.product.isContinuousUnit) {
-        // Continuous (kg/liter/...): qty = subTotal / price (price fix).
-        // Price 0 ho to derive na karo (UI message dikhata hai).
-        if (i.purchasePrice <= 0) return i;
-        return i.copyWith(
-          quantity:       newSubTotal / i.purchasePrice,
-          customSubTotal: newSubTotal,
-        );
-      }
-      // Countable (pcs/box/...): price = subTotal / qty (qty anchor).
+      // DONO units (pcs + kg/liter/...): price = subTotal / qty (qty anchor).
+      // (2026-11-08: KG par pehle qty = subTotal / price derive hoti thi —
+      //  ab KG bhi PCS jaisa: qty + subtotal do → purchase price khud aaye.)
       // Qty > 0 zaroori — warna div-by-zero (add-to-cart par qty default 1
       // hoti hai, so practically hamesha > 0). customSubTotal store karo
       // taake user ne jo type kiya wohi display mein rahe (formula rounding se bache).

@@ -1,4 +1,4 @@
-<!-- Updated on 2026-10-15 10:42 AM -->
+<!-- Updated on 2026-11-08 10:37 AM -->
 
 # Jan Ghani POS — Project Context
 
@@ -1625,6 +1625,102 @@ Store counting (Supabase inventory_counting)
 
 ### Sirf check kiya (code NAHI badla)
 - Branch counting (`branch/inventory_management`) mein deleted products: RPC `get_daily_counting_products` mein `deleted_at IS NULL` **pehle se** dono jagah (S12) — aaj ke 300 batch mein 0 deleted. Koi change nahi.
+
+---
+
+## Session 22 — Purchase Invoice: KG par SubTotal → PRICE (PCS jaisa) ⭐
+
+> **Change:** KG/continuous units (kg, g, liter, ml, meter) par SubTotal likhne se ab **purchase price** derive hoti hai — **`price = subTotal ÷ qty`** (qty fix). Pehle (S10) `qty = subTotal ÷ price` hota tha. Ab PCS aur KG dono ka `updateSubTotal` same hai.
+> **Misaal:** 10 kg + SubTotal 3000 → Purchase Price **300**.
+
+| File | Change |
+|---|---|
+| `purchase_invoice_provider.dart` `updateSubTotal` | Continuous branch hataya — dono units: `price = subTotal / qty` (qty > 0 guard) + `customSubTotal` set. Header comment update |
+| `po_cart_row_widget.dart` `_commitSub` | KG ka "Pehle Purchase Price daalein" check/snackbar hataya (ab price ki zaroorat nahi) |
+
+- **Baaqi KG behaviour UNCHANGED (user warehouse se confirm karke baad mein formula update karega):**
+  - `updatePurchasePrice` (KG, subtotal lock ON) → `qty = subTotal ÷ newPrice` (subtotal same rehta: 3000 / 320 = 9.375 kg)
+  - `updateQuantity` → lock khulta, subtotal = price × qty
+- PCS ka koi behaviour nahi badla. Save/DB untouched.
+- `flutter analyze` — 0 errors (warnings pehle se).
+
+---
+
+## Session 23 — Warehouse Backup screen (local DB → pg_dump file) ⭐
+
+> **Maqsad:** Warehouse app se hi local Postgres ka poora backup (schema + data) — user folder chune, "Backup Lein" dabaye, file save + record (date, time, user). Sidebar **ADMIN → Backup** (`warehouse_manager` + owner/default; data_entry nahi).
+
+### Kaise kaam karta hai
+- `pg_dump -h -p -U -d <AppConfig> -Fc --no-password -f "<folder>\<CODE>_backup_yyyy-MM-dd_HH-mm-ss_STEP2_data.backup"` — password **`PGPASSWORD` env** se (`AppConfig.dbPassword`), command/code mein nahi. Restore: `pg_restore` (manual — app restore NAHI karti).
+- **pg_dump dhoondna:** `config.json` `pg_dump_path` (optional, naya `AppConfig.pgDumpPath`) → Windows `C:\Program Files[ (x86)]\PostgreSQL\<sab se naya ver>\bin\pg_dump.exe` → macOS Homebrew / `/Library/PostgreSQL` / Postgres.app → PATH (`where`/`which`).
+- **Version check:** pg_dump major < `SHOW server_version_num` major → saaf error.
+- **2 files har backup:** `…_STEP1_user.sql` (roles — restore guide dekho) + `…_STEP2_data.backup`.
+- **Safety check:** pg_dump ke baad `pg_restore --list` (pg_dump ke saath wala `pg_restore`) se file padhi jati hai — padhi na jaye ya `TABLE DATA` 0 ho → **failed** + dono files delete. STEP1 file na bane (ya pg_restore na mile) → backup **success + note** (`error_message` mein, screen par amber) — data file theek.
+- **Success** = exit 0 + file size > 0 + `pg_restore --list` theek. Fail par adhoori file delete + record `failed` + friendly wajah (password / permission / folder / version). 30 min timeout → kill.
+- **Folder:** user `file_selector` `getDirectoryPath` se chunta hai; aakhri folder `SharedPreferences` (`warehouse_backup_last_folder`) mein yaad. Purane backups delete NAHI hote.
+- **Record table `warehouse_backups` — SIRF LOCAL** (Supabase sync NAHI, `_allTables` mein nahi): id, warehouse_id, file_name, file_path, file_size_bytes, status (success/failed), error_message, duration_ms, created_by (uuid ya null), created_by_name, created_at. Repo pehli call par `CREATE TABLE IF NOT EXISTS` khud chalata hai (safety net) + migration file bhi.
+
+### Screen
+TopBar (refresh) · **Naya Backup** card (folder box + Folder Chunein/Badlein + bara "Backup Lein" button, chalte waqt spinner "app band na karein", info note: USB/Drive copy + share na karein) · **Last Backup** card (aakhri success: date, time, user, size, file, "X din pehle" — `kBackupWarnDays = 3` se purana = laal + warning, Folder Kholein) · **Backup Record** table (Date · Time · User · File · Size · Status + fail wajah tooltip · folder icon), success/fail count badges. ≥900px cards side-by-side.
+
+### Files (Session 23)
+**Naya:** `warehouse/warehouse_backup/` → `domain/warehouse_backup_model.dart` · `data/warehouse_backup_repository.dart` · `presentation/provider/warehouse_backup_provider.dart` · `presentation/screens/warehouse_backup_screen.dart`
+**Badla:** `core/config/app_config.dart` (`pgDumpPath`) · `core/widget/sidebar/sidebar_widget.dart` (`_backup` NavItem) · `pubspec.yaml` (`file_selector: ^1.1.0`)
+**DB:** `…/zero_start_schema/warehouse_backups_migration.sql` (schema v3.11 → v3.12, idempotent)
+
+### Test (Mac, local test DB)
+Temp `flutter test` (asli repo + DB): success 337.9 KB / 272 ms; ghalat folder → `failed` "Chuna hua folder mojood nahi hai."; `pg_restore --list` → 27 TABLE DATA (postgres-owned `supplier_ledger` / `warehouse_products` bhi `warehouseuser` se aa gaye). Test rows + file + test delete. UI app chala ke nahi dekhi.
+
+### ⚠️ Dhyan
+- **Production (Windows) par pehle:** migration chalao (ya app khud bana legi agar `warehouseuser` ko CREATE ijazat ho) + ek dafa backup chala kar dekho ke `warehouseuser` saari tables padh sakta hai (warna "ijazat nahi" error → `GRANT SELECT`).
+- Production server ka PostgreSQL version jitna/naya `pg_dump` hona chahiye (usi install ka `bin` aam tor par sahi).
+- macOS **Release** build sandboxed hai (`Release.entitlements`) — wahan Process/folder write nahi chalega; Windows aur macOS Debug theek. Mac release chahiye to entitlements badalni hongi.
+- Windows build par `file_selector` plugin registrant khud generate hota hai (`flutter build windows`).
+
+---
+
+## 🛟 Backup RESTORE Guide (computer kharab ho jaye) — SIRF pgAdmin — Session 23
+
+> 📄 **User-friendly step-by-step guide (poori detail, errors + hal):** [`lib/features/warehouse/warehouse_backup/restore_backup.md`](lib/features/warehouse/warehouse_backup/restore_backup.md) — restore ka koi step badle to WAHAN bhi update karo.
+
+### Har backup = 2 files (dono saath rakho — USB / Google Drive)
+| File | Kya hai | pgAdmin mein kahan |
+|---|---|---|
+| `<CODE>_backup_<date_time>_STEP1_user.sql` | Restore ke liye zaroori **users/roles** banane wali chhoti SQL (plain text). `warehouseuser` = LOGIN + config.json wala password (**sirf SCRAM hash**, asal password nahi); baaki roles (jaise `postgres`) na hon to NOLOGIN. Idempotent — dobara chalao to kuch nahi tootta (user pehle se ho to sirf login + password theek) | Query Tool → F5 |
+| `<CODE>_backup_<date_time>_STEP2_data.backup` | Poora database — PostgreSQL **custom format** (`pg_dump -Fc`, compressed binary, Notepad mein nahi khulti): schema + data + triggers + functions + views + indexes + extensions + permissions | Restore… |
+
+- `.sql` chahiye to: `pg_restore -f data.sql <file>_STEP2_data.backup`
+- **Roles alag file mein kyun:** role poore PostgreSQL **server** ki cheez hai, ek database ki nahi — `pg_dump` roles/passwords save nahi karta. `pg_dumpall --globals-only` superuser mangta hai (password hash `pg_authid` mein) aur app ka user superuser nahi → isliye app khud backup file se zaroori roles nikaalti hai (`pg_restore --schema-only --create` ke `OWNER TO` / `GRANT … TO` / `FOR ROLE`) aur password config.json se SCRAM hash karke STEP1 SQL banati hai.
+- **Ek hi step mumkin kyun nahi:** pgAdmin Query Tool poori file ek transaction mein chalata hai → `CREATE DATABASE` wahan nahi chal sakta; aur `.backup` file ke andar role nahi aa sakta. Isliye 2 kaam: (1) STEP1 F5, (2) STEP2 Restore + ek checkbox.
+
+### Restore — naya computer
+**0. PostgreSQL install** — wahi ya **NAYA** version (purana nahi), saath pgAdmin. `postgres` ka password yaad rakho.
+
+**1. User banao (STEP1):**
+pgAdmin → Servers → PostgreSQL → Databases → **`postgres`** par right-click → **Query Tool** → Open File (folder icon) → `…_STEP1_user.sql` → **Execute (F5)**.
+Messages: `User warehouseuser bana diya` · Result: `warehouseuser | true`, `postgres | true`.
+
+**2. Data wapas (STEP2):**
+**`postgres`** database par right-click → **Restore…** →
+- General: Format **Custom or tar** · Filename **`…_STEP2_data.backup`** · Role name `postgres`
+- **Query Options** tab: **"Include CREATE DATABASE statement" = ON**
+- **Restore** → neeche Processes mein "Successfully completed".
+- `warehouse_db` khud banega (owner `warehouseuser`). Databases list refresh karo.
+
+⚠️ Yeh option sirf **naye** server par. `warehouse_db` pehle se ho to: option OFF, aur **`warehouse_db`** par right-click → Restore (warna duplicate / errors).
+⚠️ STEP2 se **pehle** STEP1 zaroori — warna "role warehouseuser does not exist".
+⚠️ "Include CREATE DATABASE" backup wale computer ka **locale** mangta hai (jaise Windows `English_United States.1252`) — Windows se Windows theek. Locale error aaye to: pgAdmin → Databases → Create → Database `warehouse_db`, Owner `warehouseuser` → phir option OFF karke `warehouse_db` par Restore.
+
+**3. App:** Jan Ghani install → `config.json` **wahi** (`warehouse_id`, `warehouse_code`, `db_name` = `warehouse_db`, `db_user` = `warehouseuser`, `db_password`, `db_host` `localhost`, `db_port` `5432`). Login → data backup ke waqt jaisa. Backup ke **BAAD** ki entries nahi hongi (isliye roz backup). Unsynced rows (`is_synced=false`) restore ke baad Supabase par chali jayengi.
+
+### Purana backup (STEP naam ke baghair, sirf `.backup`)
+STEP1 file nahi hai → pehle khud `warehouseuser` banao: pgAdmin → Login/Group Roles → Create → Name `warehouseuser`, Definition: config.json wala password, Privileges: **Can login = Yes** → Save. Phir upar wala step 2.
+
+### Test kiya (Mac, 2026-11-08) ✅
+App code se backup → **bilkul naya khaali PostgreSQL 18 server** (temp `initdb`, sirf `postgres` role) → STEP1 poori file ek query mein (pgAdmin jaisa) → `User warehouseuser bana diya`; dobara → "pehle se tha" (idempotent) → STEP2 `pg_restore -C -d postgres` → **exit 0, koi error nahi** → `warehouseuser` config password se login ✅, ghalat password reject ✅, write (update/insert) ✅, DB owner `warehouseuser` ✅. Naya = purana: 816 products · 137 ledger · 103 cash txns · cash_in_hand −55,480.54 · 27 tables · 13 triggers. (pgAdmin Restore andar se yahi `pg_restore` chalata hai — pgAdmin UI khud nahi chalaya; Windows par test nahi hua.)
+
+### Pehle ek dafa khud TEST karo (zaroori)
+Doosre computer par (ya naya PostgreSQL) STEP1 + STEP2 chala ke dekho. Chalti `warehouse_db` par kabhi test restore NAHI.
 
 ---
 

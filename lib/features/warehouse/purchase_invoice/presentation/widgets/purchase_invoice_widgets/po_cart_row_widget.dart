@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-08 09:48 AM
 
 // =============================================================
 // po_cart_row_widget.dart
@@ -168,23 +168,8 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
   void _commitSub() {
     final val = double.tryParse(_subCtrl.text.trim());
     if (val != null && val >= 0) {
-      // Continuous unit (kg/liter/...): qty = subTotal / price → price zaroori.
-      // Countable (pcs/...): price = subTotal / qty → price ki zaroorat nahi.
-      if (widget.cartItem.product.isContinuousUnit &&
-          widget.cartItem.purchasePrice <= 0) {
-        _subCtrl.text = _fmtPrice(widget.cartItem.subTotal); // revert
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Pehle Purchase Price daalein'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Color(0xFFF59E0B),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        return;
-      }
+      // Dono units (pcs + kg/...): price = subTotal / qty → price ki zaroorat nahi
+      // (qty hamesha > 0 — updateQuantity 0/minus reject karta hai).
       ref.read(purchaseInvoiceProvider.notifier)
           .updateSubTotal(widget.cartItem.cartId, val);
     } else {

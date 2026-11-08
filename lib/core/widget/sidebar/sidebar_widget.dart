@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:28 AM
+// Updated on 2026-11-08 09:48 AM
 // =============================================================
 // sidebar_widget.dart — WAREHOUSE app shell (Stitch "Improved Sidebar")
 //
@@ -29,6 +29,7 @@ import 'package:jan_ghani_final/features/warehouse/inventory_balance/presentatio
 import 'package:jan_ghani_final/features/warehouse/link_stores/presentation/screens/linked_stores_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/screens/purchase_order_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/screens/all_supplier_screen/all_supplier_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_backup/presentation/screens/warehouse_backup_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/data/model/warehouse_cash_request_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/widget/cash_request_dialog.dart';
@@ -114,6 +115,8 @@ class _SideBarState extends ConsumerState<SideBar> {
       screen: SalaryTrackingScreen(), group: _gFinance);
   static const _user      = NavItem(icon: Icons.person_outline, label: 'User',
       screen: AllUserScreen(), group: _gAdmin);
+  static const _backup    = NavItem(icon: Icons.backup_outlined, label: 'Backup',
+      screen: WarehouseBackupScreen(), group: _gAdmin);
   late final NavItem _linkStores = NavItem(icon: Icons.store_outlined, label: 'Link Stores',
       screen: LinkedStoresScreen(warehouseId: AppConfig.warehouseId), group: _gAdmin);
 
@@ -123,7 +126,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     _stock, _assign, _balance, _category, _company,
     _po, _supplier,
     _finance, _expense, _salary,
-    _linkStores, _user,
+    _linkStores, _user, _backup,
   ];
 
   late final List<NavItem> _allOthers = [
@@ -131,6 +134,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     _stock, _balance, _category, _company,
     _po, _supplier,
     _finance, _expense, _salary,
+    _backup,
   ];
 
   late final List<NavItem> _dataEntry = [

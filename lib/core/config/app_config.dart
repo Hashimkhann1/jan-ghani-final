@@ -1,3 +1,4 @@
+// Updated on 2026-11-08 09:48 AM
 import 'dart:convert';
 import 'package:flutter/services.dart';
 
@@ -23,6 +24,9 @@ class AppConfig {
   static String get dbName       => _config['db_name'];
   static String get dbUser       => _config['db_user'];
   static String get dbPassword   => _config['db_password'];
+  // Optional — warehouse Backup screen ke liye pg_dump(.exe) ka poora path.
+  // Na ho to app khud dhoondti hai (Program Files\PostgreSQL\<ver>\bin ...).
+  static String? get pgDumpPath  => _config['pg_dump_path'] as String?;
 
   static bool get isWarehouse => appMode == 'warehouse';
   static bool get isStore     => appMode == 'store';
