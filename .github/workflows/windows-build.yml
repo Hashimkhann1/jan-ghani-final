@@ -34,6 +34,22 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Use vendored pdfium (GitHub release download 504 de raha tha)
+        shell: pwsh
+        run: |
+          $local = "${env:GITHUB_WORKSPACE}/third_party/pdfium-win-x64-5200.tgz" -replace '\\','/'
+          $cache = if ($env:PUB_CACHE) { $env:PUB_CACHE } else { "$env:LOCALAPPDATA\Pub\Cache" }
+          Write-Host "PUB_CACHE = $cache"
+          $files = Get-ChildItem -Path "$cache\hosted" -Recurse -Filter CMakeLists.txt |
+            Where-Object { $_.FullName -match 'printing-[^\\]+\\windows\\CMakeLists.txt$' }
+          foreach ($f in $files) {
+            $c = Get-Content $f.FullName -Raw
+            $c = $c.Replace('${PDFIUM_URL})', "`"$local`")")
+            Set-Content -Path $f.FullName -Value $c -NoNewline
+            Write-Host "Patched $($f.FullName)"
+          }
+          if (-not $files) { Write-Error "printing CMakeLists not found"; exit 1 }
+
       - name: Build Windows (Branch)
         # printing plugin CMake mein pdfium download karta hai — network flake
         # ho to 3 baar tak retry.
