@@ -11,6 +11,8 @@ import '../../data/model/accountant_dashboard_model.dart';
 import '../provider/accountant_dashboard_provider.dart';
 import '../widget/dashboard_stat_card.dart';
 import '../widget/dashboard_trend_charts.dart';
+import '../widget/insights_section.dart';
+import '../widget/top_products_section.dart';
 
 class AccountantBranchDashboardScreen extends ConsumerStatefulWidget {
   const AccountantBranchDashboardScreen(
@@ -291,6 +293,18 @@ class _AccountantBranchDashboardScreenState
                 state:    state,
                 desktop:  desktop,
                 onPeriod: notifier.setChartPeriod,
+              ),
+              const SizedBox(height: 12),
+              TopProductsSection(
+                branchId: widget.branchId,
+                endDate:  state.toDate,
+                desktop:  desktop,
+              ),
+              const SizedBox(height: 16),
+              InsightsSection(
+                branchId: widget.branchId,
+                endDate:  state.toDate,
+                desktop:  desktop,
               ),
             ],
           ),
