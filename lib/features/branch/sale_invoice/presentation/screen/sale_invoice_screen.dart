@@ -192,7 +192,9 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
     // Arrow keys — Cart nav
     final nav = ref.read(cartNavProvider);
-    if (nav.isActive) {
+    // Dialog khula ho (Payment etc.) to Esc/arrows dialog ke liye chhod do —
+    // warna cart-nav yahin Esc kha leta hai aur dialog band nahi hota.
+    if (nav.isActive && !Navigator.of(context).canPop()) {
       final st = ref.read(saleInvoiceProvider);
       if (key == LogicalKeyboardKey.arrowDown) {
         ref.read(cartNavProvider.notifier).moveDown(st.cartItems.length);

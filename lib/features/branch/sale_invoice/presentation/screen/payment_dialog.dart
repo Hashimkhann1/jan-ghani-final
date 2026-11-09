@@ -1288,6 +1288,16 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
         child: const Text('Ctrl+S',
             style: TextStyle(fontSize: 11, color: AppColor.primary, fontWeight: FontWeight.w600)),
       ),
+      const SizedBox(width: 6),
+      Container(
+        padding:    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color:        AppColor.grey100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text('Esc',
+            style: TextStyle(fontSize: 11, color: AppColor.textSecondary, fontWeight: FontWeight.w600)),
+      ),
       const SizedBox(width: 8),
       GestureDetector(
         onTap: () => Navigator.of(context).pop(false),

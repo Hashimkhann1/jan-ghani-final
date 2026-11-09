@@ -183,7 +183,7 @@ class SupabaseService {
   Future<Map<String, dynamic>> getTodaySummary() async {
     var q = _client
         .from('branch_summary')
-        .select('*')
+        .select('counter_date, total_cash_sale, total_card_sale, total_credit_sale, total_sale, total_expense, total_amount, total_installment')
         .eq('counter_date', DateTime.now().toIso8601String().substring(0, 10));
 
     if (storeId != null) q = q.eq('store_id', storeId!);
@@ -225,7 +225,7 @@ class SupabaseService {
   }) async {
     var q = _client
         .from('branch_summary')
-        .select('*')
+        .select('counter_date, total_cash_sale, total_card_sale, total_credit_sale, total_sale, total_expense, total_amount, total_installment')
         .gte('counter_date', startDate.toIso8601String().substring(0, 10))
         .lte('counter_date', endDate.toIso8601String().substring(0, 10));
 

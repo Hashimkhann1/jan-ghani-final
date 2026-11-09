@@ -663,7 +663,10 @@ class SyncConfig {
   // sakti hain jabke naye rows pass ho jayen — watermark unse aage nikal
   // jata hai aur woh rows kabhi dobara nahi bhejti thin. Har cycle mein
   // itne din peeche se dobara bhejo (upsert idempotent hai).
-  static const int lookbackDays = 7;
+  // 7 din se 1 din: har sync 7 din ka data dobara bhejta tha (Supabase
+  // requests/egress/log ingestion ka sabse bada sabab). Jo rows 1 din se
+  // zyada purani fail rahi hon, unhe app-open ka full check (id match) pakad leta hai.
+  static const int lookbackDays = 1;
 
   // ── Ek sync cycle ki max muddat — slow internet par hang na ho
   static const int syncTimeoutMinutes = 5;
@@ -1561,8 +1564,21 @@ class SyncService {
         return m;
       }).toList();
 
+      // ── Jo rows Supabase mein pehle se same hain unhe skip karo ──
+      final toSend = SyncConfig.fullSyncTables.contains(table)
+          ? supaRows
+          : await _skipUnchanged(supabase, table, conflictCol, supaRows);
+      if (toSend.length != supaRows.length) {
+        _log('  ⏭️  $table: ${supaRows.length - toSend.length} rows pehle se '
+            'up-to-date — skip');
+      }
+      if (toSend.isEmpty) {
+        send.send(_TableSuccess(table, 0));
+        return 0;
+      }
+
       // ── Upsert Supabase mein ─────────────────────────────
-      const batchSize = 50;
+      const batchSize = 200;
       int totalSynced = 0;
       int failedRows  = 0;
       String? lastRowErr;
@@ -1590,10 +1606,33 @@ class SyncService {
         }
       }
 
-      for (int i = 0; i < supaRows.length; i += batchSize) {
-        final batch = supaRows.sublist(
+      // Batch fail ho to row-by-row (50-200 requests) ki jagah aadha-aadha
+      // karke bad row dhoondo — 1 bad row par ~2*log2(n) requests.
+      Future<void> pushBisect(List<Map<String, dynamic>> part, Object err) async {
+        if (part.length == 1) {
+          failedRows++;
+          lastRowErr = err.toString();
+          _log('  ❌ $table row skip: $err\n     Row: ${part.first}');
+          return;
+        }
+        final mid = part.length ~/ 2;
+        for (final half in [part.sublist(0, mid), part.sublist(mid)]) {
+          try {
+            await upsertRetry(half);
+            totalSynced += half.length;
+            if (table == 'accountant_transactions') {
+              syncedIds.addAll(half.map((r) => r['id'].toString()));
+            }
+          } catch (e) {
+            await pushBisect(half, e);
+          }
+        }
+      }
+
+      for (int i = 0; i < toSend.length; i += batchSize) {
+        final batch = toSend.sublist(
           i,
-          (i + batchSize).clamp(0, supaRows.length),
+          (i + batchSize).clamp(0, toSend.length),
         );
         try {
           await upsertRetry(batch);
@@ -1602,20 +1641,8 @@ class SyncService {
             syncedIds.addAll(batch.map((r) => r['id'].toString()));
           }
         } catch (batchErr) {
-          _log('  ⚠️  $table batch fail — row-by-row: $batchErr');
-          for (final row in batch) {
-            try {
-              await upsertRetry(row);
-              totalSynced++;
-              if (table == 'accountant_transactions') {
-                syncedIds.add(row['id'].toString());
-              }
-            } catch (rowErr) {
-              failedRows++;
-              lastRowErr = rowErr.toString();
-              _log('  ❌ $table row skip: $rowErr\n     Row: $row');
-            }
-          }
+          _log('  ⚠️  $table batch fail — bisect: $batchErr');
+          await pushBisect(batch, batchErr);
         }
       }
 
@@ -1642,6 +1669,57 @@ class SyncService {
       send.send(_TableError(table, e.toString()));
       return 0;
     }
+  }
+
+  // ══════════════════════════════════════════════
+  //  ⏭️ Unchanged rows skip — Supabase se sirf (id, timestamp) poochho
+  //
+  //  Lookback window ki rows har sync mein dobara POST hoti thin. Ab
+  //  pehle chhota GET (id + ts, 100 ids/request) — jo row remote par
+  //  bilkul same timestamp ke sath maujood hai woh nahi bheji jaati.
+  //  Check fail ho ya bohot bari list ho (pehli bulk upload) to sab bhejo.
+  // ══════════════════════════════════════════════
+
+  static Future<List<Map<String, dynamic>>> _skipUnchanged(
+      SupabaseClient             supabase,
+      String                     table,
+      String                     conflictCol,
+      List<Map<String, dynamic>> rows,
+      ) async {
+    if (conflictCol != 'id' || rows.isEmpty || rows.length > 2000) return rows;
+    final tsCol = SyncConfig.timestampColumn(table);
+    if (!rows.first.containsKey(tsCol)) return rows;
+
+    final remote = <String, DateTime>{};
+    try {
+      const chunk = 100;
+      for (int i = 0; i < rows.length; i += chunk) {
+        final ids = rows
+            .sublist(i, (i + chunk).clamp(0, rows.length))
+            .map((r) => r['id'].toString())
+            .toList();
+        final res = await supabase
+            .from(table)
+            .select('id, $tsCol')
+            .inFilter('id', ids)
+            .timeout(const Duration(seconds: 60));
+        for (final r in res) {
+          final ts = DateTime.tryParse('${r[tsCol]}');
+          if (ts != null) remote[r['id'].toString()] = ts;
+        }
+      }
+    } catch (e) {
+      _log('  ⚠️  $table — unchanged check fail, sab bhej rahe hain: $e');
+      return rows;
+    }
+
+    return rows.where((r) {
+      final remoteTs = remote[r['id'].toString()];
+      if (remoteTs == null) return true;               // remote mein nahi
+      final localTs = DateTime.tryParse('${r[tsCol]}');
+      if (localTs == null) return true;
+      return !localTs.isAtSameMomentAs(remoteTs);      // badli hui → bhejo
+    }).toList();
   }
 
   // ══════════════════════════════════════════════
