@@ -1,4 +1,4 @@
-<!-- Updated on 2026-11-08 03:54 PM -->
+<!-- Updated on 2026-11-09 11:48 AM -->
 
 # Jan Ghani POS — Project Context
 
@@ -1721,6 +1721,25 @@ App code se backup → **bilkul naya khaali PostgreSQL 18 server** (temp `initdb
 
 ### Pehle ek dafa khud TEST karo (zaroori)
 Doosre computer par (ya naya PostgreSQL) STEP1 + STEP2 chala ke dekho. Chalti `warehouse_db` par kabhi test restore NAHI.
+
+---
+
+## Session 24 — Purchase Invoice KG: SubTotal se QTY (reverse) + Edit PO mein unit ⭐
+
+> **Sirf continuous units (kg, g, liter, ml, meter). PCS unchanged.** Naya + Edit PO dono par.
+
+| SubTotal likhte waqt | Nateeja |
+|---|---|
+| Qty user ne di (`qtySetByUser = true`: qty badli, ya product dobara add) | `price = subTotal ÷ qty` (S22) |
+| Qty nahi di + price > 0 + subTotal > 0 | **`qty = subTotal ÷ price`** (price fix) |
+| Qty nahi di + price 0 | `price = subTotal ÷ qty` (qty 1) |
+
+- `PoCartItem.qtySetByUser` (default false). Lock par price badalne se qty derive ho to flag wapas false.
+- `po_cart_row_widget.dart` `_unchangedKg`: KG par field se bina text badle guzarna (Tab / blur) commit nahi karta — warna flag / lock ghalat lagta.
+- **Edit PO:** `PurchaseOrderItem.unitOfMeasure` (default `pcs`; `getAll` + `getById` mein `LEFT JOIN warehouse_products`, read-only, save nahi hota) → `loadFromExistingOrder` unit pass karta hai (pehle KG line bhi PCS ban jati thi). Load hui lines `qtySetByUser = false`, yani sirf SubTotal badlne par qty badlegi aur `updatePO` received PO par stock qty diff lagata hai; qty type karke SubTotal do to price niklegi.
+- **SubTotal lock + qty badle (KG):** SubTotal wahi, `price = subTotal ÷ nayi qty`, lock barqarar (misaal: 3000, qty 12 → 10 = price 300). Bina lock: `SubTotal = Price × Qty`. Tax/discount lock kholte hain.
+- Rounding: DB qty/price `numeric(12,2)` — 1000 ÷ 300 = 3.33 kg stock; total 1000 hi.
+- Test: temp `flutter test` 8/8 (reverse, qty→price, price 0, price→qty, double add, subtotal 0, PCS, asal local KG PO `getAll`/`getById`/edit). Existing purchase_invoice suite: wahi 32 purane failures (`AppConfig` load nahi), naya koi nahi. UI app chala ke nahi dekhi.
 
 ---
 

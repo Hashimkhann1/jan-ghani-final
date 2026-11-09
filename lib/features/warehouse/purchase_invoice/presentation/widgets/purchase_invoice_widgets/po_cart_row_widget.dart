@@ -1,4 +1,4 @@
-// Updated on 2026-11-08 09:48 AM
+// Updated on 2026-11-09 11:37 AM
 
 // =============================================================
 // po_cart_row_widget.dart
@@ -116,7 +116,12 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
     return p.toStringAsFixed(3).replaceAll(RegExp(r"0+$"), "").replaceAll(RegExp(r"\.$"), "");
   }
 
+  // KG: field se bina badle guzarna (Tab) "user ne value di" nahi ginna.
+  bool _unchangedKg(TextEditingController ctrl, String shown) =>
+      widget.cartItem.product.isContinuousUnit && ctrl.text.trim() == shown;
+
   void _commitQty() {
+    if (_unchangedKg(_qtyCtrl, _fmtQty(widget.cartItem.quantity))) return;
     final val = double.tryParse(_qtyCtrl.text.trim());
     if (val != null && val > 0) {
       ref.read(purchaseInvoiceProvider.notifier)
@@ -127,6 +132,7 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
   }
 
   void _commitPrice() {
+    if (_unchangedKg(_purchasePriceCtrl, _fmtPrice(widget.cartItem.purchasePrice))) return;
     final val = double.tryParse(_purchasePriceCtrl.text.trim());
     if (val != null && val >= 0) {
       ref.read(purchaseInvoiceProvider.notifier)
@@ -166,9 +172,10 @@ class _PoCartItemRowState extends ConsumerState<PoCartItemRow> {
   }
 
   void _commitSub() {
+    if (_unchangedKg(_subCtrl, _fmtPrice(widget.cartItem.subTotal))) return;
     final val = double.tryParse(_subCtrl.text.trim());
     if (val != null && val >= 0) {
-      // Dono units (pcs + kg/...): price = subTotal / qty → price ki zaroorat nahi
+      // Provider decide karta hai: price = subTotal / qty, ya KG par qty = subTotal / price
       // (qty hamesha > 0 — updateQuantity 0/minus reject karta hai).
       ref.read(purchaseInvoiceProvider.notifier)
           .updateSubTotal(widget.cartItem.cartId, val);

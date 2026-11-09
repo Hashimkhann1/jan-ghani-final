@@ -1,13 +1,16 @@
-// Updated on 2026-11-08 09:48 AM
+// Updated on 2026-11-09 11:48 AM
 // =============================================================
 // purchase_invoice_provider.dart
 // SubTotal ↔ QTY / PRICE model — product ke unit par depend karta hai:
 //
 //  CONTINUOUS units (kg, g, liter, ml, meter):
-//   • updateSubTotal      → price = subTotal / qty (qty fix) — PCS jaisa
+//   • updateSubTotal, qty user ne di → price = subTotal / qty
 //                           (10 kg + subtotal 3000 → price 300)
+//   • updateSubTotal, qty nahi di + price mojood → qty = subTotal / price
+//                           (price 300 + subtotal 3000 → 10 kg)
 //   • updatePurchasePrice → (subtotal anchor) qty = subTotal / newPrice
-//   • updateQuantity      → qty anchor, subtotal = price × qty (formula)
+//   • updateQuantity      → (subtotal anchor) price = subTotal / newQty,
+//                           warna subtotal = price × qty (formula)
 //
 //  COUNTABLE units (pcs, box, pack, dozen, bottle, carton) — QTY anchor:
 //   • updateSubTotal      → price = subTotal / qty (qty > 0 zaroori)
@@ -151,6 +154,7 @@ class PurchaseInvoiceNotifier
         purchasePrice: item.unitCost,
         salePrice:     item.salePrice ?? 0,
         stock:         0,
+        unitOfMeasure: item.unitOfMeasure, // Edit PO mein bhi KG logic chale
       );
 
       return PoCartItem(
@@ -248,6 +252,7 @@ class PurchaseInvoiceNotifier
       items[idx] = items[idx].copyWith(
         quantity: items[idx].quantity + 1,
         clearCustomSubTotal: true,
+        qtySetByUser: true,
       );
       state = state.copyWith(cartItems: items);
     } else {
@@ -273,11 +278,24 @@ class PurchaseInvoiceNotifier
   void updateQuantity(String cartId, double qty) {
     if (qty <= 0) return;
     _update(cartId, (i) {
-      // Continuous (kg/...): qty anchor → subtotal = price × qty (formula).
+      // Continuous + SubTotal lock: SubTotal wahi, price = subTotal / nayi qty.
+      final locked = i.customSubTotal;
+      if (i.product.isContinuousUnit && locked != null && locked > 0) {
+        return i.copyWith(
+          quantity:      qty,
+          purchasePrice: locked / qty,
+          qtySetByUser:  true,
+        );
+      }
+      // Continuous (kg/...) bina lock: qty anchor → subtotal = price × qty (formula).
       // Countable (pcs/...): qty anchor bhi. Agar customSubTotal set tha
       // (price us par derive tha), qty badalne par usko clear kar do —
       // subtotal formula wapas active, aur agla subtotal edit price re-derive karega.
-      return i.copyWith(quantity: qty, clearCustomSubTotal: true);
+      return i.copyWith(
+        quantity:            qty,
+        clearCustomSubTotal: true,
+        qtySetByUser:        true,
+      );
     });
   }
 
@@ -293,6 +311,7 @@ class PurchaseInvoiceNotifier
           return i.copyWith(
             purchasePrice: price,
             quantity:      i.customSubTotal! / price,
+            qtySetByUser:  false, // qty ab derive hui, user ki di hui nahi
           );
         }
         return i.copyWith(purchasePrice: price, clearCustomSubTotal: true);
@@ -329,6 +348,16 @@ class PurchaseInvoiceNotifier
   void updateSubTotal(String cartId, double newSubTotal) {
     if (newSubTotal < 0) return;
     _update(cartId, (i) {
+      // KG reverse: qty user ne nahi di + price mojood → qty = subTotal / price.
+      if (i.product.isContinuousUnit &&
+          !i.qtySetByUser &&
+          i.purchasePrice > 0 &&
+          newSubTotal > 0) {
+        return i.copyWith(
+          quantity:       newSubTotal / i.purchasePrice,
+          customSubTotal: newSubTotal,
+        );
+      }
       // DONO units (pcs + kg/liter/...): price = subTotal / qty (qty anchor).
       // (2026-11-08: KG par pehle qty = subTotal / price derive hoti thi —
       //  ab KG bhi PCS jaisa: qty + subtotal do → purchase price khud aaye.)

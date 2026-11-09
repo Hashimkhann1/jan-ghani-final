@@ -1,3 +1,4 @@
+// Updated on 2026-11-09 11:37 AM
 // =============================================================
 // purchase_order_remote_datasource.dart
 // UPDATED: po_audit_log insert in create() and updatePO()
@@ -53,15 +54,17 @@ class PurchaseOrderRemoteDataSource {
     final itemsResult = await conn.execute(
       Sql.named('''
       SELECT
-        id, po_id, warehouse_id AS tenant_id,
-        product_id, product_name, sku,
-        quantity_ordered, quantity_received,
-        unit_cost, total_cost, sale_price,
-        COALESCE(discount_amount, 0)  AS discount_amount,
-        COALESCE(discount_percent, 0) AS discount_percent
-      FROM purchase_order_items
-      WHERE po_id = ANY(@orderIds)
-      ORDER BY po_id, id
+        poi.id, poi.po_id, poi.warehouse_id AS tenant_id,
+        poi.product_id, poi.product_name, poi.sku,
+        poi.quantity_ordered, poi.quantity_received,
+        poi.unit_cost, poi.total_cost, poi.sale_price,
+        COALESCE(poi.discount_amount, 0)  AS discount_amount,
+        COALESCE(poi.discount_percent, 0) AS discount_percent,
+        p.unit_of_measure
+      FROM purchase_order_items poi
+      LEFT JOIN warehouse_products p ON p.id = poi.product_id
+      WHERE poi.po_id = ANY(@orderIds)
+      ORDER BY poi.po_id, poi.id
     '''),
       parameters: {'orderIds': orderIds},
     );
@@ -85,6 +88,7 @@ class PurchaseOrderRemoteDataSource {
                 m['sale_price'] != null ? _toDouble(m['sale_price']) : null,
             discountAmount: _toDouble(m['discount_amount']),
             discountPercent: _toDouble(m['discount_percent']),
+            unitOfMeasure: m['unit_of_measure']?.toString() ?? 'pcs',
           ));
     }
 
@@ -1232,15 +1236,17 @@ class PurchaseOrderRemoteDataSource {
     final result = await conn.execute(
       Sql.named('''
         SELECT
-          id, po_id, warehouse_id AS tenant_id,
-          product_id, product_name, sku,
-          quantity_ordered, quantity_received,
-          unit_cost, total_cost, sale_price,
-          COALESCE(discount_amount, 0)  AS discount_amount,
-          COALESCE(discount_percent, 0) AS discount_percent
-        FROM purchase_order_items
-        WHERE po_id = @poId
-        ORDER BY id
+          poi.id, poi.po_id, poi.warehouse_id AS tenant_id,
+          poi.product_id, poi.product_name, poi.sku,
+          poi.quantity_ordered, poi.quantity_received,
+          poi.unit_cost, poi.total_cost, poi.sale_price,
+          COALESCE(poi.discount_amount, 0)  AS discount_amount,
+          COALESCE(poi.discount_percent, 0) AS discount_percent,
+          p.unit_of_measure
+        FROM purchase_order_items poi
+        LEFT JOIN warehouse_products p ON p.id = poi.product_id
+        WHERE poi.po_id = @poId
+        ORDER BY poi.id
       '''),
       parameters: {'poId': poId},
     );
@@ -1261,6 +1267,7 @@ class PurchaseOrderRemoteDataSource {
         salePrice: m['sale_price'] != null ? _toDouble(m['sale_price']) : null,
         discountAmount: _toDouble(m['discount_amount']),
         discountPercent: _toDouble(m['discount_percent']),
+        unitOfMeasure: m['unit_of_measure']?.toString() ?? 'pcs',
       );
     }).toList();
   }

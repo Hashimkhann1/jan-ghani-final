@@ -1,4 +1,4 @@
-// Updated on 2026-10-05 06:40 PM
+// Updated on 2026-11-09 11:37 AM
 
 // =============================================================
 // purchase_invoice_model.dart
@@ -150,6 +150,9 @@ class PoCartItem {
   final double    taxAmount;
   final double    discountAmount;
   final double?   customSubTotal; // ← user ne manually set kiya toh yahan save hota hai
+  // KG/continuous: user ne qty khud di? true → SubTotal se PRICE niklegi,
+  // false + price mojood → SubTotal se QTY niklegi.
+  final bool      qtySetByUser;
 
   const PoCartItem({
     required this.cartId,
@@ -160,6 +163,7 @@ class PoCartItem {
     this.taxAmount      = 0,
     this.discountAmount = 0,
     this.customSubTotal, // ← optional, default null (formula use hoga)
+    this.qtySetByUser = false,
   });
 
   // subTotal: agar user ne manually set kiya toh woh use karo
@@ -180,6 +184,7 @@ class PoCartItem {
     double? discountAmount,
     double? customSubTotal,
     bool    clearCustomSubTotal = false, // ← true karo toh formula wapas active
+    bool?   qtySetByUser,
   }) {
     return PoCartItem(
       cartId:         cartId,
@@ -192,6 +197,7 @@ class PoCartItem {
       customSubTotal: clearCustomSubTotal
           ? null
           : (customSubTotal ?? this.customSubTotal),
+      qtySetByUser: qtySetByUser ?? this.qtySetByUser,
     );
   }
 }

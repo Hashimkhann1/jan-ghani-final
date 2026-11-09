@@ -1,3 +1,4 @@
+// Updated on 2026-11-09 11:37 AM
 // =============================================================
 // purchase_order_model.dart
 // UPDATED: discountAmount field added to PurchaseOrderItem
@@ -26,6 +27,7 @@ class PurchaseOrderItem {
   final double? salePrice;        // user manually enter karta hai
   final double  discountAmount;   // NAYA — per-item discount (Rs mein)
   final double discountPercent;
+  final String unitOfMeasure;     // warehouse_products se (read-only, save nahi hota)
 
   const PurchaseOrderItem({
     required this.id,
@@ -41,6 +43,7 @@ class PurchaseOrderItem {
     this.salePrice,
     this.discountAmount = 0,  // default 0
     this.discountPercent = 0,
+    this.unitOfMeasure = 'pcs',
 
   });
 
@@ -136,6 +139,7 @@ class PurchaseOrderItem {
       salePrice:        salePrice        ?? this.salePrice,
       discountAmount:   discountAmount   ?? this.discountAmount,
       discountPercent: discountPercent ?? this.discountPercent,
+      unitOfMeasure:   unitOfMeasure,
     );
   }
 }
