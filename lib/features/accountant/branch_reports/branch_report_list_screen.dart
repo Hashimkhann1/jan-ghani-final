@@ -12,6 +12,7 @@ import 'accountant_category_wise_sale_report/presentaion/screen/category_sale_re
 import 'accountant_customer/presentation/screen/accountant_customer_report_screen.dart';
 import 'accountant_profit_loss_report/presentation/screen/accountant_profit_loss_report_screen.dart';
 import 'accountant_sale_summary_report/presentation/screen/sale_summary_screen.dart';
+import 'common/special_products.dart';
 import 'branch_cash_counter_report/presentation/screen/branch_cash_counter_screen.dart';
 import 'branch_cash_difference/presentation/screen/branch_cash_difference_screen.dart';
 import 'branch_stock_damage_report/presentation/screen/accountant_branch_stock_damage_report_screen.dart';
@@ -86,9 +87,10 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
     _ReportItem(
       slug: 'sale-summary',
       iconAsset: 'sidebar_icons/sale_invoice_report',
-      label: 'Sale Summary',
+      label: 'Physical Sale Report',
       subtitle: 'Sale, return, net sale and customer collection',
       color: Color(0xFF10B981),
+      group: 'Sale Summary',
     ),
     _ReportItem(
       slug: 'inventory',
@@ -209,6 +211,22 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
       subtitle: 'Stock assigned to this branch from warehouse',
       color: Color(0xFF7C3AED),
     ),
+    _ReportItem(
+      slug: 'sale-summary-digital',
+      iconAsset: 'sidebar_icons/sale_invoice_report',
+      label: 'Digital Sale Report',
+      subtitle: 'Bank transfer, bill pay, SIM load, cash withdraw',
+      color: Color(0xFF6D28D9),
+      group: 'Sale Summary',
+    ),
+    _ReportItem(
+      slug: 'sale-summary-pmg',
+      iconAsset: 'sidebar_icons/sale_invoice_report',
+      label: 'PMG Sale Report',
+      subtitle: 'Pull PMG category sales',
+      color: Color(0xFF0369A1),
+      group: 'Sale Summary',
+    ),
   ];
 
   bool _isDesktop(BuildContext context) =>
@@ -255,6 +273,10 @@ class _BranchReportListScreenState extends State<BranchReportListScreen> {
         return StockMovementScreen(branchId: branchId);
       case 18:
         return AssignedStockReportScreen(branchId: branchId);
+      case 19:
+        return SaleSummaryScreen(branchId: branchId, kind: SaleKind.digital);
+      case 20:
+        return SaleSummaryScreen(branchId: branchId, kind: SaleKind.pmg);
       default:
         return const SizedBox.shrink();
     }
@@ -403,20 +425,157 @@ class _ReportSidebar extends StatelessWidget {
 
             // ── Report list ──────────────────────────────────────
             Expanded(
-              child: ListView.builder(
+              child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: reports.length,
-                itemBuilder: (_, i) => _SidebarItem(
-                  item: reports[i],
-                  selected: i == selected,
-                  collapsed: collapsed,
-                  onTap: () => onSelect(i),
-                ),
+                children: _rows(),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Flat list; same group ke items ek expandable header ke andar
+  /// (header pehle member ki jagah par).
+  List<Widget> _rows() {
+    final out = <Widget>[];
+    final done = <String>{};
+    for (var i = 0; i < reports.length; i++) {
+      final g = reports[i].group;
+      if (g == null) {
+        out.add(_SidebarItem(
+          item: reports[i],
+          selected: i == selected,
+          collapsed: collapsed,
+          onTap: () => onSelect(i),
+        ));
+      } else if (done.add(g)) {
+        out.add(_SidebarGroup(
+          title: g,
+          members: [
+            for (var j = 0; j < reports.length; j++)
+              if (reports[j].group == g) j,
+          ],
+          reports: reports,
+          selected: selected,
+          collapsed: collapsed,
+          onSelect: onSelect,
+        ));
+      }
+    }
+    return out;
+  }
+}
+
+/// Expandable group (jaise "Sale Summary" → Physical / Digital / PMG).
+class _SidebarGroup extends StatefulWidget {
+  final String title;
+  final List<int> members;
+  final List<_ReportItem> reports;
+  final int selected;
+  final bool collapsed;
+  final ValueChanged<int> onSelect;
+
+  const _SidebarGroup({
+    required this.title,
+    required this.members,
+    required this.reports,
+    required this.selected,
+    required this.collapsed,
+    required this.onSelect,
+  });
+
+  @override
+  State<_SidebarGroup> createState() => _SidebarGroupState();
+}
+
+class _SidebarGroupState extends State<_SidebarGroup> {
+  late bool _open = widget.members.contains(widget.selected);
+
+  @override
+  void didUpdateWidget(covariant _SidebarGroup old) {
+    super.didUpdateWidget(old);
+    // Group ki koi report select ho to group khula rahe.
+    if (widget.members.contains(widget.selected) &&
+        !old.members.contains(old.selected)) {
+      _open = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final first = widget.reports[widget.members.first];
+    final hasSelected = widget.members.contains(widget.selected);
+    final children = [
+      for (final i in widget.members)
+        _SidebarItem(
+          item: widget.reports[i],
+          selected: i == widget.selected,
+          collapsed: widget.collapsed,
+          onTap: () => widget.onSelect(i),
+        ),
+    ];
+
+    // Collapsed sidebar: sirf icons, group header ke bina.
+    if (widget.collapsed) return Column(children: children);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          child: Material(
+            color: hasSelected
+                ? first.color.withOpacity(0.06)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: () => setState(() => _open = !_open),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                child: Row(children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: first.color.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child:
+                        AppIcon(first.iconAsset, color: first.color, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            hasSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: const Color(0xFF1A1D23),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _open
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: const Color(0xFF6B7280),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        ),
+        if (_open)
+          Padding(
+            padding: const EdgeInsets.only(left: 14),
+            child: Column(children: children),
+          ),
+      ],
     );
   }
 }
@@ -556,15 +715,134 @@ class _MobileLayout extends StatelessWidget {
           child: Container(height: 1, color: const Color(0xFFE5E7EB)),
         ),
       ),
-      body: ListView.separated(
+      body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        itemCount: reports.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => _ReportListCard(
-          item: reports[i],
-          onTap: () => onTap(i),
-        ),
+        children: _rows(),
       ),
+    );
+  }
+
+  /// Flat list; same group ke reports ek expandable card ke andar.
+  List<Widget> _rows() {
+    final out = <Widget>[];
+    final done = <String>{};
+    void gap() {
+      if (out.isNotEmpty) out.add(const SizedBox(height: 10));
+    }
+
+    for (var i = 0; i < reports.length; i++) {
+      final g = reports[i].group;
+      if (g == null) {
+        gap();
+        out.add(_ReportListCard(item: reports[i], onTap: () => onTap(i)));
+      } else if (done.add(g)) {
+        gap();
+        out.add(_MobileGroup(
+          title: g,
+          reports: reports,
+          members: [
+            for (var j = 0; j < reports.length; j++)
+              if (reports[j].group == g) j,
+          ],
+          onTap: onTap,
+        ));
+      }
+    }
+    return out;
+  }
+}
+
+/// Mobile par expandable group card (Sale Summary → Physical / Digital / PMG).
+class _MobileGroup extends StatefulWidget {
+  final String title;
+  final List<_ReportItem> reports;
+  final List<int> members;
+  final ValueChanged<int> onTap;
+
+  const _MobileGroup({
+    required this.title,
+    required this.reports,
+    required this.members,
+    required this.onTap,
+  });
+
+  @override
+  State<_MobileGroup> createState() => _MobileGroupState();
+}
+
+class _MobileGroupState extends State<_MobileGroup> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final first = widget.reports[widget.members.first];
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => _open = !_open),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            child: Row(children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: first.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: AppIcon(first.iconAsset, color: first.color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.title,
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A1D23))),
+                    const SizedBox(height: 3),
+                    Text('${widget.members.length} reports',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColor.textHint)),
+                  ],
+                ),
+              ),
+              Icon(
+                _open
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.keyboard_arrow_down_rounded,
+                color: const Color(0xFF6B7280),
+              ),
+            ]),
+          ),
+        ),
+        if (_open)
+          Padding(
+            padding: const EdgeInsets.only(left: 16, top: 10),
+            child: Column(children: [
+              for (var k = 0; k < widget.members.length; k++) ...[
+                if (k > 0) const SizedBox(height: 10),
+                _ReportListCard(
+                  item: widget.reports[widget.members[k]],
+                  onTap: () => widget.onTap(widget.members[k]),
+                ),
+              ],
+            ]),
+          ),
+      ],
     );
   }
 }
@@ -657,7 +935,11 @@ class _ReportItem {
   final String subtitle;
   final Color color;
 
+  /// Sidebar mein expandable group ka naam (null = alag item).
+  final String? group;
+
   const _ReportItem({
+    this.group,
     required this.slug,
     required this.iconAsset,
     required this.label,

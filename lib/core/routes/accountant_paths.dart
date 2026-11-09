@@ -5,6 +5,7 @@
 //   /login
 //   /sign-up
 //   /forgot-password
+//   /choose-account                      (staff + customer dono ho to)
 //   /connect-account                     (role null — branch se connect karo)
 //   /dashboard
 //   /branches
@@ -29,6 +30,7 @@ class AccPaths {
   static const signUp          = '/sign-up';
   static const forgotPassword  = '/forgot-password';
   static const connectAccount  = '/connect-account';
+  static const chooseAccount   = '/choose-account';
   static const dashboard       = '/dashboard';
   static const branches        = '/branches';
   static const warehouses      = '/warehouses';

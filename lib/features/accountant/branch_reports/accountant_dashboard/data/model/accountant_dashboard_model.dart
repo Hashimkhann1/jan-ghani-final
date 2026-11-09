@@ -18,7 +18,11 @@ class AccountantBranchDashboardModel {
 
   // ── Net & Profit ───────────────────────────────────────
   final double netSale;               // totalSale - totalSaleReturn
-  final double grossProfit;           // (salePrice - purchasePrice) × qty - discount
+  final double grossProfit;           // TOTAL profit (physical + Pull PMG + digital)
+
+  // ── Pull PMG / Digital services (main totals se alag) ──
+  final double pmgSale, pmgProfit;
+  final double digitalSale, digitalProfit;
 
   // ── Inventory ──────────────────────────────────────────
   final double inventoryValue;        // stock × purchase_price (Stock Purchase Value)
@@ -44,6 +48,10 @@ class AccountantBranchDashboardModel {
     required this.totalSaleReturn,
     required this.netSale,
     required this.grossProfit,
+    required this.pmgSale,
+    required this.pmgProfit,
+    required this.digitalSale,
+    required this.digitalProfit,
     required this.inventoryValue,
     required this.stockSaleValue,
     required this.cashIn,
@@ -63,6 +71,10 @@ class AccountantBranchDashboardModel {
         totalSaleReturn:       0,
         netSale:               0,
         grossProfit:           0,
+        pmgSale:               0,
+        pmgProfit:             0,
+        digitalSale:           0,
+        digitalProfit:         0,
         inventoryValue:        0,
         stockSaleValue:        0,
         cashIn:                0,
@@ -79,7 +91,10 @@ class AccountantBranchDashboardModel {
 enum DashboardTrendPeriod { weekly, monthly }
 
 /// Dashboard ke graphs — har ek ka apna Weekly/Monthly period.
-enum DashboardChart { sales, profit, credit, installment }
+enum DashboardChart {
+  sales, profit, credit, installment,
+  pmgSale, pmgProfit, digitalSale, digitalProfit,
+}
 
 class DashboardTrendPoint {
   final String label;       // 'Mon' / 'Jan'
@@ -88,6 +103,7 @@ class DashboardTrendPoint {
   final double profit;      // gross profit (returns minus)
   final double creditSale;  // sale_invoice_payments → payment_method='credit'
   final double installment; // customer_ledger → sum(pay_amount)
+  final double pmgSale, pmgProfit, digitalSale, digitalProfit;
 
   const DashboardTrendPoint({
     required this.label,
@@ -96,6 +112,10 @@ class DashboardTrendPoint {
     required this.profit,
     required this.creditSale,
     required this.installment,
+    this.pmgSale = 0,
+    this.pmgProfit = 0,
+    this.digitalSale = 0,
+    this.digitalProfit = 0,
   });
 
   double get netSale => sale - saleReturn;

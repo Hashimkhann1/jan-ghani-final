@@ -75,6 +75,10 @@ class _CustomerPortalScreenState extends ConsumerState<CustomerPortalScreen> {
                     ),
                     name: _displayName,
                     onLogout: _logout,
+                    onSwitch: (ref.read(currentUserProvider)?.hasStaffAndCustomer ??
+                            false)
+                        ? () => ref.read(sessionProvider.notifier).setMode(null)
+                        : null,
                   ),
                   if (token != null)
                     Expanded(child: CustomerInvoicesTab(customerId: token)),
@@ -92,10 +96,12 @@ class _InvoicesHeader extends StatelessWidget {
   final Widget avatar;
   final String name;
   final VoidCallback onLogout;
+  final VoidCallback? onSwitch;
   const _InvoicesHeader({
     required this.avatar,
     required this.name,
     required this.onLogout,
+    this.onSwitch,
   });
 
   @override
@@ -117,6 +123,12 @@ class _InvoicesHeader extends StatelessWidget {
                       fontSize: 16, fontWeight: FontWeight.w700)),
             ),
             const PushToggleButton(),
+            if (onSwitch != null)
+              IconButton(
+                tooltip: 'Switch account',
+                onPressed: onSwitch,
+                icon: const Icon(Icons.swap_horiz_rounded, color: _muted),
+              ),
             IconButton(
               tooltip: 'Logout',
               onPressed: onLogout,

@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../common/special_products.dart';
 import '../model/accountant_dashboard_model.dart';
 
 // ═══════════════════════════════════════════════════════════
@@ -20,38 +21,37 @@ class AccountantBranchDashboardDatasource {
 
   static String _toStr(DateTime d) => d.toUtc().toIso8601String();
 
-  // ── Digital products ─────────────────────────────────────
-  // Dashboard sirf physical products dikhata hai. Digital (Bank Transfer /
-  // Pay Bill / SIM Load / Cash Withdraw) invoices ka hissa RPC ke totals se
-  // minus kiya jata hai. Digital invoice = jis mein koi digital item ho.
-  Set<String>? _digitalIds;
+  // ── Special products (Digital + Pull PMG) ────────────────
+  // Main cards/graphs sirf normal products dikhate hain. Do group alag hote hain:
+  //  • Digital  → product_type != 'physical' (Bank Transfer / Pay Bill / SIM Load…)
+  //  • Pull PMG → category ka naam "Pull PMG" ho
+  // Invoice us group ki hoti hai jis ka koi item usme ho (digital ko priority).
+  ({Set<String> digital, Set<String> pmg})? _special;
 
-  Future<Set<String>> _digitalProductIds() async {
-    final cached = _digitalIds;
+  Future<({Set<String> digital, Set<String> pmg})> _specialProductIds() async {
+    final cached = _special;
     if (cached != null) return cached;
-    final rows = await _client
-        .from('branch_stock_inventory')
-        .select('product_id')
-        .eq('store_id', branchId)
-        .neq('product_type', 'physical') as List;
-    return _digitalIds = {for (final r in rows) r['product_id'].toString()};
+
+    final r = await loadSpecialProductIds(_client, branchId);
+    return _special = r;
   }
 
-  /// Range ki digital invoices ka total / payments / profit (deduped by invoice).
-  Future<List<_DigitalInvoice>> _digitalInvoices(
+  /// Range ki digital + PMG invoices ka total / payments / profit (deduped).
+  Future<List<_SpecialInvoice>> _specialInvoices(
       DateTime from, DateTime to) async {
-    final ids = await _digitalProductIds();
-    if (ids.isEmpty) return const [];
+    final ids = await _specialProductIds();
+    final all = {...ids.digital, ...ids.pmg};
+    if (all.isEmpty) return const [];
     const chunk = 1000;
-    final out = <String, _DigitalInvoice>{};
+    final out = <String, _SpecialInvoice>{};
     var start = 0;
     while (true) {
       final rows = await _client
           .from('sale_invoice_items')
-          .select('id, sale_price, purchase_price, quantity, discount, '
-              'sale_invoices!inner(id, invoice_date, grand_total, '
+          .select('id, product_id, sale_price, purchase_price, quantity, '
+              'discount, sale_invoices!inner(id, invoice_date, grand_total, '
               'sale_invoice_payments(payment_method, amount))')
-          .inFilter('product_id', ids.toList())
+          .inFilter('product_id', all.toList())
           .eq('sale_invoices.store_id', branchId)
           .eq('sale_invoices.status', 'completed')
           .filter('sale_invoices.deleted_at', 'is', null)
@@ -62,19 +62,23 @@ class AccountantBranchDashboardDatasource {
       for (final r in rows) {
         final inv = r['sale_invoices'] as Map;
         final id  = inv['id'].toString();
+        final isDigital = ids.digital.contains(r['product_id'].toString());
         final d = out.putIfAbsent(id, () {
           double pay(String m) =>
               (inv['sale_invoice_payments'] as List? ?? [])
                   .where((p) => p['payment_method'] == m)
                   .fold<double>(0, (a, p) => a + (_dbl(p['amount']) ?? 0));
-          return _DigitalInvoice(
-            date:   DateTime.parse(inv['invoice_date'].toString()).toLocal(),
-            total:  _dbl(inv['grand_total']) ?? 0,
-            cash:   pay('cash'),
-            card:   pay('card'),
-            credit: pay('credit'),
+          return _SpecialInvoice(
+            date:      DateTime.parse(inv['invoice_date'].toString()).toLocal(),
+            total:     _dbl(inv['grand_total']) ?? 0,
+            cash:      pay('cash'),
+            card:      pay('card'),
+            credit:    pay('credit'),
+            isDigital: isDigital,
           );
         });
+        // Digital ko priority: mixed invoice digital maani jati hai.
+        if (isDigital) d.isDigital = true;
         d.profit += ((_dbl(r['sale_price']) ?? 0) -
                     (_dbl(r['purchase_price']) ?? 0)) *
                 (_dbl(r['quantity']) ?? 0) -
@@ -106,17 +110,18 @@ class AccountantBranchDashboardDatasource {
   }) async {
     final results = await Future.wait([
       _summary(fromDate, toDate),
-      _digitalInvoices(fromDate, toDate),
+      _specialInvoices(fromDate, toDate),
     ]);
     final row     = results[0] as Map<String, dynamic>;
-    final digital = results[1] as List<_DigitalInvoice>;
-    double dsum(double Function(_DigitalInvoice) f) =>
-        digital.fold<double>(0, (a, d) => a + f(d));
-    final dTotal  = dsum((d) => d.total);
-    final dCash   = dsum((d) => d.cash);
-    final dCard   = dsum((d) => d.card);
-    final dCredit = dsum((d) => d.credit);
-    final dProfit = dsum((d) => d.profit);
+    final special = results[1] as List<_SpecialInvoice>;
+    double ssum(Iterable<_SpecialInvoice> l, double Function(_SpecialInvoice) f) =>
+        l.fold<double>(0, (a, d) => a + f(d));
+    final digital = special.where((d) => d.isDigital).toList();
+    final pmg     = special.where((d) => !d.isDigital).toList();
+    final dTotal  = ssum(special, (d) => d.total);
+    final dCash   = ssum(special, (d) => d.cash);
+    final dCard   = ssum(special, (d) => d.card);
+    final dCredit = ssum(special, (d) => d.credit);
     final dReceived = dCash + dCard;
     double v(String k) => _dbl(row[k]) ?? 0;
 
@@ -129,7 +134,12 @@ class AccountantBranchDashboardDatasource {
       totalAmountReceived:   v('cash_sale') + v('card_sale') + v('installment') - dReceived,
       totalSaleReturn:       v('total_return'),
       netSale:               v('total_sale') - dTotal - v('total_return'),
-      grossProfit:           v('gross_profit') - dProfit,
+      // Total profit (physical + Pull PMG + digital).
+      grossProfit:           v('gross_profit'),
+      pmgSale:               ssum(pmg, (d) => d.total),
+      pmgProfit:             ssum(pmg, (d) => d.profit),
+      digitalSale:           ssum(digital, (d) => d.total),
+      digitalProfit:         ssum(digital, (d) => d.profit),
       inventoryValue:        v('stock_purchase'),
       stockSaleValue:        v('stock_sale'),
       cashIn:                v('cash_in'),
@@ -178,20 +188,30 @@ class AccountantBranchDashboardDatasource {
       'p_ends':     [for (final b in buckets) _toStr(b.$3)],
     });
     final digitalFut =
-        _digitalInvoices(buckets.first.$2, buckets.last.$3);
+        _specialInvoices(buckets.first.$2, buckets.last.$3);
     final res     = await trendFut;
     final digital = await digitalFut;
 
-    // Har digital invoice ko uske bucket mein minus karo.
+    // Har digital/PMG invoice ko uske bucket ki sale/credit se minus karo
+    // (profit total rehta hai).
     final dSale   = List<double>.filled(buckets.length, 0);
-    final dProfit = List<double>.filled(buckets.length, 0);
     final dCredit = List<double>.filled(buckets.length, 0);
+    final pSale = List<double>.filled(buckets.length, 0);
+    final pProfit = List<double>.filled(buckets.length, 0);
+    final gSale = List<double>.filled(buckets.length, 0);
+    final gProfit = List<double>.filled(buckets.length, 0);
     for (final d in digital) {
       for (var i = 0; i < buckets.length; i++) {
         if (!d.date.isBefore(buckets[i].$2) && !d.date.isAfter(buckets[i].$3)) {
           dSale[i]   += d.total;
-          dProfit[i] += d.profit;
           dCredit[i] += d.credit;
+          if (d.isDigital) {
+            gSale[i]   += d.total;
+            gProfit[i] += d.profit;
+          } else {
+            pSale[i]   += d.total;
+            pProfit[i] += d.profit;
+          }
           break;
         }
       }
@@ -207,9 +227,13 @@ class AccountantBranchDashboardDatasource {
           label:      buckets[i].$1,
           sale:       (_dbl(byIdx[i + 1]?['total_sale'])   ?? 0) - dSale[i],
           saleReturn: _dbl(byIdx[i + 1]?['total_return']) ?? 0,
-          profit:     (_dbl(byIdx[i + 1]?['gross_profit']) ?? 0) - dProfit[i],
+          profit:     _dbl(byIdx[i + 1]?['gross_profit']) ?? 0,
           creditSale: (_dbl(byIdx[i + 1]?['credit_sale'])  ?? 0) - dCredit[i],
           installment: _dbl(byIdx[i + 1]?['installment']) ?? 0,
+          pmgSale:       pSale[i],
+          pmgProfit:     pProfit[i],
+          digitalSale:   gSale[i],
+          digitalProfit: gProfit[i],
         ),
     ];
   }
@@ -223,15 +247,17 @@ class AccountantBranchDashboardDatasource {
 }
 
 
-class _DigitalInvoice {
+class _SpecialInvoice {
   final DateTime date;
   final double total, cash, card, credit;
+  bool isDigital;
   double profit = 0;
-  _DigitalInvoice({
+  _SpecialInvoice({
     required this.date,
     required this.total,
     required this.cash,
     required this.card,
     required this.credit,
+    required this.isDigital,
   });
 }

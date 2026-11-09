@@ -73,11 +73,14 @@ class ReportFilterButton extends StatelessWidget {
 ///
 /// [content] should be a widget that rebuilds itself when the report state
 /// changes (e.g. a `Consumer`), so date/dropdown changes show up live while
-/// the dialog is open. Filters apply immediately; "Apply" just closes it.
+/// the dialog is open. By default filters apply immediately and "Apply" just
+/// closes it; pass [onApply] to defer: the screen edits a draft and loads data
+/// once, when "Apply" is pressed (closing with X discards the draft).
 Future<void> showReportFilterDialog({
   required BuildContext context,
   required Widget       content,
   VoidCallback?         onReset,
+  VoidCallback?         onApply,
 }) {
   return showDialog<void>(
     context: context,
@@ -85,6 +88,7 @@ Future<void> showReportFilterDialog({
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       titlePadding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
       contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       title: Row(
@@ -115,7 +119,7 @@ Future<void> showReportFilterDialog({
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: SizedBox(
-          width: 520,
+          width: double.maxFinite,
           child: SingleChildScrollView(child: content),
         ),
       ),
@@ -125,7 +129,10 @@ Future<void> showReportFilterDialog({
           width: double.infinity,
           height: 44,
           child: ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              Navigator.pop(ctx);
+              onApply?.call();
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColor.primary,
               foregroundColor: Colors.white,

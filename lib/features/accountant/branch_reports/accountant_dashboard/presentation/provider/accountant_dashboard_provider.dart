@@ -146,13 +146,9 @@ class AccountantBranchDashboardNotifier
     }
   }
 
-  void setFromDate(DateTime d) {
-    state = state.copyWith(fromDate: d);
-    load();
-  }
-
-  void setToDate(DateTime d) {
-    state = state.copyWith(toDate: d);
+  /// Filter dialog "Apply": dono dates ek saath, data ek hi baar load.
+  void setRange(DateTime from, DateTime to) {
+    state = state.copyWith(fromDate: from, toDate: to);
     load();
   }
 

@@ -376,12 +376,26 @@ class _Sidebar extends ConsumerWidget {
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: Color(0xFFEDEDF2))),
             ),
-            child: _SidebarItem(
-              icon:   'ic_clear',
-              label:  'Logout',
-              active: false,
-              danger: true,
-              onTap:  () => _confirmAndLogout(context, ref),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (ref.watch(currentUserProvider)?.hasStaffAndCustomer ?? false)
+                  _SidebarItem(
+                    icon:   'ic_transfer',
+                    label:  'Switch account',
+                    active: false,
+                    onTap:  () => ref
+                        .read(sessionProvider.notifier)
+                        .setMode(null),
+                  ),
+                _SidebarItem(
+                  icon:   'ic_clear',
+                  label:  'Logout',
+                  active: false,
+                  danger: true,
+                  onTap:  () => _confirmAndLogout(context, ref),
+                ),
+              ],
             ),
           ),
         ],
@@ -516,6 +530,9 @@ class AccountantDashboardBody extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12)),
                 onSelected: (v) {
                   if (v == 'logout') _confirmAndLogout(context, ref);
+                  if (v == 'switch') {
+                    ref.read(sessionProvider.notifier).setMode(null);
+                  }
                 },
                 itemBuilder: (_) => [
                   PopupMenuItem<String>(
@@ -534,6 +551,15 @@ class AccountantDashboardBody extends ConsumerWidget {
                     ),
                   ),
                   const PopupMenuDivider(),
+                  if (user?.hasStaffAndCustomer ?? false)
+                    PopupMenuItem<String>(
+                      value: 'switch',
+                      child: Row(children: const [
+                        Icon(Icons.swap_horiz_rounded, size: 18),
+                        SizedBox(width: 10),
+                        Text('Switch account'),
+                      ]),
+                    ),
                   PopupMenuItem<String>(
                     value: 'logout',
                     child: Row(children: const [

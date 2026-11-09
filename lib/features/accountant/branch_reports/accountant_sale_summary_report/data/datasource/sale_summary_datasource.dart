@@ -1,37 +1,45 @@
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
+import '../../../common/special_products.dart';
 import '../model/sale_summary_model.dart';
 
 class SaleSummaryDatasource {
   final _client = Supabase.instance.client;
   final String  branchId;
 
-  SaleSummaryDatasource({required this.branchId});
+  final SaleKind kind;
 
-  // ── Digital products (Bank Transfer / Pay Bill / SIM Load / Cash Withdraw) ──
-  // Sale Summary sirf physical products dikhata hai. Digital invoice = jis
-  // mein koi digital item ho (digital invoices sirf digital items ki hoti hain).
-  Set<String>? _digitalIds;
+  SaleSummaryDatasource({required this.branchId, this.kind = SaleKind.physical});
 
-  Future<Set<String>> _digitalProductIds() async {
-    final cached = _digitalIds;
-    if (cached != null) return cached;
-    final rows = await _client
-        .from('branch_stock_inventory')
-        .select('product_id')
-        .eq('store_id', branchId)
-        .neq('product_type', 'physical') as List;
-    return _digitalIds = {for (final r in rows) r['product_id'].toString()};
+  // ── Digital / Pull PMG products ──────────────────────────
+  // physical report in dono ko hide karti hai; digital/pmg report sirf apni
+  // kind ke products ki invoices dikhati hai.
+  ({Set<String> digital, Set<String> pmg})? _special;
+
+  Future<({Set<String> digital, Set<String> pmg})> _specialIds() async =>
+      _special ??= await loadSpecialProductIds(_client, branchId);
+
+  bool get _isPhysical => kind == SaleKind.physical;
+
+  /// Is report ki kind ke product ids (physical ke liye: digital + pmg, jo hide hote hain).
+  Future<Set<String>> _kindIds() async {
+    final s = await _specialIds();
+    return switch (kind) {
+      SaleKind.digital  => s.digital,
+      SaleKind.pmg      => s.pmg,
+      SaleKind.physical => {...s.digital, ...s.pmg},
+    };
   }
 
-  /// Range ki digital invoices: (id, date, grand_total, customer_id), deduped.
+  /// Range ki special (hide hone wali ya is kind ki) invoices:
+  /// (id, date, grand_total), deduped.
   Future<List<({String id, DateTime date, double total})>> _digitalInvoices(
     DateTime from,
     DateTime to,
     String? cid,
   ) async {
-    final ids = await _digitalProductIds();
+    final ids = await _kindIds();
     if (ids.isEmpty) return const [];
     final out = <String, ({String id, DateTime date, double total})>{};
     var start = 0;
@@ -56,6 +64,40 @@ class SaleSummaryDatasource {
           id: id,
           date: DateTime.parse(inv['invoice_date'].toString()).toLocal(),
           total: _dbl(inv['grand_total']),
+        );
+      }
+      if (rows.length < _chunk) break;
+      start += _chunk;
+    }
+    return out.values.toList();
+  }
+
+  /// Digital/PMG report ke returns: (date, grand_total), deduped by return.
+  Future<List<(DateTime, double)>> _kindReturns(
+      DateTime from, DateTime to, String? cid) async {
+    final ids = await _kindIds();
+    if (ids.isEmpty) return const [];
+    final out = <String, (DateTime, double)>{};
+    var start = 0;
+    while (true) {
+      var q = _client
+          .from('sale_return_items')
+          .select('return_id, sale_returns!inner(id, return_date, grand_total)')
+          .inFilter('product_id', ids.toList())
+          .eq('sale_returns.store_id', branchId)
+          .eq('sale_returns.status', 'completed')
+          .filter('sale_returns.deleted_at', 'is', null)
+          .gte('sale_returns.return_date', from.toIso8601String())
+          .lte('sale_returns.return_date', to.toIso8601String());
+      if (cid != null) q = q.eq('sale_returns.customer_id', cid);
+      final rows = await q
+          .order('return_id')
+          .range(start, start + _chunk - 1) as List;
+      for (final r in rows) {
+        final ret = r['sale_returns'] as Map;
+        out[ret['id'].toString()] = (
+          DateTime.parse(ret['return_date'].toString()).toLocal(),
+          _dbl(ret['grand_total']),
         );
       }
       if (rows.length < _chunk) break;
@@ -129,6 +171,12 @@ class SaleSummaryDatasource {
     String?           customerId,
     String?           search,
   }) async {
+    final ids = await _kindIds();
+    // digital/pmg: sirf un items wali invoices (inner join → sahi pagination).
+    // physical: sab invoices, phir digital/pmg wali hide.
+    final itemsSel = _isPhysical
+        ? 'sale_invoice_items (product_id, product_name, sale_price, purchase_price, quantity, total_amount)'
+        : 'sale_invoice_items!inner (product_id, product_name, sale_price, purchase_price, quantity, total_amount)';
     var query = _client
         .from('sale_invoices')
         .select('''
@@ -136,7 +184,7 @@ class SaleSummaryDatasource {
           previous_amount, new_amount, pay_amount, deleted_at,
           customer (name),
           sale_invoice_payments (payment_method),
-          sale_invoice_items (product_id, product_name, sale_price, purchase_price, quantity, total_amount)
+          $itemsSel
         ''')
         .eq('store_id', branchId)
         .eq('status', 'completed')
@@ -144,6 +192,10 @@ class SaleSummaryDatasource {
         .gte('invoice_date', fromDate.toIso8601String())
         .lte('invoice_date', toDate.toIso8601String());
 
+    if (!_isPhysical) {
+      if (ids.isEmpty) return (<SummaryInvoice>[], 0);
+      query = query.inFilter('sale_invoice_items.product_id', ids.toList());
+    }
     if (customerId != null && customerId.isNotEmpty) {
       query = query.eq('customer_id', customerId);
     }
@@ -156,10 +208,13 @@ class SaleSummaryDatasource {
         .order('invoice_date', ascending: false)
         .range(start, end) as List;
 
-    final digital = await _digitalProductIds();
-    // Jis invoice mein koi digital item ho wo poori hide.
-    final physicalRows = rows.where((r) => !(r['sale_invoice_items'] as List? ?? [])
-        .any((i) => digital.contains(i['product_id']?.toString()))).toList();
+    // Jis invoice mein koi digital/pmg item ho wo physical report se hide.
+    final physicalRows = _isPhysical
+        ? rows
+            .where((r) => !(r['sale_invoice_items'] as List? ?? [])
+                .any((i) => ids.contains(i['product_id']?.toString())))
+            .toList()
+        : rows;
 
     final invoices = physicalRows.map((r) {
       final methods = (r['sale_invoice_payments'] as List? ?? [])
@@ -222,13 +277,18 @@ class SaleSummaryDatasource {
     required int      end,
     String?           customerId,
   }) async {
+    final ids = await _kindIds();
+    if (!_isPhysical && ids.isEmpty) return const [];
+    final retItems = _isPhysical
+        ? 'sale_return_items (product_id, product_name, sale_price, purchase_price, quantity, total_amount)'
+        : 'sale_return_items!inner (product_id, product_name, sale_price, purchase_price, quantity, total_amount)';
     var query = _client
         .from('sale_returns')
         .select('''
           id, return_no, return_date, total_discount, grand_total,
           refund_type, deleted_at,
           customer (name),
-          sale_return_items (product_name, sale_price, purchase_price, quantity, total_amount)
+          $retItems
         ''')
         .eq('store_id', branchId)
         .eq('status', 'completed')
@@ -236,6 +296,9 @@ class SaleSummaryDatasource {
         .gte('return_date', fromDate.toIso8601String())
         .lte('return_date', toDate.toIso8601String());
 
+    if (!_isPhysical) {
+      query = query.inFilter('sale_return_items.product_id', ids.toList());
+    }
     if (customerId != null && customerId.isNotEmpty) {
       query = query.eq('customer_id', customerId);
     }
@@ -288,6 +351,10 @@ class SaleSummaryDatasource {
   }
 
   Future<double> _totalSale(DateTime from, DateTime to, String? cid) async {
+    if (!_isPhysical) {
+      final inv = await _digitalInvoices(from, to, cid);
+      return inv.fold<double>(0, (a, d) => a + d.total);
+    }
     final rows = await _client.rpc('get_sale_report_summary', params: {
       'p_store_id':     branchId,
       'p_from':         from.toIso8601String(),
@@ -301,6 +368,10 @@ class SaleSummaryDatasource {
   }
 
   Future<double> _totalReturn(DateTime from, DateTime to, String? cid) async {
+    if (!_isPhysical) {
+      final r = await _kindReturns(from, to, cid);
+      return r.fold<double>(0, (a, e) => a + e.$2);
+    }
     final rows = await _client.rpc('get_sale_return_summary', params: {
       'p_store_id':    branchId,
       'p_from':        from.toIso8601String(),
@@ -316,6 +387,8 @@ class SaleSummaryDatasource {
   static const int _chunk = 1000;
 
   Future<double> _totalCollected(DateTime from, DateTime to, String? cid) async {
+    // Customer collection digital/pmg ke liye alag nahi hoti.
+    if (!_isPhysical) return 0;
     var total = 0.0;
     var start = 0;
     while (true) {
@@ -352,14 +425,20 @@ class SaleSummaryDatasource {
     String?           customerId,
   }) async {
     final cid = (customerId != null && customerId.isNotEmpty) ? customerId : null;
-    final rows = await Future.wait([
-      _amountRows('sale_invoices', 'invoice_date', 'grand_total',
-          fromDate, toDate, cid, completedOnly: true),
-      _amountRows('sale_returns', 'return_date', 'grand_total',
-          fromDate, toDate, cid, completedOnly: true),
-      _amountRows('customer_ledger', 'created_at', 'pay_amount',
-          fromDate, toDate, cid),
-    ]);
+    final rows = _isPhysical
+        ? await Future.wait([
+            _amountRows('sale_invoices', 'invoice_date', 'grand_total',
+                fromDate, toDate, cid, completedOnly: true),
+            _amountRows('sale_returns', 'return_date', 'grand_total',
+                fromDate, toDate, cid, completedOnly: true),
+            _amountRows('customer_ledger', 'created_at', 'pay_amount',
+                fromDate, toDate, cid),
+          ])
+        : [
+            const <(DateTime, double)>[],
+            await _kindReturns(fromDate, toDate, cid),
+            const <(DateTime, double)>[],
+          ];
 
     final span = toDate.difference(fromDate);
     final unit = span.inHours <= 36
@@ -397,10 +476,12 @@ class SaleSummaryDatasource {
     }
 
     final digitalInv = await _digitalInvoices(fromDate, toDate, cid);
-    final saleRows = [
-      ...rows[0],
-      for (final d in digitalInv) (d.date, -d.total),
-    ];
+    final saleRows = _isPhysical
+        ? [
+            ...rows[0],
+            for (final d in digitalInv) (d.date, -d.total),
+          ]
+        : [for (final d in digitalInv) (d.date, d.total)];
     final sale = bucket(saleRows);
     final ret  = bucket(rows[1]);
     final col  = bucket(rows[2]);

@@ -93,7 +93,7 @@ class _WebsiteScreenState extends ConsumerState<WebsiteScreen> {
   }
 
   void _goToAccount(AccountantUserEntity user) =>
-      context.go(accountantHomeFor(user));
+      context.go(accountantHomeFor(user, mode: ref.read(sessionProvider).mode));
 
   void _scrollTo(WebsiteSection section) {
     final ctx = _sectionKeys[section]!.currentContext;

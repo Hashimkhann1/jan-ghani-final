@@ -32,6 +32,9 @@ class _AccountantBranchDashboardScreenState
   final _fromTimeCtrl = TextEditingController();
   final _toTimeCtrl   = TextEditingController();
 
+  // Filter dialog ka draft — "Apply" dabane par hi data load hota hai.
+  late DateTime _dFrom, _dTo;
+
   @override
   void initState() {
     super.initState();
@@ -57,8 +60,7 @@ class _AccountantBranchDashboardScreenState
       MediaQuery.of(context).size.width >= 800;
 
   Future<void> _pickDate(BuildContext context, bool isFrom) async {
-    final state = ref.read(accountantBranchDashboardProvider(widget.branchId));
-    final init  = isFrom ? state.fromDate : state.toDate;
+    final init = isFrom ? _dFrom : _dTo;
     final picked = await showDatePicker(
       context:     context,
       initialDate: init,
@@ -72,24 +74,21 @@ class _AccountantBranchDashboardScreenState
       ),
     );
     if (picked == null) return;
-    final notifier = ref.read(
-        accountantBranchDashboardProvider(widget.branchId).notifier);
     final combined = DateTime(
       picked.year, picked.month, picked.day,
       init.hour, init.minute, init.second,
     );
     if (isFrom) {
       _fromCtrl.text = _dateFmt.format(combined);
-      notifier.setFromDate(combined);
+      _dFrom = combined;
     } else {
       _toCtrl.text = _dateFmt.format(combined);
-      notifier.setToDate(combined);
+      _dTo = combined;
     }
   }
 
   Future<void> _pickTime(BuildContext context, bool isFrom) async {
-    final state = ref.read(accountantBranchDashboardProvider(widget.branchId));
-    final init  = isFrom ? state.fromDate : state.toDate;
+    final init = isFrom ? _dFrom : _dTo;
     final picked = await showTimePicker(
       context:     context,
       initialTime: TimeOfDay.fromDateTime(init),
@@ -101,23 +100,23 @@ class _AccountantBranchDashboardScreenState
       ),
     );
     if (picked == null) return;
-    final notifier = ref.read(
-        accountantBranchDashboardProvider(widget.branchId).notifier);
     final combined = DateTime(
       init.year, init.month, init.day,
       picked.hour, picked.minute,
     );
     if (isFrom) {
       _fromTimeCtrl.text = _timeFmt.format(combined);
-      notifier.setFromDate(combined);
+      _dFrom = combined;
     } else {
       _toTimeCtrl.text = _timeFmt.format(combined);
-      notifier.setToDate(combined);
+      _dTo = combined;
     }
   }
 
   void _setToday(dynamic notifier) {
     notifier.setToday();
+    _dFrom = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    _dTo   = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 23, 59, 59);
     final now        = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
     final endOfDay   = DateTime(now.year, now.month, now.day, 23, 59, 59);
@@ -128,8 +127,18 @@ class _AccountantBranchDashboardScreenState
   }
 
   void _openFilters() {
+    final st = ref.read(accountantBranchDashboardProvider(widget.branchId));
+    _dFrom = st.fromDate;
+    _dTo   = st.toDate;
+    _fromCtrl.text     = _dateFmt.format(_dFrom);
+    _toCtrl.text       = _dateFmt.format(_dTo);
+    _fromTimeCtrl.text = _timeFmt.format(_dFrom);
+    _toTimeCtrl.text   = _timeFmt.format(_dTo);
     showReportFilterDialog(
       context: context,
+      onApply: () => ref
+          .read(accountantBranchDashboardProvider(widget.branchId).notifier)
+          .setRange(_dFrom, _dTo),
       onReset: () => _setToday(
           ref.read(accountantBranchDashboardProvider(widget.branchId).notifier)),
       content: Column(
@@ -272,7 +281,9 @@ class _AccountantBranchDashboardScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Summary Cards (3 per row) ─────────────
-              _CardRows(cards: _dashboardCards(state.data!, _fmt)),
+              _CardRows(
+                  cards:  _dashboardCards(state.data!, _fmt),
+                  perRow: desktop ? 3 : 2),
               const SizedBox(height: 16),
 
               // ── Charts ────────────────────────────────
@@ -300,7 +311,8 @@ List<Widget> _dashboardCards(
       title:     'Total Sale',
       value:     fmtAmt(data.netSale),
       subtitle:  '${fmtAmt(data.totalSale)} sale − '
-          '${fmtAmt(data.totalSaleReturn)} return',
+          '${fmtAmt(data.totalSaleReturn)} return\n'
+          'Profit: ${fmtAmt(data.grossProfit - data.pmgProfit - data.digitalProfit)}',
       icon:      Icons.bar_chart_rounded,
       iconAsset: 'ic_total_sale',
       color:     const Color(0xFF534AB7),
@@ -316,29 +328,29 @@ List<Widget> _dashboardCards(
       bgColor:   const Color(0xFFFBEAF0),
     ),
     DashboardStatCard(
-      title:      isLoss ? 'Loss' : 'Profit',
+      title:      isLoss ? 'Total Loss' : 'Total Profit',
       value:      fmtAmt(data.grossProfit.abs()),
-      subtitle:   'Profit & Loss (returns minus)',
+      subtitle:   'Physical + Pull PMG + Digital',
       icon:       isLoss ? Icons.trending_down_rounded : Icons.trending_up_rounded,
       color:      isLoss ? const Color(0xFFDC2626) : const Color(0xFF0F6E56),
       bgColor:    isLoss ? const Color(0xFFFEF2F2) : const Color(0xFFE1F5EE),
       valueColor: isLoss ? const Color(0xFFDC2626) : const Color(0xFF0F6E56),
     ),
     DashboardStatCard(
-      title:     'Cash In',
-      value:     fmtAmt(data.cashIn),
-      icon:      Icons.south_west_rounded,
-      iconAsset: 'ic_cash_in',
-      color:     const Color(0xFF3B9A5E),
-      bgColor:   const Color(0xFFEAF3DE),
+      title:     'Pull PMG',
+      value:     fmtAmt(data.pmgSale),
+      subtitle:  'Profit: ${fmtAmt(data.pmgProfit)}',
+      icon:      Icons.swap_vert_rounded,
+      color:     const Color(0xFF0369A1),
+      bgColor:   const Color(0xFFE0F2FE),
     ),
     DashboardStatCard(
-      title:     'Cash Out',
-      value:     fmtAmt(data.cashOut),
-      icon:      Icons.north_east_rounded,
-      iconAsset: 'ic_cash_out',
-      color:     const Color(0xFFDC2626),
-      bgColor:   const Color(0xFFFEF2F2),
+      title:     'Digital Services',
+      value:     fmtAmt(data.digitalSale),
+      subtitle:  'Profit: ${fmtAmt(data.digitalProfit)}',
+      icon:      Icons.phone_android_rounded,
+      color:     const Color(0xFF6D28D9),
+      bgColor:   const Color(0xFFEDE9FE),
     ),
     DashboardStatCard(
       title:     'Total Customer Amount',
@@ -353,21 +365,21 @@ List<Widget> _dashboardCards(
 
 class _CardRows extends StatelessWidget {
   final List<Widget> cards;
-  static const _perRow = 3;
+  final int perRow;
 
-  const _CardRows({required this.cards});
+  const _CardRows({required this.cards, this.perRow = 3});
 
   @override
   Widget build(BuildContext context) {
     final rows = <Widget>[];
-    for (var i = 0; i < cards.length; i += _perRow) {
-      final chunk = cards.skip(i).take(_perRow).toList();
+    for (var i = 0; i < cards.length; i += perRow) {
+      final chunk = cards.skip(i).take(perRow).toList();
       if (rows.isNotEmpty) rows.add(const SizedBox(height: 12));
       rows.add(IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var j = 0; j < _perRow; j++) ...[
+            for (var j = 0; j < perRow; j++) ...[
               if (j > 0) const SizedBox(width: 12),
               Expanded(child: j < chunk.length ? chunk[j] : const SizedBox()),
             ],
@@ -428,6 +440,36 @@ class _ChartsSection extends StatelessWidget {
       color:     const Color(0xFF993556),
     );
 
+    TrendBarChart bar(String t, DashboardChart c,
+            double Function(DashboardTrendPoint) f, List<Color> g) =>
+        TrendBarChart(
+          title:     t,
+          data:      state.trendOf(c),
+          valueOf:   f,
+          trailing:  toggle(c),
+          isLoading: state.isTrendLoading(c),
+          gradient:  g,
+        );
+    TrendLineChart line(String t, DashboardChart c,
+            double Function(DashboardTrendPoint) f, Color col) =>
+        TrendLineChart(
+          title:     t,
+          data:      state.trendOf(c),
+          valueOf:   f,
+          trailing:  toggle(c),
+          isLoading: state.isTrendLoading(c),
+          color:     col,
+        );
+    const pmgCol = Color(0xFF0369A1), digCol = Color(0xFF6D28D9);
+    final pmgSale = bar('Pull PMG Sale', DashboardChart.pmgSale,
+        (p) => p.pmgSale, const [pmgCol, Color(0xFF7DD3FC)]);
+    final pmgProfit = line('Pull PMG Profit', DashboardChart.pmgProfit,
+        (p) => p.pmgProfit, pmgCol);
+    final digSale = bar('Digital Services Sale', DashboardChart.digitalSale,
+        (p) => p.digitalSale, const [digCol, Color(0xFFC4B5FD)]);
+    final digProfit = line('Digital Services Profit',
+        DashboardChart.digitalProfit, (p) => p.digitalProfit, digCol);
+
     if (!desktop) {
       return Column(children: [
         sales,
@@ -437,6 +479,14 @@ class _ChartsSection extends StatelessWidget {
         credit,
         const SizedBox(height: 12),
         installment,
+        const SizedBox(height: 12),
+        pmgSale,
+        const SizedBox(height: 12),
+        pmgProfit,
+        const SizedBox(height: 12),
+        digSale,
+        const SizedBox(height: 12),
+        digProfit,
       ]);
     }
 
@@ -453,6 +503,10 @@ class _ChartsSection extends StatelessWidget {
       pair(sales, profit),
       const SizedBox(height: 12),
       pair(credit, installment),
+      const SizedBox(height: 12),
+      pair(pmgSale, pmgProfit),
+      const SizedBox(height: 12),
+      pair(digSale, digProfit),
     ]);
   }
 }

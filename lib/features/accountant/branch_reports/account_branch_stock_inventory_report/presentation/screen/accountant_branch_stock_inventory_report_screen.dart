@@ -953,7 +953,18 @@ class _ValuesRow extends StatelessWidget {
       }
     }
 
+    final productsLabel = deadStockOnly
+        ? 'Diet Products'
+        : switch (stockFilter) {
+            StockStatus.inStock    => 'In Stock Products',
+            StockStatus.lowStock   => 'Low Stock Products',
+            StockStatus.outOfStock => 'Out of Stock Products',
+            _ => categoryFilter != null ? 'Category Products' : 'Total Products',
+          };
+
     return Row(children: [
+      Expanded(child: _ValueCard(label: productsLabel, value: '${items.length}', icon: 'ic_total_products', color: accentColor)),
+      const SizedBox(width: 8),
       Expanded(child: _ValueCard(label: qtyLabel, value: fmtQty(qty), icon: 'ic_total_quantity', color: accentColor)),
       const SizedBox(width: 8),
       Expanded(child: _ValueCard(label: 'Purchase Value', value: fmtAmt(purchaseVal), icon: 'ic_purchase_price', color: const Color(0xFF8B5CF6))),

@@ -18,6 +18,7 @@ import '../../features/accountant/accountant_warehouse_finance/presentation/scre
 import '../../features/accountant/accountant_warehouse_inventory/presentation/screen/accountant_warehouse_inventory_screen.dart';
 import '../../features/accountant/authentication/domain/entities/accountant_user_entity.dart';
 import '../../features/accountant/authentication/presentation/providers/accoutant_session_provider.dart';
+import '../../features/accountant/authentication/presentation/screen/choose_account_screen.dart';
 import '../../features/accountant/authentication/presentation/screen/connect_account_screen.dart';
 import '../../features/accountant/authentication/presentation/screen/forgot_password_screen.dart';
 import '../../features/accountant/authentication/presentation/screen/login_screen.dart';
@@ -66,9 +67,17 @@ bool _hasToken(AccountantUserEntity u) => (u.customerToken ?? '').isNotEmpty;
 String _portalId(AccountantUserEntity u) => u.customerToken!;
 
 /// Login ke baad user ka pehla screen (website ka "My Account" bhi yahi).
-String accountantHomeFor(AccountantUserEntity u) {
+///
+/// Dual user (staff + customer): [mode] null ho to "Choose your account".
+String accountantHomeFor(AccountantUserEntity u, {AccountMode? mode}) {
   if (u.role.isEmpty) return AccPaths.connectAccount;
-  if (_hasToken(u)) return AccPaths.customer(_portalId(u));
+  if (u.hasStaffAndCustomer) {
+    if (mode == null) return AccPaths.chooseAccount;
+    if (mode == AccountMode.customer) return AccPaths.customer(_portalId(u));
+    // staff → neeche normal role-based home.
+  } else if (_hasToken(u)) {
+    return AccPaths.customer(_portalId(u));
+  }
   if (u.role == 'inventory_counter') return AccPaths.inventoryCount;
   for (final e in _tabRoles.entries) {
     if (e.value.contains(u.role)) return e.key;
@@ -77,9 +86,19 @@ String accountantHomeFor(AccountantUserEntity u) {
   return AccPaths.dashboard;
 }
 
-bool _isAllowed(AccountantUserEntity u, String path) {
+bool _isAllowed(AccountantUserEntity u, String path, AccountMode? mode) {
   if (u.role.isEmpty) return path == AccPaths.connectAccount;
-  if (_hasToken(u)) return path == AccPaths.customer(_portalId(u));
+  if (u.hasStaffAndCustomer) {
+    if (path == AccPaths.chooseAccount) return true;
+    if (mode == null) return false;
+    if (mode == AccountMode.customer) {
+      return path == AccPaths.customer(_portalId(u));
+    }
+    // staff mode: neeche normal role rules (customer portal band).
+  } else {
+    if (path == AccPaths.chooseAccount) return false;
+    if (_hasToken(u)) return path == AccPaths.customer(_portalId(u));
+  }
   if (u.role == 'inventory_counter') return path == AccPaths.inventoryCount;
   final segs = Uri.parse(path).pathSegments;
   final tab = '/${segs.firstOrNull ?? ''}';
@@ -143,11 +162,11 @@ String? _redirect(Ref ref, GoRouterState state) {
         queryParameters: keepFrom ? {'from': desired} : null).toString();
   }
 
-  final home = accountantHomeFor(user);
+  final home = accountantHomeFor(user, mode: session.mode);
   if (desiredPath == AccPaths.home ||
       desiredPath == AccPaths.login ||
       desiredPath == AccPaths.splash ||
-      (desiredPath != home && !_isAllowed(user, desiredPath))) {
+      (desiredPath != home && !_isAllowed(user, desiredPath, session.mode))) {
     desired = home;
   }
   return desired == current ? null : desired;
@@ -157,7 +176,9 @@ String? _redirect(Ref ref, GoRouterState state) {
 class _SessionListenable extends ChangeNotifier {
   _SessionListenable(Ref ref) {
     ref.listen<SessionState>(sessionProvider, (prev, next) {
-      if (prev?.isRestoring != next.isRestoring || prev?.user != next.user) {
+      if (prev?.isRestoring != next.isRestoring ||
+          prev?.user != next.user ||
+          prev?.mode != next.mode) {
         notifyListeners();
       }
     });
@@ -205,6 +226,10 @@ final accountantRouterProvider = Provider<GoRouter>((ref) {
         path: AccPaths.connectAccount,
         pageBuilder: (_, s) =>
             _noAnim(s, const AccountantConnectAccountScreen()),
+      ),
+      GoRoute(
+        path: AccPaths.chooseAccount,
+        pageBuilder: (_, s) => _noAnim(s, const ChooseAccountScreen()),
       ),
       GoRoute(
         path: AccPaths.forgotPassword,

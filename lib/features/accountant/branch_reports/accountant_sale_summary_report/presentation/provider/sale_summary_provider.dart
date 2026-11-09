@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
+import '../../../common/special_products.dart';
 import '../../data/datasource/sale_summary_datasource.dart';
 import '../../data/model/sale_summary_model.dart';
 
@@ -71,8 +72,8 @@ class SaleSummaryState {
 class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
   final SaleSummaryDatasource _ds;
 
-  SaleSummaryNotifier({required String branchId})
-      : _ds = SaleSummaryDatasource(branchId: branchId),
+  SaleSummaryNotifier({required String branchId, required SaleKind kind})
+      : _ds = SaleSummaryDatasource(branchId: branchId, kind: kind),
         super(SaleSummaryState()) {
     _loadCustomers();
     load();
@@ -197,6 +198,21 @@ class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
     load();
   }
 
+  /// Filter dialog "Apply": teeno filters ek saath set, data ek hi baar load.
+  void applyFilters({
+    required DateTime from,
+    required DateTime to,
+    String?           customerId,
+  }) {
+    state = state.copyWith(
+      fromDate:           from,
+      toDate:             to,
+      selectedCustomerId: customerId,
+      clearCustomer:      customerId == null,
+    );
+    load();
+  }
+
   void setCustomer(String? id) {
     state = state.copyWith(selectedCustomerId: id, clearCustomer: id == null);
     load();
@@ -214,6 +230,7 @@ class SaleSummaryNotifier extends StateNotifier<SaleSummaryState> {
 }
 
 final saleSummaryProvider = StateNotifierProvider.autoDispose
-    .family<SaleSummaryNotifier, SaleSummaryState, String>(
-  (ref, branchId) => SaleSummaryNotifier(branchId: branchId),
+    .family<SaleSummaryNotifier, SaleSummaryState,
+        ({String branchId, SaleKind kind})>(
+  (ref, a) => SaleSummaryNotifier(branchId: a.branchId, kind: a.kind),
 );

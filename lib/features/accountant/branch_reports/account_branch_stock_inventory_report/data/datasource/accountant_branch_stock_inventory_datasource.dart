@@ -30,9 +30,36 @@ class AccountantBranchInventoryDatasource {
     }
   }
 
+  /// Warehouse mein delete (soft-delete) ho chuke products ke ids. Branch
+  /// row ka deleted_at sync na hua ho tab bhi ye products report se bahar.
+  Future<Set<String>> _deletedProductIds() async {
+    final ids = <String>{};
+    var from = 0;
+    const size = 1000;
+    try {
+      while (true) {
+        final rows = await _client
+            .from('warehouse_products')
+            .select('id')
+            .not('deleted_at', 'is', null)
+            .order('id')
+            .range(from, from + size - 1) as List;
+        for (final r in rows) {
+          ids.add(r['id'].toString());
+        }
+        if (rows.length < size) break;
+        from += size;
+      }
+    } catch (e) {
+      print('🔴 deleted products fetch error: $e');
+    }
+    return ids;
+  }
+
   Future<List<AccountantBranchInventoryModel>> fetchInventory(
       Map<String, String> categoryNameById,
       ) async {
+    final deleted = await _deletedProductIds();
     List<AccountantBranchInventoryModel> allItems = [];
     int rangeStart = 0;
     const int pageSize = 1000;
@@ -60,7 +87,8 @@ class AccountantBranchInventoryDatasource {
         break;
       }
 
-      final page = rows.map((r) {
+      final page = rows.where((r) =>
+          !deleted.contains((r as Map)['product_id']?.toString())).map((r) {
         final map = r as Map<String, dynamic>;
         final catId = map['category_id']?.toString();
         final catName = categoryNameById[catId] ?? 'Uncategorized';

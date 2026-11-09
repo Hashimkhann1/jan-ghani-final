@@ -15,7 +15,7 @@ class CustomerLedgerReportDatasource {
 
   static const _cols =
       'id, store_id, customer_id, customer_name, counter_id, user_id, '
-      'user_full_name, previous_amount, pay_amount, new_amount, notes, '
+      'previous_amount, pay_amount, new_amount, notes, '
       'payment_method, created_at, updated_at, deleted_at';
 
   PostgrestFilterBuilder<dynamic> _filtered(
@@ -55,10 +55,30 @@ class CustomerLedgerReportDatasource {
       endDate: endDate,
       search: search,
     ).order('created_at', ascending: false).range(start, end) as List;
+
+    // user_full_name customer_ledger ka column nahi — branch_users se.
+    final userIds = {
+      for (final r in rows)
+        if (r['user_id'] != null) r['user_id'].toString()
+    }.toList();
+    final names = <String, String>{};
+    if (userIds.isNotEmpty) {
+      try {
+        final users = await _client
+            .from('branch_users')
+            .select('id, full_name')
+            .inFilter('id', userIds) as List;
+        for (final u in users) {
+          names[u['id'].toString()] = u['full_name']?.toString() ?? '';
+        }
+      } catch (_) {/* naam optional hai */}
+    }
     return (
-      rows
-          .map((r) => CustomerLedgerModel.fromMap(r as Map<String, dynamic>))
-          .toList(),
+      rows.map((r) {
+        final m = Map<String, dynamic>.from(r as Map);
+        m['user_full_name'] = names[m['user_id']?.toString()];
+        return CustomerLedgerModel.fromMap(m);
+      }).toList(),
       BranchReportPagination.hasNextPage(rows.length),
     );
   }

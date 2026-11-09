@@ -11,6 +11,7 @@ import '../../data/service/sale_summary_export_sheets.dart';
 import '../../../common/filter/report_filter_dialog.dart';
 import '../../../common/pagination/branch_report_pagination.dart';
 import '../../../common/pagination/branch_report_pagination_controls.dart';
+import '../../../common/special_products.dart';
 import '../../data/model/sale_summary_model.dart';
 import '../provider/sale_summary_provider.dart';
 import '../widget/sale_invoice_detail_panel.dart';
@@ -18,8 +19,10 @@ import '../widget/sale_invoice_table.dart';
 import '../widget/sale_summary_trend_dialog.dart';
 
 class SaleSummaryScreen extends ConsumerStatefulWidget {
-  const SaleSummaryScreen({super.key, required this.branchId});
-  final String branchId;
+  const SaleSummaryScreen(
+      {super.key, required this.branchId, this.kind = SaleKind.physical});
+  final String   branchId;
+  final SaleKind kind;
 
   @override
   ConsumerState<SaleSummaryScreen> createState() => _SaleSummaryScreenState();
@@ -44,11 +47,13 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
         colorScheme: const ColorScheme.light(primary: AppColor.primary),
       );
 
-  Future<void> _pickDate(bool isFrom) async {
-    final provider = saleSummaryProvider(widget.branchId);
-    final state    = ref.read(provider);
-    final init     = isFrom ? state.fromDate : state.toDate;
-    final picked   = await showDatePicker(
+  // Filter dialog ka draft — "Apply" dabane par hi data load hota hai.
+  late DateTime _dFrom, _dTo;
+  String? _dCustomer;
+
+  Future<void> _pickDate(bool isFrom, VoidCallback refresh) async {
+    final init   = isFrom ? _dFrom : _dTo;
+    final picked = await showDatePicker(
       context:     context,
       initialDate: init,
       firstDate:   DateTime(2024),
@@ -58,15 +63,13 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
     if (picked == null) return;
     final combined = DateTime(
         picked.year, picked.month, picked.day, init.hour, init.minute, init.second);
-    final notifier = ref.read(provider.notifier);
-    isFrom ? notifier.setFromDate(combined) : notifier.setToDate(combined);
+    isFrom ? _dFrom = combined : _dTo = combined;
+    refresh();
   }
 
-  Future<void> _pickTime(bool isFrom) async {
-    final provider = saleSummaryProvider(widget.branchId);
-    final state    = ref.read(provider);
-    final init     = isFrom ? state.fromDate : state.toDate;
-    final picked   = await showTimePicker(
+  Future<void> _pickTime(bool isFrom, VoidCallback refresh) async {
+    final init   = isFrom ? _dFrom : _dTo;
+    final picked = await showTimePicker(
       context:     context,
       initialTime: TimeOfDay.fromDateTime(init),
       builder: (ctx, child) => Theme(data: _pickerTheme(ctx), child: child!),
@@ -74,91 +77,106 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
     if (picked == null) return;
     final combined = DateTime(
         init.year, init.month, init.day, picked.hour, picked.minute);
-    final notifier = ref.read(provider.notifier);
-    isFrom ? notifier.setFromDate(combined) : notifier.setToDate(combined);
+    isFrom ? _dFrom = combined : _dTo = combined;
+    refresh();
   }
 
   void _openFilters() {
-    final provider = saleSummaryProvider(widget.branchId);
+    final provider = saleSummaryProvider((branchId: widget.branchId, kind: widget.kind));
+    final current  = ref.read(provider);
+    _dFrom     = current.fromDate;
+    _dTo       = current.toDate;
+    _dCustomer = current.selectedCustomerId;
+
     showReportFilterDialog(
       context: context,
       onReset: () {
         final n = ref.read(provider.notifier);
+        _dFrom     = SaleSummaryState.startOfToday();
+        _dTo       = SaleSummaryState.endOfToday();
+        _dCustomer = null;
         n.setToday();
         n.setCustomer(null);
       },
+      onApply: () => ref.read(provider.notifier).applyFilters(
+            from: _dFrom, to: _dTo, customerId: _dCustomer),
       content: Consumer(builder: (ctx, ref, _) {
-        final state    = ref.watch(provider);
-        final notifier = ref.read(provider.notifier);
-        final customerItems = [
-          DropdownItem<String?>(
-            value: null,
-            label: 'All Customers',
-            icon:  Icons.people_outline_rounded,
-          ),
-          ...state.customers.map((c) => DropdownItem<String?>(
-                value: c.id,
-                label: c.label,
-                icon:  Icons.person_outline_rounded,
-              )),
-        ];
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(children: [
-              Expanded(
-                child: _PickerField(
-                  label: 'Start Date',
-                  value: _dateFmt.format(state.fromDate),
-                  onTap: () => _pickDate(true),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _PickerField(
-                  label: 'Start Time',
-                  value: _timeFmt.format(state.fromDate),
-                  onTap: () => _pickTime(true),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: _PickerField(
-                  label: 'End Date',
-                  value: _dateFmt.format(state.toDate),
-                  onTap: () => _pickDate(false),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _PickerField(
-                  label: 'End Time',
-                  value: _timeFmt.format(state.toDate),
-                  onTap: () => _pickTime(false),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 12),
-            AppSearchableDropdown<String?>(
-              items:      customerItems,
-              value:      state.selectedCustomerId,
-              hint:       'All Customers',
-              fullWidth:  true,
-              prefixIcon: Icons.person_outline_rounded,
-              onChanged:  notifier.setCustomer,
+        final state = ref.watch(provider);
+        return StatefulBuilder(builder: (ctx, setLocal) {
+          void refresh() => setLocal(() {});
+          final customerItems = [
+            DropdownItem<String?>(
+              value: null,
+              label: 'All Customers',
+              icon:  Icons.people_outline_rounded,
             ),
-          ],
-        );
+            ...state.customers.map((c) => DropdownItem<String?>(
+                  value: c.id,
+                  label: c.label,
+                  icon:  Icons.person_outline_rounded,
+                )),
+          ];
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(children: [
+                Expanded(
+                  child: _PickerField(
+                    label: 'Start Date',
+                    value: _dateFmt.format(_dFrom),
+                    onTap: () => _pickDate(true, refresh),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _PickerField(
+                    label: 'Start Time',
+                    value: _timeFmt.format(_dFrom),
+                    onTap: () => _pickTime(true, refresh),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: _PickerField(
+                    label: 'End Date',
+                    value: _dateFmt.format(_dTo),
+                    onTap: () => _pickDate(false, refresh),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _PickerField(
+                    label: 'End Time',
+                    value: _timeFmt.format(_dTo),
+                    onTap: () => _pickTime(false, refresh),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              AppSearchableDropdown<String?>(
+                items:      customerItems,
+                value:      _dCustomer,
+                hint:       'All Customers',
+                fullWidth:  true,
+                prefixIcon: Icons.person_outline_rounded,
+                onChanged:  (v) {
+                  _dCustomer = v;
+                  refresh();
+                },
+              ),
+            ],
+          );
+        });
       }),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = saleSummaryProvider(widget.branchId);
+    final provider = saleSummaryProvider((branchId: widget.branchId, kind: widget.kind));
     final state    = ref.watch(provider);
     final notifier = ref.read(provider.notifier);
     final summary  = state.summary;
@@ -211,8 +229,8 @@ class _SaleSummaryScreenState extends ConsumerState<SaleSummaryScreen> {
         backgroundColor:  Colors.white,
         elevation:        0,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
-          'Sale Summary',
+        title: Text(
+          widget.kind == SaleKind.physical ? 'Sale Summary' : widget.kind.title,
           style: TextStyle(
             fontSize:   17,
             fontWeight: FontWeight.w700,

@@ -20,12 +20,14 @@ class DashboardExportSheets {
       ['Sales', 'Total Amount Received',    data.totalAmountReceived],
       ['Sales', 'Total Sale Return',        data.totalSaleReturn],
       ['Sales', 'Net Sale',                 data.netSale],
-      ['Profit', 'Gross Profit',            data.grossProfit],
+      ['Profit', 'Total Profit',            data.grossProfit],
+      ['Pull PMG', 'Pull PMG Sale',         data.pmgSale],
+      ['Pull PMG', 'Pull PMG Profit',       data.pmgProfit],
+      ['Digital', 'Digital Services Sale',  data.digitalSale],
+      ['Digital', 'Digital Services Profit', data.digitalProfit],
       ['Stock', 'Stock Purchase Value',     data.inventoryValue],
       ['Stock', 'Stock Sale Value',         data.stockSaleValue],
       ['Stock', 'Total Damage (at cost)',   data.totalDamage],
-      ['Cash', 'Cash In',                   data.cashIn],
-      ['Cash', 'Cash Out',                  data.cashOut],
       ['Receivable', 'Outstanding Receivable', data.outstandingReceivable],
     ];
 
