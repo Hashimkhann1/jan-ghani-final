@@ -1,5 +1,4 @@
 // customer_ledger_remote_datasource.dart
-import 'package:jan_ghani_final/core/service/sync/sync_service.dart';
 import 'package:postgres/postgres.dart';
 
 import '../../../../../core/service/db/db_service.dart';
@@ -207,7 +206,6 @@ class CustomerLedgerRemoteDataSource {
       parameters: {'id': newId},
     );
 
-    SyncService().syncSoon();
     return CustomerLedgerModel.fromMap(_toMap(fresh.first));
   }
 
@@ -263,7 +261,6 @@ class CustomerLedgerRemoteDataSource {
       );
     });
 
-    SyncService().syncSoon();
 
     // Fresh record (joined)
     final result = await conn.execute(
@@ -295,7 +292,6 @@ class CustomerLedgerRemoteDataSource {
       '''),
       parameters: {'id': id},
     );
-    SyncService().syncSoon();
   }
 
   // ── ROW → MAP ─────────────────────────────────────────────

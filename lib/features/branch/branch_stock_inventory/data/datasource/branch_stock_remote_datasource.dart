@@ -294,7 +294,6 @@
 
 
 
-import 'package:jan_ghani_final/core/service/sync/sync_service.dart';
 import 'package:postgres/postgres.dart';
 
 import '../../../../../core/service/db/db_service.dart';
@@ -526,7 +525,6 @@ class BranchStockDataSource {
         'newMaxStock':       p.maxStock,
       },
     );
-    SyncService().syncSoon();
   }
 
   // ── Shelf + Min/Max Stock Update (Manager & Cashier) ────────────────
@@ -597,7 +595,6 @@ class BranchStockDataSource {
         'newMaxStock':  maxStock,
       },
     );
-    SyncService().syncSoon();
   }
 
   // ── Product Delete (soft) ───────────────────────────────────────
@@ -653,7 +650,6 @@ class BranchStockDataSource {
       // ignore: avoid_print
       print('⚠️ branch_stock_inventory_logs delete-log skip: $e');
     }
-    SyncService().syncSoon();
   }
 
   // ── Helpers ─────────────────────────────────────────────────────

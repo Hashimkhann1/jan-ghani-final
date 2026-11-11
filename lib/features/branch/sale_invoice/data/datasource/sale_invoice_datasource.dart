@@ -1,4 +1,3 @@
-import 'package:jan_ghani_final/core/service/sync/sync_service.dart';
 import 'package:postgres/postgres.dart';
 
 import '../../../../../core/service/db/db_service.dart';
@@ -128,7 +127,6 @@ class SaleInvoiceDatasource {
       // it double-counts the credit amount.
     });
 
-    SyncService().syncSoon();
     return invoiceId;
   }
 
@@ -163,7 +161,6 @@ class SaleInvoiceDatasource {
         'notes':        'Payment: $invoiceNo',
       },
     );
-    SyncService().syncSoon();
   }
 
   Future<List<Map<String, dynamic>>> getAll(String storeId) async {

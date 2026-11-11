@@ -9,7 +9,6 @@
 // log" atomically in one DB transaction (§7.4).
 // =============================================================
 
-import 'package:jan_ghani_final/core/service/sync/sync_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -157,7 +156,6 @@ class BranchInventoryBalanceDatasource {
     if (result.isEmpty) {
       throw StateError('local_stock_row_not_found');
     }
-    SyncService().syncSoon();
   }
 
   // Compensation: agar local stock update fail ho jaye, Supabase item

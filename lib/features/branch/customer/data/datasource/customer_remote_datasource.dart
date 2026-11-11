@@ -1,4 +1,3 @@
-import 'package:jan_ghani_final/core/service/sync/sync_service.dart';
 import 'package:postgres/postgres.dart';
 
 import '../../../../../core/service/db/db_service.dart';
@@ -81,7 +80,6 @@ class CustomerRemoteDataSource {
       },
     );
 
-    SyncService().syncSoon();
     return CustomerModel.fromMap(_toMap(result.first));
   }
 
@@ -117,7 +115,6 @@ class CustomerRemoteDataSource {
       },
     );
 
-    SyncService().syncSoon();
     return (await getById(customer.id))!;
   }
 
@@ -134,7 +131,6 @@ class CustomerRemoteDataSource {
       '''),
       parameters: {'id': id},
     );
-    SyncService().syncSoon();
   }
 
   // ── GENERATE NEXT CODE ────────────────────────────────────
