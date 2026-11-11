@@ -67,11 +67,15 @@ class _AddCashTransactionDialogState
     // ✅ Watch cashCounterProvider — aaj ka correct system net amount
     final records = ref.watch(cashCounterProvider).allRecords;
     final today   = DateTime.now();
+    // Sirf logged-in user ke assigned counter ka row (pehle koi bhi counter
+    // ka pehla row uth jata tha — counter 1 user ko counter 2 ka amount dikhta tha).
+    final myCounterId = ref.watch(authProvider).counterId;
     final systemTotal = records
         .where((r) =>
     r.counterDate.year  == today.year  &&
         r.counterDate.month == today.month &&
-        r.counterDate.day   == today.day)
+        r.counterDate.day   == today.day &&
+        r.counterId == myCounterId)
         .firstOrNull
         ?.totalAmount ?? 0.0;
 

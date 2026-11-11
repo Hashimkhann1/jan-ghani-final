@@ -4,17 +4,14 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import 'print_service.dart';
+
 class CustomerLedgerPrintService {
   static const double _paperWidth = 72 * PdfPageFormat.mm;
 
   // ── Printer ─────────────────────────────────────────────
-  static Future<Printer> _getThermalPrinter() async {
-    final printers = await Printing.listPrinters();
-    return printers.firstWhere(
-          (p) => p.name.toLowerCase().contains('blackcopper'),
-      orElse: () => printers.first,
-    );
-  }
+  static Future<Printer> _getThermalPrinter() =>
+      ThermalPrintService.getThermalPrinter();
 
   // ── Main Print Method ────────────────────────────────────
   static Future<void> printReceipt({

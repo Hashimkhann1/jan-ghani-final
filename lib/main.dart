@@ -109,6 +109,18 @@ class _BranchHome extends ConsumerWidget {
               const Icon(Icons.cloud_off_rounded, size: 48),
               const SizedBox(height: 12),
               const Text('Database se connect nahi ho saka'),
+              const SizedBox(height: 8),
+              Text('DB host: ${StoreConfig.dbHost}:${StoreConfig.dbPort}'),
+              if (DataBaseService.lastError != null) ...[
+                const SizedBox(height: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: SelectableText(
+                    'Error: ${DataBaseService.lastError}',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () =>

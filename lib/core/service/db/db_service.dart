@@ -38,9 +38,9 @@ class DataBaseService {
         settings: const ConnectionSettings(
           sslMode: SslMode.disable,
           timeZone: 'Asia/Karachi',
-          connectTimeout: Duration(seconds: 10),
+          connectTimeout: Duration(seconds: 5),
         ),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 5));
       _connection = conn;
       lastError = null;
       print('PostgreSQL connected!');

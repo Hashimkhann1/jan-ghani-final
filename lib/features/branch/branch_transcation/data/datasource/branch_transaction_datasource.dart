@@ -6,16 +6,24 @@ import '../model/branch_transaction_history_model.dart';
 class BranchTransactionDataSource {
 
   // ── GET branch_cash_counter total_amount ──────────────────────
-  Future<double> getBranchTotalAmount(String storeId) async {
+  // counterId diya ho to sirf us counter ka aaj ka total; warna
+  // store ke sab counters ka total (pehle sirf "latest updated" counter
+  // ka total aata tha, is liye counter 2 ka amount counter 1 user ko dikhta tha).
+  Future<double> getBranchTotalAmount(String storeId, String? counterId) async {
     final conn   = await DataBaseService.getConnection();
     final result = await conn.execute(
       Sql.named('''
-        SELECT total_amount FROM public.branch_cash_counter
-        WHERE store_id = @storeId AND counter_date = CURRENT_DATE
-        ORDER BY updated_at DESC
-        LIMIT 1
+        SELECT COALESCE(SUM(total_amount), 0) AS total_amount
+        FROM public.branch_cash_counter
+        WHERE store_id     = @storeId
+          AND counter_date = CURRENT_DATE
+          AND deleted_at   IS NULL
+          ${counterId != null ? 'AND counter_id = @counterId::uuid' : ''}
       '''),
-      parameters: {'storeId': storeId},
+      parameters: {
+        'storeId': storeId,
+        if (counterId != null) 'counterId': counterId,
+      },
     );
     if (result.isEmpty) return 0.0;
     final raw = result.first.toColumnMap()['total_amount'];
@@ -27,6 +35,7 @@ class BranchTransactionDataSource {
   // ── CASH OUT ──────────────────────────────────────────────
   Future<void> cashOut({
     required String branchId,
+    String? counterId,
     required String assignById,
     required String assignByName,
     required double beforeAmount,
@@ -48,9 +57,20 @@ class BranchTransactionDataSource {
               updated_at   = NOW()
           WHERE store_id     = @storeId
             AND counter_date = CURRENT_DATE
+            AND deleted_at   IS NULL
             AND total_amount >= @payAmount
+            ${counterId != null
+                ? 'AND counter_id = @counterId::uuid'
+                : 'AND id = (SELECT id FROM public.branch_cash_counter '
+                  'WHERE store_id = @storeId AND counter_date = CURRENT_DATE '
+                  'AND deleted_at IS NULL AND total_amount >= @payAmount '
+                  'ORDER BY total_amount DESC LIMIT 1)'}
         '''),
-        parameters: {'payAmount': payAmount, 'storeId': branchId},
+        parameters: {
+          'payAmount': payAmount,
+          'storeId':   branchId,
+          if (counterId != null) 'counterId': counterId,
+        },
       );
       if (upd.affectedRows != 1) {
         throw Exception(

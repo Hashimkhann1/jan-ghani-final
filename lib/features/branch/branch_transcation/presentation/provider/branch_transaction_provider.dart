@@ -70,13 +70,14 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
 
   // ── Load data (uses current startDate/endDate filter agar set ho) ──
   Future<void> loadData() async {
-    final storeId = _ref.read(authProvider).storeId;
+    final authState = _ref.read(authProvider);
+    final storeId   = authState.storeId;
     if (storeId.isEmpty) return;
 
     final req = ++_loadReq;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final totalAmount = await _ds.getBranchTotalAmount(storeId);
+      final totalAmount = await _ds.getBranchTotalAmount(storeId, authState.counterId);
       final historyList = await _ds.getHistory(
         storeId,
         startDate: state.startDate,
@@ -146,6 +147,7 @@ class BranchTransactionNotifier extends StateNotifier<BranchTransactionState> {
 
       await _ds.cashOut(
         branchId:     auth.storeId,
+        counterId:    auth.counterId,
         assignById:   auth.userId,
         assignByName: auth.fullName,
         beforeAmount: beforeAmt,

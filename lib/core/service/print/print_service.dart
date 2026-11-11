@@ -6,21 +6,39 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../../config/store_config.dart';
+
 import '../../../features/branch/sale_invoice/data/model/sale_invoice_model.dart';
 import '../../../features/branch/sale_invoice/data/model/sale_return_model.dart';
 
 class ThermalPrintService {
   static const double _paperWidth = 72 * PdfPageFormat.mm;
 
-  static Future<Printer> _getThermalPrinter() async {
+  static Future<Printer> _getThermalPrinter() => getThermalPrinter();
+
+  /// Config ke "printer_name" se printer dhoondta hai (naam ka hissa, case-insensitive).
+  /// "printer_name" config mein na ho to purana behaviour: 'blackcopper', warna default/pehla printer.
+  /// Printer na mile to printer ke naam ke saath clear error throw karta hai.
+  static Future<Printer> getThermalPrinter() async {
+    final wanted = StoreConfig.printerName;
     final printers = await Printing.listPrinters();
     for (final p in printers) {
       debugPrint('🖨️ Printer: ${p.name} | Default: ${p.isDefault}');
     }
-    return printers.firstWhere(
-          (p) => p.name.toLowerCase().contains('blackcopper'),
-      orElse: () => printers.first,
-    );
+    if (printers.isEmpty) {
+      throw Exception(
+          'Koi printer installed nahi mila. Printer "$wanted" Windows mein install karo.');
+    }
+    for (final p in printers) {
+      if (p.name.toLowerCase().contains(wanted.toLowerCase())) return p;
+    }
+    if (StoreConfig.printerNameConfigured) {
+      final names = printers.map((p) => p.name).join(', ');
+      throw Exception(
+          'Printer "$wanted" nahi mila. Installed printers: $names. '
+          'Printer ka naam config ke "printer_name" se match karo.');
+    }
+    return printers.firstWhere((p) => p.isDefault, orElse: () => printers.first);
   }
 
   // ═══════════════════════════════════════════════════════════

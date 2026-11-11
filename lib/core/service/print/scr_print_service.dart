@@ -5,17 +5,13 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../../features/branch/reports/data/model/csr_model.dart';
+import 'print_service.dart';
 
 class CsrPrintService {
   static const double _paperWidth = 72 * PdfPageFormat.mm;
 
-  static Future<Printer> _getThermalPrinter() async {
-    final printers = await Printing.listPrinters();
-    return printers.firstWhere(
-      (p) => p.name.toLowerCase().contains('blackcopper'),
-      orElse: () => printers.first,
-    );
-  }
+  static Future<Printer> _getThermalPrinter() =>
+      ThermalPrintService.getThermalPrinter();
 
   // ── Print All Filtered Entries ─────────────────────────────
   static Future<void> printCsrReport({
