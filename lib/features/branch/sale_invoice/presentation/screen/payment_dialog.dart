@@ -1279,24 +1279,30 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
       const Expanded(
         child: Text('Payment', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
       ),
-      Container(
-        padding:    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color:        AppColor.primary.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(8),
+      GestureDetector(
+        onTap: _confirm,
+        child: Container(
+          padding:    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color:        AppColor.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text('Ctrl+S',
+              style: TextStyle(fontSize: 11, color: AppColor.primary, fontWeight: FontWeight.w600)),
         ),
-        child: const Text('Ctrl+S',
-            style: TextStyle(fontSize: 11, color: AppColor.primary, fontWeight: FontWeight.w600)),
       ),
       const SizedBox(width: 6),
-      Container(
-        padding:    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color:        AppColor.grey100,
-          borderRadius: BorderRadius.circular(8),
+      GestureDetector(
+        onTap: () => Navigator.of(context).pop(false),
+        child: Container(
+          padding:    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color:        AppColor.grey100,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text('Esc',
+              style: TextStyle(fontSize: 11, color: AppColor.textSecondary, fontWeight: FontWeight.w600)),
         ),
-        child: const Text('Esc',
-            style: TextStyle(fontSize: 11, color: AppColor.textSecondary, fontWeight: FontWeight.w600)),
       ),
       const SizedBox(width: 8),
       GestureDetector(

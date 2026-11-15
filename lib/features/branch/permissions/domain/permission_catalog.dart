@@ -168,6 +168,11 @@ class PermissionCatalog {
           actions: [PermAction.view, PermAction.edit],
         ),
         PermModule(
+          key: 'stock_return', label: 'Return Stock to Warehouse',
+          icon: Icons.undo_rounded,
+          actions: [PermAction.view, PermAction.create],
+        ),
+        PermModule(
           key: 'stock_damage', label: 'Stock Damage',
           icon: Icons.report_gmailerrorred_outlined,
           actions: [PermAction.view, PermAction.create, PermAction.delete],
@@ -254,7 +259,7 @@ class PermissionCatalog {
           'dashboard', 'sale_invoice', 'sale_return', 'customer',
           'customer_account', 'customer_ledger', 'cash_counter',
           'cash_difference', 'branch_transaction', 'branch_stock',
-          'stock_transfer', 'stock_damage', 'inventory_balance',
+          'stock_transfer', 'stock_return', 'stock_damage', 'inventory_balance',
           'report_sale_invoice', 'report_sale_return', 'report_csr',
         ]);
 

@@ -19,6 +19,7 @@ import 'package:jan_ghani_final/features/branch/reports/presentation/screen/sale
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/screen/sale_invoice_screen.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/provider/pending_transfer_badge_provider.dart';
 import '../../../features/branch/assign_stock_to_branch/presentation/screen/branch_transfer_list_screen.dart';
+import '../../../features/branch/return_stock_to_warehouse/presentation/screen/return_stock_screen.dart';
 import '../../../features/branch/branch_transcation/presentation/screen/branch_transaction_screen.dart';
 import '../../../features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
 import '../../../features/branch/cash_counter/presentation/screen/cash_counter_screen.dart';
@@ -161,6 +162,13 @@ final _stockOfficerItems = <NavItem>[
     permKey: 'stock_transfer',
   ),
   NavItem(
+    icon: Icons.undo_rounded, label: 'Return Stock to Warehouse',
+    screen: const ReturnStockScreen(),
+    section: 'INVENTORY',
+    shortcutKey: LogicalKeyboardKey.keyW,
+    permKey: 'stock_return',
+  ),
+  NavItem(
     icon: Icons.local_shipping_rounded, label: 'Stock Damage',
     screen: const BranchStockDamageScreen(),
     section: 'INVENTORY',
@@ -280,6 +288,13 @@ final _managerItems = <NavItem>[
     screen: const BranchTransferListScreen(),
     section: 'INVENTORY',
     permKey: 'stock_transfer',
+  ),
+  NavItem(
+    icon: Icons.undo_rounded, label: 'Return Stock to Warehouse',
+    screen: const ReturnStockScreen(),
+    section: 'INVENTORY',
+    shortcutKey: LogicalKeyboardKey.keyW,
+    permKey: 'stock_return',
   ),
   // NavItem(
   //   icon: Icons.point_of_sale_rounded, label: 'Counter',

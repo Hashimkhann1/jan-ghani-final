@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../data/datasource/customer_activity_datasource.dart';
 import '../../data/model/customer_model.dart';
 import 'customer_status_badge_widget.dart';
 import 'customer_type_badge_widget.dart';
@@ -30,13 +32,20 @@ Future<void> showCustomerDetailDrawer(
   );
 }
 
-class _CustomerDetailDrawer extends StatelessWidget {
+/// Aakhri sale + aakhri jama — drawer khulte hi ek baar fetch.
+final customerLastActivityProvider = FutureProvider.autoDispose
+    .family<CustomerLastActivity, String>(
+        (ref, customerId) => CustomerActivityDataSource().getLast(customerId));
+
+class _CustomerDetailDrawer extends ConsumerWidget {
   final CustomerModel customer;
   const _CustomerDetailDrawer({required this.customer});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = customer;
+    final last = ref.watch(customerLastActivityProvider(c.id));
+    final money = NumberFormat('#,##0.##');
     final width = MediaQuery.sizeOf(context).width;
     final fmt = DateFormat('dd MMM yyyy, hh:mm a');
 
@@ -87,6 +96,26 @@ class _CustomerDetailDrawer extends StatelessWidget {
                         (c.address ?? '').isEmpty ? '—' : c.address!),
                     _row('Credit Limit', c.creditLimitLabel),
                     _row('Balance', c.balanceLabel),
+                    _activityRow(
+                      'Last Sale',
+                      last,
+                      (a) => a.saleAmount == null
+                          ? null
+                          : ('Rs ${money.format(a.saleAmount)}',
+                              '${a.saleInvoiceNo ?? ''}  •  ${fmt.format(a.saleAt!)}'),
+                      AppColor.primary,
+                    ),
+                    _activityRow(
+                      'Last Payment',
+                      last,
+                      (a) => a.paymentAmount == null
+                          ? null
+                          : (
+                              'Rs ${money.format(a.paymentAmount)}',
+                              '${(a.paymentMethod ?? 'cash').toUpperCase()}  •  ${fmt.format(a.paymentAt!)}'
+                            ),
+                      AppColor.success,
+                    ),
                     if ((c.notes ?? '').isNotEmpty) _row('Notes', c.notes!),
                     _row('Created', fmt.format(c.createdAt.toLocal())),
                     _row('Updated', fmt.format(c.updatedAt.toLocal())),
@@ -121,6 +150,58 @@ class _CustomerDetailDrawer extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// (amount, detail) ya null = koi record nahi.
+  Widget _activityRow(
+    String label,
+    AsyncValue<CustomerLastActivity> async,
+    (String, String)? Function(CustomerLastActivity) pick,
+    Color color,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label,
+                style:
+                    const TextStyle(color: AppColor.textMuted, fontSize: 13)),
+          ),
+          Expanded(
+            child: async.when(
+              loading: () => const Text('...',
+                  style: TextStyle(color: AppColor.textMuted)),
+              error: (_, __) => const Text('—'),
+              data: (a) {
+                final v = pick(a);
+                if (v == null) {
+                  return const Text('— (koi record nahi)',
+                      style: TextStyle(
+                          fontSize: 14, color: AppColor.textMuted));
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(v.$1,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: color)),
+                    const SizedBox(height: 2),
+                    Text(v.$2,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColor.textMuted)),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -59,6 +59,11 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
   FocusNode get _searchFocusNode => ref.read(posSearchFocusProvider);
 
+  /// Dialog (Payment etc.) root Navigator par khulte hain, is liye nested
+  /// Navigator nahi, root check karo — warna Esc/shortcuts dialog ke
+  /// bajaye screen pakad leti hai.
+  bool get _dialogOpen => Navigator.of(context, rootNavigator: true).canPop();
+
   void _confirmClearCart() {
     final state = ref.read(saleInvoiceProvider);
     if (state.cartItems.isEmpty) return;
@@ -147,21 +152,21 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
     // Ctrl+R — Customer Recovery dialog
     if (ctrl && key == LogicalKeyboardKey.keyR) {
-      if (Navigator.of(context).canPop()) return true;
+      if (_dialogOpen) return true;
       _openRecovery();
       return true;
     }
 
     // Ctrl+K — Customer dropdown (dialog khula ho to dialog khud handle kare)
     if (ctrl && key == LogicalKeyboardKey.keyK) {
-      if (Navigator.of(context).canPop()) return false;
+      if (_dialogOpen) return false;
       ref.read(customerDropdownKeyProvider).currentState?.openDropDownSearch();
       return true;
     }
 
     // Ctrl+A — Payment dialog
     if (ctrl && key == LogicalKeyboardKey.keyA) {
-      if (Navigator.of(context).canPop()) return true;
+      if (_dialogOpen) return true;
       final st = ref.read(saleInvoiceProvider);
       if (st.cartItems.isNotEmpty) {
         if (st.saleType == SaleType.sale) {
@@ -178,7 +183,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
     // Ctrl+C — Cart nav toggle
     if (ctrl && key == LogicalKeyboardKey.keyC) {
-      if (Navigator.of(context).canPop()) return true;
+      if (_dialogOpen) return true;
       final st  = ref.read(saleInvoiceProvider);
       final nav = ref.read(cartNavProvider);
       if (nav.isActive) {
@@ -194,7 +199,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     final nav = ref.read(cartNavProvider);
     // Dialog khula ho (Payment etc.) to Esc/arrows dialog ke liye chhod do —
     // warna cart-nav yahin Esc kha leta hai aur dialog band nahi hota.
-    if (nav.isActive && !Navigator.of(context).canPop()) {
+    if (nav.isActive && !_dialogOpen) {
       final st = ref.read(saleInvoiceProvider);
       if (key == LogicalKeyboardKey.arrowDown) {
         ref.read(cartNavProvider.notifier).moveDown(st.cartItems.length);
@@ -221,7 +226,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     // Ctrl+1 / Ctrl+2 — Physical / Digital product tab
     if (ctrl && (key == LogicalKeyboardKey.digit1 || key == LogicalKeyboardKey.numpad1 ||
         key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2)) {
-      if (Navigator.of(context).canPop()) return true;
+      if (_dialogOpen) return true;
       ref.read(productTabRequestProvider.notifier).state =
           key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2;
       return true;
@@ -229,7 +234,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
     // Ctrl+T — Sale type toggle
     if (ctrl && key == LogicalKeyboardKey.keyT) {
-      if (Navigator.of(context).canPop()) return true;
+      if (_dialogOpen) return true;
       ref.read(saleTypeFocusProvider).requestFocus();
       final st   = ref.read(saleInvoiceProvider);
       final next = st.saleType == SaleType.sale
@@ -242,14 +247,14 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     // Ctrl+H / F3 — Hold invoice
     if ((ctrl && key == LogicalKeyboardKey.keyH) ||
         key == LogicalKeyboardKey.f3) {
-      if (Navigator.of(context).canPop()) return true;
+      if (_dialogOpen) return true;
       _holdCurrentInvoice();
       return true;
     }
 
     // F4 — Held invoices sheet
     if (key == LogicalKeyboardKey.f4) {
-      if (Navigator.of(context).canPop()) return true;
+      if (_dialogOpen) return true;
       showHeldInvoicesSheet(context, ref);
       return true;
     }
@@ -257,7 +262,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     // Ctrl+N / F5 — New invoice
     if (key == LogicalKeyboardKey.f5 ||
         (ctrl && key == LogicalKeyboardKey.keyN)) {
-      if (Navigator.of(context).canPop()) return true;
+      if (_dialogOpen) return true;
       _confirmNewInvoice();
       return true;
     }
@@ -271,7 +276,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
 
     // ESC — Dialog band karo ya cart clear karo
     if (key == LogicalKeyboardKey.escape) {
-      if (Navigator.of(context).canPop()) return false; // dialog khud handle kare
+      if (_dialogOpen) return false; // dialog khud handle kare
       _confirmClearCart();
       return true;
     }
