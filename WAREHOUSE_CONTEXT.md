@@ -1,4 +1,4 @@
-<!-- Updated on 2026-11-09 11:48 AM -->
+<!-- Updated on 2026-11-16 10:43 AM -->
 
 # Jan Ghani POS — Project Context
 
@@ -95,6 +95,7 @@ lib/
 └── features/
     ├── warehouse/                    ← HUM SIRF YAHAN KAM KARTE HAIN
     │   ├── auth/                     ← Login, AuthProvider
+    │   ├── branch_returns/           ← ⭐ S25 — Branch se wapas aaya stock (Accept/Reject)
     │   ├── category/                 ← Product categories CRUD
     │   ├── assign_stock/             ← Stock assign to stores
     │   │   ├── data/datasources/
@@ -202,10 +203,11 @@ AppColor.background    // white
 ```
 SideBar — S17: default COLLAPSED 72px rail ⇄ 248px expanded (Ctrl/Cmd+K = search), groups:
 OVERVIEW · INVENTORY · PURCHASING · FINANCE · ADMIN  (badges nahi; footer = sync status + user/logout)
-├── Role: warehouse_manager → Dashboard, Reports | Stock, Assign Stock, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary | Link Stores, User
-├── Role: warehouse_owner / default → Reports | Stock, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary
-└── Role: data_entry → Stock, Category, Company | Supplier | Finance, Expense, Salary
+├── Role: warehouse_manager → Dashboard, Reports | Stock, Assign Stock, Branch Returns, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary | Link Stores, User, Backup
+├── Role: warehouse_owner / default → Reports | Stock, Branch Returns, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary | Backup
+└── Role: data_entry → Stock, Branch Returns, Category, Company | Supplier | Finance, Expense, Salary
 Home (login / Reports se wapsi) = pehla non-Reports item (manager = Dashboard, baaki = Stock)
+Shortcuts (S26) Alt + harf: D Dashboard · R Reports · S Stock · A Assign Stock · B Branch Returns · I Inventory Balance · C Category · M Company · P Purchase Order · V Supplier · F Finance · E Expense · Y Salary · L Link Stores · U User · K Backup
 ```
 
 **Special handling for Reports:**
@@ -1740,6 +1742,118 @@ Doosre computer par (ya naya PostgreSQL) STEP1 + STEP2 chala ke dekho. Chalti `w
 - **SubTotal lock + qty badle (KG):** SubTotal wahi, `price = subTotal ÷ nayi qty`, lock barqarar (misaal: 3000, qty 12 → 10 = price 300). Bina lock: `SubTotal = Price × Qty`. Tax/discount lock kholte hain.
 - Rounding: DB qty/price `numeric(12,2)` — 1000 ÷ 300 = 3.33 kg stock; total 1000 hi.
 - Test: temp `flutter test` 8/8 (reverse, qty→price, price 0, price→qty, double add, subtotal 0, PCS, asal local KG PO `getAll`/`getById`/edit). Existing purchase_invoice suite: wahi 32 purane failures (`AppConfig` load nahi), naya koi nahi. UI app chala ke nahi dekhi.
+
+---
+
+## Session 25 — Branch Returns (branch → warehouse stock return, warehouse side) ⭐⭐
+
+> **Maqsad:** Branch (Shahabmustafa, commit `dbec633`) ab stock warehouse ko wapas bhejti hai. Warehouse side par screen jahan pending returns **Accept** (stock add) ya **Reject** (branch ko wapas) hote hain. Spec: `Return_Stock_Warehouse_Side_Spec.pdf`. **Branch code / Supabase tables untouched.**
+
+### Branch side (sirf samajh — hum nahi chhooté)
+- `lib/features/branch/return_stock_to_warehouse/` — Send par branch stock **foran minus** (local tx), Supabase `stock_returns` (header, `pending`) **phir** `stock_return_items` insert; fail par header delete.
+- Migration `supabase/migrations/2026_11_15_stock_returns.sql` (Supabase-only): 2 tables + RPCs `accept_stock_return` (sirf status pending→accepted, stock nahi), `revert_stock_return_accept` (accepted→pending), `reject_stock_return` (pending→rejected + reason).
+- Reject ka stock branch **khud** wapas leti hai (`stock_restored` atomic claim) — sirf jab branch user Return screen khole.
+- ⚠️ Branch issues (unka kaam): `total_items` **integer** column (KG fractional qty par branch Send fail) · restore mein naive `updated_at` · return number collision mumkin.
+- **Realtime:** `ALTER PUBLICATION supabase_realtime ADD TABLE public.stock_returns;` — migration mein NAHI tha; user ne (testing par) chala diya. Har naye DB par lazmi (S9 lesson).
+
+### Warehouse side — `lib/features/warehouse/branch_returns/`
+| File | Kaam |
+|---|---|
+| `domain/branch_return_model.dart` | `BranchReturn` / `BranchReturnItem` (Supabase JSON), `itemsQty`/`itemsCost`, **`itemsComplete`** (items aa gaye + jod header qty se match), `ReturnProductStatus` (ok/deleted/missing + message), `ReturnActionResult` |
+| `data/branch_return_remote_datasource.dart` | Supabase: `fetchPage` (tab + search `return_number`/`from_store_name` + `.range` 20), `fetchCounts` (3 count queries), `fetchById`, `fetchRecentAccepted` (30 din, safety net), RPCs. **Har query `warehouse_id` filter.** Har call **6s timeout** → `ReturnNetworkException` ("Internet nahi…") |
+| `data/branch_return_local_datasource.dart` | Local Postgres: `checkProducts` (deleted/missing), `isApplied`/`appliedReturnIds` (return_in movement by `reference_id`), **`applyReturn`** — ek `runTx`: `pg_advisory_xact_lock(hashtext('stock_return:<id>'))` → movement check (pehle se ho to `alreadyApplied`) → products dobara check (masla = `ReturnProductException`, rollback) → har item `INSERT … ON CONFLICT (warehouse_id, product_id) DO UPDATE quantity + qty, is_synced=false` + `warehouse_stock_movements` `return_in` (`reference_type='transfer'`, `reference_id`=return id, notes `Return from <branch> (<RET-…>)`, `unit_cost` = branch purchase price, `created_by` sirf agar local user mojood) |
+| `presentation/provider/branch_returns_provider.dart` | `BranchReturnActions` (accept/reject/safety net) · `branchReturnsProvider` (tab/search/page/counts/busyIds; single-flight) · `returnProductStatusProvider` · `branchReturnsWatcherProvider` (realtime + safety net) · `branchReturnNoticeProvider` (toast) |
+| `presentation/screens/branch_returns_screen.dart` | S19 pattern: TopBar (Refresh) · toolbar (search 400ms debounce + Pending/Accepted/Rejected tabs counts ke saath) · table (Return no + date · Branch · products + qty · Total cost · Status + kisne/kab) · footer (Showing x–y of N + pager). Row tap → detail |
+| `presentation/widgets/branch_return_detail_dialog.dart` | Header + info tiles (branch, bheja, date, products/qty, cost, sale value) + branch note + response box (accepted/rejected: kisne, kab, wajah) + items table (product/SKU, unit, qty, purchase, line total). **Pending:** Accept (confirm) / Reject (reason lazmi ≥5 huroof) |
+| `presentation/widgets/branch_return_parts.dart` | `fmtReturnDate`, `fmtReturnQty`, `ReturnStatusPill`, `showReturnSnack` (right-bottom card) |
+
+### Accept flow (`BranchReturnActions.accept`)
+1. `fetchById` (taaza) → mojood nahi / pending nahi / `!itemsComplete` → message, kuch nahi.
+2. `checkProducts` → koi **deleted** ("Ye product delete hua hai") ya **missing** ("Ye product warehouse mein nahi hai") → accept band (dialog mein us line par laal message; sirf Reject).
+3. RPC `accept_stock_return` → `false` = "pehle hi handle" (doosre PC ne kar diya) → stock nahi.
+4. `applyReturn` local → fail par RPC `revert_stock_return_accept` (status wapas pending). Revert bhi fail → message: app dobara kholne par safety net add karega.
+5. Success → list + `productProvider.loadProducts()` refresh.
+- **Price NAHI badalti** (owner ka faisla) — sirf qty. `reserved_quantity` untouched. Qty edit nahi (poora return accept/reject).
+
+### Reject
+Reason dialog → RPC `reject_stock_return` → warehouse stock **nahi** badalta.
+
+### Realtime + safety net (`BranchReturnsWatcher`, SideBar `initState` se start)
+- Channel `stock_returns` **INSERT** + **UPDATE**, filter `warehouse_id = AppConfig.warehouseId`. INSERT (pending) → toast **"New return from <branch> (RET-…)"** + "Dekhein" (Branch Returns screen) · 2s baad list refresh (items header ke baad aate hain). UPDATE → list refresh. Refresh sirf jab screen ek dafa load ho chuki ho. DELETE nahi suna (filter DELETE par kaam nahi karta).
+- **Safety net** (start ke 3s baad): is warehouse ke pichle 30 din ke **saare** accepted returns (sirf apne user ke nahi) jin ki `return_in` movement nahi → `applyReturn`. Advisory lock + movement check → kabhi double nahi.
+- **Badge NAHI** (user ka faisla). **Roles:** teeno (manager: Assign Stock ke baad; owner/data_entry: Stock ke baad).
+
+### Dashboard
+`warehouse_dashboard_remote_datasource.dart` `getMovements`: `reference_type='transfer'` par `COALESCE(st.transfer_number, substring(notes from '\((RET-[^)]+)\)'))` → Recent movements mein return number.
+
+### Test
+- Temp `flutter test` (local test DB, phir delete): checkProducts ok/deleted/missing ✅ · apply → qty +2, `is_synced=false`, reserved same, `return_in`/`transfer`/notes/created_by sahi ✅ · dobara apply → `alreadyApplied`, qty same ✅ · deleted/missing → throw + rollback ✅ · dashboard regex ✅. Test data cleanup verify (0 rows, qty wapas).
+- **NAHI hua:** naya inventory row path (test DB mein bina inventory ka product nahi tha) · Supabase RPC/realtime end-to-end (branch se asal return bhej kar) · UI app chala ke nahi dekhi. `flutter analyze` — 0 errors (sirf `withOpacity` info).
+
+### Fix: "BoxConstraints forces an infinite width" (pehli run par)
+- **Wajah:** `light_theme.dart` mein `elevatedButtonTheme` + `outlinedButtonTheme` ka **`minimumSize: Size(double.infinity, 52)`** — Row / AppBar / dialog actions mein button ko infinite width milti → crash (S7 wala hi masla). TextButton theme mein ye nahi.
+- **Hal:** Branch Returns ke saare Elevated/Outlined buttons ke `styleFrom` mein `minimumSize: Size.zero` (ya `Size(0, 42)`) + padding. **Har naye Elevated/Outlined button par yehi lagao.**
+- Toolbar: search ab `Expanded` + `maxWidth 340` (pehle fixed 340 → ~900px par 5.8px overflow).
+- Verify: temp widget test **asal `LightTheme.theme`** ke saath — list 1440/900/640px, detail pending/accepted/rejected, Accept confirm + Reject reason dialogs, deleted product message + Accept disabled → 13/13 pass, 0 exception. Test file delete.
+
+### Files (Session 25)
+**Naya:** `warehouse/branch_returns/` (6 files) · **Badla:** `core/widget/sidebar/sidebar_widget.dart` (NavItem + roles + watcher + toast) · `warehouse_dashboard/data/warehouse_dashboard_remote_datasource.dart` (return ref)
+
+---
+
+## Session 26 — Sidebar keyboard shortcuts (Alt + harf) ⭐
+
+> **Maqsad:** Warehouse sidebar wale shell mein (sirf warehouse) **Alt + harf** dabane se seedha us screen par — branch app (`branch_sidebar_widget.dart`, Alt+W wagaira) jaisa. Windows + Mac dono. Shift isliye NAHI ke Shift+harf = bada harf → search/form mein likhte hue screen badal jati.
+
+| Harf | Screen | | Harf | Screen |
+|---|---|---|---|---|
+| D | Dashboard | | P | Purchase Order |
+| R | Reports | | V | Supplier (Vendor) |
+| S | Stock | | F | Finance |
+| A | Assign Stock | | E | Expense |
+| B | Branch Returns | | Y | Salary |
+| I | Inventory Balance | | L | Link Stores |
+| C | Category | | U | User |
+| M | Company | | K | Backup |
+
+- **`NavItem.shortcutKey`** (`LogicalKeyboardKey?`) + `shortcutLabel` ("Alt S"). Harf badalna ho to sirf `sidebar_widget.dart` ke NavItem mein.
+- **`_onKey`** — `HardwareKeyboard.instance.addHandler` (initState) / `removeHandler` (dispose) → focus kahin bhi ho (text field ke andar bhi) kaam karta. Sirf `KeyDownEvent` + Alt; **Ctrl/Cmd/Shift ke saath nahi** (Windows AltGr = Ctrl+Alt ignore). `ModalRoute.of(context)?.isCurrent != true` → dialog ya pushed screen (New PO wagaira) khuli ho to kuch nahi. Sirf user ke **role** wale items (data_entry Alt+D = kuch nahi). Match par `_select(i)` + `true` return (Mac par Option+harf ka special char nahi likhta). Reports shell se bhi kaam karta.
+- **Feedback:** neeche center dark pill "Stock khul raha hai" (1 sec, `OverlayEntry`, `IgnorePointer`).
+- **Hint:** expanded panel mein har item ke right par `Alt S` chip; rail tooltip "Stock  (Alt+S)".
+- Ctrl/Cmd+K (sidebar search) pehle jaisa — Alt+K = Backup, takraav nahi.
+- **Test:** `flutter analyze` sidebar — 0 naye issue. Temp widget test (asal theme): 224px panel mein "Inventory Balance" + chip, rail tooltip → pass, test delete. **Asal app mein Alt dabake NAHI dekha** (handler ka run-time test nahi hua).
+- **Files:** `core/widget/sidebar/sidebar_widget.dart` · `core/widget/sidebar/nav_tile_widget.dart`
+
+---
+
+## Session 27 — New Purchase Invoice: product search keyboard flow ⭐
+
+> **Sirf ek file:** `purchase_invoice/presentation/widgets/purchase_invoice_widgets/po_product_list_panel.dart`. Provider (`addToCart`, `updateSearch`) / cart / save **untouched**.
+
+| Kahan | Key | Kya hota hai |
+|---|---|---|
+| Search | **Enter** | Barcode ya SKU **bilkul barabar** (ek product) → seedha cart · warna sirf **ek** product mila → seedha cart · warna list ka pehla product highlight + focus list |
+| Search | **↓** | List ka pehla product highlight |
+| List | **↓ / ↑** | Highlight neeche / upar (auto-scroll, key dabaye rakho to repeat) |
+| List | **Enter** | Highlighted product cart (naya = qty 1, pehle se = +1) |
+| List | **↑** (sab se upar) / **Esc** | Wapas search (kuch add nahi, text wahi) |
+| Keyboard se add ke baad | — | Search text **saaf** + provider `searchQuery` '' + **search focus** |
+| Mouse | single click / double-click | click = highlight · double-click = cart (pehle jaisa, text saaf NAHI) |
+| Screen khulte hi | — | Search par cursor (S28) — seedha likho / scan karo (New + Edit PO dono) |
+| Screen par kahin bhi | **F1** / **Ctrl+F** (Mac: **Cmd+F**) | Search par cursor + poora text select (S28) — cart field mein hon tab bhi |
+
+- **S28:** `HardwareKeyboard.instance.addHandler(_onGlobalKey)` (initState / dispose) — F1 (bina modifier) ya Ctrl/Cmd+F (bina Alt/Shift). `ModalRoute.of(context)?.isCurrent != true` → dialog (supplier, date picker, confirm) upar ho to kuch nahi. `_focusSearch()` = highlight hatao + focus + select all. Branch Return screen bhi F1 / Ctrl+F istemal karti hai — dono apps ek jaisi. Test: auto-focus, F1 / Ctrl+F / Cmd+F cart jaise field se, dialog khula → kuch nahi → 5/5 (temp, delete).
+- **S29 — Purchase Orders list screen:** **Ctrl+N** (Mac: **Cmd+N**) → New Purchase Order (wahi `_navigateToInvoice(newType: PoType.purchase)` jo button chalata). `purchase_order_screen.dart` mein `HardwareKeyboard` handler (initState/dispose — screen sidebar par khuli ho tabhi zinda); sirf N + Ctrl/Cmd, Alt/Shift ke saath nahi; dialog ya invoice screen upar ho to nahi; `_opening` flag → do baar nahi khulti. Button par chip `Ctrl N` (Mac `⌘ N`). Purchase Return ka shortcut NAHI. Test (temp, delete): hint layout 1440/1000px, Ctrl+N + Cmd+N → sirf ek push (N do baar dabane par bhi), sirf N / Ctrl+Shift+N → kuch nahi, dialog khula → kuch nahi → 6/6.
+- **S30 — Alt+N bhi** (user ki request, sidebar ke Alt shortcuts jaisa; Ctrl+N bhi qaim). Alt akela chahiye: Ctrl/Cmd ke saath nahi (Windows **AltGr = Ctrl+Alt** → ignore), Shift ke saath nahi. Sidebar ka Alt handler N par `false` deta (N kisi menu ka nahi) → takraav nahi. Chip: `Ctrl N · Alt N` (Mac `⌘ N · ⌥ N`). Test (temp, delete): Ctrl+N / Cmd+N / Alt+N / right-Alt+N → ek push; sirf N / Ctrl+Alt+N / Alt+Shift+N / Ctrl+Shift+N → kuch nahi; dialog → kuch nahi; hint 1440/1000px → 11/11. **Windows par asal test NAHI hua** (Mac par chala).
+
+- Panel `ConsumerStatefulWidget`: `_searchCtrl`, `_searchFocus`, `_listFocus` (list ke gird `Focus.onKeyEvent`), `_highlight`, `_scroll`, `_highlightKey` (sirf highlighted item par GlobalKey).
+- **`_filterProducts(raw)`** — build + Enter dono isi se. **Barcode scanner** text likh kar rebuild se PEHLE Enter bhejta hai → Enter par taaza text se dobara filter (warna purani poori list dekhta tha — test mein pakda).
+- Exact match ka faida: barcode `111222` dono `111222` aur `1112223` mein "contains" hai — exact wala hi add hota.
+- **Scroll:** highlighted item bana ho → `Scrollable.ensureVisible` (center); na bana ho (tez ↓) → `(maxScrollExtent + viewport) / count` se andaze ka `jumpTo`, phir agle frame ensureVisible (3 koshish).
+- TextField `onEditingComplete: () {}` — Enter par khud unfocus nahi hota; focus hum decide karte.
+- Highlight rang: **neela** (`info` 2px border + `infoLight`) — cart wale purple se alag. Border 2px par padding 1px kam (height same).
+- Sidebar Alt shortcuts yahan band (Purchase Invoice pushed route — S26 guard), takraav nahi.
+- **Test:** temp widget test (asal theme, fake products 42): Enter → list → ↓↓ Enter = 3rd product + text saaf + focus ✅ · 25× tez ↓ → auto-scroll ✅ · ↑ top / Esc → search ✅ · barcode exact (substring wala doosra bhi) → seedha cart, dobara scan qty 2 ✅ · SKU exact ✅ · ek product → seedha cart ✅ · double-click pehle jaisa ✅ → 5/5, test delete. `flutter analyze` — 0 naye issue. **Asal scanner / app mein nahi dekha.**
 
 ---
 

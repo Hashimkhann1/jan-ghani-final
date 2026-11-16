@@ -1,4 +1,4 @@
-// Updated on 2026-11-08 09:48 AM
+// Updated on 2026-11-16 10:21 AM
 // =============================================================
 // sidebar_widget.dart — WAREHOUSE app shell (Stitch "Improved Sidebar")
 //
@@ -9,6 +9,11 @@
 //   • Reports: main sidebar chhupa, full-width shell (pehle jaisa)
 //   • Dashboard "Needs attention" → dashboardNavRequestProvider se screen
 //   • Cash request card har screen ke top-right (pehle jaisa)
+//   • Branch Returns (S25): teeno roles; realtime toast "New return from
+//     <branch>" + app start par safety net (watcher initState mein)
+//   • Shortcuts (S26): Alt + harf → us screen par (branch app jaisa).
+//     Global HardwareKeyboard handler — sirf user ke role wale items,
+//     dialog / pushed screen khuli ho to kuch nahi
 // =============================================================
 
 import 'dart:async';
@@ -22,6 +27,8 @@ import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/screens/assign_stock_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/screens/login_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/branch_returns/presentation/provider/branch_returns_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/branch_returns/presentation/screens/branch_returns_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/category/presentation/screens/all_category_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/company/presentation/screens/all_company_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/employee/presentation/screens/salary_tracking_screen.dart';
@@ -59,17 +66,23 @@ const _gAdmin      = 'ADMIN';
 const _groupOrder  = [_gOverview, _gInventory, _gPurchasing, _gFinance, _gAdmin];
 
 class NavItem {
-  final IconData icon;
-  final String   label;
-  final Widget   screen;
-  final String   group;
+  final IconData            icon;
+  final String              label;
+  final Widget              screen;
+  final String              group;
+  final LogicalKeyboardKey? shortcutKey;   // Alt + ye harf
 
   const NavItem({
     required this.icon,
     required this.label,
     required this.screen,
     this.group = _gOverview,
+    this.shortcutKey,
   });
+
+  /// "Alt S" — chip / tooltip ke liye
+  String? get shortcutLabel =>
+      shortcutKey == null ? null : 'Alt ${shortcutKey!.keyLabel.toUpperCase()}';
 }
 
 class SideBar extends ConsumerStatefulWidget {
@@ -89,41 +102,61 @@ class _SideBarState extends ConsumerState<SideBar> {
   Timer? _syncTimer;
 
   // ── Screens (ek hi instance — role lists share karti hain) ─
+  // shortcutKey = Alt + harf (har harf alag; S/C takraav: Supplier=V,
+  // Salary=Y, Company=M, Backup=K)
   static const _dashboard = NavItem(icon: Icons.dashboard_outlined, label: 'Dashboard',
-      screen: WarehouseDashboardScreen(), group: _gOverview);
+      screen: WarehouseDashboardScreen(), group: _gOverview,
+      shortcutKey: LogicalKeyboardKey.keyD);
   static const _reports   = NavItem(icon: Icons.bar_chart_rounded, label: 'Reports',
-      screen: SizedBox.shrink(), group: _gOverview);
+      screen: SizedBox.shrink(), group: _gOverview,
+      shortcutKey: LogicalKeyboardKey.keyR);
   static const _stock     = NavItem(icon: Icons.inventory_2_outlined, label: 'Stock',
-      screen: WarehouseStockInventoryScreen(), group: _gInventory);
+      screen: WarehouseStockInventoryScreen(), group: _gInventory,
+      shortcutKey: LogicalKeyboardKey.keyS);
   static const _assign    = NavItem(icon: Icons.move_to_inbox_outlined, label: 'Assign Stock',
-      screen: AssignStockScreen(), group: _gInventory);
+      screen: AssignStockScreen(), group: _gInventory,
+      shortcutKey: LogicalKeyboardKey.keyA);
+  static const _returns   = NavItem(icon: Icons.assignment_return_outlined, label: 'Branch Returns',
+      screen: BranchReturnsScreen(), group: _gInventory,
+      shortcutKey: LogicalKeyboardKey.keyB);
   static const _balance   = NavItem(icon: Icons.rule_folder_outlined, label: 'Inventory Balance',
-      screen: InventoryBalanceScreen(), group: _gInventory);
+      screen: InventoryBalanceScreen(), group: _gInventory,
+      shortcutKey: LogicalKeyboardKey.keyI);
   static const _category  = NavItem(icon: Icons.category_outlined, label: 'Category',
-      screen: AllCategoryScreen(), group: _gInventory);
+      screen: AllCategoryScreen(), group: _gInventory,
+      shortcutKey: LogicalKeyboardKey.keyC);
   static const _company   = NavItem(icon: Icons.business_outlined, label: 'Company',
-      screen: AllCompanyScreen(), group: _gInventory);
+      screen: AllCompanyScreen(), group: _gInventory,
+      shortcutKey: LogicalKeyboardKey.keyM);
   static const _po        = NavItem(icon: Icons.receipt_long_outlined, label: 'Purchase Order',
-      screen: PurchaseOrderScreen(), group: _gPurchasing);
+      screen: PurchaseOrderScreen(), group: _gPurchasing,
+      shortcutKey: LogicalKeyboardKey.keyP);
   static const _supplier  = NavItem(icon: Icons.local_shipping_outlined, label: 'Supplier',
-      screen: AllSupplierScreen(), group: _gPurchasing);
+      screen: AllSupplierScreen(), group: _gPurchasing,
+      shortcutKey: LogicalKeyboardKey.keyV);
   static const _finance   = NavItem(icon: Icons.account_balance_wallet_outlined, label: 'Finance',
-      screen: WarehouseFinanceScreen(), group: _gFinance);
+      screen: WarehouseFinanceScreen(), group: _gFinance,
+      shortcutKey: LogicalKeyboardKey.keyF);
   static const _expense   = NavItem(icon: Icons.money_off_outlined, label: 'Expense',
-      screen: WarehouseExpenseScreen(), group: _gFinance);
+      screen: WarehouseExpenseScreen(), group: _gFinance,
+      shortcutKey: LogicalKeyboardKey.keyE);
   static const _salary    = NavItem(icon: Icons.badge_outlined, label: 'Salary',
-      screen: SalaryTrackingScreen(), group: _gFinance);
+      screen: SalaryTrackingScreen(), group: _gFinance,
+      shortcutKey: LogicalKeyboardKey.keyY);
   static const _user      = NavItem(icon: Icons.person_outline, label: 'User',
-      screen: AllUserScreen(), group: _gAdmin);
+      screen: AllUserScreen(), group: _gAdmin,
+      shortcutKey: LogicalKeyboardKey.keyU);
   static const _backup    = NavItem(icon: Icons.backup_outlined, label: 'Backup',
-      screen: WarehouseBackupScreen(), group: _gAdmin);
+      screen: WarehouseBackupScreen(), group: _gAdmin,
+      shortcutKey: LogicalKeyboardKey.keyK);
   late final NavItem _linkStores = NavItem(icon: Icons.store_outlined, label: 'Link Stores',
-      screen: LinkedStoresScreen(warehouseId: AppConfig.warehouseId), group: _gAdmin);
+      screen: LinkedStoresScreen(warehouseId: AppConfig.warehouseId), group: _gAdmin,
+      shortcutKey: LogicalKeyboardKey.keyL);
 
   // ── Role-wise menus (group order mein) ────────────────────
   late final List<NavItem> _warehouseManager = [
     _dashboard, _reports,
-    _stock, _assign, _balance, _category, _company,
+    _stock, _assign, _returns, _balance, _category, _company,
     _po, _supplier,
     _finance, _expense, _salary,
     _linkStores, _user, _backup,
@@ -131,14 +164,14 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   late final List<NavItem> _allOthers = [
     _reports,
-    _stock, _balance, _category, _company,
+    _stock, _returns, _balance, _category, _company,
     _po, _supplier,
     _finance, _expense, _salary,
     _backup,
   ];
 
   late final List<NavItem> _dataEntry = [
-    _stock, _category, _company,
+    _stock, _returns, _category, _company,
     _supplier,
     _finance, _expense, _salary,
   ];
@@ -164,10 +197,117 @@ class _SideBarState extends ConsumerState<SideBar> {
     _syncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (mounted) ref.invalidate(sidebarSyncStatusProvider);
     });
+    // Branch returns: realtime (naya return → toast) + safety net
+    ref.read(branchReturnsWatcherProvider);
+    // Alt + harf → screen (focus kahin bhi ho)
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  // ── Keyboard shortcuts: Alt + harf ─────────────────────────
+  OverlayEntry? _shortcutPill;
+  Timer?        _shortcutPillTimer;
+
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent || !mounted) return false;
+    final kb = HardwareKeyboard.instance;
+    // Sirf Alt (Windows AltGr = Ctrl+Alt → ignore; Cmd/Shift ke saath bhi nahi)
+    if (!kb.isAltPressed ||
+        kb.isControlPressed || kb.isMetaPressed || kb.isShiftPressed) {
+      return false;
+    }
+    // Dialog ya upar push hui screen (jaise New Purchase Invoice) khuli ho
+    // → kuch nahi (peeche screen badalne se adhoora form gum ho jata)
+    if (ModalRoute.of(context)?.isCurrent != true) return false;
+
+    final items = _getItemsByRole(ref.read(authProvider).user?.role);
+    final i = items.indexWhere((it) => it.shortcutKey == event.logicalKey);
+    if (i < 0) return false;   // role mein nahi / harf kisi ka nahi
+
+    _select(i);
+    _showShortcutPill(items[i].label);
+    return true;                // event yahin khatam (Mac par ß wagaira nahi likhta)
+  }
+
+  void _showShortcutPill(String label) {
+    _shortcutPillTimer?.cancel();
+    _shortcutPill?.remove();
+    _shortcutPill = null;
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
+    _shortcutPill = OverlayEntry(
+      builder: (_) => Positioned(
+        bottom: 24, left: 0, right: 0,
+        child: IgnorePointer(
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color:        WarehouseAppColor.grey900.withOpacity(0.88),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.keyboard_alt_outlined,
+                        size: 15, color: Colors.white70),
+                    const SizedBox(width: 8),
+                    Text('$label khul raha hai',
+                        style: const TextStyle(
+                            color: WarehouseAppColor.white, fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    overlay.insert(_shortcutPill!);
+    _shortcutPillTimer = Timer(const Duration(milliseconds: 1000), () {
+      _shortcutPill?.remove();
+      _shortcutPill = null;
+    });
+  }
+
+  // Naya branch return aaya → right-bottom toast + "Dekhein"
+  void _showReturnToast(BranchReturnNotice n, List<NavItem> items) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    final width = MediaQuery.of(context).size.width;
+    final i = items.indexWhere((it) => it.label == 'Branch Returns');
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: WarehouseAppColor.primary,
+        margin: EdgeInsets.only(
+            left: width > 460 ? width - 440 : 16, right: 20, bottom: 20),
+        duration: const Duration(seconds: 8),
+        content: Text(
+          'New return from ${n.storeName}'
+          '${n.returnNumber.isEmpty ? '' : ' (${n.returnNumber})'}',
+          style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w600,
+              color: WarehouseAppColor.white),
+        ),
+        action: i < 0
+            ? null
+            : SnackBarAction(
+                label: 'Dekhein',
+                textColor: WarehouseAppColor.white,
+                onPressed: () { if (mounted) _select(i); },
+              ),
+      ));
   }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
+    _shortcutPillTimer?.cancel();
+    _shortcutPill?.remove();
     _syncTimer?.cancel();
     _searchCtrl.dispose();
     _searchFocus.dispose();
@@ -239,6 +379,10 @@ class _SideBarState extends ConsumerState<SideBar> {
       final i = items.indexWhere((it) => it.label == label);
       if (i >= 0) _select(i);
       ref.read(dashboardNavRequestProvider.notifier).state = null;
+    });
+
+    ref.listen<BranchReturnNotice?>(branchReturnNoticeProvider, (_, n) {
+      if (n != null) _showReturnToast(n, items);
     });
 
     // Sync status (Reports par bhi watch — provider zinda rahe)

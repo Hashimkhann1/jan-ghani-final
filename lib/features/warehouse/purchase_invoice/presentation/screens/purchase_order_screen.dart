@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-16 10:43 AM
 // =============================================================
 // purchase_order_screen.dart
 // Stitch "Jan Ghani — Purchase Orders v2" design:
@@ -6,9 +6,14 @@
 // (search, status tabs + counts, type, date range, supplier) ·
 // table (PO, supplier, items, status, total, actions) · footer
 // (filtered summary + pagination)
+// S29: Ctrl+N (Mac: Cmd+N) aur Alt+N (S30, sidebar ke Alt jaisa) →
+// New Purchase Order (dialog / invoice screen khuli ho to nahi).
+// Button par hint chip.
 // =============================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/data/purchase_invoice_model.dart';
@@ -40,11 +45,37 @@ class _PurchaseOrderScreenState
     extends ConsumerState<PurchaseOrderScreen> {
 
   final _searchController = TextEditingController();
+  bool _opening = false;   // shortcut se do baar na khule
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Ctrl+N (Mac: Cmd+N) ya Alt+N → New Purchase Order
+  bool _onKey(KeyEvent e) {
+    if (e is! KeyDownEvent || !mounted || _opening) return false;
+    if (e.logicalKey != LogicalKeyboardKey.keyN) return false;
+    final kb = HardwareKeyboard.instance;
+    if (kb.isShiftPressed) return false;
+    final ctrlN = (kb.isControlPressed || kb.isMetaPressed) && !kb.isAltPressed;
+    // Alt akela (Windows AltGr = Ctrl+Alt → isliye Ctrl/Cmd ke saath nahi)
+    final altN  = kb.isAltPressed && !kb.isControlPressed && !kb.isMetaPressed;
+    if (!ctrlN && !altN) return false;
+    // Dialog ya invoice screen pehle se upar ho → kuch nahi
+    if (ModalRoute.of(context)?.isCurrent != true) return false;
+    _opening = true;
+    _navigateToInvoice(newType: PoType.purchase)
+        .whenComplete(() => _opening = false);
+    return true;
   }
 
   // ── Naya PO / Return / Edit — save hone par refresh ──────
@@ -203,7 +234,28 @@ class _TopBar extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: onNewPO,
             icon:  const Icon(Icons.add_rounded, size: 18),
-            label: const Text('New Purchase Order'),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('New Purchase Order'),
+                const SizedBox(width: 8),
+                // Shortcut hint (Ctrl N · Alt N / Mac: ⌘ N · ⌥ N)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color:        WarehouseAppColor.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    defaultTargetPlatform == TargetPlatform.macOS
+                        ? '⌘ N · ⌥ N' : 'Ctrl N · Alt N',
+                    style: const TextStyle(
+                        fontSize: 10.5, fontWeight: FontWeight.w600,
+                        color: WarehouseAppColor.white),
+                  ),
+                ),
+              ],
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: WarehouseAppColor.primary,
               foregroundColor: WarehouseAppColor.white,

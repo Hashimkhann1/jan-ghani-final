@@ -1,8 +1,8 @@
-// Updated on 2026-10-15 10:28 AM
+// Updated on 2026-11-16 10:21 AM
 // =============================================================
 // nav_tile_widget.dart — warehouse sidebar ka ek menu item
-//   • Expanded (248px): icon + label
-//   • Collapsed (72px): sirf icon, tooltip mein label
+//   • Expanded (248px): icon + label + "Alt S" shortcut chip
+//   • Collapsed (72px): sirf icon, tooltip mein label (+ Alt+S)
 //   • Active: purple tint + left 3px indicator + purple icon/text
 // =============================================================
 
@@ -89,6 +89,22 @@ class _NavTileState extends State<NavTile> {
                           ),
                         ),
                       ),
+                      if (widget.item.shortcutLabel != null) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color:        WarehouseAppColor.surface,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: WarehouseAppColor.grey300),
+                          ),
+                          child: Text(widget.item.shortcutLabel!,
+                              style: const TextStyle(
+                                  fontSize: 10, fontWeight: FontWeight.w600,
+                                  color: WarehouseAppColor.textSecondary)),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -101,7 +117,9 @@ class _NavTileState extends State<NavTile> {
     // Collapsed par label tooltip mein
     return widget.collapsed
         ? Tooltip(
-            message: widget.item.label,
+            message: widget.item.shortcutLabel == null
+                ? widget.item.label
+                : '${widget.item.label}  (${widget.item.shortcutLabel!.replaceFirst(' ', '+')})',
             waitDuration: const Duration(milliseconds: 300),
             child: tile,
           )

@@ -1,4 +1,4 @@
-// Updated on 2026-10-02 09:35 AM
+// Updated on 2026-11-16 09:59 AM
 // =============================================================
 // warehouse_dashboard_remote_datasource.dart
 // Dashboard v2 (Stitch design) — LOCAL postgres queries.
@@ -280,7 +280,13 @@ class WarehouseDashboardRemoteDataSource {
                COALESCE(p.name, 'Product') AS product_name,
                CASE m.reference_type
                  WHEN 'purchase' THEN po.po_number
-                 WHEN 'transfer' THEN st.transfer_number
+                 -- Branch return (S25): reference_id = stock_returns.id
+                 -- (local mein nahi) → number notes "(RET-…)" se
+                 WHEN 'transfer' THEN COALESCE(
+                   st.transfer_number,
+                   CASE WHEN m.movement_type = 'return_in'
+                        THEN substring(m.notes from '\\((RET-[^)]+)\\)')
+                   END)
                END AS reference
         FROM warehouse_stock_movements m
         LEFT JOIN warehouse_products p ON p.id = m.product_id
