@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Branch PC ka local stock dikhane ke liye Wi-Fi network access chahiye.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera is used to scan the customer QR code shown at the branch.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
@@ -32,13 +34,19 @@
 	<string>Customer ki photo upload karne ke liye photo library access chahiye.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Branch PC ka local stock dikhane ke liye Wi-Fi network access chahiye.</string>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 		<key>UISceneConfigurations</key>
 		<dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Branch PC ka local stock dikhane ke liye Wi-Fi network access chahiye.</string>
 			<key>UIWindowSceneSessionRoleApplication</key>
 			<array>
 				<dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Branch PC ka local stock dikhane ke liye Wi-Fi network access chahiye.</string>
 					<key>UISceneClassName</key>
 					<string>UIWindowScene</string>
 					<key>UISceneConfigurationName</key>

@@ -39,6 +39,7 @@ class AccPaths {
   static const investment      = '/investment';
   static const inventoryCount  = '/inventory-counting';
   static const customerPrefix  = '/customer';
+  static const localStock      = '/local-stock'; // mobile: LAN branch stock
 
   static String customer(String id) => '$customerPrefix/${Uri.encodeComponent(id)}';
 

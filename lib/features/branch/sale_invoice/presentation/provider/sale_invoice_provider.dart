@@ -78,6 +78,9 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
   }
 
   void addToCart(BranchStockModel product) {
+    // Negative stock physical products can't be sold (UI shows a toast).
+    if (!product.isDigital && product.quantity <= 0) return;
+
     // Digital lines: separate invoice from physical, withdraw stands alone.
     if (state.cartItems.isNotEmpty) {
       final cartDigital = state.hasDigital;

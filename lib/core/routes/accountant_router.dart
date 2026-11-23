@@ -26,6 +26,7 @@ import '../../features/accountant/authentication/presentation/screen/sign_up_scr
 import '../../features/accountant/branch_reports/accountant_branch/presentation/screen/accountant_branch_screen.dart';
 import '../../features/accountant/branch_reports/branch_report_list_screen.dart';
 import '../../features/accountant/dashboard/presentation/screen/dashboard_screen.dart';
+import '../../features/accountant/lan_stock/lan_stock_screen.dart';
 import '../../features/customer/customer_portal/presentation/screen/customer_portal_screen.dart';
 import '../../features/accountant/investment/presentation/screen/investment_screen.dart';
 import '../../features/accountant/supplier/presentation/screen/all_supplier_screen.dart';
@@ -79,6 +80,8 @@ String accountantHomeFor(AccountantUserEntity u, {AccountMode? mode}) {
     return AccPaths.customer(_portalId(u));
   }
   if (u.role == 'inventory_counter') return AccPaths.inventoryCount;
+  // Mobile par web wali screens nahi — staff ko sirf LAN branch stock.
+  if (isMobileApp) return AccPaths.localStock;
   for (final e in _tabRoles.entries) {
     if (e.value.contains(u.role)) return e.key;
   }
@@ -100,6 +103,9 @@ bool _isAllowed(AccountantUserEntity u, String path, AccountMode? mode) {
     if (_hasToken(u)) return path == AccPaths.customer(_portalId(u));
   }
   if (u.role == 'inventory_counter') return path == AccPaths.inventoryCount;
+  // Mobile: staff ke liye sirf LAN branch stock (web wali screens band).
+  if (isMobileApp) return path == AccPaths.localStock;
+  if (path == AccPaths.localStock) return false;
   final segs = Uri.parse(path).pathSegments;
   final tab = '/${segs.firstOrNull ?? ''}';
   if (!(_tabRoles[tab]?.contains(u.role) ?? false)) return false;
@@ -125,6 +131,10 @@ bool _isAllowed(AccountantUserEntity u, String path, AccountMode? mode) {
 }
 
 String? _redirect(Ref ref, GoRouterState state) {
+  // Mobile app: login / dashboard kuch nahi — seedha LAN branch stock.
+  if (isMobileApp) {
+    return state.uri.path == AccPaths.localStock ? null : AccPaths.localStock;
+  }
   final session = ref.read(sessionProvider);
   final path    = state.uri.path;
 
@@ -199,7 +209,7 @@ final accountantRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootKey,
-    initialLocation: AccPaths.splash,
+    initialLocation: isMobileApp ? AccPaths.localStock : AccPaths.splash,
     refreshListenable: refresh,
     redirect: (_, state) => _redirect(ref, state),
     errorBuilder: (_, __) => const _NotFoundScreen(),
@@ -254,6 +264,10 @@ final accountantRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AccPaths.cashTransfers,
         builder: (_, __) => const AccountantCashTransfersScreen(),
+      ),
+      GoRoute(
+        path: AccPaths.localStock,
+        builder: (_, __) => const LanStockScreen(),
       ),
 
       // ── Sidebar wala shell (Dashboard / Branch / Warehouse / ...) ──

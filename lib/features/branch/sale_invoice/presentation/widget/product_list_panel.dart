@@ -237,7 +237,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       }
       _onProductAdded(match.name, qty, isReturn: true);
     } else {
-      _doAddToCart(match, qty);
+      if (!_doAddToCart(match, qty)) return true;
       _onProductAdded(match.name, qty);
     }
 
@@ -267,8 +267,15 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     return false;
   }
 
-  void _doAddToCart(BranchStockModel product, double qty) {
+  bool _doAddToCart(BranchStockModel product, double qty) {
     final notifier = ref.read(saleInvoiceProvider.notifier);
+    if (!product.isDigital && product.quantity <= 0) {
+      _showToast('${product.name} — stock khatam hai (0 ya negative)', error: true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchFocusFromProvider?.requestFocus();
+      });
+      return false;
+    }
     final state    = ref.read(saleInvoiceProvider);
     final existing = state.cartItems
         .where((i) => i.product.productId == product.productId)
@@ -286,6 +293,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
         if (newItem != null) notifier.updateQuantity(newItem.cartId, qty);
       }
     }
+    return true;
   }
 
   void _onProductAdded(String name, double qty, {bool isReturn = false}) {
@@ -308,12 +316,15 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       if (qty != 1) n.updateQuantity(product.productId, qty);
       _onProductAdded(product.name, qty, isReturn: true);
     } else {
-      _doAddToCart(product, qty);
+      if (!_doAddToCart(product, qty)) return;
       _onProductAdded(product.name, qty);
     }
   }
 
-  void _showAddedFeedback(String name, double qty) {
+  void _showAddedFeedback(String name, double qty) => _showToast(
+      '${qty.toStringAsFixed(qty % 1 == 0 ? 0 : 1)} × $name');
+
+  void _showToast(String text, {bool error = false}) {
     _feedbackOverlay?.remove();
     _feedbackOverlay = OverlayEntry(
       builder: (_) => Positioned(
@@ -323,7 +334,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color:        AppColor.success,
+              color:        error ? AppColor.error : AppColor.success,
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
@@ -331,10 +342,10 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
               ],
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.check_rounded, color: Colors.white, size: 16),
+              Icon(error ? Icons.block_rounded : Icons.check_rounded, color: Colors.white, size: 16),
               const SizedBox(width: 6),
               Text(
-                '${qty.toStringAsFixed(qty % 1 == 0 ? 0 : 1)} × $name',
+                text,
                 style: const TextStyle(
                     color:      Colors.white,
                     fontSize:   13,
@@ -346,9 +357,12 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       ),
     );
     Overlay.of(context).insert(_feedbackOverlay!);
-    Future.delayed(const Duration(milliseconds: 1400), () {
-      _feedbackOverlay?.remove();
-      _feedbackOverlay = null;
+    final entry = _feedbackOverlay;
+    Future.delayed(Duration(milliseconds: error ? 2200 : 1400), () {
+      if (_feedbackOverlay == entry) {
+        entry?.remove();
+        _feedbackOverlay = null;
+      }
     });
   }
 

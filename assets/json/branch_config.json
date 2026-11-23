@@ -4,7 +4,7 @@
   "store_name": "Jan Ghani Store",
   "store_address": "Peshawar, KPK",
   "store_phone": "0300-1234567",
-  "db_host": "192.168.10.1",
+  "db_host": "127.0.0.1",
   "db_name": "store_db",
   "db_user": "storeuser",
   "db_password": "shahab"
