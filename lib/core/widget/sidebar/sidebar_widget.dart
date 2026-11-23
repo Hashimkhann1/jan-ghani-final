@@ -1,4 +1,4 @@
-// Updated on 2026-11-16 10:21 AM
+// Updated on 2026-11-23 12:27 PM
 // =============================================================
 // sidebar_widget.dart — WAREHOUSE app shell (Stitch "Improved Sidebar")
 //
@@ -14,6 +14,10 @@
 //   • Shortcuts (S26): Alt + harf → us screen par (branch app jaisa).
 //     Global HardwareKeyboard handler — sirf user ke role wale items,
 //     dialog / pushed screen khuli ho to kuch nahi
+//   • Permissions (S31): har NavItem ka permKey → `<permKey>.view` granted
+//     ho to hi dikhta (WarehouseAccessProvider). Role menus ab role
+//     defaults (WarehousePermissionCatalog) mein; Manager = sab kuch.
+//     Selection label se (permission badle to galat screen na khule)
 // =============================================================
 
 import 'dart:async';
@@ -44,10 +48,16 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentat
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/screens/warehouse_dashboard_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/presentation/screens/warehouse_expense_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentation/screens/warehouse_finance_screen/warehouse_finance_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/domain/warehouse_permission_catalog.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/screens/warehouse_permissions_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_reports/presentation/screens/warehouse_reports_shell.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/screen/warehouse_stock_inventory_screen.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/data/model/user_model.dart';
-import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/screens/user_screen.dart';
+// User screen sidebar se band (23 Nov 2026) — naam / role / password ab
+// Permissions screen se. Wapas chahiye to yeh import + _user + _allItems
+// wali line uncomment karo.
+// import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/screens/user_screen.dart';
 
 import 'nav_tile_widget.dart';
 import 'sidebar_sync_status_provider.dart';
@@ -71,11 +81,14 @@ class NavItem {
   final Widget              screen;
   final String              group;
   final LogicalKeyboardKey? shortcutKey;   // Alt + ye harf
+  /// WarehousePermissionCatalog module key — `<permKey>.view` chahiye
+  final String              permKey;
 
   const NavItem({
     required this.icon,
     required this.label,
     required this.screen,
+    required this.permKey,
     this.group = _gOverview,
     this.shortcutKey,
   });
@@ -93,7 +106,7 @@ class SideBar extends ConsumerStatefulWidget {
 }
 
 class _SideBarState extends ConsumerState<SideBar> {
-  int  _index     = -1;      // -1 = home (pehla non-Reports item)
+  String? _selectedLabel;   // null = home (pehla non-Reports item)
   bool _collapsed = true;   // default band (rail)
   String _query   = '';
 
@@ -101,88 +114,92 @@ class _SideBarState extends ConsumerState<SideBar> {
   final _searchFocus = FocusNode();
   Timer? _syncTimer;
 
-  // ── Screens (ek hi instance — role lists share karti hain) ─
+  // ── Screens (ek hi instance) ───────────────────────────────
   // shortcutKey = Alt + harf (har harf alag; S/C takraav: Supplier=V,
-  // Salary=Y, Company=M, Backup=K)
+  // Salary=Y, Company=M, Backup=K, Permissions=G)
+  // permKey = WarehousePermissionCatalog module (`<permKey>.view`)
   static const _dashboard = NavItem(icon: Icons.dashboard_outlined, label: 'Dashboard',
       screen: WarehouseDashboardScreen(), group: _gOverview,
+      permKey: WarehousePermissionCatalog.dashboard,
       shortcutKey: LogicalKeyboardKey.keyD);
   static const _reports   = NavItem(icon: Icons.bar_chart_rounded, label: 'Reports',
       screen: SizedBox.shrink(), group: _gOverview,
+      permKey: WarehousePermissionCatalog.reports,
       shortcutKey: LogicalKeyboardKey.keyR);
   static const _stock     = NavItem(icon: Icons.inventory_2_outlined, label: 'Stock',
       screen: WarehouseStockInventoryScreen(), group: _gInventory,
+      permKey: WarehousePermissionCatalog.stock,
       shortcutKey: LogicalKeyboardKey.keyS);
   static const _assign    = NavItem(icon: Icons.move_to_inbox_outlined, label: 'Assign Stock',
       screen: AssignStockScreen(), group: _gInventory,
+      permKey: WarehousePermissionCatalog.assignStock,
       shortcutKey: LogicalKeyboardKey.keyA);
   static const _returns   = NavItem(icon: Icons.assignment_return_outlined, label: 'Branch Returns',
       screen: BranchReturnsScreen(), group: _gInventory,
+      permKey: WarehousePermissionCatalog.branchReturns,
       shortcutKey: LogicalKeyboardKey.keyB);
   static const _balance   = NavItem(icon: Icons.rule_folder_outlined, label: 'Inventory Balance',
       screen: InventoryBalanceScreen(), group: _gInventory,
+      permKey: WarehousePermissionCatalog.inventoryBalance,
       shortcutKey: LogicalKeyboardKey.keyI);
   static const _category  = NavItem(icon: Icons.category_outlined, label: 'Category',
       screen: AllCategoryScreen(), group: _gInventory,
+      permKey: WarehousePermissionCatalog.category,
       shortcutKey: LogicalKeyboardKey.keyC);
   static const _company   = NavItem(icon: Icons.business_outlined, label: 'Company',
       screen: AllCompanyScreen(), group: _gInventory,
+      permKey: WarehousePermissionCatalog.company,
       shortcutKey: LogicalKeyboardKey.keyM);
   static const _po        = NavItem(icon: Icons.receipt_long_outlined, label: 'Purchase Order',
       screen: PurchaseOrderScreen(), group: _gPurchasing,
+      permKey: WarehousePermissionCatalog.purchaseOrder,
       shortcutKey: LogicalKeyboardKey.keyP);
   static const _supplier  = NavItem(icon: Icons.local_shipping_outlined, label: 'Supplier',
       screen: AllSupplierScreen(), group: _gPurchasing,
+      permKey: WarehousePermissionCatalog.supplier,
       shortcutKey: LogicalKeyboardKey.keyV);
   static const _finance   = NavItem(icon: Icons.account_balance_wallet_outlined, label: 'Finance',
       screen: WarehouseFinanceScreen(), group: _gFinance,
+      permKey: WarehousePermissionCatalog.finance,
       shortcutKey: LogicalKeyboardKey.keyF);
   static const _expense   = NavItem(icon: Icons.money_off_outlined, label: 'Expense',
       screen: WarehouseExpenseScreen(), group: _gFinance,
+      permKey: WarehousePermissionCatalog.expense,
       shortcutKey: LogicalKeyboardKey.keyE);
   static const _salary    = NavItem(icon: Icons.badge_outlined, label: 'Salary',
       screen: SalaryTrackingScreen(), group: _gFinance,
+      permKey: WarehousePermissionCatalog.salary,
       shortcutKey: LogicalKeyboardKey.keyY);
-  static const _user      = NavItem(icon: Icons.person_outline, label: 'User',
-      screen: AllUserScreen(), group: _gAdmin,
-      shortcutKey: LogicalKeyboardKey.keyU);
+  // static const _user      = NavItem(icon: Icons.person_outline, label: 'User',
+  //     screen: AllUserScreen(), group: _gAdmin,
+  //     permKey: WarehousePermissionCatalog.users,
+  //     shortcutKey: LogicalKeyboardKey.keyU);
+  static const _permissions = NavItem(icon: Icons.verified_user_outlined, label: 'Permissions',
+      screen: WarehousePermissionsScreen(), group: _gAdmin,
+      permKey: WarehousePermissionCatalog.permissions,
+      shortcutKey: LogicalKeyboardKey.keyG);
   static const _backup    = NavItem(icon: Icons.backup_outlined, label: 'Backup',
       screen: WarehouseBackupScreen(), group: _gAdmin,
+      permKey: WarehousePermissionCatalog.backup,
       shortcutKey: LogicalKeyboardKey.keyK);
   late final NavItem _linkStores = NavItem(icon: Icons.store_outlined, label: 'Link Stores',
       screen: LinkedStoresScreen(warehouseId: AppConfig.warehouseId), group: _gAdmin,
+      permKey: WarehousePermissionCatalog.linkStores,
       shortcutKey: LogicalKeyboardKey.keyL);
 
-  // ── Role-wise menus (group order mein) ────────────────────
-  late final List<NavItem> _warehouseManager = [
+  // ── Saare items (group order mein) — user ko sirf granted ─
+  // (S31 se pehle role-wise 3 lists thin; ab wahi menus role defaults
+  //  ke zariye — WarehousePermissionCatalog.defaultsForRole)
+  late final List<NavItem> _allItems = [
     _dashboard, _reports,
     _stock, _assign, _returns, _balance, _category, _company,
     _po, _supplier,
     _finance, _expense, _salary,
-    _linkStores, _user, _backup,
+    _linkStores, /* _user, */ _permissions, _backup,
   ];
 
-  late final List<NavItem> _allOthers = [
-    _reports,
-    _stock, _returns, _balance, _category, _company,
-    _po, _supplier,
-    _finance, _expense, _salary,
-    _backup,
-  ];
-
-  late final List<NavItem> _dataEntry = [
-    _stock, _returns, _category, _company,
-    _supplier,
-    _finance, _expense, _salary,
-  ];
-
-  List<NavItem> _getItemsByRole(String? role) {
-    switch (role) {
-      case 'data_entry':        return _dataEntry;
-      case 'warehouse_manager': return _warehouseManager;
-      default:                  return _allOthers;
-    }
-  }
+  List<NavItem> _visibleItems(WarehouseAccess access) =>
+      _allItems.where((it) => access.canView(it.permKey)).toList();
 
   // Login ke baad / Reports se wapsi par — pehla item jo Reports nahi
   int _homeIndex(List<NavItem> items) {
@@ -201,6 +218,10 @@ class _SideBarState extends ConsumerState<SideBar> {
     ref.read(branchReturnsWatcherProvider);
     // Alt + harf → screen (focus kahin bhi ho)
     HardwareKeyboard.instance.addHandler(_onKey);
+    // User ke saved permissions (sidebar + buttons) — S31
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(warehousePermissionsProvider.notifier).load(force: true);
+    });
   }
 
   // ── Keyboard shortcuts: Alt + harf ─────────────────────────
@@ -219,9 +240,9 @@ class _SideBarState extends ConsumerState<SideBar> {
     // → kuch nahi (peeche screen badalne se adhoora form gum ho jata)
     if (ModalRoute.of(context)?.isCurrent != true) return false;
 
-    final items = _getItemsByRole(ref.read(authProvider).user?.role);
+    final items = _visibleItems(ref.read(warehouseAccessProvider));
     final i = items.indexWhere((it) => it.shortcutKey == event.logicalKey);
-    if (i < 0) return false;   // role mein nahi / harf kisi ka nahi
+    if (i < 0) return false;   // access nahi / harf kisi ka nahi
 
     _select(i);
     _showShortcutPill(items[i].label);
@@ -315,8 +336,10 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   void _select(int i) {
+    final items = _visibleItems(ref.read(warehouseAccessProvider));
+    if (i < 0 || i >= items.length) return;
     setState(() {
-      _index = i;
+      _selectedLabel = items[i].label;
       _query = '';
       _searchCtrl.clear();
     });
@@ -347,7 +370,10 @@ class _SideBarState extends ConsumerState<SideBar> {
     final async = ref.watch(pendingCashRequestsProvider);
     final onCashScreen = ref.watch(cashRequestsScreenActiveProvider);
     final list = async.valueOrNull ?? const <WarehouseCashRequestModel>[];
-    final req = (list.isEmpty || onCashScreen) ? null : list.first;
+    // S31: card sirf unhein jo cash request accept/reject kar sakte hain
+    final canCash = ref.watch(warehouseAccessProvider)
+        .can('${WarehousePermissionCatalog.cashRequest}.approve');
+    final req = (list.isEmpty || onCashScreen || !canCash) ? null : list.first;
 
     return Stack(
       children: [
@@ -370,8 +396,9 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   @override
   Widget build(BuildContext context) {
-    final user  = ref.watch(authProvider).user;
-    final items = _getItemsByRole(user?.role);
+    final user   = ref.watch(authProvider).user;
+    final access = ref.watch(warehouseAccessProvider);
+    final items  = _visibleItems(access);
 
     // Dashboard ke "Needs attention" tiles / links → us label wali screen
     ref.listen<String?>(dashboardNavRequestProvider, (_, label) {
@@ -388,8 +415,19 @@ class _SideBarState extends ConsumerState<SideBar> {
     // Sync status (Reports par bhi watch — provider zinda rahe)
     final sync = ref.watch(sidebarSyncStatusProvider).valueOrNull;
 
-    final current     = (_index < 0 || _index >= items.length)
-        ? _homeIndex(items) : _index;
+    // Koi screen granted nahi → khaali-access screen (logout ke saath)
+    if (items.isEmpty) {
+      return _wrapWithCashCard(Scaffold(
+        backgroundColor: _kBg,
+        body: _NoAccessView(
+          userName: user?.fullName ?? '',
+          onLogout: _logout,
+        ),
+      ));
+    }
+
+    final sel         = items.indexWhere((it) => it.label == _selectedLabel);
+    final current     = sel < 0 ? _homeIndex(items) : sel;
     final currentItem = items[current];
 
     // Reports screen: no main sidebar — full width shell
@@ -397,7 +435,7 @@ class _SideBarState extends ConsumerState<SideBar> {
       return _wrapWithCashCard(Scaffold(
         backgroundColor: _kBg,
         body: WarehouseReportsShell(
-          onBack: () => setState(() => _index = -1),
+          onBack: () => setState(() => _selectedLabel = null),
         ),
       ));
     }
@@ -913,6 +951,70 @@ class _UserCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// S31: user ke paas koi screen ka access nahi
+// ═════════════════════════════════════════════════════════════
+class _NoAccessView extends StatelessWidget {
+  final String       userName;
+  final VoidCallback onLogout;
+  const _NoAccessView({required this.userName, required this.onLogout});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 420,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color:        WarehouseAppColor.surface,
+          borderRadius: BorderRadius.circular(16),
+          border:       Border.all(color: WarehouseAppColor.grey200),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: WarehouseAppColor.warningLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.lock_outline_rounded,
+                  size: 30, color: WarehouseAppColor.warningDark),
+            ),
+            const SizedBox(height: 14),
+            Text(userName.isEmpty ? 'Koi access nahi' : '$userName — koi access nahi',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w700,
+                    color: WarehouseAppColor.textPrimary)),
+            const SizedBox(height: 6),
+            const Text(
+              'Aap ko abhi kisi screen ki permission nahi di gayi. '
+              'Manager se Permissions screen par access lein.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, height: 1.4,
+                  color: WarehouseAppColor.textSecondary),
+            ),
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: onLogout,
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size.zero,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                foregroundColor: WarehouseAppColor.error,
+                side: const BorderSide(color: WarehouseAppColor.error),
+              ),
+              icon: const Icon(Icons.logout_rounded, size: 16),
+              label: const Text('Logout'),
+            ),
+          ],
+        ),
       ),
     );
   }

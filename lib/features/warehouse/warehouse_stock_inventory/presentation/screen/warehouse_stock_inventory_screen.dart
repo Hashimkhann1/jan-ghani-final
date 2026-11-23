@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-23 12:33 PM
 // =============================================================
 // warehouse_stock_inventory_screen.dart
 // Stitch "Jan Ghani — Stock Inventory v2" design:
@@ -17,6 +17,7 @@ import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/category/presentation/provider/category_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/company/presentation/provider/company_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/Print_barcode_widget.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import '../../data/model/product_model.dart';
 import '../../presentation/provider/product_provider.dart';
 import '../widget/stock_inventory_dialog.dart';
@@ -57,6 +58,12 @@ class _WarehouseStockInventoryScreenState
   Widget build(BuildContext context) {
     final state    = ref.watch(productProvider);
     final notifier = ref.read(productProvider.notifier);
+    // S31 permissions
+    final access    = ref.watch(warehouseAccessProvider);
+    final canCreate = access.can('stock.create');
+    // Edit menu: info (stock.edit) YA qty (stock.qty) — dialog khud alag lock karta
+    final canEdit   = access.can('stock.edit') || access.can('stock.qty');
+    final canDelete = access.can('stock.delete');
 
     ref.listen<ProductState>(productProvider, (prev, next) {
       // Filter / search badle → pehla page
@@ -122,7 +129,7 @@ class _WarehouseStockInventoryScreenState
           _TopBar(
             isLoading: state.isLoading,
             onRefresh: () => notifier.loadProducts(),
-            onAdd:     () => _showDialog(context, ref),
+            onAdd:     canCreate ? () => _showDialog(context, ref) : null,
           ),
           Expanded(
             child: state.isLoading && state.allProducts.isEmpty
@@ -165,9 +172,9 @@ class _WarehouseStockInventoryScreenState
                         _pageSize = s;
                         _page     = 0;
                       }),
-                      onEdit:    (p) => _showDialog(context, ref, p),
+                      onEdit:    canEdit ? (p) => _showDialog(context, ref, p) : null,
                       onHistory: (p) => ProductAuditDialog.show(context, p),
-                      onDelete:  (p) => _showDeleteDialog(context, ref, p),
+                      onDelete:  canDelete ? (p) => _showDeleteDialog(context, ref, p) : null,
                     ),
                   ),
                 ],
@@ -186,7 +193,7 @@ class _WarehouseStockInventoryScreenState
 class _TopBar extends StatelessWidget {
   final bool         isLoading;
   final VoidCallback onRefresh;
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;   // null = Add permission nahi
 
   const _TopBar({
     required this.isLoading,
@@ -252,8 +259,8 @@ class _TopBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          ElevatedButton.icon(
+          if (onAdd != null) const SizedBox(width: 10),
+          if (onAdd != null) ElevatedButton.icon(
             onPressed: onAdd,
             icon:  const Icon(Icons.add_rounded, size: 18),
             label: const Text('Add Product'),
@@ -806,9 +813,9 @@ class _ProductTable extends StatefulWidget {
   final int                        pageSize;
   final ValueChanged<int>          onPage;
   final ValueChanged<int>          onPageSize;
-  final ValueChanged<ProductModel> onEdit;
-  final ValueChanged<ProductModel> onHistory;
-  final ValueChanged<ProductModel> onDelete;
+  final ValueChanged<ProductModel>? onEdit;     // null = permission nahi
+  final ValueChanged<ProductModel>  onHistory;
+  final ValueChanged<ProductModel>? onDelete;   // null = permission nahi
 
   const _ProductTable({
     required this.products,
@@ -885,9 +892,9 @@ class _ProductTableState extends State<_ProductTable> {
                                     child: _ProductRow(
                                       key:       ValueKey(p.id),
                                       product:   p,
-                                      onEdit:    () => widget.onEdit(p),
+                                      onEdit:    widget.onEdit == null ? null : () => widget.onEdit!(p),
                                       onHistory: () => widget.onHistory(p),
-                                      onDelete:  () => widget.onDelete(p),
+                                      onDelete:  widget.onDelete == null ? null : () => widget.onDelete!(p),
                                       onPrintQR: () => PrintBarcodeWidget.show(context, p),
                                     ),
                                   );
@@ -972,10 +979,10 @@ class _TH extends StatelessWidget {
 
 // ── Product row ──────────────────────────────────────────────
 class _ProductRow extends StatelessWidget {
-  final ProductModel product;
-  final VoidCallback onEdit;
-  final VoidCallback onHistory;
-  final VoidCallback onDelete;
+  final ProductModel  product;
+  final VoidCallback? onEdit;
+  final VoidCallback  onHistory;
+  final VoidCallback? onDelete;
   final VoidCallback onPrintQR;
 
   const _ProductRow({
@@ -1289,10 +1296,10 @@ class _StatusPill extends StatelessWidget {
 
 // ── ⋮ menu: Edit · Stock history · Print QR · Delete ─────────
 class _RowMenu extends StatelessWidget {
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit;     // null = item nahi dikhta (S31)
   final VoidCallback onHistory;
   final VoidCallback onPrintQR;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;   // null = item nahi dikhta (S31)
 
   const _RowMenu({
     required this.onEdit,
@@ -1315,18 +1322,21 @@ class _RowMenu extends StatelessWidget {
           side: const BorderSide(color: WarehouseAppColor.grey200)),
       onSelected: (value) {
         switch (value) {
-          case 'edit':    onEdit();    break;
+          case 'edit':    onEdit?.call();    break;
           case 'history': onHistory(); break;
           case 'printQr': onPrintQR(); break;
-          case 'delete':  onDelete();  break;
+          case 'delete':  onDelete?.call();  break;
         }
       },
       itemBuilder: (_) => [
-        _item('edit',    Icons.edit_outlined,           'Edit karein'),
+        if (onEdit != null)
+          _item('edit',    Icons.edit_outlined,           'Edit karein'),
         _item('history', Icons.history_rounded,         'Stock history'),
         _item('printQr', Icons.print_outlined,          'Print QR / barcode'),
-        const PopupMenuDivider(height: 8),
-        _item('delete',  Icons.delete_outline_rounded,  'Delete', danger: true),
+        if (onDelete != null) ...[
+          const PopupMenuDivider(height: 8),
+          _item('delete',  Icons.delete_outline_rounded,  'Delete', danger: true),
+        ],
       ],
     );
   }

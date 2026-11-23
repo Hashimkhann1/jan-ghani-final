@@ -1,4 +1,4 @@
-// Updated on 2026-11-08 09:48 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // warehouse_backup_screen.dart  (sidebar: ADMIN → Backup)
 //   • User folder chunta hai → "Backup Lein" → pg_dump se poora local DB
@@ -15,6 +15,7 @@ import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_backup/domain/warehouse_backup_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_backup/presentation/provider/warehouse_backup_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 
 /// Itne din se purana backup ho to warning (amber/laal)
 const int kBackupWarnDays = 3;
@@ -93,6 +94,8 @@ class _WarehouseBackupScreenState extends ConsumerState<WarehouseBackupScreen> {
   Widget build(BuildContext context) {
     final state    = ref.watch(warehouseBackupProvider);
     final notifier = ref.read(warehouseBackupProvider.notifier);
+    // S31: naya backup sirf `backup.create` wale (record sab dekh sakte)
+    final canBackup = ref.watch(warehouseAccessProvider).can('backup.create');
 
     ref.listen<WarehouseBackupState>(warehouseBackupProvider, (prev, next) {
       if (next.errorMessage != null && next.errorMessage != prev?.errorMessage) {
@@ -120,7 +123,7 @@ class _WarehouseBackupScreenState extends ConsumerState<WarehouseBackupScreen> {
                       folderPath:  state.folderPath,
                       isBackingUp: state.isBackingUp,
                       onPick:      notifier.pickFolder,
-                      onBackup:    _runBackup,
+                      onBackup:    canBackup ? _runBackup : null,
                     );
                     final lastCard = _LastBackupCard(
                       last:   state.lastSuccess,
@@ -281,8 +284,8 @@ class _Card extends StatelessWidget {
 class _NewBackupCard extends StatelessWidget {
   final String?      folderPath;
   final bool         isBackingUp;
-  final VoidCallback onPick;
-  final VoidCallback onBackup;
+  final VoidCallback  onPick;
+  final VoidCallback? onBackup;   // null = permission nahi (S31)
   const _NewBackupCard({
     required this.folderPath,
     required this.isBackingUp,
@@ -367,7 +370,7 @@ class _NewBackupCard extends StatelessWidget {
           SizedBox(
             height: 50,
             child: ElevatedButton(
-              onPressed: (!hasFolder || isBackingUp) ? null : onBackup,
+              onPressed: (!hasFolder || isBackingUp || onBackup == null) ? null : onBackup,
               style: ElevatedButton.styleFrom(
                 backgroundColor: WarehouseAppColor.primary,
                 foregroundColor: WarehouseAppColor.white,
@@ -403,7 +406,12 @@ class _NewBackupCard extends StatelessWidget {
                     ),
             ),
           ),
-          if (!hasFolder) ...[
+          if (onBackup == null) ...[
+            const SizedBox(height: 8),
+            const Text('Backup lene ki ijazat nahi — Manager se Permissions lein.',
+                style: TextStyle(
+                    fontSize: 12, color: WarehouseAppColor.error)),
+          ] else if (!hasFolder) ...[
             const SizedBox(height: 8),
             const Text('Pehle folder chunein jahan backup save hoga.',
                 style: TextStyle(

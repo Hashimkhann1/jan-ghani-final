@@ -1,3 +1,4 @@
+// Updated on 2026-11-23 12:33 PM
 import 'package:postgres/postgres.dart';
 import 'package:jan_ghani_final/core/service/database_service/database_service.dart';
 import '../model/user_model.dart';
@@ -103,6 +104,41 @@ class UserRemoteDataSource {
     return (await getById(user.id))!;
   }
 
+  // ── PASSWORD CHANGE (S31 — sirf Owner, Permissions screen se) ──
+  // `passwordHash` pehle se PasswordHelper.hash wala. is_synced = false
+  // taake Supabase par bhi naya hash chala jaye.
+  Future<void> updatePassword(String id, String passwordHash) async {
+    final conn = await DatabaseService.getConnection();
+    final res = await conn.execute(
+      Sql.named('''
+        UPDATE warehouse_users
+        SET password_hash = @hash, is_synced = false
+        WHERE id = @id AND deleted_at IS NULL
+      '''),
+      parameters: {'id': id, 'hash': passwordHash},
+    );
+    if (res.affectedRows == 0) {
+      throw Exception('User nahi mila (delete ho chuka?)');
+    }
+  }
+
+  // ── NAAM / ROLE (S31 — Permissions screen se) ──────────────
+  // is_synced = false taake Supabase par bhi jaye.
+  Future<void> updateNameRole(String id, String fullName, String role) async {
+    final conn = await DatabaseService.getConnection();
+    final res = await conn.execute(
+      Sql.named('''
+        UPDATE warehouse_users
+        SET full_name = @name, role = @role, is_synced = false
+        WHERE id = @id AND deleted_at IS NULL
+      '''),
+      parameters: {'id': id, 'name': fullName, 'role': role},
+    );
+    if (res.affectedRows == 0) {
+      throw Exception('User nahi mila (delete ho chuka?)');
+    }
+  }
+
   // ── SOFT DELETE ───────────────────────────────────────────
   Future<void> delete(String id) async {
     final conn = await DatabaseService.getConnection();
@@ -110,7 +146,7 @@ class UserRemoteDataSource {
     await conn.execute(
       Sql.named('''
         UPDATE warehouse_users
-        SET deleted_at = NOW()
+        SET deleted_at = NOW(), is_synced = false   -- Supabase par bhi jaye
         WHERE id = @id
       '''),
       parameters: {'id': id},

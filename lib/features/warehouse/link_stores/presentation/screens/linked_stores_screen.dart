@@ -1,7 +1,8 @@
-// Updated on 2026-09-25 03:51 PM
+// Updated on 2026-11-22 10:46 AM
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/features/accountant/branch_reports/branch_report_list_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import '../providers/link_stores_provider.dart';
 import '../widgets/linked_store_row.dart';
 import 'available_stores_screen.dart';
@@ -14,12 +15,14 @@ class LinkedStoresScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final linkedStoresAsync = ref.watch(linkedStoresProvider(warehouseId));
+    // S31: naya store link sirf `link_stores.create` wale
+    final canLink = ref.watch(warehouseAccessProvider).can('link_stores.create');
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Linked Stores'),
         actions: [
-          SizedBox(
+          if (canLink) SizedBox(
             width: 160,
             height: 36,
             child: Padding(

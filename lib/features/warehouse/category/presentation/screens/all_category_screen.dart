@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 
 // =============================================================
 // all_category_screen.dart
@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/warehouse_color.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import '../../data/model/category_model.dart';
 import '../provider/category_provider.dart';
 import '../widget/add_category_dialog.dart';
@@ -18,6 +19,10 @@ class AllCategoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state    = ref.watch(categoryProvider);
     final notifier = ref.read(categoryProvider.notifier);
+    // S31 permissions (category delete UI pehle se band hai)
+    final access    = ref.watch(warehouseAccessProvider);
+    final canCreate = access.can('category.create');
+    final canEdit   = access.can('category.edit');
 
     // Error snackbar
     ref.listen<CategoryState>(categoryProvider, (_, next) {
@@ -66,7 +71,7 @@ class AllCategoryScreen extends ConsumerWidget {
                   ],
                 ),
                 const Spacer(),
-                ElevatedButton.icon(
+                if (canCreate) ElevatedButton.icon(
                   onPressed: () =>
                       AddCategoryDialog.show(context),
                   icon:  const Icon(Icons.add_rounded, size: 18),
@@ -172,9 +177,9 @@ class AllCategoryScreen extends ConsumerWidget {
                     state.filterStatus != 'all')
                 : _CategoryGrid(
               categories: state.filteredCategories,
-              onEdit: (c) =>
-                  AddCategoryDialog.show(context,
-                      category: c),
+              onEdit: canEdit
+                  ? (c) => AddCategoryDialog.show(context, category: c)
+                  : null,
               onDelete: (c) =>
                   _confirmDelete(context, ref, c),
             ),
@@ -287,8 +292,8 @@ class AllCategoryScreen extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────
 class _CategoryGrid extends StatelessWidget {
   final List<CategoryModel>         categories;
-  final ValueChanged<CategoryModel> onEdit;
-  final ValueChanged<CategoryModel> onDelete;
+  final ValueChanged<CategoryModel>? onEdit;   // null = permission nahi
+  final ValueChanged<CategoryModel>  onDelete;
 
   const _CategoryGrid({
     required this.categories,
@@ -310,7 +315,7 @@ class _CategoryGrid extends StatelessWidget {
         itemCount: categories.length,
         itemBuilder: (_, i) => _CategoryCard(
           category: categories[i],
-          onEdit:   () => onEdit(categories[i]),
+          onEdit:   onEdit == null ? null : () => onEdit!(categories[i]),
           onDelete: () => onDelete(categories[i]),
         ),
       ),
@@ -323,7 +328,7 @@ class _CategoryGrid extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 class _CategoryCard extends StatefulWidget {
   final CategoryModel category;
-  final VoidCallback  onEdit;
+  final VoidCallback? onEdit;
   final VoidCallback  onDelete;
 
   const _CategoryCard({
@@ -431,7 +436,7 @@ class _CategoryCardState extends State<_CategoryCard> {
             ),
 
             // Actions — hover pe
-            if (_hovered)
+            if (_hovered && widget.onEdit != null)
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -439,7 +444,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                     icon:    Icons.edit_outlined,
                     color:   WarehouseAppColor.info,
                     tooltip: 'Edit',
-                    onTap:   widget.onEdit,
+                    onTap:   widget.onEdit!,
                   ),
                   const SizedBox(width: 6),
                   // _ActionBtn(

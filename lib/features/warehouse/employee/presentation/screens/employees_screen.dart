@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // employees_screen.dart — employee master list
 // Mobile (< 700px): "New" icon-only, chips Wrap + search full width,
@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import '../../domain/employee_model.dart';
 import '../provider/employee_provider.dart';
 import '../widgets/add_employee_dialog.dart';
@@ -20,6 +21,11 @@ class EmployeesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state    = ref.watch(employeeProvider);
     final notifier = ref.read(employeeProvider.notifier);
+    // S31 permissions
+    final access    = ref.watch(warehouseAccessProvider);
+    final canCreate = access.can('employee.create');
+    final canEdit   = access.can('employee.edit');
+    final canDelete = access.can('employee.delete');
 
     ref.listen<EmployeeState>(employeeProvider, (_, next) {
       if (next.errorMessage != null) {
@@ -87,7 +93,7 @@ class EmployeesScreen extends ConsumerWidget {
           title: const Text('Employees',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
           actions: [
-            Padding(
+            if (canCreate) Padding(
               padding: const EdgeInsets.only(right: 16),
               child: narrow
                   ? Tooltip(
@@ -157,9 +163,13 @@ class EmployeesScreen extends ConsumerWidget {
                     itemBuilder: (_, i) => _EmployeeCard(
                       employee: state.filtered[i],
                       compact: narrow,
-                      onEdit: () => AddEmployeeDialog.show(context,
-                          employee: state.filtered[i]),
-                      onDelete: () => _confirmDelete(context, ref, state.filtered[i]),
+                      onEdit: canEdit
+                          ? () => AddEmployeeDialog.show(context,
+                              employee: state.filtered[i])
+                          : null,
+                      onDelete: canDelete
+                          ? () => _confirmDelete(context, ref, state.filtered[i])
+                          : null,
                     ),
                   ),
           ),
@@ -197,7 +207,7 @@ class EmployeesScreen extends ConsumerWidget {
 
 class _EmployeeCard extends StatelessWidget {
   final EmployeeModel employee;
-  final VoidCallback onEdit, onDelete;
+  final VoidCallback? onEdit, onDelete;   // null = permission nahi (S31)
   final bool compact; // mobile: salary naam ke neeche
   const _EmployeeCard({required this.employee, required this.onEdit,
       required this.onDelete, this.compact = false});
@@ -306,12 +316,12 @@ class _EmployeeCard extends StatelessWidget {
           ),
           const SizedBox(width: 8),
         ],
-        IconButton(
+        if (onEdit != null) IconButton(
             onPressed: onEdit,
             // Mobile: compact (kam jagah) — desktop pehle jaisa
             visualDensity: compact ? VisualDensity.compact : null,
             icon: const Icon(Icons.edit_outlined, size: 18, color: WarehouseAppColor.info)),
-        IconButton(
+        if (onDelete != null) IconButton(
             onPressed: onDelete,
             visualDensity: compact ? VisualDensity.compact : null,
             icon: const Icon(Icons.delete_outline_rounded, size: 18, color: WarehouseAppColor.error)),

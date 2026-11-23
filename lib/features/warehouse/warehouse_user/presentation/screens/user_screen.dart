@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 06:03 PM
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +12,8 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/w
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/widget/customer_status_badge_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/widget/user_empty_state_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/widget/user_role_badge_widget.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
 
 class AllUserScreen extends ConsumerWidget {
   const AllUserScreen({super.key});
@@ -65,6 +67,13 @@ class AllUserScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(userProvider);
+    // S31 permissions
+    final access    = ref.watch(warehouseAccessProvider);
+    final canCreate = access.can('users.create');
+    final canEdit   = access.can('users.edit');
+    final canDelete = access.can('users.delete');
+    // Owner user ko sirf Owner edit / delete kar sakta hai
+    final meOwner   = ref.watch(authProvider).user?.isOwner ?? false;
     final users = state.filteredUsers;
 
     ref.listen<UserState>(userProvider, (_, next) {
@@ -100,7 +109,7 @@ class AllUserScreen extends ConsumerWidget {
                 foregroundColor: WarehouseAppColor.textSecondary),
           ),
           const SizedBox(width: 4),
-          IntrinsicWidth(
+          if (canCreate) IntrinsicWidth(
             child: Padding(
               padding:
                   const EdgeInsets.symmetric(vertical: 10),
@@ -351,7 +360,7 @@ class AllUserScreen extends ConsumerWidget {
 
                                           // Actions
                                           DataCell(Row(children: [
-                                            CustomerActionButton(
+                                            if (canEdit && (meOwner || !u.isOwner)) CustomerActionButton(
                                               icon:    Icons
                                                   .edit_outlined,
                                               color:   WarehouseAppColor
@@ -362,7 +371,7 @@ class AllUserScreen extends ConsumerWidget {
                                                   user: u),
                                             ),
                                             const SizedBox(width: 6),
-                                            CustomerActionButton(
+                                            if (canDelete && (meOwner || !u.isOwner)) CustomerActionButton(
                                               icon: Icons
                                                   .delete_outline_rounded,
                                               color:   WarehouseAppColor.error,

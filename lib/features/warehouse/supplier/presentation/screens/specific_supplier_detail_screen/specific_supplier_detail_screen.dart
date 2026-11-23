@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // specific_supplier_detail_screen.dart
 // Supplier detail screen — sidebar nahi hai
@@ -19,6 +19,7 @@ import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_detail_widgets/supplier_detail_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_info_dialog/supplier_info_dialog.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 
 
 class SpecificSupplierDetailScreen extends ConsumerStatefulWidget {
@@ -48,6 +49,10 @@ class _SpecificSupplierDetailScreenState
   Widget build(BuildContext context) {
     final state    = ref.watch(supplierDetailProvider);
     final notifier = ref.read(supplierDetailProvider.notifier);
+    // S31 permissions
+    final access     = ref.watch(warehouseAccessProvider);
+    final canPay     = access.can('supplier.pay');
+    final canReverse = access.can('supplier.reverse');
     // Fresh supplier supplierProvider se (payment ke baad refreshSupplier
     // isse update karta hai) — widget.supplier sirf fallback, warna stale
     // balance par top bar + Pay dialog ka overpay check chalta tha
@@ -66,6 +71,7 @@ class _SpecificSupplierDetailScreenState
           // ── 1. Top bar ─────────────────────────────
           _TopBar(
             supplier: s,
+            canPay:   canPay,
             // Supplier name click → info dialog
             onNameTap: () => SupplierInfoDialog.show(context, s),
           ),
@@ -87,8 +93,9 @@ class _SpecificSupplierDetailScreenState
             child: state.activeTab == 'ledger'
                 ? _LedgerTable(
               entries:   state.ledgerEntries,
-              onReverse: (entry) =>
-                  ReversePaymentDialog.show(context, s, entry),
+              onReverse: canReverse
+                  ? (entry) => ReversePaymentDialog.show(context, s, entry)
+                  : null,
             )
                 : _OrdersTable(
               orders:        state.purchaseOrders,
@@ -109,9 +116,14 @@ class _SpecificSupplierDetailScreenState
 
 class _TopBar extends StatelessWidget {
   final SupplierModel supplier;
+  final bool          canPay;    // S31 — false = Pay button nahi
   final VoidCallback  onNameTap; // supplier name click → dialog
 
-  const _TopBar({required this.supplier, required this.onNameTap});
+  const _TopBar({
+    required this.supplier,
+    required this.canPay,
+    required this.onNameTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +250,7 @@ class _TopBar extends StatelessWidget {
 
           const Spacer(),
 
-          InkWell(
+          if (canPay) InkWell(
             onTap:        () => PayOutstandingDialog.show(context, supplier),
             borderRadius: BorderRadius.circular(8),
             child: Container(
@@ -384,7 +396,7 @@ class _TabBar extends StatelessWidget {
 
 class _LedgerTable extends StatelessWidget {
   final List<SupplierLedgerEntry>          entries;
-  final ValueChanged<SupplierLedgerEntry>  onReverse;
+  final ValueChanged<SupplierLedgerEntry>? onReverse;   // null = permission nahi
 
   const _LedgerTable({required this.entries, required this.onReverse});
 
@@ -414,7 +426,7 @@ class _LedgerTable extends StatelessWidget {
                 itemBuilder: (_, i) => LedgerEntryRow(
                   key:       ValueKey(entries[i].id),
                   entry:     entries[i],
-                  onReverse: () => onReverse(entries[i]),
+                  onReverse: onReverse == null ? null : () => onReverse!(entries[i]),
                 ),
               ),
             ),

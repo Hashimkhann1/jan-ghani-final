@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // all_supplier_screen.dart
 // Stitch "Jan Ghani — Suppliers v2" design:
@@ -20,6 +20,7 @@ import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/edit_supplier_dialog/edit_supplier_dialog.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/pay_outstanding_dialog/pay_outstanding_dialog.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/widgets/supplier_widgets.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 
 // Table column flex — header + row dono yahi use karte hain
 const int    _kColSupplier = 4;
@@ -37,6 +38,12 @@ class AllSupplierScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state    = ref.watch(supplierProvider);
     final notifier = ref.read(supplierProvider.notifier);
+    // S31 permissions
+    final access    = ref.watch(warehouseAccessProvider);
+    final canCreate = access.can('supplier.create');
+    final canEdit   = access.can('supplier.edit');
+    final canDelete = access.can('supplier.delete');
+    final canPay    = access.can('supplier.pay');
 
     return Scaffold(
       backgroundColor: WarehouseAppColor.grey100,
@@ -45,7 +52,7 @@ class AllSupplierScreen extends ConsumerWidget {
           : Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _TopBar(onAddTap: () => showAddDialog(context)),
+          _TopBar(onAddTap: canCreate ? () => showAddDialog(context) : null),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
@@ -70,9 +77,9 @@ class AllSupplierScreen extends ConsumerWidget {
               child: _SupplierTable(
                 state:      state,
                 onOpen:     (s) => _openDetail(context, ref, s),
-                onPay:      (s) => PayOutstandingDialog.show(context, s),
-                onEdit:     (s) => _showEditDialog(context, s),
-                onDelete:   (s) => _showDeleteConfirm(context, ref, s),
+                onPay:      canPay ? (s) => PayOutstandingDialog.show(context, s) : null,
+                onEdit:     canEdit ? (s) => _showEditDialog(context, s) : null,
+                onDelete:   canDelete ? (s) => _showDeleteConfirm(context, ref, s) : null,
                 onPage:     notifier.onPageChanged,
                 onPageSize: notifier.onPageSizeChanged,
               ),
@@ -221,7 +228,7 @@ class AllSupplierScreen extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
-  final VoidCallback onAddTap;
+  final VoidCallback? onAddTap;   // null = permission nahi (S31)
   const _TopBar({required this.onAddTap});
 
   @override
@@ -261,8 +268,8 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          ElevatedButton.icon(
+          if (onAddTap != null) const SizedBox(width: 12),
+          if (onAddTap != null) ElevatedButton.icon(
             onPressed: onAddTap,
             icon:      const Icon(Icons.add_rounded, size: 18),
             label:     const Text('New Supplier'),
@@ -715,9 +722,9 @@ class _MenuField<T> extends StatelessWidget {
 class _SupplierTable extends StatefulWidget {
   final SupplierState               state;
   final ValueChanged<SupplierModel> onOpen;
-  final ValueChanged<SupplierModel> onPay;
-  final ValueChanged<SupplierModel> onEdit;
-  final ValueChanged<SupplierModel> onDelete;
+  final ValueChanged<SupplierModel>? onPay;      // null = permission nahi
+  final ValueChanged<SupplierModel>? onEdit;
+  final ValueChanged<SupplierModel>? onDelete;
   final ValueChanged<int>           onPage;
   final ValueChanged<int>           onPageSize;
 
@@ -808,9 +815,9 @@ class _SupplierTableState extends State<_SupplierTable> {
                                           key:      ValueKey(s.id),
                                           supplier: s,
                                           onOpen:   () => widget.onOpen(s),
-                                          onPay:    () => widget.onPay(s),
-                                          onEdit:   () => widget.onEdit(s),
-                                          onDelete: () => widget.onDelete(s),
+                                          onPay:    widget.onPay == null ? null : () => widget.onPay!(s),
+                                          onEdit:   widget.onEdit == null ? null : () => widget.onEdit!(s),
+                                          onDelete: widget.onDelete == null ? null : () => widget.onDelete!(s),
                                         ),
                                       ),
                                       Divider(height: 1, color: WarehouseAppColor.grey100),
@@ -912,9 +919,9 @@ class _TH extends StatelessWidget {
 class _SupplierRow extends StatefulWidget {
   final SupplierModel supplier;
   final VoidCallback  onOpen;
-  final VoidCallback  onPay;
-  final VoidCallback  onEdit;
-  final VoidCallback  onDelete;
+  final VoidCallback? onPay;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const _SupplierRow({
     required super.key,
@@ -1239,10 +1246,10 @@ class _StatusPill extends StatelessWidget {
 
 class _RowMenu extends StatelessWidget {
   final SupplierModel supplier;
-  final VoidCallback  onPay;
+  final VoidCallback? onPay;      // null = item nahi (S31)
   final VoidCallback  onOpen;
-  final VoidCallback  onEdit;
-  final VoidCallback  onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const _RowMenu({
     required this.supplier,
@@ -1268,23 +1275,26 @@ class _RowMenu extends StatelessWidget {
           side: BorderSide(color: WarehouseAppColor.grey200)),
       onSelected: (v) {
         switch (v) {
-          case 'pay':    onPay();    break;
-          case 'open':   onOpen();   break;
-          case 'edit':   onEdit();   break;
-          case 'delete': onDelete(); break;
+          case 'pay':    onPay?.call();    break;
+          case 'open':   onOpen();         break;
+          case 'edit':   onEdit?.call();   break;
+          case 'delete': onDelete?.call(); break;
         }
       },
       itemBuilder: (_) => [
-        if (supplier.hasDue)
+        if (supplier.hasDue && onPay != null)
           _item('pay', Icons.account_balance_wallet_outlined,
               'Pay karein', WarehouseAppColor.success),
         _item('open', Icons.visibility_outlined,
             'Detail / Ledger dekhein', WarehouseAppColor.textPrimary),
-        _item('edit', Icons.edit_outlined,
-            'Edit karein', WarehouseAppColor.textPrimary),
-        const PopupMenuDivider(height: 8),
-        _item('delete', Icons.delete_outline_rounded,
-            'Delete', WarehouseAppColor.error),
+        if (onEdit != null)
+          _item('edit', Icons.edit_outlined,
+              'Edit karein', WarehouseAppColor.textPrimary),
+        if (onDelete != null) ...[
+          const PopupMenuDivider(height: 8),
+          _item('delete', Icons.delete_outline_rounded,
+              'Delete', WarehouseAppColor.error),
+        ],
       ],
     );
   }

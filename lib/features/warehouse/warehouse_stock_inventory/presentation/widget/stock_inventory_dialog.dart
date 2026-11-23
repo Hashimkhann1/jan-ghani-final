@@ -1,6 +1,8 @@
+// Updated on 2026-11-23 12:33 PM
 // =============================================================
 // stock_inventory_dialog.dart
 // UPDATED: Single barcode field → multiple barcode chips
+// S31: edit mode mein `stock.edit` (info) aur `stock.qty` (miqdar) ALAG lock
 // =============================================================
 
 import 'dart:math';
@@ -19,6 +21,7 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/dat
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/section_label_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/widget/status_toggle_widget.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import 'dialog_action_widget.dart';
 import 'dialog_header_widget.dart';
 import 'expiree_field_widget.dart';
@@ -65,6 +68,26 @@ class _StockInventoryDialogState
 
   bool get isEditMode => widget.product != null;
 
+  // ── S31 permissions (sirf edit mode) ──────────────────────
+  // stock.edit = info (naam, barcode, price, category …)
+  // stock.qty  = stock ki miqdar — dono ALAG
+  bool _canInfo = true;
+  bool _canQty  = true;
+  bool get _infoLocked => isEditMode && !_canInfo;
+  bool get _qtyLocked  => isEditMode && !_canQty;
+
+  /// Locked hissa: dikhta hai lekin click / focus nahi hota
+  Widget _lock(bool locked, Widget child) => !locked
+      ? child
+      : ExcludeFocus(
+          child: AbsorbPointer(
+            child: Opacity(opacity: 0.5, child: child),
+          ),
+        );
+
+  /// Locked field par validation nahi (purana data ho sakta hai khaali ho)
+  String? Function(String?)? _rq(bool locked) => locked ? null : _required;
+
   // ── Auto generators ───────────────────────────────────────
   static String _generateSku() {
     final rand = Random();
@@ -87,6 +110,11 @@ class _StockInventoryDialogState
   void initState() {
     super.initState();
     final p = widget.product;
+    if (p != null) {
+      final access = ref.read(warehouseAccessProvider);
+      _canInfo = access.can('stock.edit');
+      _canQty  = access.can('stock.qty');
+    }
 
     _skuCtrl         = TextEditingController(text: p?.sku ?? _generateSku());
     _nameCtrl        = TextEditingController(text: p?.name ?? '');
@@ -177,10 +205,14 @@ class _StockInventoryDialogState
 
     try {
       if (isEditMode) {
-        final newQty =
-            double.tryParse(_initialQtyCtrl.text) ?? widget.product!.quantity;
+        if (_infoLocked && _qtyLocked) return; // dono ki ijazat nahi
+        // Qty ki ijazat nahi → purani qty hi
+        final newQty = _qtyLocked
+            ? widget.product!.quantity
+            : (double.tryParse(_initialQtyCtrl.text) ?? widget.product!.quantity);
         await notifier.updateProduct(
-          widget.product!.copyWith(
+          // Info ki ijazat nahi → product bilkul purana (sirf qty badle)
+          _infoLocked ? widget.product! : widget.product!.copyWith(
             sku:            _skuCtrl.text.trim(),
             barcodes:       _barcodes,
             name:           _nameCtrl.text.trim(),
@@ -269,6 +301,39 @@ class _StockInventoryDialogState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
 
+                      // S31: kis hisse ki ijazat nahi — saaf batao
+                      if (_infoLocked || _qtyLocked) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF8E1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(children: [
+                            const Icon(Icons.lock_outline_rounded,
+                                size: 16, color: Color(0xFFD16C05)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _infoLocked && _qtyLocked
+                                    ? 'Is product ko badalne ki ijazat nahi.'
+                                    : _infoLocked
+                                        ? 'Aap sirf Stock (qty) badal sakte hain — naam, barcode, price wagaira band.'
+                                        : 'Stock (qty) badalne ki ijazat nahi — sirf naam, barcode, price wagaira.',
+                                style: const TextStyle(
+                                    fontSize: 12.5, color: Color(0xFF8A4B00)),
+                              ),
+                            ),
+                          ]),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      _lock(_infoLocked, Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                       // ── Basic Info ────────────────────────
                       SectionLabel(
                           label: "Basic Information",
@@ -279,7 +344,7 @@ class _StockInventoryDialogState
                         label:      "Product Name *",
                         controller: _nameCtrl,
                         hint:       "e.g. Surf Excel 1kg",
-                        validator:  _required,
+                        validator:  _rq(_infoLocked),
                       ),
                       const SizedBox(height: 14),
 
@@ -296,7 +361,7 @@ class _StockInventoryDialogState
                         label:      "SKU *",
                         controller: _skuCtrl,
                         hint:       "e.g. JG-12345678",
-                        validator:  _required,
+                        validator:  _rq(_infoLocked),
                         onRefresh:  isEditMode
                             ? null
                             : () => setState(
@@ -362,7 +427,7 @@ class _StockInventoryDialogState
                               .numberWithOptions(decimal: true),
                           inputFormatters: [FilteringTextInputFormatter
                               .allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                          validator: _required,
+                          validator: _rq(_infoLocked),
                         ),
                         Field(
                           label:     "Sale Price (Rs.) *",
@@ -372,7 +437,7 @@ class _StockInventoryDialogState
                               .numberWithOptions(decimal: true),
                           inputFormatters: [FilteringTextInputFormatter
                               .allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                          validator: _required,
+                          validator: _rq(_infoLocked),
                         ),
                       ]),
                       const SizedBox(height: 14),
@@ -414,7 +479,7 @@ class _StockInventoryDialogState
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly],
-                          validator: _required,
+                          validator: _rq(_infoLocked),
                         ),
                         Field(
                           label:      "Max Stock",
@@ -423,22 +488,24 @@ class _StockInventoryDialogState
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly],
-                          validator: _required,
+                          validator: _rq(_infoLocked),
                         ),
                       ]),
+                        ],
+                      )),
                       const SizedBox(height: 14),
 
                       FormRow(children: [
-                        Field(
+                        _lock(_infoLocked, Field(
                           label:     "Reorder Point *",
                           controller: _reorderCtrl,
                           hint:      "e.g. 15",
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly],
-                          validator: _required,
-                        ),
-                        Field(
+                          validator: _rq(_infoLocked),
+                        )),
+                        _lock(_qtyLocked, Field(
                           label:     isEditMode
                               ? "Update Stock *" : "Initial Stock *",
                           controller: _initialQtyCtrl,
@@ -447,8 +514,8 @@ class _StockInventoryDialogState
                               .numberWithOptions(decimal: true),
                           inputFormatters: [FilteringTextInputFormatter
                               .allow(RegExp(r'^\d+\.?\d{0,3}'))],
-                          validator: _required,
-                        ),
+                          validator: _rq(_qtyLocked),
+                        )),
                       ]),
 
                       const SizedBox(height: 24),

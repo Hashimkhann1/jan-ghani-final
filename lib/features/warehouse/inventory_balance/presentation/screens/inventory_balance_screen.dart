@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // inventory_balance_screen.dart
 // Warehouse-side Inventory Balance shell — 2 tabs:
@@ -8,19 +8,21 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 
 import '../widgets/balance_report_panel.dart';
 import '../widgets/create_batch_panel.dart';
 
-class InventoryBalanceScreen extends StatefulWidget {
+class InventoryBalanceScreen extends ConsumerStatefulWidget {
   const InventoryBalanceScreen({super.key});
 
   @override
-  State<InventoryBalanceScreen> createState() => _InventoryBalanceScreenState();
+  ConsumerState<InventoryBalanceScreen> createState() => _InventoryBalanceScreenState();
 }
 
-class _InventoryBalanceScreenState extends State<InventoryBalanceScreen>
+class _InventoryBalanceScreenState extends ConsumerState<InventoryBalanceScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
 
@@ -41,6 +43,11 @@ class _InventoryBalanceScreenState extends State<InventoryBalanceScreen>
 
   @override
   Widget build(BuildContext context) {
+    // S31: Create Request tab sirf `inventory_balance.create` wale ko;
+    // warna sirf History / Report
+    final canCreate =
+        ref.watch(warehouseAccessProvider).can('inventory_balance.create');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -98,8 +105,8 @@ class _InventoryBalanceScreenState extends State<InventoryBalanceScreen>
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              _SegmentedTabs(
+              if (canCreate) const SizedBox(width: 12),
+              if (canCreate) _SegmentedTabs(
                 controller: _tabs,
                 tabs: const [
                   _TabSpec(label: 'Create Request', icon: Icons.add_circle_outline_rounded),
@@ -112,14 +119,16 @@ class _InventoryBalanceScreenState extends State<InventoryBalanceScreen>
 
         // ── Content ───────────────────────────────
         Expanded(
-          child: TabBarView(
-            controller: _tabs,
-            physics: const NeverScrollableScrollPhysics(),
-            children: const [
-              CreateBatchPanel(),
-              BalanceReportPanel(),
-            ],
-          ),
+          child: !canCreate
+              ? const BalanceReportPanel()
+              : TabBarView(
+                  controller: _tabs,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: const [
+                    CreateBatchPanel(),
+                    BalanceReportPanel(),
+                  ],
+                ),
         ),
       ],
     );

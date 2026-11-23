@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // warehouse_finance_screen.dart
 // Stitch "Jan Ghani — Finance" design:
@@ -19,6 +19,7 @@ import 'package:jan_ghani_final/features/warehouse/warehouse_finance/presentatio
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/screen/warehouse_cash_requests_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 
 String _fmt(double v) => 'Rs ${v.pkrFormat}';
 
@@ -169,6 +170,10 @@ class _Header extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pending = ref.watch(pendingCashRequestsProvider);
     final count   = pending.asData?.value.length ?? 0;
+    // S31 permissions
+    final access          = ref.watch(warehouseAccessProvider);
+    final canCashIn       = access.can('finance.create');
+    final canCashRequests = access.can('cash_request.view');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -228,9 +233,9 @@ class _Header extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          if (canCashRequests) const SizedBox(width: 10),
           // Cash Requests (accountant se aayi cash) + badge
-          OutlinedButton(
+          if (canCashRequests) OutlinedButton(
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -275,8 +280,8 @@ class _Header extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          ElevatedButton.icon(
+          if (canCashIn) const SizedBox(width: 10),
+          if (canCashIn) ElevatedButton.icon(
             onPressed: () => _showCashInDialog(context, ref),
             icon:  const Icon(Icons.add_rounded, size: 18),
             label: const Text('Cash In'),

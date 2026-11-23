@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // salary_tracking_screen.dart — monthly salary tracking (main)
 // Mobile (< 700px): top bar 2 lines, cards 2×2, employee row 2 lines.
@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import '../../domain/employee_month_status.dart';
 import '../../domain/salary_payment_model.dart';
 import '../provider/salary_provider.dart';
@@ -42,6 +43,12 @@ class SalaryTrackingScreen extends ConsumerWidget {
 
     final state    = ref.watch(stateP);
     final notifier = ref.read(notifierP);
+
+    // S31 permissions (accountant read-only mode par lagu nahi — wahan
+    // Pay / Employees pehle se band hain)
+    final access       = ref.watch(warehouseAccessProvider);
+    final canPay       = !_readOnly && access.can('salary.pay');
+    final canEmployees = !_readOnly && access.canView('employee');
 
     ref.listen<SalaryState>(stateP, (_, next) {
       if (next.errorMessage != null) {
@@ -199,7 +206,7 @@ class SalaryTrackingScreen extends ConsumerWidget {
                           Expanded(child: title),
                           const SizedBox(width: 8),
                           refreshBtn,
-                          if (!_readOnly) ...[
+                          if (canEmployees) ...[
                             const SizedBox(width: 8),
                             employeesIconBtn,
                           ],
@@ -216,7 +223,7 @@ class SalaryTrackingScreen extends ConsumerWidget {
                       monthNav,
                       const SizedBox(width: 8),
                       refreshBtn,
-                      if (!_readOnly) ...[
+                      if (canEmployees) ...[
                         const SizedBox(width: 8),
                         employeesBtn,
                       ],
@@ -257,7 +264,7 @@ class SalaryTrackingScreen extends ConsumerWidget {
                       itemBuilder: (_, i) => _EmployeeRow(
                         status: state.statuses[i],
                         compact: narrow,
-                        readOnly: _readOnly,
+                        readOnly: !canPay,   // Pay button sirf `salary.pay` par
                         onPay: () => PaySalaryDialog.show(context, state.statuses[i]),
                         onHistory: () => EmployeeHistoryDialog.show(
                             context, state.statuses[i].employee,

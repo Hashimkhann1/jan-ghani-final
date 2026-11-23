@@ -1,4 +1,4 @@
-<!-- Updated on 2026-11-16 10:43 AM -->
+<!-- Updated on 2026-11-23 12:33 PM -->
 
 # Jan Ghani POS — Project Context
 
@@ -124,6 +124,7 @@ lib/
     │   ├── warehouse_stock_inventory/ ← Products + stock management
     │   │   └── presentation/provider/product_provider.dart  ← productProvider (ProductState)
     │   ├── warehouse_user/           ← User management
+    │   ├── warehouse_permissions/    ← ⭐ S31 — user-wise permissions (catalog · local datasource · provider · screen)
     │   ├── company/                  ← ⭐ Session 7 — Product companies (Category ka FULL mirror: model/datasource/repo/usecases/provider/screen/dialog)
     │   ├── employee/                 ← ⭐ Session 7 — Employees + Salary tracking
     │   │   ├── domain/  (employee_model, salary_payment_model, employee_month_status)
@@ -203,11 +204,14 @@ AppColor.background    // white
 ```
 SideBar — S17: default COLLAPSED 72px rail ⇄ 248px expanded (Ctrl/Cmd+K = search), groups:
 OVERVIEW · INVENTORY · PURCHASING · FINANCE · ADMIN  (badges nahi; footer = sync status + user/logout)
-├── Role: warehouse_manager → Dashboard, Reports | Stock, Assign Stock, Branch Returns, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary | Link Stores, User, Backup
-├── Role: warehouse_owner / default → Reports | Stock, Branch Returns, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary | Backup
+S31: menu ab PERMISSIONS se (har NavItem.permKey → `<permKey>.view`). Neeche = role DEFAULTS (Permissions screen se user-wise badal sakte):
+├── Role: warehouse_owner → SAB, hamesha (full access, lock) — kisi ka bhi access de / le sakta hai
+├── Role: warehouse_manager → SAB (default) — Dashboard, Reports | Stock, Assign Stock, Branch Returns, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary | Link Stores, Permissions, Backup — Owner kam kar sakta hai
+(⚠️ 23 Nov 2026: **User** screen sidebar se COMMENT — `_user` NavItem + import + `_allItems` entry `sidebar_widget.dart` mein comment; Alt+U band. Naam / role / password ab Permissions screen se.)
+├── Role: warehouse_staff → Reports | Stock, Branch Returns, Inventory Balance, Category, Company | Purchase Order, Supplier | Finance, Expense, Salary | Backup
 └── Role: data_entry → Stock, Branch Returns, Category, Company | Supplier | Finance, Expense, Salary
 Home (login / Reports se wapsi) = pehla non-Reports item (manager = Dashboard, baaki = Stock)
-Shortcuts (S26) Alt + harf: D Dashboard · R Reports · S Stock · A Assign Stock · B Branch Returns · I Inventory Balance · C Category · M Company · P Purchase Order · V Supplier · F Finance · E Expense · Y Salary · L Link Stores · U User · K Backup
+Shortcuts (S26) Alt + harf: D Dashboard · R Reports · S Stock · A Assign Stock · B Branch Returns · I Inventory Balance · C Category · M Company · P Purchase Order · V Supplier · F Finance · E Expense · Y Salary · L Link Stores · ~~U User~~ (band) · G Permissions (S31) · K Backup
 ```
 
 **Special handling for Reports:**
@@ -1854,6 +1858,81 @@ Reason dialog → RPC `reject_stock_return` → warehouse stock **nahi** badalta
 - Highlight rang: **neela** (`info` 2px border + `infoLight`) — cart wale purple se alag. Border 2px par padding 1px kam (height same).
 - Sidebar Alt shortcuts yahan band (Purchase Invoice pushed route — S26 guard), takraav nahi.
 - **Test:** temp widget test (asal theme, fake products 42): Enter → list → ↓↓ Enter = 3rd product + text saaf + focus ✅ · 25× tez ↓ → auto-scroll ✅ · ↑ top / Esc → search ✅ · barcode exact (substring wala doosra bhi) → seedha cart, dobara scan qty 2 ✅ · SKU exact ✅ · ek product → seedha cart ✅ · double-click pehle jaisa ✅ → 5/5, test delete. `flutter analyze` — 0 naye issue. **Asal scanner / app mein nahi dekha.**
+
+---
+
+## Session 31 — Warehouse Permissions (user-wise access, branch jaisa) ⭐⭐
+
+> **Maqsad:** Branch ke `PermissionsScreen` jaisi warehouse screen — har user kaun si screen dekhe aur kya kar sake (Add / Edit / Delete / Pay / Reverse / Accept…). Sidebar ADMIN → **Permissions** (Alt+G). Reference: `lib/features/branch/permissions/` (branch code chhuna nahi).
+
+### Catalog (`warehouse_permissions/domain/warehouse_permission_catalog.dart`) — 19 modules · 54 keys
+Key = `<module>.<action>`. Pehla action hamesha `view` (sidebar + screen).
+| Group | Module (key) | Actions |
+|---|---|---|
+| Overview | Dashboard (`dashboard`) · Reports (`reports`) | view |
+| Inventory | Stock (`stock`) | view, create, edit (**Edit info** — naam, barcode, price, category, min/max/reorder…), qty (**Qty edit** — stock ki miqdar), delete — info aur qty ALAG (23 Nov 2026) |
+| | Assign Stock (`assign_stock`) | view, create (Assign button) |
+| | Branch Returns (`branch_returns`) | view, approve (Accept/Reject) |
+| | Inventory Balance (`inventory_balance`) | view, create (Create Request tab; warna sirf History) |
+| | Category (`category`) | view, create, edit (delete UI pehle se band) |
+| | Company (`company`) | view, create, edit, delete |
+| Purchasing | Purchase Order (`purchase_order`) | view, create (New PO + Ctrl/Alt+N), edit, return (Purchase Return) |
+| | Supplier (`supplier`) | view, create, edit, delete, pay (list ⋮ + detail "Pay Amount"), reverse (ledger ↺) |
+| Finance | Finance (`finance`) | view, create (Cash In) |
+| | Cash Requests (`cash_request`) | view (Finance button + dashboard tile), approve (Accept/Reject + har screen wala global card) |
+| | Expense (`expense`) | view, create, edit |
+| | Salary (`salary`) | view, pay (Pay button) — delete payment UI app mein band hai isliye key nahi |
+| | Employees (`employee`) | view (Salary ka Employees button), create, edit, delete |
+| Admin | Link Stores (`link_stores`) | view, create (Link Store) |
+| | Users (`users`) | view, create (Permissions screen ka **Naya user**), edit (naam / role), delete (Permissions screen ka 🗑), password — Users screen sidebar se band (23 Nov 2026) |
+| | Permissions (`permissions`) | view, edit |
+| | Backup (`backup`) | view, create (Backup Lein) |
+
+- **OWNER = `isFullAccessRole`** → hamesha sab, editor mein lock; Owner **kisi ka bhi** access de / le sakta hai (Manager ka bhi). (User ki request, 22 Nov 2026 — pehle Owner ka menu chhota tha.)
+- **Manager** default = sab keys, lekin lock NAHI — Owner kam kar sakta hai. `canEditRole(editor, target)`: Owner → sab (Owner khud lock); baaki → sirf Staff / Data Entry (Manager ka access sirf Owner badle).
+- **Staff / Data Entry** defaults = S31 se pehle ke sidebar menus (us module ke saare actions).
+- **Password badlna — Owner + Manager** (23 Nov 2026): rule `WarehousePermissionCatalog.canChangePassword(editor…, target…)`:
+  - **Owner** → kisi ka bhi (apna, Manager, Owner bhi), hamesha.
+  - **Baaki** → `users.password` permission chahiye (Manager default mein ON, Owner Permissions se hata sakta hai; Staff / Data Entry default OFF) aur sirf **apna + Staff / Data Entry** ka — Owner ya doosre Manager ka NAHI.
+  - Permissions editor header mein **"Password badlein"** button (rule ke mutabiq) → `_ChangePasswordDialog` (naya + dobara, min 6, show/hide) → `UserNotifier.changePassword()` → `UserRemoteDataSource.updatePassword()` (`password_hash` = `PasswordHelper.hash` SHA-256, `is_synced = false` taake Supabase par bhi jaye; row na mile to error). Users screen ke Edit dialog mein password field bhi isi rule se (ijazat na ho to field chhupa + save par password clear). Naya user banate waqt password sab ke liye (pehle jaisa).
+- **Naam / Role badlna** (23 Nov 2026) — Permissions editor header **"Naam / Role"** button → `_EditUserDialog` (poora naam + role dropdown) → `UserNotifier.updateNameRole()` → `UserRemoteDataSource.updateNameRole()` (`full_name`, `role`, `is_synced = false`). Rule `canEditUser(...)`:
+  - **Owner** → sab ka (apna bhi, lekin **apna role nahi** — sirf naam), koi bhi role de sakta (`assignableRoles`).
+  - **Baaki** → `users.edit` chahiye + sirf **Staff / Data Entry** users ka (apna, Owner, Manager ka NAHI), aur sirf Staff / Data Entry role de sakte (promote nahi).
+  - Custom access wale user ka role badle to custom keys wahi rehti hain (dialog warning deta hai; naye role ke default chahiye to ⋮ → Role ke default).
+- **Naya user / Delete — Permissions screen se** (23 Nov 2026):
+  - Left list header **"Naya user"** (`canCreateUser`: Owner ya `users.create`) → wahi `AddUserDialog`. Role options `assignableRoles` (non-owner sirf Staff / Data Entry). **Username ab chhote huroof mein save** (login `toLowerCase()` karke dhoondta hai — capital wala username kabhi login nahi hota tha, e.g. `warehouseUser`).
+  - Editor header 🗑 (`canDeleteUser`: apna kabhi nahi; Owner baaki sab; dusre `users.delete` + sirf Staff / Data Entry) → confirm → soft delete (`deleted_at` + ab `is_synced = false`).
+  - Screen `userProvider.errorMessage` par snackbar dikhati hai (clearError nahi — AddUserDialog usi se band hota hai).
+- **Stock Edit dialog** (`stock_inventory_dialog.dart`, edit mode): `stock.edit` na ho → info hissa lock (dikhta, click/focus nahi, validation nahi) aur save par product purana; `stock.qty` na ho → "Update Stock" lock aur save par purani qty. Upar peela banner batata hai kya band hai. ⋮ Edit item `stock.edit` YA `stock.qty` par dikhta. Role defaults mein dono ON (pehle jaisa). ⚠️ Pehle se custom-save users ke paas `stock.qty` nahi hoga — zaroorat ho to Permissions se de dein.
+- **Users screen** (abhi sidebar se band): Owner role sirf Owner de sakta hai (`add_user_dialog` dropdown mein Owner option sirf Owner ko; non-owner Owner user edit kare to role dropdown band); Owner rows par Edit / Delete sirf Owner ko.
+
+### Storage — SIRF LOCAL (`warehouse_user_permissions`)
+- `user_id uuid PK, warehouse_id, perm_keys text[], updated_by, updated_by_name, created_at, updated_at`. Row nahi = role default; row = exact keys (khaali array = sab band). `warehouse_users` ALTER nahi (owner postgres). FK nahi.
+- Migration: `…/zero_start_schema/warehouse_user_permissions_migration.sql` (v3.12 → v3.13, idempotent) + `ensureTable()` safety net (Backup jaisa). Supabase sync NAHI (`_allTables` mein nahi).
+
+### Provider (`presentation/provider/warehouse_permissions_provider.dart`)
+- `warehousePermissionsProvider` — `saved` (DB) + `draft` (unsaved) + `resetPending`; `toggle` (koi action on → view on; view off → poora module off), `toggleModule/Group`, `grantAll/revokeAll/copyFrom/resetToRoleDefaults/discard/save`.
+- **`warehouseAccessProvider`** → `WarehouseAccess.can('supplier.pay')` / `canView('stock')` — logged-in user ka **saved** access (draft ka asar nahi). Naye button par yahi use karo.
+- SideBar `initState` par `load(force: true)`.
+
+### Screen (`presentation/screens/warehouse_permissions_screen.dart`)
+TopBar · 3 KPI (Users / Custom access / Full access) · left users list (search, role badge, CUSTOM / INACTIVE tag, unsaved dot) · right editor: group sections ("Sab" tristate) → module row (checkbox = view + hint) + action chips · ⋮ (Sab access do / Sab band / Doosre user jaisa / Role default) · footer (count, Cancel, Save). Lock: Owner (full), **apna khud ka access** (self-lockout se bachao), Manager (jab editor Owner na ho), ya `permissions.edit` na ho. Save par koi screen na bache to confirm.
+
+### Sidebar (`core/widget/sidebar/sidebar_widget.dart`)
+- `NavItem.permKey` (required); 3 role lists → ek `_allItems` + `_visibleItems(access)`. Selection ab **label** se (`_selectedLabel`) — permission badle to galat screen na khule. Alt shortcuts bhi visible items par.
+- Koi item na ho → `_NoAccessView` (message + Logout). Cash request card sirf `cash_request.approve` par.
+
+### Screens jinke buttons gate hue (hide / disable)
+user dialog + users screen (Owner guard) · stock inventory · assign cart summary ("Assign ki ijazat nahi") · branch return detail · inventory balance · category · company · purchase order (+Ctrl/Alt+N) · supplier list + detail · finance header · cash requests screen · dashboard cash tile · expense · salary tracking (accountant read-only mode unchanged) · employees · users · link stores · backup.
+
+### Test
+- `flutter analyze` — 0 errors, issue count same.
+- Temp `flutter test` (delete kar diye): role defaults = purane menus ✅ · local test DB par save / load / khaali save / reset ✅ · fake-data render 1440 / 1000px (staff edit, manager lock) 0 overflow ✅ · access provider ✅.
+- **NAHI hua:** asal app chala kar har screen ke buttons nahi dekhe; production DB par migration nahi chali.
+
+### ⚠️ Dhyan
+- Jis ke paas `users.edit` ho woh kisi ka role **Manager** kar sakta hai (Manager default = sab). Owner role sirf Owner de sakta hai.
+- Production par pehle migration chalao (ya `warehouseuser` ko CREATE ijazat ho to app khud table bana legi).
 
 ---
 

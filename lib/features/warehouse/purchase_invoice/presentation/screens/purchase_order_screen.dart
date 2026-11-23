@@ -1,4 +1,4 @@
-// Updated on 2026-11-16 10:43 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // purchase_order_screen.dart
 // Stitch "Jan Ghani — Purchase Orders v2" design:
@@ -24,6 +24,7 @@ import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/widgets/po_detail_dialog_widget.dart';
 import 'package:jan_ghani_final/features/warehouse/purchase_invoice/presentation/widgets/purchase_order_widgets.dart';
 import 'package:jan_ghani_final/features/warehouse/supplier/presentation/provider/supplier_provider/supplier_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 import 'package:jan_ghani_final/core/extension/app_extention.dart';
 
@@ -72,6 +73,10 @@ class _PurchaseOrderScreenState
     if (!ctrlN && !altN) return false;
     // Dialog ya invoice screen pehle se upar ho → kuch nahi
     if (ModalRoute.of(context)?.isCurrent != true) return false;
+    // S31: naya PO sirf `purchase_order.create` wale
+    if (!ref.read(warehouseAccessProvider).can('purchase_order.create')) {
+      return false;
+    }
     _opening = true;
     _navigateToInvoice(newType: PoType.purchase)
         .whenComplete(() => _opening = false);
@@ -110,6 +115,11 @@ class _PurchaseOrderScreenState
   Widget build(BuildContext context) {
     final state    = ref.watch(purchaseOrderProvider);
     final notifier = ref.read(purchaseOrderProvider.notifier);
+    // S31 permissions
+    final access    = ref.watch(warehouseAccessProvider);
+    final canCreate = access.can('purchase_order.create');
+    final canEdit   = access.can('purchase_order.edit');
+    final canReturn = access.can('purchase_order.return');
 
     return Scaffold(
       backgroundColor: WarehouseAppColor.grey100,
@@ -119,9 +129,12 @@ class _PurchaseOrderScreenState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _TopBar(
-            onNewPO:  () => _navigateToInvoice(newType: PoType.purchase),
-            onReturn: () =>
-                _navigateToInvoice(newType: PoType.purchaseReturn),
+            onNewPO:  canCreate
+                ? () => _navigateToInvoice(newType: PoType.purchase)
+                : null,
+            onReturn: canReturn
+                ? () => _navigateToInvoice(newType: PoType.purchaseReturn)
+                : null,
           ),
 
           // Stats + Toolbar fixed rahenge, sirf table scroll karega
@@ -155,7 +168,9 @@ class _PurchaseOrderScreenState
               child: _OrdersTable(
                 state:       state,
                 onView: (order) => POdetailDialogWidget.show(context, order),
-                onEdit: (order) => _navigateToInvoice(existingOrder: order),
+                onEdit: canEdit
+                    ? (order) => _navigateToInvoice(existingOrder: order)
+                    : null,
                 onPage:      notifier.onPageChanged,
                 onPageSize:  notifier.onPageSizeChanged,
               ),
@@ -172,8 +187,8 @@ class _PurchaseOrderScreenState
 // ─────────────────────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
-  final VoidCallback onNewPO;
-  final VoidCallback onReturn;
+  final VoidCallback? onNewPO;    // null = permission nahi (S31)
+  final VoidCallback? onReturn;
   const _TopBar({required this.onNewPO, required this.onReturn});
 
   @override
@@ -214,8 +229,8 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
+          if (onReturn != null) const SizedBox(width: 12),
+          if (onReturn != null) OutlinedButton.icon(
             onPressed: onReturn,
             icon:  const Icon(Icons.keyboard_return_rounded, size: 18),
             label: const Text('Purchase Return'),
@@ -230,8 +245,8 @@ class _TopBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8)),
             ),
           ),
-          const SizedBox(width: 10),
-          ElevatedButton.icon(
+          if (onNewPO != null) const SizedBox(width: 10),
+          if (onNewPO != null) ElevatedButton.icon(
             onPressed: onNewPO,
             icon:  const Icon(Icons.add_rounded, size: 18),
             label: Row(
@@ -753,7 +768,7 @@ class _SupplierDropdown extends StatelessWidget {
 class _OrdersTable extends StatefulWidget {
   final PurchaseOrderState                state;
   final void Function(PurchaseOrderModel) onView;
-  final void Function(PurchaseOrderModel) onEdit;
+  final void Function(PurchaseOrderModel)? onEdit;   // null = permission nahi
   final ValueChanged<int>                 onPage;
   final ValueChanged<int>                 onPageSize;
 
@@ -832,8 +847,8 @@ class _OrdersTableState extends State<_OrdersTable> {
                                             key:    ValueKey(rows[i].id),
                                             order:  rows[i],
                                             onView: () => widget.onView(rows[i]),
-                                            onEdit: rows[i].canEdit
-                                                ? () => widget.onEdit(rows[i])
+                                            onEdit: rows[i].canEdit && widget.onEdit != null
+                                                ? () => widget.onEdit!(rows[i])
                                                 : null,
                                           ),
                                         ),

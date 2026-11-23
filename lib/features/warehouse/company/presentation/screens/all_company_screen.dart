@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 
 // =============================================================
 // all_company_screen.dart
@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/warehouse_color.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import '../../data/model/company_model.dart';
 import '../provider/company_provider.dart';
 import '../widget/add_company_dialog.dart';
@@ -18,6 +19,11 @@ class AllCompanyScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state    = ref.watch(companyProvider);
     final notifier = ref.read(companyProvider.notifier);
+    // S31 permissions
+    final access    = ref.watch(warehouseAccessProvider);
+    final canCreate = access.can('company.create');
+    final canEdit   = access.can('company.edit');
+    final canDelete = access.can('company.delete');
 
     // Error snackbar
     ref.listen<CompanyState>(companyProvider, (_, next) {
@@ -64,7 +70,7 @@ class AllCompanyScreen extends ConsumerWidget {
                   ],
                 ),
                 const Spacer(),
-                ElevatedButton.icon(
+                if (canCreate) ElevatedButton.icon(
                   onPressed: () => AddCompanyDialog.show(context),
                   icon:  const Icon(Icons.add_rounded, size: 18),
                   label: const Text('New Company'),
@@ -165,9 +171,12 @@ class AllCompanyScreen extends ConsumerWidget {
                             state.filterStatus != 'all')
                     : _CompanyGrid(
                         companies: state.filteredCompanies,
-                        onEdit: (c) =>
-                            AddCompanyDialog.show(context, company: c),
-                        onDelete: (c) => _confirmDelete(context, ref, c),
+                        onEdit: canEdit
+                            ? (c) => AddCompanyDialog.show(context, company: c)
+                            : null,
+                        onDelete: canDelete
+                            ? (c) => _confirmDelete(context, ref, c)
+                            : null,
                       ),
           ),
         ],
@@ -269,8 +278,8 @@ class AllCompanyScreen extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────
 class _CompanyGrid extends StatelessWidget {
   final List<CompanyModel>         companies;
-  final ValueChanged<CompanyModel> onEdit;
-  final ValueChanged<CompanyModel> onDelete;
+  final ValueChanged<CompanyModel>? onEdit;     // null = permission nahi
+  final ValueChanged<CompanyModel>? onDelete;
 
   const _CompanyGrid({
     required this.companies,
@@ -292,8 +301,8 @@ class _CompanyGrid extends StatelessWidget {
         itemCount: companies.length,
         itemBuilder: (_, i) => _CompanyCard(
           company:  companies[i],
-          onEdit:   () => onEdit(companies[i]),
-          onDelete: () => onDelete(companies[i]),
+          onEdit:   onEdit == null ? null : () => onEdit!(companies[i]),
+          onDelete: onDelete == null ? null : () => onDelete!(companies[i]),
         ),
       ),
     );
@@ -304,9 +313,9 @@ class _CompanyGrid extends StatelessWidget {
 // COMPANY CARD
 // ─────────────────────────────────────────────────────────────
 class _CompanyCard extends StatefulWidget {
-  final CompanyModel company;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final CompanyModel  company;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const _CompanyCard({
     required this.company,
@@ -393,23 +402,25 @@ class _CompanyCardState extends State<_CompanyCard> {
             const Spacer(),
 
             // Actions — hover pe
-            if (_hovered)
+            if (_hovered && (widget.onEdit != null || widget.onDelete != null))
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _ActionBtn(
-                    icon:    Icons.edit_outlined,
-                    color:   WarehouseAppColor.info,
-                    tooltip: 'Edit',
-                    onTap:   widget.onEdit,
-                  ),
+                  if (widget.onEdit != null)
+                    _ActionBtn(
+                      icon:    Icons.edit_outlined,
+                      color:   WarehouseAppColor.info,
+                      tooltip: 'Edit',
+                      onTap:   widget.onEdit!,
+                    ),
                   const SizedBox(width: 6),
-                  _ActionBtn(
-                    icon:    Icons.delete_outline_rounded,
-                    color:   WarehouseAppColor.error,
-                    tooltip: 'Delete',
-                    onTap:   widget.onDelete,
-                  ),
+                  if (widget.onDelete != null)
+                    _ActionBtn(
+                      icon:    Icons.delete_outline_rounded,
+                      color:   WarehouseAppColor.error,
+                      tooltip: 'Delete',
+                      onTap:   widget.onDelete!,
+                    ),
                 ],
               ),
           ],

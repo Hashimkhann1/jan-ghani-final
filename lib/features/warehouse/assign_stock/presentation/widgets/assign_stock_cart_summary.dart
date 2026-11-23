@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,7 @@ import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/assign_stock/presentation/providers/assign_stock_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_stock_inventory/presentation/provider/product_provider.dart';
 
 class AssignStockCartSummary extends ConsumerWidget {
@@ -22,7 +23,10 @@ class AssignStockCartSummary extends ConsumerWidget {
         .any((item) => item.quantity > item.availableStock);
 
     // Button disabled if: can't save OR stock issue OR saving in progress
-    final buttonEnabled = state.canSave && !state.isSaving && !hasStockIssue;
+    // S31: Assign sirf `assign_stock.create` wale
+    final canAssign = ref.watch(warehouseAccessProvider).can('assign_stock.create');
+    final buttonEnabled =
+        canAssign && state.canSave && !state.isSaving && !hasStockIssue;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -138,7 +142,9 @@ class AssignStockCartSummary extends ConsumerWidget {
                         strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.send_rounded, size: 16),
                 label: Text(
-                  state.isSaving ? 'Saving...' : 'Assign Stock',
+                  state.isSaving
+                      ? 'Saving...'
+                      : (canAssign ? 'Assign Stock' : 'Assign ki ijazat nahi'),
                   style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.w600),
                 ),

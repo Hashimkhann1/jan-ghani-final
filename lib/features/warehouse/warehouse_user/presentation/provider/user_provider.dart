@@ -1,5 +1,8 @@
+// Updated on 2026-11-23 12:27 PM
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/config/app_config.dart';
+import 'package:jan_ghani_final/core/helper/password_helper.dart';
+import '../../data/datasource/user_remote_datasource.dart';
 import '../../data/model/user_model.dart';
 import '../../data/repository/user_repository_impl.dart';
 import '../../domain/usecase/add_user_usecase.dart';
@@ -160,6 +163,37 @@ class UserNotifier extends StateNotifier<UserState> {
     } catch (e) {
       state = state.copyWith(
           isLoading: false, errorMessage: 'User update karne mein masla: $e');
+    }
+  }
+
+  // ── Password change (S31 — Permissions screen, sirf Owner) ──
+  // null = kamyab, warna error message
+  Future<String?> changePassword(String id, String newPassword) async {
+    try {
+      final hash = PasswordHelper.hash(newPassword);
+      await UserRemoteDataSource().updatePassword(id, hash);
+      state = state.copyWith(allUsers: [
+        for (final u in state.allUsers)
+          u.id == id ? u.copyWith(passwordHash: hash) : u,
+      ]);
+      return null;
+    } catch (e) {
+      return 'Password change nahi hua: $e';
+    }
+  }
+
+  // ── Naam / Role (S31 — Permissions screen) ──────────────────
+  // null = kamyab, warna error message
+  Future<String?> updateNameRole(String id, String fullName, String role) async {
+    try {
+      await UserRemoteDataSource().updateNameRole(id, fullName, role);
+      state = state.copyWith(allUsers: [
+        for (final u in state.allUsers)
+          u.id == id ? u.copyWith(fullName: fullName, role: role) : u,
+      ]);
+      return null;
+    } catch (e) {
+      return 'Update nahi hua: $e';
     }
   }
 

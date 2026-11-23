@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // warehouse_dashboard_screen.dart — Dashboard v2 (Stitch design)
 // Layout:
@@ -17,6 +17,7 @@ import 'package:jan_ghani_final/core/config/app_config.dart';
 import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/provider/warehouse_cash_requests_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_cash_requests/presentation/screen/warehouse_cash_requests_screen.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/domain/warehouse_dashboard_models.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_dashboard/presentation/widgets/dashboard_v2/dashboard_v2_widgets.dart';
 import '../provider/warehouse_dashboard_provider.dart';
@@ -205,8 +206,12 @@ class _Body extends ConsumerWidget {
             title: 'Cash requests', hint: 'accountant se aayi cash',
             count: cashRequests,
             color: WarehouseAppColor.warningDark, bg: WarehouseAppColor.warningLight,
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const WarehouseCashRequestsScreen())),
+            // S31: Cash Requests screen sirf `cash_request.view` wale
+            onTap: () {
+              if (!ref.read(warehouseAccessProvider).canView('cash_request')) return;
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const WarehouseCashRequestsScreen()));
+            },
           ),
         ],
       );

@@ -1,8 +1,9 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/warehouse_color.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 import '../../data/model/warehouse_cash_request_model.dart';
 import '../provider/warehouse_cash_requests_provider.dart';
 
@@ -163,6 +164,9 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   @override
   Widget build(BuildContext context) {
     final r = widget.request;
+    // S31: Accept / Reject sirf `cash_request.approve` wale
+    final canApprove =
+        ref.watch(warehouseAccessProvider).can('cash_request.approve');
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -241,6 +245,10 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                 ),
               ),
             )
+          else if (!canApprove)
+            const Text('Accept / Reject ki ijazat nahi',
+                style: TextStyle(
+                    fontSize: 12, color: WarehouseAppColor.textSecondary))
           else
             Row(
               children: [

@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-23 12:33 PM
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,9 @@ import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/core/helper/password_helper.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/data/model/user_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_user/presentation/provider/user_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/auth/presentation/provider/auth_provider.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/domain/warehouse_permission_catalog.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 
 class AddUserDialog extends ConsumerStatefulWidget {
   final UserModel? user;
@@ -51,8 +54,31 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
     super.dispose();
   }
 
+  /// S31: edit mein password — Owner sab ka; Manager (`users.password`)
+  /// apna + Staff / Data Entry ka. Naya user banate waqt hamesha.
+  /// `inBuild` = true → watch (rebuild), warna read (save callback).
+  bool _canChangePassword({bool inBuild = false}) {
+    final target = widget.user;
+    if (target == null) return true;
+    final me = inBuild
+        ? ref.watch(authProvider).user
+        : ref.read(authProvider).user;
+    if (me == null) return false;
+    final access = inBuild
+        ? ref.watch(warehouseAccessProvider)
+        : ref.read(warehouseAccessProvider);
+    return WarehousePermissionCatalog.canChangePassword(
+      editorId:   me.id,
+      editorRole: me.role,
+      editorKeys: access.keys,
+      targetId:   target.id,
+      targetRole: target.role,
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_canChangePassword()) _password.clear();
     setState(() => _isSaving = true);
 
     final notifier = ref.read(userProvider.notifier);
@@ -72,7 +98,9 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
         ));
       } else {
         await notifier.addUser(
-          username: _username.text.trim(),
+          // Login username ko chhota karke dhoondta hai — isliye save bhi
+          // chhote huroof mein (capital wala username kabhi login nahi hota tha)
+          username: _username.text.trim().toLowerCase(),
           // Hash karke pass karo — plain text nahi
           password: PasswordHelper.hash(_password.text),
           fullName: _fullName.text.trim(),
@@ -92,6 +120,21 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // S31: Owner role sirf Owner de / badal sakta hai
+    final meOwner = ref.watch(authProvider).user?.isOwner ?? false;
+    final ownerLocked = !meOwner && widget.user?.isOwner == true;
+    final canPw       = _canChangePassword(inBuild: true);
+    // Role options: Owner → sab; baaki → sirf Staff / Data Entry
+    // (+ edit mein user ka mojooda role, agar woh list mein na ho)
+    final myRole   = ref.watch(authProvider).user?.role ?? '';
+    final roleOpts = <String>{
+      ...WarehousePermissionCatalog.assignableRoles(myRole),
+      if (widget.user != null) widget.user!.role,
+    };
+    // Mojooda role editor ke dene layak nahi (e.g. Manager) → role band
+    final roleLocked =
+        !WarehousePermissionCatalog.assignableRoles(myRole).contains(_role);
+
     return Dialog(
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16)),
@@ -189,7 +232,8 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
 
                 const SizedBox(height: 12),
 
-                // ── Password ──────────────────────────────
+                // ── Password (edit mein Owner / Manager rule — S31) ──
+                if (canPw) ...[
                 _Label(_isEdit
                     ? 'New Password (khali chorein agar change na karna ho)'
                     : 'Password *'),
@@ -244,6 +288,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                             color: WarehouseAppColor.error)),
                   ),
                 ),
+                ],
 
                 const SizedBox(height: 16),
 
@@ -283,22 +328,18 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                         borderSide: const BorderSide(
                             color: WarehouseAppColor.primary, width: 1.5)),
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                        value: 'warehouse_owner',
-                        child: Text('Warehouse Owner')),
-                    DropdownMenuItem(
-                        value: 'warehouse_manager',
-                        child: Text('Warehouse Manager')),
-                    DropdownMenuItem(
-                        value: 'warehouse_staff',
-                        child: Text('Warehouse Staff')),
-                    DropdownMenuItem(
-                        value: 'data_entry',
-                        child: Text('Data Entry')),
+                  items: [
+                    for (final r in WarehousePermissionCatalog.roles)
+                      if (roleOpts.contains(r))
+                        DropdownMenuItem(
+                            value: r,
+                            child: Text(r == 'data_entry'
+                                ? 'Data Entry'
+                                : 'Warehouse ${WarehousePermissionCatalog.roleLabel(r)}')),
                   ],
-                  onChanged: (v) =>
-                      setState(() => _role = v ?? 'warehouse_staff'),
+                  onChanged: (ownerLocked || roleLocked)
+                      ? null
+                      : (v) => setState(() => _role = v ?? 'warehouse_staff'),
                 ),
 
                 const SizedBox(height: 12),

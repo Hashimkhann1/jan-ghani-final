@@ -1,4 +1,4 @@
-// Updated on 2026-10-15 10:24 AM
+// Updated on 2026-11-22 10:46 AM
 // =============================================================
 // warehouse_expense_screen.dart
 // Stitch "Jan Ghani — Expenses" design:
@@ -17,6 +17,7 @@ import 'package:jan_ghani_final/core/color/warehouse_color.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/domain/warehouse_expense_model.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/presentation/provider/warehouse_expense_provider.dart';
 import 'package:jan_ghani_final/features/warehouse/warehouse_expense/presentation/widgets/add_expense_dialog.dart';
+import 'package:jan_ghani_final/features/warehouse/warehouse_permissions/presentation/provider/warehouse_permissions_provider.dart';
 
 
 final _rupeeFormat = NumberFormat('#,##0', 'en_PK');
@@ -74,6 +75,8 @@ class WarehouseExpenseScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(warehouseExpenseProvider);
+    // S31 permissions
+    final canCreate = ref.watch(warehouseAccessProvider).can('expense.create');
 
     return Scaffold(
       backgroundColor: WarehouseAppColor.grey100,
@@ -84,7 +87,7 @@ class WarehouseExpenseScreen extends ConsumerWidget {
             isLoading: state.isLoading,
             onRefresh: () =>
                 ref.read(warehouseExpenseProvider.notifier).loadData(),
-            onAddExpense: () => AddExpenseDialog.show(
+            onAddExpense: !canCreate ? null : () => AddExpenseDialog.show(
               context,
               onConfirm: ({
                 required String expenseHead,
@@ -128,7 +131,7 @@ class WarehouseExpenseScreen extends ConsumerWidget {
 class _Header extends StatelessWidget {
   final bool         isLoading;
   final VoidCallback onRefresh;
-  final VoidCallback onAddExpense;
+  final VoidCallback? onAddExpense;   // null = permission nahi (S31)
 
   const _Header({
     required this.isLoading,
@@ -196,8 +199,8 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          ElevatedButton.icon(
+          if (onAddExpense != null) const SizedBox(width: 10),
+          if (onAddExpense != null) ElevatedButton.icon(
             onPressed: onAddExpense,
             icon:  const Icon(Icons.add_rounded, size: 18),
             label: const Text('New Expense'),
@@ -230,6 +233,7 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notifier = ref.read(warehouseExpenseProvider.notifier);
+    final canEdit  = ref.watch(warehouseAccessProvider).can('expense.edit');   // S31
 
     // Head breakdown — loaded list (date + search) par, head filter se pehle
     final byHead = <String, ({double amount, int count})>{};
@@ -274,7 +278,7 @@ class _Body extends StatelessWidget {
               onPage:     notifier.onPageChanged,
               onPageSize: notifier.onPageSizeChanged,
               onView:     (e) => _ExpenseDetailDialog.show(context, e),
-              onEdit: (expense) => AddExpenseDialog.show(
+              onEdit: !canEdit ? null : (expense) => AddExpenseDialog.show(
                 context,
                 existing: expense,
                 onConfirm: ({
@@ -942,7 +946,7 @@ class _ExpenseTable extends StatefulWidget {
   final ValueChanged<int>                   onPage;
   final ValueChanged<int>                   onPageSize;
   final void Function(WarehouseExpenseModel) onView;
-  final void Function(WarehouseExpenseModel) onEdit;
+  final void Function(WarehouseExpenseModel)? onEdit;   // null = permission nahi
 
   const _ExpenseTable({
     required this.state,
@@ -1050,9 +1054,9 @@ class _ExpenseTableState extends State<_ExpenseTable> {
                                     key:     ValueKey(e.id),
                                     expense: e,
                                     onView:  () => widget.onView(e),
-                                    onEdit:  _isSalary(e)
+                                    onEdit:  (_isSalary(e) || widget.onEdit == null)
                                         ? null
-                                        : () => widget.onEdit(e),
+                                        : () => widget.onEdit!(e),
                                   );
                                 },
                               ),
