@@ -67,7 +67,7 @@ class StockReturn {
   final String?  returnedByName;
   final DateTime returnedAt;
   final String?  notes;
-  final double   totalItems; // total qty
+  final double   totalItems; // header value (integer, rounded)
   final double   totalCost;
   final double   totalSalePrice;
   final DateTime? respondedAt;
@@ -94,6 +94,11 @@ class StockReturn {
     this.stockRestored = false,
     this.items = const [],
   });
+
+  /// Asal total qty — items ka jod (header `total_items` integer hai).
+  double get totalQty => items.isEmpty
+      ? totalItems
+      : items.fold(0, (s, i) => s + i.quantityReturned);
 
   bool get isPending  => status == 'pending';
   bool get isAccepted => status == 'accepted';

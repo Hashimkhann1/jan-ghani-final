@@ -32,13 +32,20 @@ final returnCountsProvider =
   return ref.read(stockReturnDsProvider).fetchCounts(storeId);
 });
 
+const returnPageSize = 100;
+
+/// Har tab ki list ki limit — "Load more" se barhti hai.
+final returnLimitProvider = StateProvider.autoDispose
+    .family<int, String>((ref, status) => returnPageSize);
+
 final returnListProvider = FutureProvider.autoDispose
     .family<List<StockReturn>, String>((ref, status) async {
   final storeId = ref.watch(authProvider).storeId;
+  final limit = ref.watch(returnLimitProvider(status));
   await ref.watch(returnRestoreProvider.future);
   return ref
       .read(stockReturnDsProvider)
-      .fetchReturns(storeId, status: status);
+      .fetchReturns(storeId, status: status, limit: limit);
 });
 
 // ── Cart ───────────────────────────────────────────────────────

@@ -1083,7 +1083,10 @@ class _ReturnListTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(returnListProvider(status));
+    final limit = ref.watch(returnLimitProvider(status));
     return async.when(
+      // Load more par purani list dikhti rahe.
+      skipLoadingOnReload: true,
       loading: () => const Center(
           child: CircularProgressIndicator(color: AppColor.primary)),
       error: (e, _) => Center(
@@ -1103,8 +1106,20 @@ class _ReturnListTab extends ConsumerWidget {
         }
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: list.length,
-          itemBuilder: (_, i) => _ReturnCard(ret: list[i]),
+          // Poora page aaya to mazeed returns ho sakte hain.
+          itemCount: list.length + (list.length >= limit ? 1 : 0),
+          itemBuilder: (_, i) => i < list.length
+              ? _ReturnCard(ret: list[i])
+              : Center(
+                  child: OutlinedButton(
+                    onPressed: async.isLoading
+                        ? null
+                        : () => ref
+                            .read(returnLimitProvider(status).notifier)
+                            .state += returnPageSize,
+                    child: Text(async.isLoading ? 'Loading...' : 'Load more'),
+                  ),
+                ),
         );
       },
     );
@@ -1159,7 +1174,7 @@ class _ReturnCard extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               '${DateFormat('dd MMM yyyy, hh:mm a').format(ret.returnedAt)}  •  '
-              '${ret.items.length} items  •  ${_money.format(ret.totalItems)} qty  •  '
+              '${ret.items.length} items  •  ${_money.format(ret.totalQty)} qty  •  '
               '${_rs(ret.totalCost)}',
               style: const TextStyle(
                   fontSize: 12, color: AppColor.textSecondary),

@@ -123,7 +123,9 @@ class StockReturnDataSource {
           'returned_by_id':   userId.isEmpty ? null : userId,
           'returned_by_name': userName,
           'notes':            (notes == null || notes.trim().isEmpty) ? null : notes.trim(),
-          'total_items':      totalQty,
+          // Column integer hai, qty fractional (KG) ho sakti hai. Display
+          // items ke jod se hota hai, is liye yahan rounded value kaafi hai.
+          'total_items':      totalQty.round(),
           'total_cost':       totalCost,
           'total_sale_price': totalSale,
         }).select('id').single();
@@ -200,7 +202,7 @@ class StockReturnDataSource {
           .from('stock_returns')
           .update({
             'stock_restored': true,
-            'updated_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', id)
           .eq('status', 'rejected')

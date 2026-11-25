@@ -140,6 +140,7 @@ class LanStockService {
           -- Local DB ek hi branch ka hota hai; config ki store_id se filter nahi
           -- (DB ki store_id config se alag ho sakti hai).
           FROM public.branch_stock_inventory
+          WHERE deleted_at IS NULL
           ORDER BY product_name ASC
         '''),
       ).timeout(const Duration(seconds: 20));
