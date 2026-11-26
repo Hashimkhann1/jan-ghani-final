@@ -1,4 +1,4 @@
-// Updated on 2026-11-23 12:33 PM
+// Updated on 2026-11-26 01:02 PM
 // =============================================================
 // warehouse_permissions_screen.dart — Sidebar ADMIN → Permissions (S31)
 //
@@ -7,12 +7,11 @@
 //   • Owner = hamesha full access (lock) — Owner kisi ka bhi access
 //     de / le sakta hai (Manager ka bhi)
 //   • Manager ka access sirf Owner badal sakta hai
-//   • Password badlein (header button) — Owner: kisi ka bhi; Manager
-//     (`users.password`, default on): apna + Staff / Data Entry ka
+//   • Password badlein (header button) — SIRF Owner, kisi ka bhi (26 Nov 2026)
 //   • Naam / Role badlein (header button) — Owner sab ka; `users.edit`
 //     wala sirf Staff / Data Entry ka. Apna role koi nahi badalta.
 //     (Users screen 23 Nov 2026 se sidebar se band hai)
-//   • Naya user (left list header) — Owner / `users.create`
+//   • Naya user (left list header) — SIRF Owner (26 Nov 2026)
 //   • Delete user (editor header) — apna nahi; Owner sab; baaki
 //     `users.delete` + sirf Staff / Data Entry
 //   • Apna access khud nahi badal sakte (self-lockout se bachao)
@@ -425,7 +424,7 @@ class _UserList extends ConsumerWidget {
                       style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
-                // Naya user — Owner / users.create
+                // Naya user — sirf Owner
                 if (_canCreateUser(ref))
                   TextButton.icon(
                     onPressed: () => showDialog(
@@ -715,8 +714,7 @@ class _Editor extends ConsumerWidget {
     final custom   = perms.isCustomized(user.id);
     final total    = _Cat.allKeys.length;
 
-    // Password button — Owner sab ka; Manager (users.password) apna +
-    // Staff / Data Entry ka
+    // Password button — sirf Owner (kisi ka bhi) — 26 Nov 2026
     final me     = ref.watch(authProvider).user;
     final access = ref.watch(warehouseAccessProvider);
     final canPw  = me != null &&

@@ -1,4 +1,4 @@
-// Updated on 2026-11-22 06:03 PM
+// Updated on 2026-11-26 01:02 PM
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,7 +69,7 @@ class AllUserScreen extends ConsumerWidget {
     final state = ref.watch(userProvider);
     // S31 permissions
     final access    = ref.watch(warehouseAccessProvider);
-    final canCreate = access.can('users.create');
+    final canCreate = ref.watch(authProvider).user?.isOwner ?? false; // naya user sirf Owner (26 Nov 2026)
     final canEdit   = access.can('users.edit');
     final canDelete = access.can('users.delete');
     // Owner user ko sirf Owner edit / delete kar sakta hai

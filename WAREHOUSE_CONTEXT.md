@@ -1,4 +1,4 @@
-<!-- Updated on 2026-11-23 12:33 PM -->
+<!-- Updated on 2026-11-26 01:02 PM -->
 
 # Jan Ghani POS — Project Context
 
@@ -1861,11 +1861,35 @@ Reason dialog → RPC `reject_stock_return` → warehouse stock **nahi** badalta
 
 ---
 
+## Session 32 — Assign Stock: product search keyboard flow (Purchase Invoice jaisa) ⭐
+
+> **Sirf ek file:** `assign_stock/presentation/widgets/assign_stock_product_list_panel.dart`. Provider (`addToCart`, `updateSearch`) / cart / assign **untouched**. S27/S28 (New Purchase Invoice) ka hoo-ba-hoo copy.
+
+| Kahan | Key | Kya hota hai |
+|---|---|---|
+| Screen khulte hi | — | Search par cursor (seedha likho / scan karo) |
+| Search | **Enter** | Barcode ya SKU **bilkul barabar** → seedha cart · warna sirf **ek** product mila → seedha cart · warna list ka pehla highlight + focus list |
+| Search | **↓** | List ka pehla product highlight |
+| List | **↓ / ↑** | Highlight neeche / upar (auto-scroll, dabaye rakho to repeat) |
+| List | **Enter** | Highlighted product cart mein |
+| List | **↑** (sab se upar) / **Esc** | Wapas search (kuch add nahi) |
+| Keyboard se add ke baad | — | Search text saaf + search focus |
+| Mouse | single / double-click | click = highlight · double-click = cart (pehle jaisa, text saaf NAHI) |
+| Kahin bhi (cart qty field se bhi) | **F1** / **Ctrl+F** (Mac **Cmd+F**) | Search focus + text select · dialog khula ho to kuch nahi |
+
+- List order pehle jaisa: aakhri edit hua product (`updated_at`) upar. `_filterProducts()` build + Enter dono mein (scanner ka tez Enter).
+- Assign ka `addToCart` pehle se cart mein ho to kuch nahi karta (PO jaisa +1 NAHI) — qty default poora available stock (S21). Negative stock → error snackbar (provider, pehle jaisa).
+- Highlight neela (`info` 2px + `infoLight`), cart wale purple se alag.
+- Sidebar Alt shortcuts se takraav nahi (F1 / Ctrl+F alag). Assign screen sidebar ka hissa hai (push nahi), handler sirf jab screen khuli ho.
+- **Test:** temp widget test (asal theme, fake repo + 40 products) — auto focus · Enter → ↓↓ Enter = 3rd + saaf + focus · 25× ↓ auto-scroll · Esc / ↑ top → search · barcode exact (substring wala bhi) · SKU exact · ek match · F1 / Ctrl+F / Cmd+F cart field se · dialog khula → nahi · double-click pehle jaisa → 5/5, test delete. `flutter analyze` 0 errors. **Asal scanner / app mein nahi dekha.**
+
+---
+
 ## Session 31 — Warehouse Permissions (user-wise access, branch jaisa) ⭐⭐
 
 > **Maqsad:** Branch ke `PermissionsScreen` jaisi warehouse screen — har user kaun si screen dekhe aur kya kar sake (Add / Edit / Delete / Pay / Reverse / Accept…). Sidebar ADMIN → **Permissions** (Alt+G). Reference: `lib/features/branch/permissions/` (branch code chhuna nahi).
 
-### Catalog (`warehouse_permissions/domain/warehouse_permission_catalog.dart`) — 19 modules · 54 keys
+### Catalog (`warehouse_permissions/domain/warehouse_permission_catalog.dart`) — 19 modules · 52 keys
 Key = `<module>.<action>`. Pehla action hamesha `view` (sidebar + screen).
 | Group | Module (key) | Actions |
 |---|---|---|
@@ -1884,23 +1908,21 @@ Key = `<module>.<action>`. Pehla action hamesha `view` (sidebar + screen).
 | | Salary (`salary`) | view, pay (Pay button) — delete payment UI app mein band hai isliye key nahi |
 | | Employees (`employee`) | view (Salary ka Employees button), create, edit, delete |
 | Admin | Link Stores (`link_stores`) | view, create (Link Store) |
-| | Users (`users`) | view, create (Permissions screen ka **Naya user**), edit (naam / role), delete (Permissions screen ka 🗑), password — Users screen sidebar se band (23 Nov 2026) |
+| | Users (`users`) | view, edit (naam / role), delete (Permissions screen ka 🗑) — **Naya user + Password SIRF Owner** (26 Nov 2026: `users.create` / `users.password` keys hata di; purani saved keys ka ab koi asar nahi). Users screen sidebar se band (23 Nov 2026) |
 | | Permissions (`permissions`) | view, edit |
 | | Backup (`backup`) | view, create (Backup Lein) |
 
 - **OWNER = `isFullAccessRole`** → hamesha sab, editor mein lock; Owner **kisi ka bhi** access de / le sakta hai (Manager ka bhi). (User ki request, 22 Nov 2026 — pehle Owner ka menu chhota tha.)
 - **Manager** default = sab keys, lekin lock NAHI — Owner kam kar sakta hai. `canEditRole(editor, target)`: Owner → sab (Owner khud lock); baaki → sirf Staff / Data Entry (Manager ka access sirf Owner badle).
 - **Staff / Data Entry** defaults = S31 se pehle ke sidebar menus (us module ke saare actions).
-- **Password badlna — Owner + Manager** (23 Nov 2026): rule `WarehousePermissionCatalog.canChangePassword(editor…, target…)`:
-  - **Owner** → kisi ka bhi (apna, Manager, Owner bhi), hamesha.
-  - **Baaki** → `users.password` permission chahiye (Manager default mein ON, Owner Permissions se hata sakta hai; Staff / Data Entry default OFF) aur sirf **apna + Staff / Data Entry** ka — Owner ya doosre Manager ka NAHI.
+- **Password badlna — SIRF Owner** (26 Nov 2026; 23 Nov ko Manager ko bhi diya tha, wapas liya): `canChangePassword(...)` = `isFullAccessRole(editorRole)`. Owner kisi ka bhi (apna, Manager, Staff…). Baaki kisi role / permission se NAHI.
   - Permissions editor header mein **"Password badlein"** button (rule ke mutabiq) → `_ChangePasswordDialog` (naya + dobara, min 6, show/hide) → `UserNotifier.changePassword()` → `UserRemoteDataSource.updatePassword()` (`password_hash` = `PasswordHelper.hash` SHA-256, `is_synced = false` taake Supabase par bhi jaye; row na mile to error). Users screen ke Edit dialog mein password field bhi isi rule se (ijazat na ho to field chhupa + save par password clear). Naya user banate waqt password sab ke liye (pehle jaisa).
 - **Naam / Role badlna** (23 Nov 2026) — Permissions editor header **"Naam / Role"** button → `_EditUserDialog` (poora naam + role dropdown) → `UserNotifier.updateNameRole()` → `UserRemoteDataSource.updateNameRole()` (`full_name`, `role`, `is_synced = false`). Rule `canEditUser(...)`:
   - **Owner** → sab ka (apna bhi, lekin **apna role nahi** — sirf naam), koi bhi role de sakta (`assignableRoles`).
   - **Baaki** → `users.edit` chahiye + sirf **Staff / Data Entry** users ka (apna, Owner, Manager ka NAHI), aur sirf Staff / Data Entry role de sakte (promote nahi).
   - Custom access wale user ka role badle to custom keys wahi rehti hain (dialog warning deta hai; naye role ke default chahiye to ⋮ → Role ke default).
 - **Naya user / Delete — Permissions screen se** (23 Nov 2026):
-  - Left list header **"Naya user"** (`canCreateUser`: Owner ya `users.create`) → wahi `AddUserDialog`. Role options `assignableRoles` (non-owner sirf Staff / Data Entry). **Username ab chhote huroof mein save** (login `toLowerCase()` karke dhoondta hai — capital wala username kabhi login nahi hota tha, e.g. `warehouseUser`).
+  - Left list header **"Naya user"** (`canCreateUser`: **SIRF Owner**, 26 Nov 2026) → wahi `AddUserDialog`. Role options `assignableRoles` (non-owner sirf Staff / Data Entry). **Username ab chhote huroof mein save** (login `toLowerCase()` karke dhoondta hai — capital wala username kabhi login nahi hota tha, e.g. `warehouseUser`).
   - Editor header 🗑 (`canDeleteUser`: apna kabhi nahi; Owner baaki sab; dusre `users.delete` + sirf Staff / Data Entry) → confirm → soft delete (`deleted_at` + ab `is_synced = false`).
   - Screen `userProvider.errorMessage` par snackbar dikhati hai (clearError nahi — AddUserDialog usi se band hota hai).
 - **Stock Edit dialog** (`stock_inventory_dialog.dart`, edit mode): `stock.edit` na ho → info hissa lock (dikhta, click/focus nahi, validation nahi) aur save par product purana; `stock.qty` na ho → "Update Stock" lock aur save par purani qty. Upar peela banner batata hai kya band hai. ⋮ Edit item `stock.edit` YA `stock.qty` par dikhta. Role defaults mein dono ON (pehle jaisa). ⚠️ Pehle se custom-save users ke paas `stock.qty` nahi hoga — zaroorat ho to Permissions se de dein.

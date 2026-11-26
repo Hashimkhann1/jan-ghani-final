@@ -1,4 +1,4 @@
-// Updated on 2026-11-23 12:33 PM
+// Updated on 2026-11-26 01:02 PM
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,8 +54,8 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
     super.dispose();
   }
 
-  /// S31: edit mein password — Owner sab ka; Manager (`users.password`)
-  /// apna + Staff / Data Entry ka. Naya user banate waqt hamesha.
+  /// S31: edit mein password — SIRF Owner (26 Nov 2026; pehle Manager bhi).
+  /// Naya user banate waqt hamesha (naya user bhi sirf Owner banata hai).
   /// `inBuild` = true → watch (rebuild), warna read (save callback).
   bool _canChangePassword({bool inBuild = false}) {
     final target = widget.user;

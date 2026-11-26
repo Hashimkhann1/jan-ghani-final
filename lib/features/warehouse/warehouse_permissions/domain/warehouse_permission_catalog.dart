@@ -1,4 +1,4 @@
-// Updated on 2026-11-23 12:33 PM
+// Updated on 2026-11-26 01:02 PM
 // =============================================================
 // warehouse_permission_catalog.dart — WAREHOUSE permissions (S31)
 //
@@ -159,9 +159,9 @@ class WarehousePermissionCatalog {
           hint: 'Add = naya store link karna',
           icon: Icons.store_outlined, actions: [_v, _c]),
       WhPermModule(key: users, label: 'Users',
-          hint: 'Permissions screen se: Add = naya user · Edit = naam / role · Delete = user hatana · Password = password badlna',
+          hint: 'Permissions screen se: Edit = naam / role · Delete = user hatana (Naya user + Password sirf Owner)',
           icon: Icons.person_outline,
-          actions: [_v, _c, _e, _d, WhPermAction.password]),
+          actions: [_v, _e, _d]),
       WhPermModule(key: permissions, label: 'Permissions',
           hint: 'Yahi screen — Edit = doosron ka access badalna',
           icon: Icons.verified_user_outlined, actions: [_v, _e]),
@@ -208,21 +208,16 @@ class WarehousePermissionCatalog {
   /// Owner → sab ka (Owner khud lock). Baaki → sirf Staff / Data Entry
   /// (Manager ka access sirf Owner badalta hai).
   /// Kya editor `target` ka password badal sakta hai?
-  /// Owner → sab ka. Baaki → `users.password` chahiye, aur sirf apna
-  /// ya Staff / Data Entry ka (Owner / doosre Manager ka NAHI).
-  /// Manager default mein `users.password` rakhta hai; Owner hata sakta hai.
+  /// 26 Nov 2026: SIRF Owner (kisi ka bhi, apna bhi) — baaki kisi role /
+  /// permission se nahi. (Params purane callers ke liye qaim.)
   static bool canChangePassword({
     required String      editorId,
     required String      editorRole,
     required Set<String> editorKeys,
     required String      targetId,
     required String      targetRole,
-  }) {
-    if (isFullAccessRole(editorRole)) return true;
-    if (!editorKeys.contains('$users.password')) return false;
-    if (editorId == targetId) return true;
-    return canEditRole(editorRole, targetRole);
-  }
+  }) =>
+      isFullAccessRole(editorRole);
 
   /// Kya editor `target` ka naam / role badal sakta hai? (Permissions
   /// screen ka "Naam / Role" button)
@@ -241,10 +236,9 @@ class WarehousePermissionCatalog {
     return canEditRole(editorRole, targetRole);
   }
 
-  /// Naya user — Owner hamesha; baaki `users.create` se (sirf Staff /
-  /// Data Entry role de sakte — `assignableRoles`).
+  /// Naya user — SIRF Owner (26 Nov 2026). `editorKeys` ab istemal nahi.
   static bool canCreateUser(String editorRole, Set<String> editorKeys) =>
-      isFullAccessRole(editorRole) || editorKeys.contains('$users.create');
+      isFullAccessRole(editorRole);
 
   /// User delete — apna kabhi nahi. Owner → baaki sab; dusre → `users.delete`
   /// + sirf Staff / Data Entry.
