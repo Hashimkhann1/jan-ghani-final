@@ -1,7 +1,7 @@
 name: Windows Build (Branch)
 
 # Branch desktop app. Entry point: lib/main.dart (desktop -> Branch).
-# Ek tag par 2 build bante hain: PC-1 (db_host 127.0.0.1) aur PC-2 (db_host 192.168.100.250).
+# Ek tag par sirf PC-1 ka build banta hai (db_host 127.0.0.1), naam "Jan Ghani".
 # Trigger: push a tag jo 'br' se start ho, jaise br-v1.2.5
 #          (git tag br-v1.2.5 && git push origin br-v1.2.5).
 # 'acc*' (Accountant web) aur 'ws*' (Warehouse) tags yahan match nahi karte.
@@ -14,16 +14,8 @@ on:
 
 jobs:
   build-windows:
-    name: Build ${{ matrix.pc }}
+    name: Build Jan Ghani
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - pc: PC-1
-            db_host: 127.0.0.1
-          - pc: PC-2
-            db_host: 192.168.100.250
 
     steps:
       - name: Checkout code
@@ -41,12 +33,12 @@ jobs:
       - name: Create .env file
         run: echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
 
-      - name: Set db_host in branch_config.json (${{ matrix.pc }})
+      - name: Set db_host in branch_config.json (PC-1)
         shell: pwsh
         run: |
           $path = 'assets/json/branch_config.json'
           $cfg = Get-Content $path -Raw | ConvertFrom-Json
-          $cfg.db_host = '${{ matrix.db_host }}'
+          $cfg.db_host = '127.0.0.1'
           $cfg | ConvertTo-Json -Depth 10 | Set-Content $path -Encoding utf8
           Get-Content $path
 
@@ -82,9 +74,16 @@ jobs:
           }
           exit 1
 
+      # Sirf exe ka naam badalta hai. windows/ folder Warehouse ke saath
+      # shared hai aur Runner.rc ka ProductName app ke saved data ke folder
+      # ka naam hai, is liye unhein nahi chhera.
+      - name: Rename exe to Jan Ghani
+        shell: pwsh
+        run: Rename-Item 'build/windows/x64/runner/Release/jan_ghani_final.exe' 'Jan Ghani.exe'
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: branch-${{ matrix.pc }}-windows-release
+          name: Jan Ghani
           path: build/windows/x64/runner/Release/
           retention-days: 7
