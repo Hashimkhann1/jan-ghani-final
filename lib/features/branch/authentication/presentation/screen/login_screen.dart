@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -188,14 +189,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: state.isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:         AppColor.primary,
+                            backgroundColor:         BranchColor.navy,
                             foregroundColor:         Colors.white,
                             disabledBackgroundColor:
-                            AppColor.primary.withValues(alpha: 0.6),
+                            BranchColor.navy.withValues(alpha: 0.6),
                             padding: const EdgeInsets.symmetric(
                                 vertical: 16),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(10)),
                             elevation: 0,
                           ),
                           child: state.isLoading
@@ -245,26 +246,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       prefixIcon: Icon(prefix, size: 18, color: AppColor.grey400),
       suffixIcon: suffix,
       filled:    true,
-      fillColor: AppColor.grey100,
       contentPadding: const EdgeInsets.symmetric(
           horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:   const BorderSide(color: AppColor.grey200)),
-      enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:   const BorderSide(color: AppColor.grey200)),
-      focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:
-          const BorderSide(color: AppColor.primary, width: 1.5)),
-      errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:   const BorderSide(color: AppColor.error)),
-      focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:
-          const BorderSide(color: AppColor.error, width: 1.5)),
     );
   }
 }

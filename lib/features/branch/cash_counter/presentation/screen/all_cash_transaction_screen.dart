@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -85,7 +86,7 @@ class _AllCashTransactionScreenState
                   title: 'Total Records',
                   value: '${transactions.length}',
                   icon:  Icons.receipt_long_outlined,
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
@@ -123,10 +124,9 @@ class _AllCashTransactionScreenState
                       constraints: BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
                           dataRowColor: WidgetStateProperty.resolveWith<Color?>(
                                 (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary.withValues(alpha: 0.05)
+                                ? BranchColor.navy.withValues(alpha: 0.05)
                                 : null,
                           ),
                           dataRowMinHeight: 54,

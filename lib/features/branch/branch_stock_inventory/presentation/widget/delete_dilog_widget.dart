@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -120,11 +121,11 @@ class DeleteStockDialog extends ConsumerWidget {
                         : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColor.textSecondary,
-                      side: const BorderSide(color: AppColor.grey300),
+                      side: const BorderSide(color: BranchColor.line),
                       padding:
                       const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     child: const Text('Cancel'),
                   ),
@@ -141,7 +142,7 @@ class DeleteStockDialog extends ConsumerWidget {
                       padding:
                       const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     icon: isDeleting
                         ? const SizedBox(

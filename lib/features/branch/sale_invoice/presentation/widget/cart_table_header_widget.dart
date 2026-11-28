@@ -1,9 +1,9 @@
 // lib/features/sale_invoice/presentation/widget/cart_table_header_widget.dart
 
+import '../../../../../core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../core/color/app_color.dart';
 import '../provider/sale_invoice_provider.dart';
 
 class CartTableHeader extends ConsumerWidget {
@@ -17,7 +17,7 @@ class CartTableHeader extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColor.primary.withOpacity(0.08),
+        color: BranchColor.header,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(children: [
@@ -46,7 +46,7 @@ class _H extends StatelessWidget {
     style: const TextStyle(
       fontSize:   11,    // was 10
       fontWeight: FontWeight.w700,
-      color:      AppColor.primary,
+      color:      BranchColor.onHeader,
       letterSpacing: 0.3,
     ),
     textAlign: textAlign ?? TextAlign.center,

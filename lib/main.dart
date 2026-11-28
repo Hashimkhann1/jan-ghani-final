@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:jan_ghani_final/core/theme/light_theme.dart';
 import 'package:jan_ghani_final/features/branch/backup/presentation/screen/branch_backup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -78,7 +79,7 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Jan Ghani',
       debugShowCheckedModeBanner: false,
-      theme: LightTheme.theme,
+      theme: BranchColor.theme(LightTheme.theme),
       home: const _BranchHome(),
     );
   }

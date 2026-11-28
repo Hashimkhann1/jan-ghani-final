@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -103,7 +104,7 @@ class _CustomerDetailDrawer extends ConsumerWidget {
                           ? null
                           : ('Rs ${money.format(a.saleAmount)}',
                               '${a.saleInvoiceNo ?? ''}  •  ${fmt.format(a.saleAt!)}'),
-                      AppColor.primary,
+                      BranchColor.navy,
                     ),
                     _activityRow(
                       'Last Payment',

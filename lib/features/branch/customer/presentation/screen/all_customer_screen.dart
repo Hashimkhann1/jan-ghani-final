@@ -1,3 +1,5 @@
+import 'package:jan_ghani_final/core/widget/branch_ui.dart';
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +15,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/service/print/customer_ledger_print_service.dart';
 import '../../../../../core/widget/app_icon.dart';
-import '../../../../../core/widget/figure_card_widget.dart';
 import '../../data/model/customer_model.dart';
 import '../widget/customer_action_button_widget.dart';
 import '../widget/customer_detail_drawer.dart';
@@ -260,7 +261,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                 backgroundColor: AppColor.error,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             onPressed: () {
               ref.read(customerProvider.notifier).deleteCustomer(customer.id);
               Navigator.pop(ctx);
@@ -445,35 +446,20 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Customers', style: TextStyle(fontWeight: FontWeight.w700)),
-        toolbarHeight: 60,
+      appBar: BranchAppBar(
+        title:    'Customers',
+        subtitle: 'Customers aur un ka baqaya',
         actions: [
-          IconButton(
-            onPressed: () => ref.read(customerProvider.notifier).loadCustomers(),
-            icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
-            tooltip: 'Refresh (F5)',
-            style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
-          ),
-          const SizedBox(width: 4),
+          BranchRefreshButton(
+              tooltip:   'Refresh (F5)',
+              onPressed: () =>
+                  ref.read(customerProvider.notifier).loadCustomers()),
           if (canCreate)
-          IntrinsicWidth(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: ElevatedButton.icon(
-                onPressed: () => _openDialog(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: const AppIcon('ic_plus_new', size: 18, color: Colors.white),
-                label: const Text('New Customer  (Ctrl+N)', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
+            BranchActionButton(
+              label:     'New Customer  (Ctrl+N)',
+              iconAsset: 'ic_plus_new',
+              onPressed: () => _openDialog(context),
             ),
-          ),
-          const SizedBox(width: 16),
         ],
       ),
       body: state.isLoading
@@ -487,23 +473,23 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
             // ── Stat Cards ───────────────────────────
             Row(
               children: [
-                SummaryCard(
+                BranchStatCard(
                   title: 'Total Customers',
                   value: '${state.totalCount}',
                   iconAsset: 'ic_top_customers',
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
                 const SizedBox(width: 12),
-                SummaryCard(
+                BranchStatCard(
                   title: 'Active',
                   value: '${state.activeCount}',
                   iconAsset: 'ic_active_check',
                   color: AppColor.success,
                 ),
                 const SizedBox(width: 12),
-                SummaryCard(
+                BranchStatCard(
                   title: state.outstandingLabel,
-                  value: 'Rs ${state.selectedOutstanding.toStringAsFixed(0)}',
+                  value: branchMoney(state.selectedOutstanding),
                   iconAsset: 'ic_credit_sale',
                   color: AppColor.error,
                 ),
@@ -531,12 +517,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                         prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.grey400),
                         prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                         filled:    true,
-                        fillColor: AppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
                       ),
                     ),
                   ),
@@ -615,7 +596,11 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
             ),
             const SizedBox(height: 10),
 
-            // ── Table ────────────────────────────────
+            // ── Table + pagination ───────────────────
+            Expanded(
+              child: BranchTableCard(
+                child: Column(
+                  children: [
             Expanded(
               child: allRows.isEmpty
                   ? CustomerEmptyState(isSearching: state.searchQuery.isNotEmpty)
@@ -632,17 +617,22 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
-                        child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+                        child: IconTheme.merge(
+              // Navy header par sort ka teer safed.
+              data: const IconThemeData(color: BranchColor.onHeader),
+              child: DataTable(
                           dataRowColor: WidgetStateProperty.resolveWith<Color?>((states) {
                             if (states.contains(WidgetState.hovered)) {
-                              return AppColor.primary.withValues(alpha: 0.05);
+                              return BranchColor.navy.withValues(alpha: 0.05);
                             }
                             return null;
                           }),
                           dataRowMinHeight: 52,
                           dataRowMaxHeight: 52,
                           columnSpacing: (tableWidth * 0.025).clamp(16.0, 48.0),
+                          headingRowHeight: 46,
+                          dividerThickness: 0.6,
+                          horizontalMargin: 16,
                           showCheckboxColumn: false,
                           sortColumnIndex: _sortColumnIndex,
                           sortAscending: _sortAscending,
@@ -665,10 +655,12 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                             ),
                             DataColumn(
                               label: const Text('Credit Limit'),
+                              numeric: true,
                               onSort: _onSort,
                             ),
                             DataColumn(
                               label: const Text('Balance'),
+                              numeric: true,
                               onSort: _onSort,
                             ),
                             DataColumn(
@@ -691,7 +683,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                             return DataRow(
                               color: isSelected
                                   ? WidgetStatePropertyAll(
-                                      AppColor.primary.withValues(alpha: 0.12))
+                                      BranchColor.navy.withValues(alpha: 0.12))
                                   : null,
                               onSelectChanged: (_) =>
                                   setState(() => _selectedId = c.id),
@@ -703,7 +695,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                   child: Text(c.name,
                                       key: isSelected ? _selectedKey : null,
                                       style: const TextStyle(
-                                          color: AppColor.primary,
+                                          color: BranchColor.navy,
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13)),
                                 )),
@@ -731,8 +723,11 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                     style: const TextStyle(fontSize: 13))),
 
                                 // Balance
-                                DataCell(Text(c.balance.toString(),
-                                    style: const TextStyle(fontSize: 13))),
+                                DataCell(BranchAmount(c.balance,
+                                    isBold: true,
+                                    color: c.balance > 0
+                                        ? AppColor.error
+                                        : AppColor.info)),
 
                                 // Status
                                 DataCell(CustomerStatusBadge(isActive: c.isActive)),
@@ -765,7 +760,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                       CustomerActionButton(
                                         icon: Icons.edit_outlined,
                                         iconAsset: 'ic_edit',
-                                        color: AppColor.primary,
+                                        color: BranchColor.navy,
                                         tooltip: 'Edit (Ctrl+E)',
                                         onTap: () => _openDialog(context, customer: c),
                                       ),
@@ -824,6 +819,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                             );
                           }),
                         ),
+            ),
                       ),
                     ),
                   );
@@ -840,6 +836,10 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                 page:      page,
                 pageCount: pageCount,
               ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -857,7 +857,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
     final canNext = page < pageCount - 1;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         reverse: true,

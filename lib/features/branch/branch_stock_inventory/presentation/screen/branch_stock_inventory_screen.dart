@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -165,7 +166,7 @@ class _BranchStockInventoryScreenState
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color:        AppColor.primary,
+              color:        BranchColor.navy,
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
@@ -268,7 +269,7 @@ class _BranchStockInventoryScreenState
                   title: 'Total Products',
                   value: '${posState.totalProducts.toStringAsFixed(0)}',
                   iconAsset: 'ic_total_products',
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
@@ -332,18 +333,8 @@ class _BranchStockInventoryScreenState
                         )
                             : null,
                         filled:    true,
-                        fillColor: AppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:   BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                              color: AppColor.primary, width: 1.2),
-                        ),
                       ),
                     ),
                   ),
@@ -512,7 +503,7 @@ class _PageNumBtn extends StatelessWidget {
         duration: const Duration(milliseconds: 120),
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: isCurrent ? AppColor.primary : Colors.transparent,
+          color: isCurrent ? BranchColor.navy : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           border: isCurrent ? null : Border.all(color: AppColor.grey200),
         ),
@@ -618,18 +609,8 @@ class _PageJumperState extends State<_PageJumper> {
       decoration: InputDecoration(
         isDense:   true,
         filled:    true,
-        fillColor: AppColor.grey100,
         contentPadding: const EdgeInsets.symmetric(
             horizontal: 6, vertical: 7),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide:   BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(
-              color: AppColor.primary, width: 1.2),
-        ),
       ),
     ),
   );
@@ -699,7 +680,7 @@ class _InventoryTable extends ConsumerWidget {
               // ── Sticky header ──────────────────────────────────
               Container(
                 height:  headerH,
-                color:   AppColor.grey100,
+                color:   BranchColor.header,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: List.generate(_headers.length, (i) {
@@ -717,7 +698,7 @@ class _InventoryTable extends ConsumerWidget {
                         style: const TextStyle(
                           fontSize:   12,
                           fontWeight: FontWeight.w700,
-                          color:      AppColor.textSecondary,
+                          color:      BranchColor.onHeader,
                         ),
                       ),
                     );
@@ -830,7 +811,7 @@ class _DataRow extends ConsumerWidget {
     // Highlighted row ka background + border
     Color rowBg;
     if (isHighlighted) {
-      rowBg = AppColor.primary.withOpacity(0.10);
+      rowBg = BranchColor.navy.withOpacity(0.10);
     } else {
       rowBg = isEven ? Colors.white : const Color(0xFFFAFAFF);
     }
@@ -851,7 +832,7 @@ class _DataRow extends ConsumerWidget {
                   style: TextStyle(
                       fontSize: 12,
                       color: isHighlighted
-                          ? AppColor.primary
+                          ? BranchColor.navy
                           : AppColor.textSecondary,
                       fontWeight: isHighlighted
                           ? FontWeight.w700
@@ -863,7 +844,7 @@ class _DataRow extends ConsumerWidget {
               child: _BarcodeCell(
                 codes: splitBarcodes(row.barcode),
                 color: isHighlighted
-                    ? AppColor.primary
+                    ? BranchColor.navy
                     : AppColor.textSecondary,
               ),
             ),
@@ -879,7 +860,7 @@ class _DataRow extends ConsumerWidget {
                           fontWeight: FontWeight.w600,
                           fontSize:   13,
                           color: isHighlighted
-                              ? AppColor.primary
+                              ? BranchColor.navy
                               : AppColor.textPrimary),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1),
@@ -900,7 +881,7 @@ class _DataRow extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color:        AppColor.primary.withOpacity(0.08),
+                  color:        BranchColor.navy.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -908,7 +889,7 @@ class _DataRow extends ConsumerWidget {
                   style: const TextStyle(
                       fontSize:   11,
                       fontWeight: FontWeight.w600,
-                      color:      AppColor.primary),
+                      color:      BranchColor.navy),
                   overflow: TextOverflow.ellipsis,
                 ),
               )
@@ -948,8 +929,8 @@ class _DataRow extends ConsumerWidget {
                       fontSize:   13,
                       fontWeight: FontWeight.w700,
                       color: isHighlighted
-                          ? AppColor.primary
-                          : AppColor.primary)),
+                          ? BranchColor.navy
+                          : BranchColor.navy)),
             ),
             // Wholesale
             SizedBox(
@@ -1015,7 +996,7 @@ class _DataRow extends ConsumerWidget {
                   CustomerActionButton(
                     icon:      Icons.edit_outlined,
                     iconAsset: 'ic_edit',
-                    color:     AppColor.primary,
+                    color:     BranchColor.navy,
                     tooltip:   isOwner ? 'Edit' : 'Edit Shelf',
                     onTap:     onEdit,
                   ),
@@ -1075,7 +1056,7 @@ class _BarcodeCell extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        const Icon(Icons.copy_rounded, size: 14, color: AppColor.primary),
+        const Icon(Icons.copy_rounded, size: 14, color: BranchColor.navy),
         const SizedBox(width: 6),
       ],
     );

@@ -1,5 +1,6 @@
 // lib/features/branch/branch_stock_damage/presentation/screen/branch_stock_damage_screen.dart
 
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -249,7 +250,7 @@ class _BranchStockDamageScreenState
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.error,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
               child: const Text('Add Damage  (Ctrl+N)'),
@@ -271,7 +272,7 @@ class _BranchStockDamageScreenState
                 title: 'Total Records',
                 value: state.totalRecords.toString(),
                 iconAsset: 'ic_credit_sale',
-                color: AppColor.primary,
+                color: BranchColor.navy,
               ),
               const SizedBox(width: 12),
               SummaryCard(
@@ -336,13 +337,8 @@ class _BranchStockDamageScreenState
                       )
                           : null,
                       filled:    true,
-                      fillColor: AppColor.grey100,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:   BorderSide.none,
-                      ),
                     ),
                   ),
                 ),
@@ -473,13 +469,8 @@ class _DateFilterField extends StatelessWidget {
           )
               : null,
           filled:    true,
-          fillColor: AppColor.grey100,
           contentPadding: const EdgeInsets.symmetric(
               horizontal: 12, vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide:   BorderSide.none,
-          ),
         ),
       ),
     );
@@ -544,7 +535,7 @@ class _DamageTable extends ConsumerWidget {
             // Header
             Container(
               height:  headerH,
-              color:   AppColor.error.withOpacity(0.05),
+              color:   BranchColor.header,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: List.generate(_headers.length, (i) => SizedBox(
@@ -557,7 +548,7 @@ class _DamageTable extends ConsumerWidget {
                     style: const TextStyle(
                         fontSize:   12,
                         fontWeight: FontWeight.w700,
-                        color:      AppColor.textSecondary),
+                        color:      BranchColor.onHeader),
                   ),
                 )),
               ),
@@ -642,7 +633,7 @@ class _DamageRowState extends State<_DamageRow> {
     return Container(
       height: 52,
       color: widget.isSelected
-          ? AppColor.primary.withValues(alpha: 0.14)
+          ? BranchColor.navy.withValues(alpha: 0.14)
           : isEven ? Colors.white : const Color(0xFFFFF5F5),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(children: [
@@ -671,7 +662,7 @@ class _DamageRowState extends State<_DamageRow> {
               style: const TextStyle(
                   fontSize:   13,
                   fontWeight: FontWeight.w600,
-                  color:      AppColor.primary)),
+                  color:      BranchColor.navy)),
         ),
 
         // Qty Damaged
@@ -717,7 +708,7 @@ class _DamageRowState extends State<_DamageRow> {
               CustomerActionButton(
                 icon:      Icons.edit_outlined,
                 iconAsset: 'ic_edit',
-                color:     AppColor.primary,
+                color:     BranchColor.navy,
                 tooltip:   'Edit Quantity (Ctrl+E)',
                 onTap:     onEdit,
               ),
@@ -876,11 +867,8 @@ class _PageJumperState extends State<_PageJumper> {
         if (p != null) widget.notifier.goToPage(p - 1);
       },
       decoration: InputDecoration(
-        isDense: true, filled: true, fillColor: AppColor.grey100,
+        isDense: true, filled: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: AppColor.error, width: 1.2)),
       ),
     ),
   );
@@ -923,7 +911,7 @@ class _EmptyState extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColor.error,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           ),
         ),

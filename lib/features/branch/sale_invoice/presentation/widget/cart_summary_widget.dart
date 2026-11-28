@@ -1,3 +1,4 @@
+import '../../../../../core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
@@ -34,11 +35,11 @@ class CartSummaryWidget extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Grand Total',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColor.primary)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: BranchColor.navy)),
             Text('Rs ${_fmt(state.grandTotal)}',
                 style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w900,
-                    color: AppColor.primary, letterSpacing: -0.5)),
+                    color: BranchColor.navy, letterSpacing: -0.5)),
           ],
         ),
 
@@ -83,7 +84,7 @@ class CartSummaryWidget extends ConsumerWidget {
                 label: const Text('Pay Now',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:         AppColor.primary,
+                  backgroundColor:         BranchColor.navy,
                   foregroundColor:         Colors.white,
                   disabledBackgroundColor: AppColor.grey300,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -103,7 +104,7 @@ class CartSummaryWidget extends ConsumerWidget {
             iconAsset: 'ic_print',
             label:     'Print',
             enabled:   hasItems,
-            color:     const Color(0xFF6366F1),
+            color:     BranchColor.navy,
             filled:    false,
             onTap:     () => showPaymentDialog(context, ref),        // ← payment dialog
           ),
@@ -148,7 +149,7 @@ class CartSummaryWidget extends ConsumerWidget {
               backgroundColor: AppColor.error,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
         ],
@@ -208,9 +209,6 @@ class CartSummaryWidget extends ConsumerWidget {
                     filled:    true,
                     fillColor: const Color(0xFFFFFDF7),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(color: Color(0xFFF5A623), width: 1.5)),
@@ -229,8 +227,8 @@ class CartSummaryWidget extends ConsumerWidget {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         foregroundColor: const Color(0xFF555555),
-                        side: const BorderSide(color: Color(0xFFE0E0E0)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        side: const BorderSide(color: BranchColor.line),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       child: const Text('Cancel'),
                     ),
@@ -251,7 +249,7 @@ class CartSummaryWidget extends ConsumerWidget {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),

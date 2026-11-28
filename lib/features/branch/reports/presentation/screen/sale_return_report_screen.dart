@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -73,7 +74,7 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnReportScreen> {
         builder: (ctx, child) => Theme(
           data: Theme.of(ctx).copyWith(
             colorScheme: const ColorScheme.light(
-              primary:   AppColor.primary,
+              primary:   BranchColor.navy,
               onPrimary: Colors.white,
             ),
           ),
@@ -118,20 +119,10 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnReportScreen> {
                 labelStyle: const TextStyle(
                     fontSize: 11, color: AppColor.textSecondary),
                 prefixIcon: const Icon(Icons.calendar_today_rounded,
-                    size: 15, color: AppColor.primary),
+                    size: 15, color: BranchColor.navy),
                 filled:    true,
-                fillColor: AppColor.grey100,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide:   BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                  const BorderSide(color: AppColor.primary, width: 1.2),
-                ),
               ),
             ),
           ),
@@ -282,13 +273,8 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnReportScreen> {
                         )
                             : null,
                         filled:    true,
-                        fillColor: AppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:   BorderSide.none,
-                        ),
                       ),
                     ),
                   ),
@@ -350,8 +336,8 @@ class _SaleReturnScreenState extends ConsumerState<SaleReturnReportScreen> {
                       label: const Text('Today',
                           style: TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColor.primary,
-                        side: const BorderSide(color: AppColor.primary),
+                        foregroundColor: BranchColor.navy,
+                        side: const BorderSide(color: BranchColor.navy),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         shape: RoundedRectangleBorder(
@@ -723,7 +709,7 @@ class _ReturnCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
-                      color:        AppColor.grey100,
+                      color:        BranchColor.header,
                       borderRadius: BorderRadius.circular(8)),
                   child: const Row(
                     children: [
@@ -733,7 +719,7 @@ class _ReturnCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize:   11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color:      BranchColor.onHeader))),
                       Expanded(
                           flex: 2,
                           child: Text('Price',
@@ -741,7 +727,7 @@ class _ReturnCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize:   11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color:      BranchColor.onHeader))),
                       Expanded(
                           flex: 1,
                           child: Text('Qty',
@@ -749,7 +735,7 @@ class _ReturnCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize:   11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color:      BranchColor.onHeader))),
                       Expanded(
                           flex: 2,
                           child: Text('Discount',
@@ -757,7 +743,7 @@ class _ReturnCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize:   11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color:      BranchColor.onHeader))),
                       Expanded(
                           flex: 2,
                           child: Text('Sub Total',
@@ -765,7 +751,7 @@ class _ReturnCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize:   11,
                                   fontWeight: FontWeight.w700,
-                                  color:      AppColor.textSecondary))),
+                                  color:      BranchColor.onHeader))),
                     ],
                   ),
                 ),
@@ -1024,20 +1010,20 @@ class _CounterChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
-      color:        AppColor.primary.withValues(alpha: 0.08),
+      color:        BranchColor.navy.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Icon(Icons.point_of_sale_outlined,
-            size: 11, color: AppColor.primary),
+            size: 11, color: BranchColor.navy),
         const SizedBox(width: 4),
         Text(name,
             style: const TextStyle(
                 fontSize:   11,
                 fontWeight: FontWeight.w600,
-                color:      AppColor.primary)),
+                color:      BranchColor.navy)),
       ],
     ),
   );

@@ -1,10 +1,11 @@
+import 'package:jan_ghani_final/core/widget/branch_ui.dart';
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
-import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/core/widget/pagination_bar.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 import 'package:jan_ghani_final/features/branch/customer_ledger/data/model/customer_ledger_model.dart';
@@ -14,7 +15,6 @@ import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/presentation/widget/customer_action_button_widget.dart';
 import '../../../permissions/presentation/provider/permissions_provider.dart';
 import '../widget/add_ledger_dialog.dart';
-import '../widget/amount_badge_widget.dart';
 import '../widget/counter_chip_widget.dart';
 import '../widget/customer_call_widget.dart';
 
@@ -260,7 +260,7 @@ class _CounterCustomerLedgerScreenState
                 backgroundColor: AppColor.error,
                 foregroundColor: Colors.white,
                 elevation:       0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             onPressed: () {
               ref.read(customerLedgerProvider.notifier).deleteLedger(ledger.id);
               Navigator.pop(ctx);
@@ -322,12 +322,7 @@ class _CounterCustomerLedgerScreenState
           )
               : null,
           filled: true,
-          fillColor: AppColor.grey100,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
-          ),
         ),
       ),
     );
@@ -375,38 +370,19 @@ class _CounterCustomerLedgerScreenState
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('$counterName — Customer Recovery', style: const TextStyle(fontWeight: FontWeight.w700)),
-        toolbarHeight: 60,
+      appBar: BranchAppBar(
+        title:    'Customer Recovery',
+        subtitle: counterName,
         actions: [
-          IconButton(
-            onPressed: () =>
-                ref.read(customerLedgerProvider.notifier).loadLedgers(),
-            icon:    const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
-            tooltip: 'Refresh (F5)',
-            style: IconButton.styleFrom(
-                foregroundColor: AppColor.textSecondary),
+          BranchRefreshButton(
+              tooltip:   'Refresh (F5)',
+              onPressed: () =>
+                  ref.read(customerLedgerProvider.notifier).loadLedgers()),
+          BranchActionButton(
+            label:     'New Payment  (Ctrl+N)',
+            iconAsset: 'ic_plus_new',
+            onPressed: auth.counterId == null ? null : _openNewPayment,
           ),
-          const SizedBox(width: 4),
-          IntrinsicWidth(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: ElevatedButton.icon(
-                onPressed: auth.counterId == null ? null : _openNewPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: Colors.white,
-                  elevation:       0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                icon:  const AppIcon('ic_plus_new', size: 18, color: Colors.white),
-                label: const Text('New Payment  (Ctrl+N)',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
         ],
       ),
       body: (state.isLoading && !_hasLoadedOnce)
@@ -457,16 +433,16 @@ class _CounterCustomerLedgerScreenState
             // ── Stat Cards ───────────────────────────
             Row(
               children: [
-                SummaryCard(
+                BranchStatCard(
                   title: 'Total Records',
                   value: '${state.totalCount}',
                   iconAsset: 'ic_credit_sale',
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
                 const SizedBox(width: 12),
-                SummaryCard(
+                BranchStatCard(
                   title: 'Total Paid',
-                  value: 'Rs ${totalPaid.toStringAsFixed(0)}',
+                  value: branchMoney(totalPaid),
                   iconAsset: 'ic_cash_in',
                   color: AppColor.success,
                 ),
@@ -492,12 +468,7 @@ class _CounterCustomerLedgerScreenState
                       prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.grey400),
                       prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                       filled: true,
-                      fillColor: AppColor.grey100,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
                     ),
                   ),
                 ),
@@ -542,7 +513,8 @@ class _CounterCustomerLedgerScreenState
                 isSearching: state.searchQuery.isNotEmpty,
                 noCounterAssigned: auth.counterId == null,
               ) :
-              Column(
+              BranchTableCard(
+                child: Column(
                 children: [
                   Expanded(
                     child: LayoutBuilder(
@@ -558,20 +530,22 @@ class _CounterCustomerLedgerScreenState
                       constraints: BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
-                          dataRowColor: WidgetStateProperty.resolveWith<Color?>((s) => s.contains(WidgetState.hovered) ? AppColor.primary.withValues(alpha: 0.05) : null,
+                          dataRowColor: WidgetStateProperty.resolveWith<Color?>((s) => s.contains(WidgetState.hovered) ? BranchColor.navy.withValues(alpha: 0.05) : null,
                           ),
                           dataRowMinHeight: 52,
                           dataRowMaxHeight: 52,
                           columnSpacing: (tableWidth * 0.03).clamp(16.0, 50.0),
+                          headingRowHeight: 46,
+                          dividerThickness: 0.6,
+                          horizontalMargin: 16,
                           showCheckboxColumn: false,
                           columns: const [
                             DataColumn(label: Text('Customer')),
                             DataColumn(label: Text('User')),
-                            DataColumn(label: Text('Previous')),
-                            DataColumn(label: Text('Paid')),
+                            DataColumn(label: Text('Previous'), numeric: true),
+                            DataColumn(label: Text('Paid'), numeric: true),
                             DataColumn(label: Text('Method')),
-                            DataColumn(label: Text('Remaining')),
+                            DataColumn(label: Text('Remaining'), numeric: true),
                             DataColumn(label: Text('Notes')),
                             DataColumn(label: Text('Date & Time')),
                             DataColumn(label: Text('Actions')),
@@ -584,7 +558,7 @@ class _CounterCustomerLedgerScreenState
                             return DataRow(
                               color: isSelected
                                   ? WidgetStatePropertyAll(
-                                      AppColor.primary.withValues(alpha: 0.12))
+                                      BranchColor.navy.withValues(alpha: 0.12))
                                   : null,
                               onSelectChanged: (_) =>
                                   setState(() => _selectedId = l.id),
@@ -596,15 +570,18 @@ class _CounterCustomerLedgerScreenState
 
                                 DataCell(CounterChip(counterName: userName)),
 
-                                DataCell(AmountBadge(amount: l.previousAmount, color: AppColor.grey500)),
+                                DataCell(BranchAmount(l.previousAmount,
+                                    color: AppColor.textSecondary)),
 
-                                DataCell(AmountBadge(amount: l.payAmount, color: AppColor.success)),
+                                DataCell(BranchAmount(l.payAmount,
+                                    color: AppColor.success, isBold: true)),
 
                                 DataCell(_MethodChip(method: l.paymentMethod)),
 
-                                DataCell(AmountBadge(
-                                  amount: l.newAmount,
-                                  color: l.newAmount > 0 ? AppColor.error : l.newAmount < 0 ? AppColor.info : AppColor.success,
+                                DataCell(BranchAmount(
+                                  l.newAmount,
+                                  isBold: true,
+                                  color: l.newAmount > 0 ? AppColor.error : AppColor.info,
                                 )),
 
                                 // ── Notes: tap to view full text in a dialog (reliable across web/touch) ──
@@ -639,7 +616,7 @@ class _CounterCustomerLedgerScreenState
                                     if (canEdit) ...[
                                       CustomerActionButton(
                                         icon: Icons.edit_outlined,
-                                        color: AppColor.primary,
+                                        color: BranchColor.navy,
                                         tooltip: 'Edit (Ctrl+E)',
                                         onTap: () => _openEditDialog(context, l),
                                       ),
@@ -665,12 +642,16 @@ class _CounterCustomerLedgerScreenState
                 },
               ),
                   ),
-                  PaginationBar(
-                    total: state.totalCount,
-                    page:  state.page,
-                    onPageChanged: notifier.setPage,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: PaginationBar(
+                      total: state.totalCount,
+                      page:  state.page,
+                      onPageChanged: notifier.setPage,
+                    ),
                   ),
                 ],
+              ),
               ),
             ),
           ],

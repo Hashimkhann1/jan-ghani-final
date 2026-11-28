@@ -1,3 +1,4 @@
+import '../../../../../core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -444,7 +445,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
               (_) => setState(() => _hoveredIndex = products.length - 1));
     }
 
-    final accent = isReturn ? AppColor.error : AppColor.primary;
+    final accent = isReturn ? AppColor.error : BranchColor.navy;
 
     return Container(
       decoration: BoxDecoration(
@@ -561,12 +562,8 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                         )
                             : null,
                         filled:    true,
-                        fillColor: AppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide:   BorderSide.none),
                         focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide:
@@ -647,8 +644,9 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
               const SizedBox(height: 6),
 
               // Table header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
+              Container(
+                  color: BranchColor.header,
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
                 child: Row(children: [
                   const SizedBox(width: 24),
                   const Expanded(
@@ -657,7 +655,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                         style: TextStyle(
                             fontSize:   11,
                             fontWeight: FontWeight.w700,
-                            color:      AppColor.textSecondary)),
+                            color: BranchColor.onHeader)),
                   ),
                   const SizedBox(
                     width: 50,
@@ -666,7 +664,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                         style: TextStyle(
                             fontSize:   11,
                             fontWeight: FontWeight.w700,
-                            color:      AppColor.textSecondary)),
+                            color: BranchColor.onHeader)),
                   ),
                   const SizedBox(width: 4),
                   const SizedBox(
@@ -676,7 +674,7 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
                         style: TextStyle(
                             fontSize:   11,
                             fontWeight: FontWeight.w700,
-                            color:      AppColor.textSecondary)),
+                            color: BranchColor.onHeader)),
                   ),
                 ]),
               ),
@@ -831,7 +829,7 @@ class _ProductCardState extends State<_ProductCard>
   Widget build(BuildContext context) {
     final p       = widget.product;
     final inStock = p.quantity > 0;
-    final accent  = widget.isReturn ? AppColor.error : AppColor.primary;
+    final accent  = widget.isReturn ? AppColor.error : BranchColor.navy;
 
     final stockStr =
     p.quantity.toStringAsFixed(p.quantity % 1 == 0 ? 0 : 1);
@@ -841,8 +839,8 @@ class _ProductCardState extends State<_ProductCard>
     // shelf name badge color — hovered pe white text, normal pe primary tint
     final shelfBg   = widget.isHovered
         ? Colors.white.withOpacity(0.20)
-        : AppColor.primary.withOpacity(0.08);
-    final shelfText = widget.isHovered ? Colors.white : AppColor.primary;
+        : BranchColor.navy.withOpacity(0.08);
+    final shelfText = widget.isHovered ? Colors.white : BranchColor.navy;
 
     return GestureDetector(
       onTap:       widget.onTap,
@@ -909,7 +907,7 @@ class _ProductCardState extends State<_ProductCard>
                               size: 9,
                               color: widget.isHovered
                                   ? Colors.white.withOpacity(0.85)
-                                  : AppColor.primary.withOpacity(0.7),
+                                  : BranchColor.navy.withOpacity(0.7),
                             ),
                             const SizedBox(width: 3),
                             Container(

@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -152,21 +153,21 @@ class _CashOutDialogState extends ConsumerState<CashOutDialog> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: const Color(0xFFE8EAF0),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.blue.shade200),
+                    border: Border.all(color: BranchColor.navy.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.account_balance_wallet_outlined,
-                          color: Colors.blue.shade400, size: 18),
+                          color: BranchColor.slate, size: 18),
                       const SizedBox(width: 10),
                       Text(
                         'Rs. ${state.totalAmount.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize:   18,
                           fontWeight: FontWeight.w800,
-                          color:      Colors.blue.shade700,
+                          color:      BranchColor.navy,
                         ),
                       ),
                     ],
@@ -199,9 +200,6 @@ class _CashOutDialogState extends ConsumerState<CashOutDialog> {
                     prefixText:  'Rs. ',
                     hintText:    '0.00',
                     filled:      true,
-                    fillColor:   Colors.grey.shade50,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(

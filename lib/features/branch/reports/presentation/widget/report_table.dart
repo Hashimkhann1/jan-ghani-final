@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
@@ -90,7 +91,7 @@ class _ReportTableState extends State<ReportTable> {
         children: [
           // ── Header row ──────────────────────────────────────
           Container(
-            color: AppColor.grey100,
+            color: BranchColor.header,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
@@ -105,7 +106,7 @@ class _ReportTableState extends State<ReportTable> {
                           fontSize:      10.5,
                           fontWeight:    FontWeight.w700,
                           letterSpacing: 0.5,
-                          color:         AppColor.textSecondary,
+                          color:         BranchColor.onHeader,
                         ),
                       ),
                     ),
@@ -119,7 +120,7 @@ class _ReportTableState extends State<ReportTable> {
                         fontSize:      10.5,
                         fontWeight:    FontWeight.w700,
                         letterSpacing: 0.5,
-                        color:         AppColor.textSecondary,
+                        color:         BranchColor.onHeader,
                       ),
                     ),
                   ),
@@ -145,7 +146,7 @@ class _ReportTableState extends State<ReportTable> {
                     child: Container(
                       key: isSelected ? _selectedKey : null,
                       color: isSelected
-                          ? AppColor.primary.withValues(alpha: 0.12)
+                          ? BranchColor.navy.withValues(alpha: 0.12)
                           : null,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 11),
@@ -172,7 +173,7 @@ class _ReportTableState extends State<ReportTable> {
                                 splashRadius:  18,
                                 tooltip: 'View',
                                 icon: const AppIcon('ic_view',
-                                    size: 18, color: AppColor.primary),
+                                    size: 18, color: BranchColor.navy),
                                 onPressed: () => widget.onView(absolute),
                               ),
                             ),

@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -72,14 +73,14 @@ class _AddCounterDialogState extends ConsumerState<AddCounterDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color:        AppColor.primary.withValues(alpha: 0.1),
+                        color:        BranchColor.navy.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         _isEdit
                             ? Icons.edit_outlined
                             : Icons.add_circle_outline_rounded,
-                        color: AppColor.primary,
+                        color: BranchColor.navy,
                         size:  20,
                       ),
                     ),
@@ -148,25 +149,8 @@ class _AddCounterDialogState extends ConsumerState<AddCounterDialog> {
                         size:  18,
                         color: AppColor.grey400),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.error)),
                   ),
                 ),
 
@@ -178,10 +162,10 @@ class _AddCounterDialogState extends ConsumerState<AddCounterDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:         AppColor.primary,
+                      backgroundColor:         BranchColor.navy,
                       foregroundColor:         Colors.white,
                       disabledBackgroundColor:
-                      AppColor.primary.withValues(alpha: 0.6),
+                      BranchColor.navy.withValues(alpha: 0.6),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),

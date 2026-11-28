@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -120,7 +121,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
                           label: 'Admins',
                           value: '$adminCount',
                           iconAsset: 'ic_admin',
-                          color: AppColor.primary,
+                          color: BranchColor.navy,
                         ),
                       ),
                     ],
@@ -290,14 +291,9 @@ class _UserListPanel extends ConsumerWidget {
                       size: 18, color: AppColor.grey400),
                   prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                   filled: true,
-                  fillColor: AppColor.grey100,
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
                 ),
               ),
             ),
@@ -333,7 +329,7 @@ class _UserListPanel extends ConsumerWidget {
                                 horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
                               color: isActive
-                                  ? AppColor.primary.withValues(alpha: 0.1)
+                                  ? BranchColor.navy.withValues(alpha: 0.1)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -352,7 +348,7 @@ class _UserListPanel extends ConsumerWidget {
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: isActive
-                                              ? AppColor.primary
+                                              ? BranchColor.navy
                                               : AppColor.textPrimary,
                                         ),
                                       ),
@@ -412,11 +408,11 @@ class _EmptyEditor extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: AppColor.primary.withValues(alpha: 0.08),
+                color: BranchColor.navy.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.verified_user_outlined,
-                  size: 34, color: AppColor.primary),
+                  size: 34, color: BranchColor.navy),
             ),
             const SizedBox(height: 16),
             const Text('Pick someone to edit',
@@ -537,13 +533,13 @@ class _PermissionEditor extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColor.primary.withValues(alpha: 0.08),
+                  color: BranchColor.navy.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.shield_outlined,
-                        size: 17, color: AppColor.primary),
+                        size: 17, color: BranchColor.navy),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -652,7 +648,7 @@ class _PermissionEditor extends ConsumerWidget {
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
+                    backgroundColor: BranchColor.navy,
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: AppColor.grey200,
                     disabledForegroundColor: AppColor.grey500,
@@ -807,7 +803,7 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent =
-        action == PermAction.delete ? AppColor.error : AppColor.primary;
+        action == PermAction.delete ? AppColor.error : BranchColor.navy;
 
     final Color bg;
     final Color fg;

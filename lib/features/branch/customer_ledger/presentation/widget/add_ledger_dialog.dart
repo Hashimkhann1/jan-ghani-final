@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -236,12 +237,12 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withValues(alpha: 0.1),
+                        color: BranchColor.navy.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
                           Icons.account_balance_wallet_outlined,
-                          color: AppColor.primary,
+                          color: BranchColor.navy,
                           size:  20),
                     ),
                     const SizedBox(width: 12),
@@ -321,30 +322,13 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                     prefixStyle: const TextStyle(
                         fontSize:   14,
                         fontWeight: FontWeight.w600,
-                        color:      AppColor.primary),
+                        color:      BranchColor.navy),
                     hintText:  '0',
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 13),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.error)),
                   ),
                 ),
 
@@ -361,7 +345,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: _methodFocus.hasFocus
-                            ? AppColor.primary
+                            ? BranchColor.navy
                             : Colors.transparent,
                         width: 2,
                       ),
@@ -444,21 +428,8 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 13),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
                   ),
                 ),
 
@@ -470,12 +441,12 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                       horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: _printReceipt
-                        ? AppColor.primary.withValues(alpha: 0.06)
+                        ? BranchColor.navy.withValues(alpha: 0.06)
                         : AppColor.grey100,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: _printReceipt
-                          ? AppColor.primary.withValues(alpha: 0.3)
+                          ? BranchColor.navy.withValues(alpha: 0.3)
                           : AppColor.grey200,
                     ),
                   ),
@@ -485,7 +456,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                         Icons.print_rounded,
                         size:  18,
                         color: _printReceipt
-                            ? AppColor.primary
+                            ? BranchColor.navy
                             : AppColor.textHint,
                       ),
                       const SizedBox(width: 10),
@@ -509,7 +480,7 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                         value:          _printReceipt,
                         onChanged:      (v) =>
                             setState(() => _printReceipt = v),
-                        activeColor:    AppColor.primary,
+                        activeColor:    BranchColor.accent,
                         materialTapTargetSize:
                         MaterialTapTargetSize.shrinkWrap,
                       ),
@@ -525,10 +496,10 @@ class _AddLedgerDialogState extends ConsumerState<AddLedgerDialog> {
                   child: ElevatedButton.icon(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
+                      backgroundColor: BranchColor.navy,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor:
-                      AppColor.primary.withValues(alpha: 0.6),
+                      BranchColor.navy.withValues(alpha: 0.6),
                       padding:
                       const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(

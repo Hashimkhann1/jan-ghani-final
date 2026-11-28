@@ -502,6 +502,7 @@
 //   );
 // }
 
+import '../../../../../core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -865,7 +866,7 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
               _ReturnPayField(
                 label:      'Cash (Rs)',
                 icon:       Icons.money_rounded,
-                color:      AppColor.primary,
+                color:      BranchColor.navy,
                 controller: _cashCtrl,
                 focusNode:  _cashFocus,
                 onChanged:  (_) => setState(() {}),
@@ -874,7 +875,7 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
               _ReturnPayField(
                 label:      'Card (Rs)',
                 icon:       Icons.credit_card_rounded,
-                color:      AppColor.primary,
+                color:      BranchColor.navy,
                 controller: _cardCtrl,
                 onChanged:  (_) {},
               ),
@@ -950,7 +951,7 @@ class _ReturnPaymentDialogState extends ConsumerState<_ReturnPaymentDialog> {
                     }),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColor.textSecondary,
-                      side:    const BorderSide(color: AppColor.grey300),
+                      side:    const BorderSide(color: BranchColor.line),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),

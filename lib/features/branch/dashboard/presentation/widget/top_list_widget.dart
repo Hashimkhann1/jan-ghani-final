@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
 
@@ -111,7 +112,7 @@ class _ListPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: const BoxDecoration(
-              color: Color(0xFFF9FAFB),
+              color: BranchColor.header,
               border: Border(
                 top: BorderSide(color: Color(0xFFE5E7EB)),
                 bottom: BorderSide(color: Color(0xFFE5E7EB)),

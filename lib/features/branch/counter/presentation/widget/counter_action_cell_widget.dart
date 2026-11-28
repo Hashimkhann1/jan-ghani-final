@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import '../../../../warehouse/warehouse_user/presentation/widget/customer_action_button_widget.dart';
@@ -18,7 +19,7 @@ class CounterActionCellWidget extends StatelessWidget {
       children: [
         CustomerActionButton(
           icon:    Icons.edit_outlined,
-          color:   AppColor.primary,
+          color:   BranchColor.navy,
           tooltip: 'Edit',
           onTap:   onEdit,
         ),

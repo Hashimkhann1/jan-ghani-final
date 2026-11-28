@@ -1,9 +1,10 @@
+import 'package:jan_ghani_final/core/widget/branch_ui.dart';
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
-import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/core/widget/pagination_bar.dart';
 import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provider/cash_counter_provider.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
@@ -78,34 +79,18 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cash Counter', style: TextStyle(fontWeight: FontWeight.w700)),
-        toolbarHeight: 60,
+      appBar: BranchAppBar(
+        title:    'Cash Counter',
+        subtitle: assignedCounter ?? 'Rozana counter ka hisaab',
         actions: [
-          IconButton(
-            onPressed: () => ref.read(cashCounterProvider.notifier).loadRecords(),
-            icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-            style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
+          BranchRefreshButton(
+              onPressed: () =>
+                  ref.read(cashCounterProvider.notifier).loadRecords()),
+          BranchActionButton(
+            label:     'Count Cash',
+            iconAsset: 'ic_count_cash',
+            onPressed: () => _openTransactionDialog(context),
           ),
-          const SizedBox(width: 4),
-          IntrinsicWidth(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: OutlinedButton.icon(
-                onPressed: () => _openTransactionDialog(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColor.success,
-                  side: const BorderSide(color: AppColor.success),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon:  const AppIcon('ic_count_cash', size: 18, color: AppColor.success),
-                label: const Text('Count Cash',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
         ],
       ),
       body: state.isLoading
@@ -119,32 +104,32 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
             // ── Stat Cards ───────────────────────────
             Row(
               children: [
-                SummaryCard(
+                BranchStatCard(
                   title: 'Total Sale',
-                  value: 'Rs ${state.grandTotalSale.toStringAsFixed(0)}',
+                  value: branchMoney(state.grandTotalSale),
                   iconAsset: 'ic_cash_registration',
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
                 const SizedBox(width: 12),
-                SummaryCard(
+                BranchStatCard(
                   title: 'Cash In',
-                  value: 'Rs ${state.grandCashIn.toStringAsFixed(0)}',
+                  value: branchMoney(state.grandCashIn),
                   iconAsset: 'ic_cash_in',
                   color: AppColor.success,
                 ),
                 const SizedBox(width: 12),
-                SummaryCard(
+                BranchStatCard(
                   title: 'Cash Out',
-                  value: 'Rs ${state.grandCashOut.toStringAsFixed(0)}',
+                  value: branchMoney(state.grandCashOut),
                   iconAsset: 'ic_cash_out',
                   color: AppColor.error,
                 ),
                 const SizedBox(width: 12),
-                SummaryCard(
+                BranchStatCard(
                   title: 'Overall Amount',
-                  value: 'Rs ${state.grandTotalAmount.toStringAsFixed(0)}',
+                  value: branchMoney(state.grandTotalAmount),
                   iconAsset: 'ic_bank_net',
-                  color: AppColor.info,
+                  color: BranchColor.accent,
                 ),
               ],
             ),
@@ -153,7 +138,7 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
 
             // ── Search ────────────────────────────────
             SizedBox(
-              width: 280,
+              width: 300,
               child: TextField(
                 onChanged: ref.read(cashCounterProvider.notifier).onSearchChanged,
                 style:        const TextStyle(fontSize: 13),
@@ -164,12 +149,7 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                   prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.grey400),
                   prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                   filled: true,
-                  fillColor: AppColor.grey100,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
                 ),
               ),
             ),
@@ -183,7 +163,8 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                 isSearching: state.searchQuery.isNotEmpty,
                 noCounterAssigned: !isOwnerOrManager && auth.counterId == null,
               ) :
-              Column(
+              BranchTableCard(
+                child: Column(
                 children: [
                   Expanded(
                     child: LayoutBuilder(
@@ -199,27 +180,30 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                       constraints: BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
                           dataRowColor: WidgetStateProperty.resolveWith<Color?>(
                                 (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary.withValues(alpha: 0.05)
+                                ? BranchColor.navy.withValues(alpha: 0.05)
                                 : null,
                           ),
-                          dataRowMinHeight: 56,
-                          dataRowMaxHeight: 56,
+                          headingRowHeight: 46,
+                          dataRowMinHeight: 50,
+                          dataRowMaxHeight: 50,
+                          dividerThickness: 0.6,
+                          horizontalMargin: 16,
                           columnSpacing: (tableWidth * 0.025).clamp(14.0, 44.0),
                           showCheckboxColumn: false,
+                          // Raqam wale columns right par, taake muqabla aasan ho.
                           columns: const [
                             DataColumn(label: Text('Date')),
                             DataColumn(label: Text('Counter')),
-                            DataColumn(label: Text('Cash Sale')),
-                            DataColumn(label: Text('Card Sale')),
-                            DataColumn(label: Text('Udhar Sale')),
-                            DataColumn(label: Text('Total Sale')),
-                            DataColumn(label: Text('Customer Recovery')),
-                            DataColumn(label: Text('Cash In')),
-                            DataColumn(label: Text('Cash Out')),
-                            DataColumn(label: Text('Overall Amount')),
+                            DataColumn(label: Text('Cash Sale'), numeric: true),
+                            DataColumn(label: Text('Card Sale'), numeric: true),
+                            DataColumn(label: Text('Udhar Sale'), numeric: true),
+                            DataColumn(label: Text('Total Sale'), numeric: true),
+                            DataColumn(label: Text('Customer Recovery'), numeric: true),
+                            DataColumn(label: Text('Cash In'), numeric: true),
+                            DataColumn(label: Text('Cash Out'), numeric: true),
+                            DataColumn(label: Text('Overall Amount'), numeric: true),
                           ],
                           rows: pageSlice(records, _page).map((r) {
                             final counterName = r.counterId != null
@@ -232,54 +216,36 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                             return DataRow(
                               cells: [
                                 // Date
-                                DataCell(Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(7),
-                                      decoration: BoxDecoration(
-                                        color: AppColor.primary.withValues(alpha: 0.08),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const AppIcon(
-                                        'ic_calendar',
-                                        size: 14,
-                                        color: AppColor.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      dateFmt.format(r.counterDate),
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600, fontSize: 13),
-                                    ),
-                                  ],
+                                DataCell(Text(
+                                  dateFmt.format(r.counterDate),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600, fontSize: 13),
                                 )),
 
                                 DataCell(CounterChip(counterName: counterName)),
-                                DataCell(_Cell(value: r.cashSaleLabel,   color: AppColor.primary)),
-                                DataCell(_Cell(value: r.cardSaleLabel,   color: AppColor.info)),
-                                DataCell(_Cell(value: r.creditSaleLabel, color: AppColor.warning)),
-                                DataCell(_Cell(value: r.totalSaleLabel,  color: AppColor.primary, isBold: true)),
-                                DataCell(_Cell(value: r.installmentLabel, color: AppColor.grey500)),
-                                DataCell(_Cell(value: r.cashInLabel,     color: AppColor.success)),
-                                DataCell(_Cell(value: r.cashOutLabel,    color: AppColor.error)),
+                                DataCell(BranchAmount(r.cashSale)),
+                                DataCell(BranchAmount(r.cardSale)),
+                                DataCell(BranchAmount(r.creditSale, color: AppColor.warningDark)),
+                                DataCell(BranchAmount(r.totalSale, isBold: true)),
+                                DataCell(BranchAmount(r.installment)),
+                                DataCell(BranchAmount(r.cashIn,  color: AppColor.success)),
+                                DataCell(BranchAmount(r.cashOut, color: AppColor.error)),
 
                                 // Overall Amount
                                 DataCell(Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 5),
+                                      horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: AppColor.success.withValues(alpha: 0.1),
+                                    color: BranchColor.navy.withValues(alpha: 0.06),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                        color: AppColor.success.withValues(alpha: 0.3)),
                                   ),
                                   child: Text(
-                                    r.totalAmountLabel,
+                                    branchMoney(r.totalAmount),
                                     style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w800,
-                                        color: AppColor.success),
+                                        color: BranchColor.navy,
+                                        fontFeatures: [FontFeature.tabularFigures()]),
                                   ),
                                 )),
                               ],
@@ -292,12 +258,16 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                 },
               ),
                   ),
-                  PaginationBar(
-                    total: records.length,
-                    page:  _page,
-                    onPageChanged: (p) => setState(() => _page = p),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: PaginationBar(
+                      total: records.length,
+                      page:  _page,
+                      onPageChanged: (p) => setState(() => _page = p),
+                    ),
                   ),
                 ],
+              ),
               ),
             ),
           ],
@@ -305,25 +275,6 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
       ),
     );
   }
-}
-
-// ── Table Cell ────────────────────────────────────────────────
-class _Cell extends StatelessWidget {
-  final String value;
-  final Color  color;
-  final bool   isBold;
-  const _Cell({
-    required this.value,
-    required this.color,
-    this.isBold = false,
-  });
-
-  @override
-  Widget build(BuildContext context) => Text(value,
-      style: TextStyle(
-          fontSize:   13,
-          fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-          color:      color));
 }
 
 // ── Empty State ───────────────────────────────────────────────

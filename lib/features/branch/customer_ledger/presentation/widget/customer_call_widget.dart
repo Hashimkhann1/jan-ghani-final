@@ -1,5 +1,5 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/features/branch/customer_ledger/data/model/customer_ledger_model.dart';
 
 // ── Customer Cell ─────────────────────────────────────────────
@@ -13,7 +13,7 @@ class CustomerCell extends StatelessWidget {
       children: [
         CircleAvatar(
           radius:          16,
-          backgroundColor: AppColor.primary.withValues(alpha: 0.1),
+          backgroundColor: BranchColor.navy.withValues(alpha: 0.1),
           child: Text(
             l.customerName.isNotEmpty
                 ? l.customerName[0].toUpperCase()
@@ -21,7 +21,7 @@ class CustomerCell extends StatelessWidget {
             style: const TextStyle(
                 fontSize:   12,
                 fontWeight: FontWeight.w700,
-                color:      AppColor.primary),
+                color:      BranchColor.navy),
           ),
         ),
         const SizedBox(width: 10),

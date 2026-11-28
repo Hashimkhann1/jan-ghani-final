@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -146,13 +147,13 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                          color:        AppColor.primary.withValues(alpha: 0.1),
+                          color:        BranchColor.navy.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8)),
                       child: Icon(
                         _isEdit
                             ? Icons.edit_outlined
                             : Icons.person_add_outlined,
-                        color: AppColor.primary, size: 20,
+                        color: BranchColor.navy, size: 20,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -248,7 +249,6 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 13),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                     suffixIcon: IconButton(
@@ -261,22 +261,6 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                       onPressed: () =>
                           setState(() => _showPass = !_showPass),
                     ),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.error)),
                   ),
                 ),
 
@@ -302,21 +286,8 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                   value: _role,
                   decoration: InputDecoration(
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
                   ),
                   // ✅ Manager: sirf cashier + stock_officer
                   // Owner: sab roles
@@ -385,7 +356,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                       const Spacer(),
                       Switch(
                         value:       _isActive,
-                        activeColor: AppColor.primary,
+                        activeColor: BranchColor.accent,
                         onChanged:   (v) =>
                             setState(() => _isActive = v),
                       ),
@@ -401,10 +372,10 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:         AppColor.primary,
+                      backgroundColor:         BranchColor.navy,
                       foregroundColor:         AppColor.white,
                       disabledBackgroundColor:
-                      AppColor.primary.withValues(alpha: 0.6),
+                      BranchColor.navy.withValues(alpha: 0.6),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -492,26 +463,6 @@ class _Field extends StatelessWidget {
                 horizontal: 14, vertical: 12),
             filled:    true,
             fillColor: enabled ? AppColor.grey100 : AppColor.grey200,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                const BorderSide(color: AppColor.grey200)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                const BorderSide(color: AppColor.grey200)),
-            disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                const BorderSide(color: AppColor.grey200)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                    color: AppColor.primary, width: 1.5)),
-            errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                const BorderSide(color: AppColor.error)),
           ),
         ),
       ],

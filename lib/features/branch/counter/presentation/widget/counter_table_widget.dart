@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -33,11 +34,9 @@ class CounterTableWidget extends StatelessWidget {
             constraints: BoxConstraints(minWidth: tableWidth),
             child: SingleChildScrollView(
               child: DataTable(
-                headingRowColor:
-                WidgetStateProperty.all(AppColor.grey100),
                 dataRowColor: WidgetStateProperty.resolveWith<Color?>(
                       (s) => s.contains(WidgetState.hovered)
-                      ? AppColor.primary.withValues(alpha: 0.05)
+                      ? BranchColor.navy.withValues(alpha: 0.05)
                       : null,
                 ),
                 dataRowMinHeight:  56,

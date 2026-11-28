@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:jan_ghani_final/core/widget/app_logo_widget.dart';
+import 'package:jan_ghani_final/core/color/branch_color.dart';
+import 'package:jan_ghani_final/core/config/store_config.dart';
 import 'package:jan_ghani_final/features/branch/authentication/presentation/provider/auth_provider.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_damage/presentation/screen/branch_stock_damage_screen.dart';
 import 'package:jan_ghani_final/features/branch/inventory_balance/presentation/screen/branch_inventory_balance_screen.dart';
 import 'package:jan_ghani_final/features/branch/branch_stock_inventory/presentation/screen/branch_stock_inventory_screen.dart';
-import 'package:jan_ghani_final/features/branch/counter/presentation/screen/counter_screen.dart';
+import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 import 'package:jan_ghani_final/features/branch/permissions/presentation/provider/permissions_provider.dart';
 import 'package:jan_ghani_final/features/branch/permissions/presentation/screen/permissions_screen.dart';
 import 'package:jan_ghani_final/features/branch/customer/presentation/screen/all_customer_screen.dart';
@@ -29,37 +29,20 @@ import '../../../features/branch/dashboard/presentation/screen/dashboard_screen.
 import '../../../features/branch/reports/presentation/screen/sale_invoice_report_screen.dart';
 import '../../../features/branch/store_user/presentation/screen/user_screen.dart';
 
-const _kGrey     = Color(0xFFD3D3D3);
 const _kBg       = Color(0xFFF8F8F8);
 const _kDark     = Color(0xFF333333);
-const _kPrimary  = Color(0xFF6366F1);
-const _kMid      = Color(0xFF64748B);
-const _kSection  = Color(0xFF94A3B8);
+
+// ── Sidebar (navy) colours ──
+const _kSideBg     = BranchColor.navy;
+const _kSideActive = BranchColor.slate;
+const _kSideHover  = Color(0xFF172746);
+const _kSideLine   = Color(0xFF2B3A58);
+const _kSideText   = Color(0xFFD1D5DE);
+const _kSideMuted  = Color(0xFF848DA0);
+const _kAccent     = BranchColor.accent;
 
 const double _kExpandedW  = 248;
 const double _kCollapsedW = 76;
-
-/// permKey → custom SVG icon (assets/icons/). Jis key ka entry yahan
-/// nahi, uska Material `NavItem.icon` fallback use hota hai.
-const _kSidebarIconDir = 'assets/branch_icons/sidebar_icons';
-const _navIconAsset = <String, String>{
-  'dashboard':           '$_kSidebarIconDir/dashboard.svg',
-  'sale_invoice':        '$_kSidebarIconDir/sale_invoice.svg',
-  'customer':            '$_kSidebarIconDir/customer.svg',
-  'customer_account':    '$_kSidebarIconDir/customer_account.svg',
-  'customer_ledger':     '$_kSidebarIconDir/customer_ledger.svg',
-  'cash_counter':        '$_kSidebarIconDir/cash_counter.svg',
-  'cash_difference':     '$_kSidebarIconDir/difference.svg',
-  'branch_transaction':  '$_kSidebarIconDir/branch_transactions.svg',
-  'branch_stock':        '$_kSidebarIconDir/branch_stock.svg',
-  'stock_transfer':      '$_kSidebarIconDir/assign_stock_to_my_branch.svg',
-  'stock_damage':        '$_kSidebarIconDir/stock_damage.svg',
-  'report_sale_invoice': '$_kSidebarIconDir/sale_invoice_report.svg',
-  'report_sale_return':  '$_kSidebarIconDir/sale_return_report.svg',
-  'report_csr':          '$_kSidebarIconDir/csr_report.svg',
-  'users':               '$_kSidebarIconDir/users.svg',
-  'permissions':         '$_kSidebarIconDir/permissions.svg',
-};
 
 // ── NavItem ────────────────────────────────────────────────────
 class NavItem {
@@ -68,10 +51,14 @@ class NavItem {
   final Widget    screen;
   final LogicalKeyboardKey? shortcutKey;
 
-  /// Sidebar me is item ke upar dikhne wala uppercase group heading
-  /// (jaise "PARTIES", "REPORTS"). Lagataar same section ke items ke
+  /// Sidebar me is item ke upar dikhne wala group heading
+  /// (jaise "Stock", "Accounts"). Lagataar same section ke items ke
   /// beech heading sirf ek baar aati hai. `null` = koi heading nahi.
   final String? section;
+
+  /// Same `group` wale lagataar items ek khulne/band hone wale menu
+  /// (jaise "Inventory") ke andar aate hain. `null` = seedha item.
+  final String? group;
 
   /// `PermissionCatalog` module key iss item ko govern karta hai —
   /// `<permKey>.view` granted na ho to yeh item sidebar me nahi dikhta
@@ -83,6 +70,7 @@ class NavItem {
     required this.label,
     required this.screen,
     this.section,
+    this.group,
     this.shortcutKey,
     this.permKey,
   });
@@ -94,123 +82,130 @@ class NavItem {
 // Alt+T=Transactions, Alt+I=Stock, Alt+R=Sale Report
 final _stockOfficerItems = <NavItem>[
   NavItem(
-    icon: Icons.dashboard_rounded, label: 'Dashboard',
+    icon: Icons.dashboard_outlined, label: 'Dashboard',
     screen: const DashboardScreen(),
-    section: 'MAIN',
     shortcutKey: LogicalKeyboardKey.keyD,
     permKey: 'dashboard',
   ),
   NavItem(
-    icon: Icons.point_of_sale_rounded, label: 'Sale Invoice',
+    icon: Icons.receipt_long_outlined, label: 'Sale Invoice',
     screen: const SaleInvoiceScreen(),
-    section: 'SALES',
     shortcutKey: LogicalKeyboardKey.keyS,
+    section: 'Counter',
     permKey: 'sale_invoice',
   ),
   NavItem(
-    icon: Icons.people_alt_rounded, label: 'Customer',
-    screen: const AllCustomerScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyC,
-    permKey: 'customer',
-  ),
-  NavItem(
-    icon: Icons.people_alt_rounded, label: 'Customer account',
-    screen: const CustomerAccountScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyA,
-    permKey: 'customer_account',
-  ),
-  NavItem(
-    icon: Icons.account_balance_wallet_rounded, label: 'Customer Recovery',
-    screen: const CounterCustomerLedgerScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyL,
-    permKey: 'customer_ledger',
-  ),
-  NavItem(
-    icon: Icons.savings_rounded, label: 'Cash Counter',
-    screen: const CashCounterScreen(),
-    section: 'CASH',
-    shortcutKey: LogicalKeyboardKey.keyX,
-    permKey: 'cash_counter',
-  ),
-  NavItem(
-    icon: Icons.receipt_long_rounded, label: 'Difference',
-    screen: const CounterCashTransactionScreen(),
-    section: 'CASH',
-    shortcutKey: LogicalKeyboardKey.keyT,
-    permKey: 'cash_difference',
-  ),
-  NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Branch Assign Balance to Accountant',
-    screen: BranchTransactionScreen(),
-    section: 'CASH',
-    permKey: 'branch_transaction',
-  ),
-  NavItem(
-    icon: Icons.inventory_2_rounded, label: 'Stock',
+    icon: Icons.inventory_2_outlined, label: 'Stock',
     screen: const BranchStockInventoryScreen(),
-    section: 'INVENTORY',
     shortcutKey: LogicalKeyboardKey.keyI,
+    section: 'Stock',
+    group: 'Inventory',
     permKey: 'branch_stock',
   ),
   NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
-    screen: const BranchTransferListScreen(),
-    section: 'INVENTORY',
-    permKey: 'stock_transfer',
-  ),
-  NavItem(
-    icon: Icons.undo_rounded, label: 'Return Stock to Warehouse',
-    screen: const ReturnStockScreen(),
-    section: 'INVENTORY',
-    shortcutKey: LogicalKeyboardKey.keyW,
-    permKey: 'stock_return',
-  ),
-  NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Stock Damage',
+    icon: Icons.report_gmailerrorred_outlined, label: 'Stock Damage',
     screen: const BranchStockDamageScreen(),
-    section: 'INVENTORY',
+    section: 'Stock',
+    group: 'Inventory',
     permKey: 'stock_damage',
   ),
   NavItem(
     icon: Icons.sync_alt_rounded, label: 'Stock Balance Requests',
     screen: const BranchInventoryBalanceScreen(),
-    section: 'INVENTORY',
+    section: 'Stock',
+    group: 'Inventory',
     permKey: 'inventory_balance',
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Sale Report',
+    icon: Icons.local_shipping_outlined, label: 'Assign Stock to My Branch',
+    screen: const BranchTransferListScreen(),
+    section: 'Stock',
+    permKey: 'stock_transfer',
+  ),
+  NavItem(
+    icon: Icons.undo_rounded, label: 'Return Stock to Warehouse',
+    screen: const ReturnStockScreen(),
+    shortcutKey: LogicalKeyboardKey.keyW,
+    section: 'Stock',
+    permKey: 'stock_return',
+  ),
+  NavItem(
+    icon: Icons.people_alt_outlined, label: 'Customer',
+    screen: const AllCustomerScreen(),
+    shortcutKey: LogicalKeyboardKey.keyC,
+    section: 'Accounts',
+    permKey: 'customer',
+  ),
+  NavItem(
+    icon: Icons.account_box_outlined, label: 'Customer account',
+    screen: const CustomerAccountScreen(),
+    shortcutKey: LogicalKeyboardKey.keyA,
+    section: 'Accounts',
+    permKey: 'customer_account',
+  ),
+  NavItem(
+    icon: Icons.account_balance_wallet_outlined, label: 'Customer Recovery',
+    screen: const CounterCustomerLedgerScreen(),
+    shortcutKey: LogicalKeyboardKey.keyL,
+    section: 'Accounts',
+    permKey: 'customer_ledger',
+  ),
+  NavItem(
+    icon: Icons.savings_outlined, label: 'Cash Counter',
+    screen: const CashCounterScreen(),
+    shortcutKey: LogicalKeyboardKey.keyX,
+    section: 'Accounts',
+    permKey: 'cash_counter',
+  ),
+  NavItem(
+    icon: Icons.difference_outlined, label: 'Difference',
+    screen: const CounterCashTransactionScreen(),
+    shortcutKey: LogicalKeyboardKey.keyT,
+    section: 'Accounts',
+    permKey: 'cash_difference',
+  ),
+  NavItem(
+    icon: Icons.compare_arrows_rounded, label: 'Branch Assign Balance to Accountant',
+    screen: BranchTransactionScreen(),
+    section: 'Accounts',
+    permKey: 'branch_transaction',
+  ),
+  NavItem(
+    icon: Icons.description_outlined, label: 'Sale Report',
     screen: const SaleInvoiceListScreen(),
-    section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyR,
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_sale_invoice',
   ),
   NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Sale Return Report',
+    icon: Icons.assignment_return_outlined, label: 'Sale Return Report',
     screen: const SaleReturnReportScreen(),
-    section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyN,
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_sale_return',
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Customer Ledger Report',
+    icon: Icons.menu_book_outlined, label: 'Customer Ledger Report',
     screen: const CsrScreen(),
-    section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyG,
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_csr',
   ),
   NavItem(
-    icon: Icons.account_balance_rounded, label: 'Profit & Loss',
+    icon: Icons.account_balance_outlined, label: 'Profit & Loss',
     screen: const BranchPnlReportScreen(),
-    section: 'REPORTS',
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_pnl',
   ),
   NavItem(
     icon: Icons.trending_up_rounded, label: 'Product Profit & Loss',
     screen: const BranchProductProfitLossScreen(),
-    section: 'REPORTS',
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_product_pnl',
   ),
 ];
@@ -222,141 +217,144 @@ final _stockOfficerItems = <NavItem>[
 // Alt+N=Sale Return Report, Alt+G=Customer Ledger Report
 final _managerItems = <NavItem>[
   NavItem(
-    icon: Icons.dashboard_rounded, label: 'Dashboard',
+    icon: Icons.dashboard_outlined, label: 'Dashboard',
     screen: const DashboardScreen(),
-    section: 'MAIN',
     shortcutKey: LogicalKeyboardKey.keyD,
     permKey: 'dashboard',
   ),
   NavItem(
-    icon: Icons.point_of_sale_rounded, label: 'Sale Invoice',
+    icon: Icons.receipt_long_outlined, label: 'Sale Invoice',
     screen: const SaleInvoiceScreen(),
-    section: 'SALES',
     shortcutKey: LogicalKeyboardKey.keyS,
+    section: 'Counter',
     permKey: 'sale_invoice',
   ),
   NavItem(
-    icon: Icons.people_alt_rounded, label: 'Customer',
-    screen: const AllCustomerScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyC,
-    permKey: 'customer',
-  ),
-  NavItem(
-    icon: Icons.people_alt_rounded, label: 'Customer account',
-    screen: const CustomerAccountScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyA,
-    permKey: 'customer_account',
-  ),
-  NavItem(
-    icon: Icons.account_balance_wallet_rounded, label: 'Customer Recovery',
-    screen: const CounterCustomerLedgerScreen(),
-    section: 'PARTIES',
-    shortcutKey: LogicalKeyboardKey.keyL,
-    permKey: 'customer_ledger',
-  ),
-  NavItem(
-    icon: Icons.receipt_long_rounded, label: 'Difference',
-    screen: const CounterCashTransactionScreen(),
-    section: 'CASH',
-    shortcutKey: LogicalKeyboardKey.keyT,
-    permKey: 'cash_difference',
-  ),
-  NavItem(
-    icon: Icons.savings_rounded, label: 'Cash Counter',
-    screen: const CashCounterScreen(),
-    section: 'CASH',
-    shortcutKey: LogicalKeyboardKey.keyX,
-    permKey: 'cash_counter',
-  ),
-  NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Branch Transactions',
-    screen: BranchTransactionScreen(),
-    section: 'CASH',
-    permKey: 'branch_transaction',
-  ),
-  NavItem(
-    icon: Icons.inventory_2_rounded, label: 'Branch Stock',
+    icon: Icons.inventory_2_outlined, label: 'Branch Stock',
     screen: const BranchStockInventoryScreen(),
-    section: 'INVENTORY',
     shortcutKey: LogicalKeyboardKey.keyI,
+    section: 'Stock',
+    group: 'Inventory',
     permKey: 'branch_stock',
   ),
   NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Assign Stock to My Branch',
-    screen: const BranchTransferListScreen(),
-    section: 'INVENTORY',
-    permKey: 'stock_transfer',
-  ),
-  NavItem(
-    icon: Icons.undo_rounded, label: 'Return Stock to Warehouse',
-    screen: const ReturnStockScreen(),
-    section: 'INVENTORY',
-    shortcutKey: LogicalKeyboardKey.keyW,
-    permKey: 'stock_return',
-  ),
-  // NavItem(
-  //   icon: Icons.point_of_sale_rounded, label: 'Counter',
-  //   screen: const AllCounterScreen(),
-  // ),
-  NavItem(
-    icon: Icons.local_shipping_rounded, label: 'Stock Damage',
+    icon: Icons.report_gmailerrorred_outlined, label: 'Stock Damage',
     screen: const BranchStockDamageScreen(),
-    section: 'INVENTORY',
+    section: 'Stock',
+    group: 'Inventory',
     permKey: 'stock_damage',
   ),
   NavItem(
     icon: Icons.sync_alt_rounded, label: 'Stock Balance Requests',
     screen: const BranchInventoryBalanceScreen(),
-    section: 'INVENTORY',
+    section: 'Stock',
+    group: 'Inventory',
     permKey: 'inventory_balance',
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Sale Invoice Report',
+    icon: Icons.local_shipping_outlined, label: 'Assign Stock to My Branch',
+    screen: const BranchTransferListScreen(),
+    section: 'Stock',
+    permKey: 'stock_transfer',
+  ),
+  NavItem(
+    icon: Icons.undo_rounded, label: 'Return Stock to Warehouse',
+    screen: const ReturnStockScreen(),
+    shortcutKey: LogicalKeyboardKey.keyW,
+    section: 'Stock',
+    permKey: 'stock_return',
+  ),
+  NavItem(
+    icon: Icons.people_alt_outlined, label: 'Customer',
+    screen: const AllCustomerScreen(),
+    shortcutKey: LogicalKeyboardKey.keyC,
+    section: 'Accounts',
+    permKey: 'customer',
+  ),
+  NavItem(
+    icon: Icons.account_box_outlined, label: 'Customer account',
+    screen: const CustomerAccountScreen(),
+    shortcutKey: LogicalKeyboardKey.keyA,
+    section: 'Accounts',
+    permKey: 'customer_account',
+  ),
+  NavItem(
+    icon: Icons.account_balance_wallet_outlined, label: 'Customer Recovery',
+    screen: const CounterCustomerLedgerScreen(),
+    shortcutKey: LogicalKeyboardKey.keyL,
+    section: 'Accounts',
+    permKey: 'customer_ledger',
+  ),
+  NavItem(
+    icon: Icons.savings_outlined, label: 'Cash Counter',
+    screen: const CashCounterScreen(),
+    shortcutKey: LogicalKeyboardKey.keyX,
+    section: 'Accounts',
+    permKey: 'cash_counter',
+  ),
+  NavItem(
+    icon: Icons.difference_outlined, label: 'Difference',
+    screen: const CounterCashTransactionScreen(),
+    shortcutKey: LogicalKeyboardKey.keyT,
+    section: 'Accounts',
+    permKey: 'cash_difference',
+  ),
+  NavItem(
+    icon: Icons.compare_arrows_rounded, label: 'Branch Transactions',
+    screen: BranchTransactionScreen(),
+    section: 'Accounts',
+    permKey: 'branch_transaction',
+  ),
+  NavItem(
+    icon: Icons.description_outlined, label: 'Sale Invoice Report',
     screen: const SaleInvoiceListScreen(),
-    section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyR,
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_sale_invoice',
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Sale Return Report',
+    icon: Icons.assignment_return_outlined, label: 'Sale Return Report',
     screen: const SaleReturnReportScreen(),
-    section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyN,
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_sale_return',
   ),
   NavItem(
-    icon: Icons.bar_chart_rounded, label: 'Customer Ledger Report',
+    icon: Icons.menu_book_outlined, label: 'Customer Ledger Report',
     screen: const CsrScreen(),
-    section: 'REPORTS',
     shortcutKey: LogicalKeyboardKey.keyG,
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_csr',
   ),
   NavItem(
-    icon: Icons.account_balance_rounded, label: 'Profit & Loss',
+    icon: Icons.account_balance_outlined, label: 'Profit & Loss',
     screen: const BranchPnlReportScreen(),
-    section: 'REPORTS',
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_pnl',
   ),
   NavItem(
     icon: Icons.trending_up_rounded, label: 'Product Profit & Loss',
     screen: const BranchProductProfitLossScreen(),
-    section: 'REPORTS',
+    section: 'Accounts',
+    group: 'Reports',
     permKey: 'report_product_pnl',
   ),
   NavItem(
-    icon: Icons.manage_accounts_rounded, label: 'Users',
+    icon: Icons.manage_accounts_outlined, label: 'Users',
     screen: const AllUserScreen(),
-    section: 'ADMINISTRATION',
     shortcutKey: LogicalKeyboardKey.keyU,
+    section: 'Shop',
     permKey: 'users',
   ),
   NavItem(
-    icon: Icons.verified_user_rounded, label: 'Permissions',
+    icon: Icons.verified_user_outlined, label: 'Permissions',
     screen: const PermissionsScreen(),
-    section: 'ADMINISTRATION',
     shortcutKey: LogicalKeyboardKey.keyP,
+    section: 'Shop',
     permKey: 'permissions',
   ),
 ];
@@ -375,6 +373,9 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
   bool  _collapsed    = false;
   bool  _showTooltip  = false;
   OverlayEntry? _tooltipOverlay;
+
+  /// User ne jo groups khol rakhe hain (Inventory / Reports).
+  final _openGroups = <String>{};
 
   List<NavItem> _baseItems(String role) {
     switch (role) {
@@ -495,6 +496,9 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
   }
 
   void _onTap(int i, List<NavItem> items) {
+    // Shortcut / snackbar se khula item apne group ke andar nazar aaye.
+    final group = items[i].group;
+    if (group != null) setState(() => _openGroups.add(group));
     if (_index == i) return;
     setState(() => _index = i);
     _navigatorKey.currentState?.pushAndRemoveUntil(
@@ -607,7 +611,7 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
             duration: const Duration(milliseconds: 200),
             curve:    Curves.easeInOut,
             width:    _collapsed ? _kCollapsedW : _kExpandedW,
-            color:    Colors.white,
+            color:    _kSideBg,
             // Width animate hone ke doraan content ko uski FINAL width par
             // hi layout do (OverflowBox) aur bahar nikla hissa clip kar do —
             // warna intermediate frames me RenderFlex overflow aata hai.
@@ -618,67 +622,8 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
                 maxWidth:  _collapsed ? _kCollapsedW : _kExpandedW,
                 child: Column(
               children: [
-                // ── Header: logo + title + collapse toggle ──────
-                Container(
-                  height: 60,
-                  width:  double.infinity,
-                  padding: EdgeInsets.symmetric(
-                      horizontal: _collapsed ? 0 : 14),
-                  decoration: const BoxDecoration(
-                    color:  Colors.white,
-                    border: Border(bottom: BorderSide(color: _kGrey)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: _collapsed
-                        ? MainAxisAlignment.center
-                        : MainAxisAlignment.start,
-                    children: [
-                      const AppLogo(size: 34, radius: 9),
-                      if (!_collapsed) ...[
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment:  MainAxisAlignment.center,
-                            children: [
-                              const Text('POS',
-                                  style: TextStyle(
-                                      fontSize:   15,
-                                      fontWeight: FontWeight.w800,
-                                      color:      _kDark,
-                                      letterSpacing: 1)),
-                              Text(auth.user?.roleLabel ?? '',
-                                  style: const TextStyle(
-                                      fontSize:   10,
-                                      color:      Color(0xFF2563EB),
-                                      fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          visualDensity: VisualDensity.compact,
-                          splashRadius:  18,
-                          icon: const Icon(Icons.chevron_left_rounded,
-                              size: 22, color: _kMid),
-                          onPressed: () =>
-                              setState(() => _collapsed = true),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                if (_collapsed)
-                  Align(
-                    alignment: Alignment.center,
-                    child: IconButton(
-                      visualDensity: VisualDensity.compact,
-                      splashRadius:  18,
-                      icon: const Icon(Icons.chevron_right_rounded,
-                          size: 22, color: _kMid),
-                      onPressed: () => setState(() => _collapsed = false),
-                    ),
-                  ),
+                // ── Header: shop + counter + collapse toggle ────
+                _header(auth),
 
                 // ── Nav Items ──────────────────────────────────
                 Expanded(
@@ -689,75 +634,12 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
                 ),
 
                 // ── Footer: user + logout ──────────────────────
-                Container(
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: _kGrey)),
-                  ),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: _collapsed ? 8 : 12, vertical: 10),
-                  child: _collapsed
-                      ? Column(
-                          children: [
-                            _avatar(auth),
-                            const SizedBox(height: 8),
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              splashRadius:  18,
-                              tooltip: 'Logout',
-                              icon: const Icon(Icons.logout_rounded,
-                                  size: 20, color: Color(0xFFEF4444)),
-                              onPressed: () => _confirmLogout(context),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          children: [
-                            _avatar(auth),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    auth.fullName.isEmpty
-                                        ? auth.username
-                                        : auth.fullName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize:   13,
-                                        fontWeight: FontWeight.w700,
-                                        color:      _kDark),
-                                  ),
-                                  Text(
-                                    auth.username,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: 11, color: _kMid),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              splashRadius:  18,
-                              tooltip: 'Logout',
-                              icon: const Icon(Icons.logout_rounded,
-                                  size: 20, color: Color(0xFFEF4444)),
-                              onPressed: () => _confirmLogout(context),
-                            ),
-                          ],
-                        ),
-                ),
+                _footer(auth),
               ],
                 ),
               ),
             ),
           ),
-
-          Container(width: 1, color: _kGrey),
 
           // ── Body ──────────────────────────────────────────────
           Expanded(
@@ -773,24 +655,140 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
     );
   }
 
+  Widget _header(AuthState auth) {
+    final counters = ref.watch(counterProvider).counters;
+    final counter  = counters.where((c) => c.id == auth.counterId).firstOrNull;
+    // Counter assign na ho to role dikhao.
+    final subtitle = counter?.counterName ?? auth.user?.roleLabel ?? '';
+
+    if (_collapsed) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 14, bottom: 6),
+        child: Column(
+          children: [
+            const Icon(Icons.storefront_outlined,
+                size: 26, color: Colors.white),
+            const SizedBox(height: 6),
+            _sideButton(Icons.chevron_right_rounded, 'Sidebar kholein',
+                () => setState(() => _collapsed = false)),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.storefront_outlined,
+                  size: 24, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(StoreConfig.storeName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize:   16,
+                        fontWeight: FontWeight.w800,
+                        color:      Colors.white)),
+              ),
+              _sideButton(Icons.chevron_left_rounded, 'Sidebar chhota karein',
+                  () => setState(() => _collapsed = true)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, color: _kAccent)),
+        ],
+      ),
+    );
+  }
+
+  Widget _footer(AuthState auth) {
+    final name = auth.fullName.isEmpty ? auth.username : auth.fullName;
+    final logout = _sideButton(
+        Icons.logout_rounded, 'Logout', () => _confirmLogout(context));
+
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: _kSideLine)),
+      ),
+      padding: EdgeInsets.symmetric(
+          horizontal: _collapsed ? 8 : 16, vertical: 12),
+      child: _collapsed
+          ? Column(
+              children: [_avatar(auth), const SizedBox(height: 8), logout],
+            )
+          : Row(
+              children: [
+                _avatar(auth),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize:   14,
+                              fontWeight: FontWeight.w700,
+                              color:      Colors.white)),
+                      Text(auth.user?.roleLabel ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12, color: _kSideMuted)),
+                    ],
+                  ),
+                ),
+                logout,
+              ],
+            ),
+    );
+  }
+
+  Widget _sideButton(IconData icon, String tooltip, VoidCallback onTap) =>
+      IconButton(
+        visualDensity: VisualDensity.compact,
+        splashRadius:  18,
+        tooltip:       tooltip,
+        icon:          Icon(icon, size: 20, color: _kSideText),
+        onPressed:     onTap,
+      );
+
   Widget _avatar(AuthState auth) {
     final src = auth.fullName.isEmpty ? auth.username : auth.fullName;
-    final letter = src.isEmpty ? '?' : src.trim()[0].toUpperCase();
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: _kPrimary.withOpacity(0.12),
+    final letter = src.trim().isEmpty ? '?' : src.trim()[0].toUpperCase();
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color:        _kSideActive,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Text(letter,
           style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w800, color: _kPrimary)),
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: Colors.white)),
     );
   }
 
   /// Nav list ke rows banata hai — har naye `section` par ek heading
-  /// (expanded me uppercase text, collapsed me patli divider line).
+  /// (expanded me text, collapsed me patli divider line) aur har naye
+  /// `group` par khulne/band hone wala parent row.
   List<Widget> _buildNavRows(List<NavItem> items, int safeIndex) {
     final pending = ref.watch(pendingTransferBadgeProvider);
     final rows = <Widget>[];
     String? lastSection;
+    String? lastGroup;
 
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
@@ -801,38 +799,61 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
             rows.add(Container(
               height: 1,
               margin: const EdgeInsets.fromLTRB(18, 10, 18, 8),
-              color: _kGrey.withOpacity(0.7),
+              color: _kSideLine,
             ));
           }
         } else {
           rows.add(Padding(
-            padding: EdgeInsets.fromLTRB(18, i == 0 ? 6 : 16, 12, 6),
+            padding: EdgeInsets.fromLTRB(20, i == 0 ? 6 : 16, 12, 6),
             child: Text(
               item.section!,
-              style: const TextStyle(
-                fontSize:      11,
-                fontWeight:    FontWeight.w700,
-                color:         _kSection,
-                letterSpacing: 0.8,
-              ),
+              style: const TextStyle(fontSize: 12, color: _kSideMuted),
             ),
           ));
         }
       }
       lastSection = item.section ?? lastSection;
 
-      final shortcut = items[i].shortcutKey;
-      final isTransfer = items[i].screen is BranchTransferListScreen;
+      final group = item.group;
+      // Chhoti sidebar mein parent row nahi — saare icons seedhe dikhte hain.
+      if (!_collapsed && group != null && group != lastGroup) {
+        final open = _openGroups.contains(group);
+        final children = items.where((e) => e.group == group);
+        final hasPending = pending.count > 0 &&
+            children.any((e) => e.screen is BranchTransferListScreen);
+        rows.add(_NavTile(
+          icon: group == 'Reports'
+              ? Icons.bar_chart_rounded
+              : Icons.inventory_2_outlined,
+          label: group,
+          // Band group ke andar wali screen khuli ho to parent highlight.
+          isSelected: !open && items[safeIndex].group == group,
+          collapsed: false,
+          // Band group mein bhi pending transfer ka badge nazar aaye.
+          badgeCount: !open && hasPending ? pending.count : 0,
+          expanded: open,
+          onTap: () => setState(() =>
+              open ? _openGroups.remove(group) : _openGroups.add(group)),
+        ));
+      }
+      lastGroup = group;
+
+      if (!_collapsed && group != null && !_openGroups.contains(group)) {
+        continue;
+      }
+
+      final shortcut = item.shortcutKey;
+      final isTransfer = item.screen is BranchTransferListScreen;
       rows.add(_NavTile(
         badgeCount: isTransfer ? pending.count : 0,
         badgeTooltip: isTransfer && pending.count > 0
             ? '${pending.count} pending • ${pending.units} units'
             : null,
-        icon:       items[i].icon,
-        iconAsset:  _navIconAsset[items[i].permKey],
-        label:      items[i].label,
+        icon:       item.icon,
+        label:      item.label,
         isSelected: safeIndex == i,
         collapsed:  _collapsed,
+        indented:   !_collapsed && group != null,
         shortcutHint: shortcut != null ? '⌥${_keyLabel(shortcut)}' : null,
         onTap: () => _onTap(i, items),
       ));
@@ -863,10 +884,13 @@ class _SideBarState extends ConsumerState<BranchSideBar> {
 // ── Nav Tile ──────────────────────────────────────────────────
 class _NavTile extends StatelessWidget {
   final IconData   icon;
-  final String?    iconAsset;
   final String     label;
   final bool       isSelected;
   final bool       collapsed;
+  final bool       indented;
+
+  /// Sirf group ke parent row par set hota hai (chevron dikhane ke liye).
+  final bool?      expanded;
   final String?    shortcutHint;
   final int        badgeCount;
   final String?    badgeTooltip;
@@ -880,28 +904,15 @@ class _NavTile extends StatelessWidget {
     required this.isSelected,
     required this.collapsed,
     required this.onTap,
-    this.iconAsset,
+    this.indented = false,
+    this.expanded,
     this.shortcutHint,
   });
-
-  Widget _icon(Color fg, double size) => iconAsset != null
-      ? UnconstrainedBox(
-          child: SizedBox(
-            width:  size,
-            height: size,
-            child: SvgPicture.asset(
-              iconAsset!,
-              fit: BoxFit.contain,
-              colorFilter: ColorFilter.mode(fg, BlendMode.srcIn),
-            ),
-          ),
-        )
-      : Icon(icon, size: size, color: fg);
 
   String get _badgeText => badgeCount > 99 ? '99+' : '$badgeCount';
 
   Widget _badge() => Container(
-        margin: const EdgeInsets.only(right: 6),
+        margin: const EdgeInsets.only(left: 6),
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
         constraints: const BoxConstraints(minWidth: 20),
         decoration: BoxDecoration(
@@ -918,7 +929,7 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = isSelected ? _kPrimary : _kMid;
+    final fg = isSelected ? Colors.white : _kSideText;
 
     final Widget content = collapsed
         ? Center(
@@ -926,70 +937,74 @@ class _NavTile extends StatelessWidget {
                 ? Badge(
                     label: Text(_badgeText),
                     backgroundColor: const Color(0xFFEF4444),
-                    child: _icon(fg, 22),
+                    child: Icon(icon, size: 22, color: fg),
                   )
-                : _icon(fg, 22))
+                : Icon(icon, size: 22, color: fg))
         : Row(
             children: [
-              _icon(fg, 20),
-              const SizedBox(width: 13),
+              Icon(icon, size: indented ? 18 : 20, color: fg),
+              const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize:   13,
+                    fontSize:   indented ? 13 : 14,
                     fontWeight: isSelected
                         ? FontWeight.w700
                         : FontWeight.w500,
-                    color: isSelected ? _kPrimary : _kDark,
+                    color: fg,
                   ),
                 ),
               ),
               if (badgeCount > 0) _badge(),
-              if (shortcutHint != null)
-                Text(
-                  shortcutHint!,
-                  style: TextStyle(
-                    fontSize:   10,
-                    fontWeight: FontWeight.w700,
-                    color: isSelected
-                        ? _kPrimary
-                        : _kSection,
-                  ),
+              if (expanded != null)
+                Icon(
+                  expanded!
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 20,
+                  color: fg,
                 ),
             ],
           );
 
-    return Padding(
-      padding: EdgeInsets.symmetric(
-          horizontal: collapsed ? 12 : 10, vertical: 2),
-      child: Tooltip(
-        message: badgeTooltip ??
-            (shortcutHint != null ? '$label  ($shortcutHint)' : label),
-        preferBelow: false,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap:        onTap,
-            borderRadius: BorderRadius.circular(10),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width:   double.infinity,
-              padding: EdgeInsets.symmetric(
-                  horizontal: collapsed ? 0 : 12, vertical: 11),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? _kPrimary.withOpacity(0.1)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
+    final tile = Material(
+      color: isSelected ? _kSideActive : Colors.transparent,
+      child: InkWell(
+        onTap:      onTap,
+        hoverColor: _kSideHover,
+        child: Container(
+          height: 44,
+          // Selected item ke left par sunehri patti. Baaqi items par bhi
+          // utni hi (transparent) jagah taake text hile nahi.
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                width: 3,
+                color: isSelected ? _kAccent : Colors.transparent,
               ),
-              child: content,
             ),
           ),
+          padding: EdgeInsets.only(
+            left:  collapsed ? 0 : (indented ? 33 : 17),
+            right: collapsed ? 3 : 14,
+          ),
+          child: content,
         ),
       ),
+    );
+
+    // Group parent par tooltip ki zaroorat nahi.
+    if (expanded != null) return tile;
+
+    return Tooltip(
+      message: badgeTooltip ??
+          (shortcutHint != null ? '$label  ($shortcutHint)' : label),
+      preferBelow: false,
+      waitDuration: const Duration(milliseconds: 500),
+      child: tile,
     );
   }
 }

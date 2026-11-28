@@ -1,6 +1,7 @@
 // lib/features/branch/sale_invoice/presentation/widget/sale_type_dropdown.dart
 // ── Up/Down arrow key support added ──
 
+import '../../../../../core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -69,12 +70,12 @@ class _SaleTypeDropdownState extends State<SaleTypeDropdown> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             decoration: BoxDecoration(
-              color:        AppColor.primary.withOpacity(0.07),
+              color:        BranchColor.navy.withOpacity(0.07),
               borderRadius: BorderRadius.circular(3),
             ),
             child: const Text('↑↓',
                 style: TextStyle(
-                    fontSize: 8, color: AppColor.primary,
+                    fontSize: 8, color: BranchColor.navy,
                     fontWeight: FontWeight.w700)),
           ),
         ])),

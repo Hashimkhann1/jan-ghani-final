@@ -190,25 +190,12 @@ class _AddCashRegistrationDialogState
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 14),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(
                             color: AppColor.success, width: 1.5)),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.error)),
                   ),
                 ),
 

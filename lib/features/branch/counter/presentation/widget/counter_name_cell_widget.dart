@@ -1,5 +1,5 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
-import 'package:jan_ghani_final/core/color/app_color.dart';
 
 class CounterNameCellWidget extends StatelessWidget {
   const CounterNameCellWidget({super.key, required this.name});
@@ -13,13 +13,13 @@ class CounterNameCellWidget extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color:        AppColor.primary.withValues(alpha: 0.08),
+            color:        BranchColor.navy.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(
             Icons.point_of_sale_outlined,
             size:  15,
-            color: AppColor.primary,
+            color: BranchColor.navy,
           ),
         ),
         const SizedBox(width: 10),

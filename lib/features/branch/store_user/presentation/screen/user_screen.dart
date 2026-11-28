@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -64,7 +65,7 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                 foregroundColor: Colors.white,
                 elevation:       0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
+                    borderRadius: BorderRadius.circular(10))),
             onPressed: () {
               ref.read(userProvider.notifier).deleteUser(user.id);
               Navigator.pop(ctx);
@@ -131,7 +132,7 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => _openDialog(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
+                    backgroundColor: BranchColor.navy,
                     foregroundColor: Colors.white,
                     elevation:       0,
                     shape: RoundedRectangleBorder(
@@ -162,7 +163,7 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                   title: 'Total Users',
                   value: '${state.totalCount}',
                   iconAsset: 'ic_top_customers',
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
@@ -204,13 +205,8 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                         prefixIcon: const AppIcon('ic_search',
                             size: 18, color: AppColor.grey400),
                         filled:    true,
-                        fillColor: AppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:   BorderSide.none,
-                        ),
                       ),
                     ),
                   ),
@@ -278,12 +274,10 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                       BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(
-                              AppColor.grey100),
                           dataRowColor:
                           WidgetStateProperty.resolveWith<Color?>(
                                 (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary
+                                ? BranchColor.navy
                                 .withValues(alpha: 0.05)
                                 : null,
                           ),
@@ -318,7 +312,7 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                                     CircleAvatar(
                                       radius: 16,
                                       backgroundColor:
-                                      AppColor.primary
+                                      BranchColor.navy
                                           .withValues(alpha: 0.1),
                                       child: Text(
                                         u.fullName.isNotEmpty
@@ -327,7 +321,7 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                                         style: const TextStyle(
                                           fontSize:   13,
                                           fontWeight: FontWeight.w700,
-                                          color:      AppColor.primary,
+                                          color:      BranchColor.navy,
                                         ),
                                       ),
                                     ),
@@ -378,7 +372,7 @@ class _AllUserScreenState extends ConsumerState<AllUserScreen> {
                                       CustomerActionButton(
                                         icon:      Icons.edit_outlined,
                                         iconAsset: 'ic_edit',
-                                        color:     AppColor.primary,
+                                        color:     BranchColor.navy,
                                         tooltip:   'Edit',
                                         onTap:     () => _openDialog(
                                             context, user: u),
@@ -420,7 +414,7 @@ class _CounterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAssigned = counterName != null;
-    final color      = isAssigned ? AppColor.primary : AppColor.grey400;
+    final color      = isAssigned ? BranchColor.navy : AppColor.grey400;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

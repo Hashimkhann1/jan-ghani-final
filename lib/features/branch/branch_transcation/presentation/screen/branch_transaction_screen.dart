@@ -1,3 +1,6 @@
+import 'package:jan_ghani_final/core/widget/branch_ui.dart';
+import 'package:jan_ghani_final/core/color/branch_color.dart';
+import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -182,36 +185,22 @@ class _BranchTransactionScreenState
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Branch Transaction History',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+      appBar: BranchAppBar(
+        title:    'Branch Transactions',
+        subtitle: 'Accountant ko diya gaya cash',
         actions: [
-          IconButton(
-            icon:    const AppIcon('ic_refresh', size: 20, color: Color(0xFF6B7280)),
-            tooltip: 'Refresh (F5)',
-            onPressed: () =>
-                ref.read(branchTransactionProvider.notifier).loadData(),
+          BranchRefreshButton(
+              tooltip:   'Refresh (F5)',
+              onPressed: () =>
+                  ref.read(branchTransactionProvider.notifier).loadData()),
+          // Paisa bahar jata hai, is liye laal.
+          BranchActionButton(
+            label:     'Cash Out  (Ctrl+N)',
+            iconAsset: 'ic_cash_out',
+            color:     AppColor.error,
+            iconColor: Colors.white,
+            onPressed: state.isLoading ? null : _openCashOutDialog,
           ),
-          const SizedBox(width: 8),
-          IntrinsicWidth(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              child: ElevatedButton.icon(
-                onPressed: state.isLoading ? null : _openCashOutDialog,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  elevation:       0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                icon:  const AppIcon('ic_cash_out', size: 18, color: Colors.white),
-                label: const Text('Cash Out  (Ctrl+N)',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
         ],
       ),
 
@@ -222,25 +211,30 @@ class _BranchTransactionScreenState
         child: Column(
           children: [
 
-            // ── Summary Card ────────────────────────
-            _SummaryCard(
-              totalAmount:    state.totalAmount,
-              cashInHand:     state.cashInHand,
-              totalPayAmount: state.history.fold(
-                  0.0, (sum, t) => sum + t.payAmount),
+            // ── Stat Cards ──────────────────────────
+            Row(
+              children: [
+                BranchStatCard(
+                  title:     'Cash In Hand',
+                  value:     branchMoney(state.totalAmount),
+                  iconAsset: 'ic_cash_in',
+                  color:     AppColor.success,
+                ),
+                const SizedBox(width: 12),
+                BranchStatCard(
+                  title: 'Total Pay Amount',
+                  value: branchMoney(state.history
+                      .fold(0.0, (sum, t) => sum + t.payAmount)),
+                  iconAsset: 'ic_cash_out',
+                  color:     AppColor.error,
+                ),
+              ],
             ),
 
             const SizedBox(height: 16),
 
             // ── Date Range Filter (TextFields) ──────
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
-                child: LayoutBuilder(
+            LayoutBuilder(
                   builder: (ctx, constraints) {
                     final isWide = constraints.maxWidth > 600;
 
@@ -253,8 +247,6 @@ class _BranchTransactionScreenState
                         hintText:  'dd MMM yyyy',
                         isDense:   true,
                         prefixIcon: const AppIcon('ic_calendar', size: 18),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 12),
                       ),
@@ -270,8 +262,6 @@ class _BranchTransactionScreenState
                         hintText:  'dd MMM yyyy',
                         isDense:   true,
                         prefixIcon: const AppIcon('ic_calendar', size: 18),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 12),
                       ),
@@ -312,8 +302,6 @@ class _BranchTransactionScreenState
                     );
                   },
                 ),
-              ),
-            ),
 
             const SizedBox(height: 6),
             const Align(
@@ -326,19 +314,10 @@ class _BranchTransactionScreenState
             ),
             const SizedBox(height: 10),
 
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Transaction History',
-                  style: TextStyle(
-                      fontSize:   16,
-                      fontWeight: FontWeight.bold)),
-            ),
-
-            const SizedBox(height: 10),
-
             // ── DataTable ────────────────────────────
             Expanded(
-              child: state.history.isEmpty
+              child: BranchTableCard(
+                child: state.history.isEmpty
                   ? const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -373,18 +352,18 @@ class _BranchTransactionScreenState
                             minWidth: tableWidth),
                         child: SingleChildScrollView(
                           child: DataTable(
-                            headingRowColor:
-                            WidgetStateProperty.all(
-                                Colors.grey.shade100),
                             dataRowMinHeight: 56,
                             dataRowMaxHeight: 56,
                             columnSpacing:    28,
-                            showCheckboxColumn: false,
+                            headingRowHeight: 46,
+                          dividerThickness: 0.6,
+                          horizontalMargin: 16,
+                          showCheckboxColumn: false,
                             columns: const [
                               DataColumn(label: Text('Type')),
-                              DataColumn(label: Text('Before Amount')),
-                              DataColumn(label: Text('Pay Amount')),
-                              DataColumn(label: Text('After Amount')),
+                              DataColumn(label: Text('Before Amount'), numeric: true),
+                              DataColumn(label: Text('Pay Amount'), numeric: true),
+                              DataColumn(label: Text('After Amount'), numeric: true),
                               DataColumn(label: Text('By')),
                               DataColumn(label: Text('Date & Time')),
                             ],
@@ -420,29 +399,17 @@ class _BranchTransactionScreenState
                                   ),
                                 )),
 
-                                DataCell(Text(
-                                  'Rs ${t.beforeAmount.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54),
-                                )),
+                                DataCell(BranchAmount(t.beforeAmount,
+                                    color: AppColor.textSecondary)),
 
-                                DataCell(Text(
-                                  'Rs ${t.payAmount.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontSize:   13,
-                                      fontWeight: FontWeight.w600),
-                                )),
+                                DataCell(BranchAmount(t.payAmount,
+                                    color: AppColor.error, isBold: true)),
 
-                                DataCell(Text(
-                                  'Rs ${t.afterAmount.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                      fontSize:   13,
-                                      fontWeight: FontWeight.w600,
-                                      color: t.afterAmount >= 0
-                                          ? Colors.black87
-                                          : Colors.red),
-                                )),
+                                DataCell(BranchAmount(t.afterAmount,
+                                    isBold: true,
+                                    color: t.afterAmount >= 0
+                                        ? BranchColor.navy
+                                        : AppColor.error)),
 
                                 DataCell(Text(
                                   t.assignByName,
@@ -468,95 +435,21 @@ class _BranchTransactionScreenState
                 ),
               ),
                   ),
-                  PaginationBar(
-                    total: state.history.length,
-                    page:  _page,
-                    onPageChanged: (p) => setState(() => _page = p),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: PaginationBar(
+                      total: state.history.length,
+                      page:  _page,
+                      onPageChanged: (p) => setState(() => _page = p),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Summary Card ─────────────────────────────────────────────
-// ── Summary Card ─────────────────────────────────────────────
-class _SummaryCard extends StatelessWidget {
-  final double totalAmount;
-  final double cashInHand;
-  final double totalPayAmount;
-
-  const _SummaryCard({
-    required this.totalAmount,
-    required this.cashInHand,
-    required this.totalPayAmount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Expanded(
-              child: _AmountItem(
-                label:  'Cash In Hand',
-                amount: totalAmount,
-                color:  Colors.green,
-                iconAsset: 'ic_cash_in',
-              ),
-            ),
-            Container(width: 1, height: 50, color: Colors.grey.shade200),
-            Expanded(
-              child: _AmountItem(
-                label:  'Total Pay Amount',
-                amount: totalPayAmount,
-                color:  Colors.red,
-                iconAsset: 'ic_cash_out',
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _AmountItem extends StatelessWidget {
-  final String   label;
-  final double   amount;
-  final Color    color;
-  final String   iconAsset;
-
-  const _AmountItem({
-    required this.label,
-    required this.amount,
-    required this.color,
-    required this.iconAsset,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AppIcon(iconAsset, color: color, size: 20),
-        const SizedBox(height: 6),
-        Text(label,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-        const SizedBox(height: 4),
-        Text(
-          'Rs. ${amount.toStringAsFixed(2)}',
-          style: TextStyle(
-              color: color, fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ],
     );
   }
 }

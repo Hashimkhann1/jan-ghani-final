@@ -1,5 +1,6 @@
 
 
+import '../../../../../core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/color/app_color.dart';
@@ -42,21 +43,8 @@ class DropdownField<T> extends StatelessWidget {
         decoration: InputDecoration(
           prefixIcon: Icon(icon, size: 16, color: AppColor.grey500),
           filled: true,
-          fillColor: AppColor.grey100,
           contentPadding:
           const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColor.grey200),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
-          ),
         ),
         items: items
             .map((item) => DropdownMenuItem<T>(

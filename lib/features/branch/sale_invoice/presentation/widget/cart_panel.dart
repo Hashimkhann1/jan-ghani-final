@@ -998,6 +998,7 @@
 // }
 
 
+import '../../../../../core/color/branch_color.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1246,7 +1247,7 @@ InputDecoration _fieldDecoration({
     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     border:        border(borderColor ?? AppColor.grey200, 1),
     enabledBorder: border(borderColor ?? AppColor.grey200, 1),
-    focusedBorder: border(focusColor ?? AppColor.primary, 1.6),
+    focusedBorder: border(focusColor ?? BranchColor.navy, 1.6),
   );
 }
 
@@ -1344,7 +1345,7 @@ class _HoldButton extends StatelessWidget {
             elevation:               0,
             padding: const EdgeInsets.symmetric(horizontal: 8),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(10)),
           ),
         ),
       ),
@@ -1452,7 +1453,7 @@ class _CustomerDropdownState extends ConsumerState<_CustomerDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    final accent        = isReturn ? AppColor.error : AppColor.primary;
+    final accent        = isReturn ? AppColor.error : BranchColor.navy;
     final customerFocus = ref.watch(posCustomerFocusProvider);
 
     return Column(
@@ -1464,12 +1465,12 @@ class _CustomerDropdownState extends ConsumerState<_CustomerDropdown> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
             decoration: BoxDecoration(
-              color:        AppColor.primary.withOpacity(0.07),
+              color:        BranchColor.navy.withOpacity(0.07),
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text('Ctrl+K',
                 style: TextStyle(
-                    fontSize: 9, color: AppColor.primary,
+                    fontSize: 9, color: BranchColor.navy,
                     fontWeight: FontWeight.w600)),
           ),
         ])),
@@ -1481,7 +1482,7 @@ class _CustomerDropdownState extends ConsumerState<_CustomerDropdown> {
             decoration: customerFocus.hasFocus ? BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               boxShadow: [BoxShadow(
-                color:      AppColor.primary.withOpacity(0.25),
+                color:      BranchColor.navy.withOpacity(0.25),
                 blurRadius: 0, spreadRadius: 2,
               )],
             ) : null,
@@ -1527,7 +1528,6 @@ class _CustomerDropdownState extends ConsumerState<_CustomerDropdown> {
                     hintStyle: const TextStyle(fontSize: 14),
                     prefixIcon: const Icon(Icons.search, size: 20),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                     border:        InputBorder.none,
@@ -1635,7 +1635,7 @@ class _ReturnBody extends ConsumerWidget {
         margin:  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color:        AppColor.error.withOpacity(0.08),
+          color:        BranchColor.header,
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Row(children: [
@@ -2038,7 +2038,7 @@ class _RH extends StatelessWidget {
       style: const TextStyle(
           fontSize:      11,
           fontWeight:    FontWeight.w700,
-          color:         AppColor.error,
+          color:         BranchColor.onHeader,
           letterSpacing: 0.3),
       textAlign: left ? TextAlign.left : TextAlign.center);
 }
@@ -2082,10 +2082,10 @@ class _EmptyCart extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.06),
+              color: BranchColor.navy.withOpacity(0.06),
               shape: BoxShape.circle),
           child: const AppIcon('ic_cart_empty',
-              size: 48, color: AppColor.primary),
+              size: 48, color: BranchColor.navy),
         ),
         const SizedBox(height: 14),
         const Text('Cart is empty',

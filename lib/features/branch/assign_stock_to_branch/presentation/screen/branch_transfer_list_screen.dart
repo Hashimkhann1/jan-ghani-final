@@ -1,4 +1,5 @@
 // Branch Transfer List Screen — updated with inventory-style summary header
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -225,7 +226,7 @@ class _BranchTransferListScreenState
       body: asyncTransfers.when(
         skipLoadingOnReload: true,
         loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColor.primary)),
+            child: CircularProgressIndicator(color: BranchColor.navy)),
         error: (e, _) => _ErrorState(
           message: '$e',
           onRetry: () => ref.read(stockTransferProvider.notifier).refresh(),
@@ -475,8 +476,8 @@ class _SummaryBar extends StatelessWidget {
       ),
       _SummaryItem(
         iconAsset: 'ic_total_quantity',
-        iconBg: AppColor.primary.withOpacity(0.1),
-        iconColor: AppColor.primary,
+        iconBg: BranchColor.navy.withOpacity(0.1),
+        iconColor: BranchColor.navy,
         value: "${agg.totalUnits}",
         label: "Total Quantity",
       ),
@@ -706,7 +707,7 @@ class _TransferList extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: AppColor.primary)),
+                            color: BranchColor.navy)),
                     Text(_transferDateFmt.format(t.assignedAt),
                         style: const TextStyle(fontSize: 11.5)),
                     Text(t.assignedByName ?? 'Warehouse',
@@ -851,7 +852,7 @@ class _ErrorState extends StatelessWidget {
               icon:  const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.primary,
+                backgroundColor: BranchColor.navy,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(

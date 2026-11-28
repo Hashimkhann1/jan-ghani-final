@@ -428,6 +428,7 @@
 // }
 
 
+import '../../../../../core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -669,10 +670,10 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isNavRow ? AppColor.primary.withOpacity(0.05) : AppColor.white,
+        color: isNavRow ? BranchColor.navy.withOpacity(0.05) : AppColor.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isNavRow ? AppColor.primary : AppColor.grey200,
+          color: isNavRow ? BranchColor.navy : AppColor.grey200,
           width: isNavRow ? 1.5 : 1.0,
         ),
       ),
@@ -882,9 +883,9 @@ class _CellTFState extends State<_CellTF> {
         : widget.readOnly
         ? AppColor.grey400
         : widget.isNavActive
-        ? AppColor.primary
+        ? BranchColor.navy
         : widget.highlighted
-        ? AppColor.primary
+        ? BranchColor.navy
         : AppColor.grey400;
 
     final Color fillColor = widget.hasError
@@ -892,9 +893,9 @@ class _CellTFState extends State<_CellTF> {
         : widget.readOnly
         ? AppColor.grey200
         : widget.isNavActive
-        ? AppColor.primary.withOpacity(0.08)
+        ? BranchColor.navy.withOpacity(0.08)
         : widget.highlighted
-        ? AppColor.primary.withOpacity(0.07)
+        ? BranchColor.navy.withOpacity(0.07)
         : AppColor.grey100;
 
     final Color textColor = widget.hasError
@@ -902,7 +903,7 @@ class _CellTFState extends State<_CellTF> {
         : widget.readOnly
         ? AppColor.textHint
         : widget.highlighted
-        ? AppColor.primary
+        ? BranchColor.navy
         : AppColor.textPrimary;
 
     return Padding(
@@ -949,7 +950,7 @@ class _CellTFState extends State<_CellTF> {
                   ? OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6),
                   borderSide: const BorderSide(
-                      color: AppColor.primary, width: 1.2))
+                      color: BranchColor.navy, width: 1.2))
                   : InputBorder.none,
               focusedBorder: widget.hasError
                   ? OutlineInputBorder(

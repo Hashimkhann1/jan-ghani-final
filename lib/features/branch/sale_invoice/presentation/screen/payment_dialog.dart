@@ -781,6 +781,7 @@
 //   }
 // }
 
+import '../../../../../core/color/branch_color.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -1182,7 +1183,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
                 icon:       Icons.receipt_long_rounded,
                 valueColor: Colors.black,
                 bold:       true,
-                fillColor:  AppColor.primary.withOpacity(0.06),
+                fillColor:  BranchColor.navy.withOpacity(0.06),
               ),
               const SizedBox(height: 10),
 
@@ -1270,10 +1271,10 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
       Container(
         padding:    const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color:        AppColor.primary.withOpacity(0.1),
+          color:        BranchColor.navy.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.payments_outlined, color: AppColor.primary, size: 22),
+        child: const Icon(Icons.payments_outlined, color: BranchColor.navy, size: 22),
       ),
       const SizedBox(width: 12),
       const Expanded(
@@ -1284,11 +1285,11 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
         child: Container(
           padding:    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color:        AppColor.primary.withOpacity(0.08),
+            color:        BranchColor.navy.withOpacity(0.08),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Text('Ctrl+S',
-              style: TextStyle(fontSize: 11, color: AppColor.primary, fontWeight: FontWeight.w600)),
+              style: TextStyle(fontSize: 11, color: BranchColor.navy, fontWeight: FontWeight.w600)),
         ),
       ),
       const SizedBox(width: 6),
@@ -1370,7 +1371,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
     child: Row(children: [
       Checkbox(
         value:       _printReceipt,
-        activeColor: AppColor.primary,
+        activeColor: BranchColor.navy,
         shape:       RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         onChanged:   (v) => setState(() => _printReceipt = v ?? false),
       ),
@@ -1390,7 +1391,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
         label:     const Text('Reset'),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColor.textSecondary,
-          side:            const BorderSide(color: AppColor.grey300),
+          side:            const BorderSide(color: BranchColor.line),
           padding:         const EdgeInsets.symmetric(vertical: 12),
           shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -1409,7 +1410,7 @@ class _PaymentDialogState extends ConsumerState<_PaymentDialog> {
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor:         AppColor.primary,
+          backgroundColor:         BranchColor.navy,
           foregroundColor:         Colors.white,
           disabledBackgroundColor: AppColor.grey300,
           padding:                 const EdgeInsets.symmetric(vertical: 12),
@@ -1443,8 +1444,8 @@ class _InfoField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bc = borderColor ?? AppColor.primary;
-    final fc = fillColor   ?? AppColor.primary.withOpacity(0.04);
+    final bc = borderColor ?? BranchColor.navy;
+    final fc = fillColor   ?? BranchColor.navy.withOpacity(0.04);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -1458,7 +1459,7 @@ class _InfoField extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                Icon(icon, size: 20, color: AppColor.primary),
+                Icon(icon, size: 20, color: BranchColor.navy),
                 const SizedBox(width: 12),
                 Text(
                   label,
@@ -1522,31 +1523,19 @@ class _PaymentField extends StatelessWidget {
       hintText:   hint ?? '0',
       labelStyle: TextStyle(
         fontSize:   12,
-        color:      AppColor.primary,
+        color:      BranchColor.navy,
         fontWeight: FontWeight.w500,
       ),
       hintStyle: const TextStyle(fontSize: 13, color: AppColor.textHint),
-      prefixIcon: Icon(icon, size: 20, color: AppColor.primary),
+      prefixIcon: Icon(icon, size: 20, color: BranchColor.navy),
       suffixIcon: readOnly
-          ? Icon(Icons.lock_outline_rounded, size: 16, color: AppColor.primary.withOpacity(0.4))
+          ? Icon(Icons.lock_outline_rounded, size: 16, color: BranchColor.navy.withOpacity(0.4))
           : null,
       filled:          true,
       fillColor:       readOnly
-          ? AppColor.primary.withOpacity(0.03)
-          : AppColor.primary.withOpacity(0.05),
+          ? BranchColor.navy.withOpacity(0.03)
+          : BranchColor.navy.withOpacity(0.05),
       contentPadding:  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide:   BorderSide(color: AppColor.primary.withOpacity(0.3)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide:   BorderSide(color: AppColor.primary.withOpacity(0.25)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide:   BorderSide(color: AppColor.primary, width: 1.5),
-      ),
     ),
   );
 }
@@ -1572,8 +1561,8 @@ class CustomerForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bc = borderColor ?? AppColor.primary;
-    final fc = fillColor   ?? AppColor.primary.withOpacity(0.04);
+    final bc = borderColor ?? BranchColor.navy;
+    final fc = fillColor   ?? BranchColor.navy.withOpacity(0.04);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -1586,7 +1575,7 @@ class CustomerForm extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: AppColor.primary),
+              Icon(icon, size: 20, color: BranchColor.navy),
               const SizedBox(width: 12),
               Text(
                 label,
@@ -1777,14 +1766,14 @@ class _DigitalConfirmDialogState extends ConsumerState<_DigitalConfirmDialog> {
                 Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(
-                    color:        AppColor.primary.withOpacity(0.1),
+                    color:        BranchColor.navy.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                       withdraw
                           ? Icons.account_balance_wallet_outlined
                           : Icons.credit_card_rounded,
-                      size: 22, color: AppColor.primary),
+                      size: 22, color: BranchColor.navy),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1875,18 +1864,18 @@ class _DigitalConfirmDialogState extends ConsumerState<_DigitalConfirmDialog> {
                   padding: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
                     color: _printReceipt
-                        ? AppColor.primary.withOpacity(0.06)
+                        ? BranchColor.navy.withOpacity(0.06)
                         : AppColor.grey100,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                         color: _printReceipt
-                            ? AppColor.primary
+                            ? BranchColor.navy
                             : AppColor.grey200),
                   ),
                   child: Row(children: [
                     Checkbox(
                       value:       _printReceipt,
-                      activeColor: AppColor.primary,
+                      activeColor: BranchColor.navy,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6)),
                       onChanged: _saving
@@ -1915,7 +1904,7 @@ class _DigitalConfirmDialogState extends ConsumerState<_DigitalConfirmDialog> {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(46),
                       foregroundColor: Colors.black,
-                      side: const BorderSide(color: AppColor.grey200),
+                      side: const BorderSide(color: BranchColor.line),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),

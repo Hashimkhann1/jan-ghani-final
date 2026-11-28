@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/model/dashboard_model.dart';
@@ -79,9 +80,9 @@ class LowStockBanner extends StatelessWidget {
                           style: TextStyle(
                               fontSize:   12,
                               fontWeight: FontWeight.w600,
-                              color:      Color(0xFF185FA5))),
+                              color:      BranchColor.navy)),
                       Icon(Icons.chevron_right_rounded,
-                          size: 16, color: Color(0xFF185FA5)),
+                          size: 16, color: BranchColor.navy),
                     ],
                   ),
                 ),

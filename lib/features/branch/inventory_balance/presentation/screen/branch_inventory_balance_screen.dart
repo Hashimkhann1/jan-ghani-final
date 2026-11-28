@@ -8,6 +8,7 @@
 // the last open item of the 3-role workflow.
 // =============================================================
 
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -59,12 +60,12 @@ class _BranchInventoryBalanceScreenState
             Container(
               width: 34, height: 34,
               decoration: BoxDecoration(
-                color: AppColor.primary.withOpacity(0.1),
+                color: BranchColor.navy.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(9),
               ),
               alignment: Alignment.center,
               child: const Icon(Icons.sync_alt_rounded,
-                  size: 18, color: AppColor.primary),
+                  size: 18, color: BranchColor.navy),
             ),
             const SizedBox(width: 12),
             const Column(
@@ -95,7 +96,7 @@ class _BranchInventoryBalanceScreenState
             const _BalanceTabSpec(
               icon:  Icons.history_rounded,
               label: 'History',
-              color: AppColor.primary,
+              color: BranchColor.navy,
               count: 0,
             ),
           ],

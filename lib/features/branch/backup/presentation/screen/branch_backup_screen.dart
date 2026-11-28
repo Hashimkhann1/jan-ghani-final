@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/model/branch_backup_model.dart';
@@ -120,12 +121,12 @@ class BackupScreen extends ConsumerWidget {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
+                  backgroundColor: BranchColor.navy,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade300,
                   disabledForegroundColor: Colors.grey.shade500,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   elevation: 0,
                 ),
@@ -148,7 +149,7 @@ class _InfoCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.indigo.shade600, Colors.indigo.shade400],
+          colors: [BranchColor.navy, BranchColor.slate],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -229,7 +230,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: Colors.indigo),
+              Icon(icon, size: 18, color: BranchColor.navy),
               const SizedBox(width: 8),
               Text(
                 title,
@@ -290,7 +291,7 @@ class _BranchDropdown extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FF),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.indigo.shade100),
+        border: Border.all(color: BranchColor.navy.withValues(alpha: 0.2)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<BackupBranchModel>(
@@ -301,7 +302,7 @@ class _BranchDropdown extends StatelessWidget {
           ),
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down_rounded,
-              color: Colors.indigo),
+              color: BranchColor.navy),
           items: branches.map((branch) {
             return DropdownMenuItem<BackupBranchModel>(
               value: branch,
@@ -311,7 +312,7 @@ class _BranchDropdown extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.indigo.shade50,
+                      color: const Color(0xFFE8EAF0),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -319,7 +320,7 @@ class _BranchDropdown extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Colors.indigo.shade700,
+                        color: BranchColor.navy,
                       ),
                     ),
                   ),
@@ -370,7 +371,7 @@ class _ProgressWidget extends StatelessWidget {
                   minHeight: 10,
                   backgroundColor: Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isDone ? Colors.green : Colors.indigo,
+                    isDone ? Colors.green : BranchColor.navy,
                   ),
                 ),
               ),
@@ -381,7 +382,7 @@ class _ProgressWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: isDone ? Colors.green : Colors.indigo,
+                color: isDone ? Colors.green : BranchColor.navy,
               ),
             ),
           ],
@@ -575,7 +576,7 @@ class _SummaryCard extends StatelessWidget {
           _SummaryRow(
             label: 'Total Rows Saved',
             value: '${progress.totalRowsUpserted}',
-            valueColor: Colors.indigo,
+            valueColor: BranchColor.navy,
           ),
         ],
       ),

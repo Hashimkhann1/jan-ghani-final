@@ -43,6 +43,10 @@ class AppSearchableDropdown<T> extends StatefulWidget {
 }
 
 class AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
+  /// Screen ka theme color. `this.context` is liye ke overlay (list) bhi
+  /// usi screen ka rang le.
+  Color get _accent => Theme.of(context).colorScheme.primary;
+
   final _searchCtrl = TextEditingController();
   final _layerLink = LayerLink();
   OverlayEntry? _overlay;
@@ -203,7 +207,7 @@ class AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
                                         horizontal: 12, vertical: 10),
                                     decoration: BoxDecoration(
                                       color: isSelected
-                                          ? AppColor.primary
+                                          ? _accent
                                           .withValues(alpha: 0.08)
                                           : Colors.transparent,
                                       borderRadius: BorderRadius.circular(6),
@@ -214,7 +218,7 @@ class AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
                                           Icon(item.icon,
                                               size: 16,
                                               color: isSelected
-                                                  ? AppColor.primary
+                                                  ? _accent
                                                   : AppColor.grey500),
                                           const SizedBox(width: 10),
                                         ],
@@ -224,7 +228,7 @@ class AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
                                             style: TextStyle(
                                               fontSize: 13,
                                               color: isSelected
-                                                  ? AppColor.primary
+                                                  ? _accent
                                                   : AppColor.textPrimary,
                                               fontWeight: isSelected
                                                   ? FontWeight.w600
@@ -233,9 +237,9 @@ class AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
                                           ),
                                         ),
                                         if (isSelected)
-                                          const Icon(Icons.check,
+                                          Icon(Icons.check,
                                               size: 16,
-                                              color: AppColor.primary),
+                                              color: _accent),
                                       ],
                                     ),
                                   ),
@@ -273,7 +277,7 @@ class AppSearchableDropdownState<T> extends State<AppSearchableDropdown<T>> {
               labelText: widget.label,
               hintText: widget.hint,
               prefixIcon: widget.prefixIcon != null
-                  ? Icon(widget.prefixIcon, color: AppColor.primary, size: 20)
+                  ? Icon(widget.prefixIcon, color: _accent, size: 20)
                   : null,
               suffixIcon: AnimatedRotation(
                 turns: _isOpen ? 0.5 : 0,

@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -81,7 +82,7 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
                   title: 'Total Sale',
                   value: 'Rs ${state.grandTotalSale.toStringAsFixed(0)}',
                   icon:  Icons.point_of_sale_outlined,
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
@@ -130,13 +131,8 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
                   prefixIcon: const Icon(Icons.search,
                       size: 18, color: AppColor.grey400),
                   filled:    true,
-                  fillColor: AppColor.grey100,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide:   BorderSide.none,
-                  ),
                 ),
               ),
             ),
@@ -160,10 +156,9 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
                       constraints: BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
                           dataRowColor: WidgetStateProperty.resolveWith<Color?>(
                                 (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary.withValues(alpha: 0.05)
+                                ? BranchColor.navy.withValues(alpha: 0.05)
                                 : null,
                           ),
                           dataRowMinHeight: 56,
@@ -190,13 +185,13 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(7),
                                     decoration: BoxDecoration(
-                                      color: AppColor.primary.withValues(alpha: 0.08),
+                                      color: BranchColor.navy.withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
                                       Icons.calendar_today_outlined,
                                       size: 14,
-                                      color: AppColor.primary,
+                                      color: BranchColor.navy,
                                     ),
                                   ),
                                   const SizedBox(width: 10),
@@ -208,10 +203,10 @@ class _StoreSummaryScreenState extends ConsumerState<StoreSummaryScreen> {
                                 ],
                               )),
 
-                              DataCell(_Cell(value: r.totalCashSaleLabel,    color: AppColor.primary)),
+                              DataCell(_Cell(value: r.totalCashSaleLabel,    color: BranchColor.navy)),
                               DataCell(_Cell(value: r.totalCardSaleLabel,    color: AppColor.info)),
                               DataCell(_Cell(value: r.totalCreditSaleLabel,  color: AppColor.warning)),
-                              DataCell(_Cell(value: r.totalSaleLabel,        color: AppColor.primary, isBold: true)),
+                              DataCell(_Cell(value: r.totalSaleLabel,        color: BranchColor.navy, isBold: true)),
                               DataCell(_Cell(value: r.totalInstallmentLabel, color: AppColor.grey500)),
                               DataCell(_Cell(value: r.totalCashInLabel,      color: AppColor.success)),
                               DataCell(_Cell(value: r.totalCashOutLabel,     color: AppColor.error)),

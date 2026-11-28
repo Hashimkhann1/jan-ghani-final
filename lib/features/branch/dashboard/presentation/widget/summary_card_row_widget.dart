@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
 
@@ -27,8 +28,8 @@ class SummaryCardsRow extends StatelessWidget {
               value:     _fmt(data.cardSale),
               icon:      Icons.credit_card_outlined,
               iconAsset: 'ic_card_sale',
-              color:     const Color(0xFF185FA5),
-              bgColor:   const Color(0xFFE6F1FB),
+              color:     BranchColor.navy,
+              bgColor:   const Color(0xFFE8EAF0),
             ),
             const SizedBox(width: 12),
             SummaryCard(
@@ -58,8 +59,8 @@ class SummaryCardsRow extends StatelessWidget {
               value:     _fmt(data.totalSale),
               icon:      Icons.bar_chart_rounded,
               iconAsset: 'ic_total_sale',
-              color:     const Color(0xFF534AB7),
-              bgColor:   const Color(0xFFEEEDFE),
+              color:     BranchColor.navy,
+              bgColor:   const Color(0xFFE8EAF0),
             ),
             const SizedBox(width: 12),
             SummaryCard(

@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -149,17 +150,17 @@ class _AddCashTransactionDialogState
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: AppColor.primary.withValues(alpha: 0.06),
+                    color: BranchColor.navy.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: AppColor.primary.withValues(alpha: 0.3)),
+                        color: BranchColor.navy.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
                       const Icon(
                         Icons.account_balance_wallet_outlined,
                         size:  18,
-                        color: AppColor.primary,
+                        color: BranchColor.navy,
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -167,7 +168,7 @@ class _AddCashTransactionDialogState
                         style: const TextStyle(
                           fontSize:   18,
                           fontWeight: FontWeight.w800,
-                          color:      AppColor.primary,
+                          color:      BranchColor.navy,
                         ),
                       ),
                     ],
@@ -201,30 +202,13 @@ class _AddCashTransactionDialogState
                     prefixStyle: const TextStyle(
                         fontSize:   15,
                         fontWeight: FontWeight.w600,
-                        color:      AppColor.primary),
+                        color:      BranchColor.navy),
                     hintText:  'e.g. 5000',
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 14),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.error)),
                   ),
                 ),
 
@@ -250,21 +234,8 @@ class _AddCashTransactionDialogState
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 13),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                        const BorderSide(color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
                   ),
                 ),
 

@@ -4,6 +4,7 @@
 // Read-only data table, koi action nahi.
 // =============================================================
 
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -151,16 +152,16 @@ class _FiltersRow extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.08),
+              color: BranchColor.navy.withOpacity(0.08),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColor.primary.withOpacity(0.3)),
+              border: Border.all(color: BranchColor.navy.withOpacity(0.3)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: const [
-              Icon(Icons.refresh_rounded, size: 14, color: AppColor.primary),
+              Icon(Icons.refresh_rounded, size: 14, color: BranchColor.navy),
               SizedBox(width: 6),
               Text('Refresh',
                   style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w700, color: AppColor.primary,
+                    fontSize: 12, fontWeight: FontWeight.w700, color: BranchColor.navy,
                   )),
             ]),
           ),
@@ -230,7 +231,7 @@ class _HistoryTable extends StatelessWidget {
               children: [
                 Container(
                   height:  _kHeaderH,
-                  color:   AppColor.grey100,
+                  color:   BranchColor.header,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: List.generate(_kHeaders.length, (i) {
@@ -241,7 +242,7 @@ class _HistoryTable extends StatelessWidget {
                           style: const TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
-                              color: AppColor.textSecondary),
+                              color: BranchColor.onHeader),
                         ),
                       );
                     }),

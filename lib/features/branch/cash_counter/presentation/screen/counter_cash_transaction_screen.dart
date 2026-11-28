@@ -1,9 +1,9 @@
+import 'package:jan_ghani_final/core/widget/branch_ui.dart';
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
-import 'package:jan_ghani_final/core/widget/app_icon.dart';
-import 'package:jan_ghani_final/core/widget/figure_card_widget.dart';
 import 'package:jan_ghani_final/features/branch/counter/presentation/provider/counter_provider.dart';
 
 import '../../../authentication/presentation/provider/auth_provider.dart';
@@ -88,40 +88,18 @@ class _CounterCashTransactionScreenState
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('$counterName — Cash In',
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        toolbarHeight: 60,
+      appBar: BranchAppBar(
+        title:    'Cash In',
+        subtitle: counterName,
         actions: [
-          IconButton(
-            onPressed: () => ref.read(cashTransactionProvider.notifier).load(),
-            icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
-            style: IconButton.styleFrom(
-                foregroundColor: AppColor.textSecondary),
+          BranchRefreshButton(
+              onPressed: () =>
+                  ref.read(cashTransactionProvider.notifier).load()),
+          BranchActionButton(
+            label:     'Count Cash',
+            iconAsset: 'ic_count_cash',
+            onPressed: auth.counterId == null ? null : () => _openDialog(context),
           ),
-          const SizedBox(width: 4),
-          IntrinsicWidth(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: ElevatedButton.icon(
-                onPressed: auth.counterId == null
-                    ? null
-                    : () => _openDialog(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: const AppIcon('ic_count_cash', size: 18, color: Colors.white),
-                label: const Text('Count Cash',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
         ],
       ),
       body: state.isLoading
@@ -160,19 +138,20 @@ class _CounterCashTransactionScreenState
             // ── Stat Cards ──────────────────────────────────
             Row(
               children: [
-                SummaryCard(
+                BranchStatCard(
                   title: 'Today Total',
-                  value: 'Rs ${state.todayTotal}',
+                  value: branchMoney(state.todayTotal),
                   iconAsset: 'ic_net_amount',
                   color: state.todayTotal >= 0
                       ? AppColor.success
                       : AppColor.error,
                 ),
                 const SizedBox(width: 12),
-                SummaryCard(
+                BranchStatCard(
                   title: 'Cash In',
-                  value:
-                  'Rs ${transactions.where((t) => t.isCashIn).fold(0.0, (s, t) => s + t.cashOutAmount)}',
+                  value: branchMoney(transactions
+                      .where((t) => t.isCashIn)
+                      .fold(0.0, (s, t) => s + t.cashOutAmount)),
                   iconAsset: 'ic_cash_in',
                   color: AppColor.success,
                 ),
@@ -193,7 +172,8 @@ class _CounterCashTransactionScreenState
             Expanded(
               child: transactions.isEmpty
                   ? const _EmptyState()
-                  : Column(
+                  : BranchTableCard(
+                child: Column(
                 children: [
                   Expanded(
                     child: LayoutBuilder(
@@ -211,12 +191,10 @@ class _CounterCashTransactionScreenState
                       BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(
-                              AppColor.grey100),
                           dataRowColor: WidgetStateProperty
                               .resolveWith<Color?>(
                                 (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary
+                                ? BranchColor.navy
                                 .withValues(alpha: 0.05)
                                 : null,
                           ),
@@ -224,12 +202,15 @@ class _CounterCashTransactionScreenState
                           dataRowMaxHeight: 54,
                           columnSpacing: (tableWidth * 0.04)
                               .clamp(16.0, 56.0),
+                          headingRowHeight: 46,
+                          dividerThickness: 0.6,
+                          horizontalMargin: 16,
                           showCheckboxColumn: false,
                           columns: const [
                             DataColumn(label: Text('Type')),
-                            DataColumn(label: Text('Previous')),
-                            DataColumn(label: Text('Amount')),
-                            DataColumn(label: Text('Remaining')),
+                            DataColumn(label: Text('Previous'), numeric: true),
+                            DataColumn(label: Text('Amount'), numeric: true),
+                            DataColumn(label: Text('Remaining'), numeric: true),
                             DataColumn(
                                 label: Text(
                                     'Description')), // user ki note
@@ -240,31 +221,15 @@ class _CounterCashTransactionScreenState
                             cells: [
                               DataCell(
                                   _TypeBadge(t: t)),
-                              DataCell(Text(
-                                  t.previousAmountLabel,
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      color: AppColor
-                                          .textSecondary))),
-                              DataCell(Text(
-                                  t.cashOutAmount
-                                      .toString(),
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      color: AppColor
-                                          .textSecondary))),
-                              DataCell(Text(
-                                  t.remainingAmountLabel,
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight:
-                                      FontWeight.w600,
-                                      color: t.remainingAmount >=
-                                          0
-                                          ? AppColor
-                                          .textPrimary
-                                          : AppColor
-                                          .error))),
+                              DataCell(BranchAmount(t.previousAmount,
+                                  color: AppColor.textSecondary)),
+                              DataCell(BranchAmount(t.cashOutAmount,
+                                  color: AppColor.success, isBold: true)),
+                              DataCell(BranchAmount(t.remainingAmount,
+                                  isBold: true,
+                                  color: t.remainingAmount >= 0
+                                      ? BranchColor.navy
+                                      : AppColor.error)),
                               DataCell(SizedBox(
                                 width: 200,
                                 child: Text(
@@ -295,12 +260,16 @@ class _CounterCashTransactionScreenState
                 },
               ),
                   ),
-                  PaginationBar(
-                    total: transactions.length,
-                    page:  _page,
-                    onPageChanged: (p) => setState(() => _page = p),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: PaginationBar(
+                      total: transactions.length,
+                      page:  _page,
+                      onPageChanged: (p) => setState(() => _page = p),
+                    ),
                   ),
                 ],
+              ),
               ),
             ),
           ],

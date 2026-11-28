@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/color/app_color.dart';
@@ -9,7 +10,7 @@ class CounterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAssigned = counterName != null;
-    final color      = isAssigned ? AppColor.primary : AppColor.grey400;
+    final color      = isAssigned ? BranchColor.navy : AppColor.grey400;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

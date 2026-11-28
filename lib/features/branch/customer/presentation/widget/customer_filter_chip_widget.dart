@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 
@@ -25,10 +26,10 @@ class CustomerFilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color:        isSelected ? AppColor.primary : AppColor.surface,
+          color:        isSelected ? BranchColor.navy : AppColor.surface,
           borderRadius: BorderRadius.circular(8),
           border:       Border.all(
-              color: isSelected ? AppColor.primary : AppColor.grey300),
+              color: isSelected ? BranchColor.navy : AppColor.grey300),
         ),
         child: Text(
           label,

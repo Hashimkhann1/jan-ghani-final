@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -64,7 +65,7 @@ class _EntryMethodReportDialogState extends State<EntryMethodReportDialog> {
                 ),
               ),
               const TabBar(
-                labelColor: AppColor.primary,
+                labelColor: BranchColor.navy,
                 tabs: [
                   Tab(text: 'Cashier ke hisaab se'),
                   Tab(text: 'Manual add hone wale products'),

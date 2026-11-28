@@ -1,5 +1,6 @@
 // lib/features/branch/branch_stock_damage/presentation/widget/add_damage_dialog.dart
 
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -375,11 +376,11 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColor.primary.withOpacity(0.1),
+                      color: BranchColor.navy.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.edit_outlined,
-                        color: AppColor.primary, size: 20),
+                        color: BranchColor.navy, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text('Edit Damage Record',
@@ -504,7 +505,7 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
                   confirmLabel: 'Update (Enter)',
                   onCancel:     _cancel,
                   onConfirm:    _submit,
-                  confirmColor: AppColor.primary,
+                  confirmColor: BranchColor.navy,
                 ),
               ],
             ),
@@ -692,7 +693,7 @@ class _DialogButtons extends StatelessWidget {
         onPressed: isMutating ? null : onCancel,
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.black,
-          side: const BorderSide(color: AppColor.grey300),
+          side: const BorderSide(color: BranchColor.line),
           minimumSize: const Size.fromHeight(46),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -732,12 +733,11 @@ InputDecoration _inputDecor(String hint) {
     prefixIcon: const Icon(Icons.inventory_2_outlined,
         size: 18, color: AppColor.grey500),
     filled:    true,
-    fillColor: AppColor.grey100,
     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     border:         b(AppColor.grey200, 1),
     enabledBorder:  b(AppColor.grey200, 1),
     disabledBorder: b(AppColor.grey200, 1),
-    focusedBorder:  b(AppColor.primary, 1.6),
+    focusedBorder:  b(BranchColor.navy, 1.6),
     errorBorder:    b(AppColor.error, 1.2),
     focusedErrorBorder: b(AppColor.error, 1.6),
   );

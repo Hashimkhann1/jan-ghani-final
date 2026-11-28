@@ -1,3 +1,5 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
+import 'package:jan_ghani_final/core/widget/branch_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +30,7 @@ final returnNoteFocusProvider = Provider<FocusNode>((ref) {
 final returnActionProvider = StateProvider<String?>((ref) => null);
 
 final _money = NumberFormat('#,##0.##');
+const _kInfoHeight = 42.0;
 String _rs(double v) => 'Rs ${_money.format(v)}';
 
 class ReturnStockScreen extends ConsumerStatefulWidget {
@@ -128,6 +131,8 @@ class _ReturnStockScreenState extends ConsumerState<ReturnStockScreen>
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+        titleSpacing: 16,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -137,7 +142,10 @@ class _ReturnStockScreenState extends ConsumerState<ReturnStockScreen>
                     fontWeight: FontWeight.w700,
                     fontSize: 18)),
             Text('Branch se Warehouse ko stock wapis',
-                style: TextStyle(color: AppColor.textHint, fontSize: 11)),
+                style: TextStyle(
+                    color:      AppColor.textSecondary,
+                    fontSize:   12,
+                    fontWeight: FontWeight.w400)),
           ],
         ),
         actions: [
@@ -155,7 +163,7 @@ class _ReturnStockScreenState extends ConsumerState<ReturnStockScreen>
             controller: _tab,
             tabs: [
               const _TabSpec('New Return', Icons.add_box_rounded, 'Ctrl+1',
-                  AppColor.primary),
+                  BranchColor.navy),
               _TabSpec('Pending', Icons.hourglass_top_rounded, 'Ctrl+2',
                   AppColor.warningDark,
                   count: counts['pending'] ?? 0),
@@ -238,7 +246,7 @@ class _TabPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = spec.color;
+    final fg = selected ? Colors.white : BranchColor.navy;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -249,24 +257,25 @@ class _TabPill extends StatelessWidget {
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: selected ? c.withValues(alpha: .12) : AppColor.grey100,
+            color: selected ? BranchColor.navy : Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-                color: selected ? c : Colors.transparent, width: 1.4),
+                color: selected ? BranchColor.navy : BranchColor.line),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Status ka rang sirf icon aur count par.
               Icon(spec.icon,
-                  size: 18, color: selected ? c : AppColor.textSecondary),
+                  size: 18, color: selected ? BranchColor.accent : spec.color),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(spec.label,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                        color: selected ? c : AppColor.textSecondary)),
+                        fontSize: 13,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                        color: fg)),
               ),
               if (spec.count > 0) ...[
                 const SizedBox(width: 8),
@@ -275,7 +284,9 @@ class _TabPill extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: c,
+                    color: spec.color == BranchColor.navy
+                        ? BranchColor.slate
+                        : spec.color,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text('${spec.count}',
@@ -287,7 +298,8 @@ class _TabPill extends StatelessWidget {
                 ),
               ],
               const SizedBox(width: 8),
-              _KeyChip(spec.hint, color: selected ? c : AppColor.textSecondary),
+              _KeyChip(spec.hint,
+                  color: selected ? Colors.white : AppColor.textSecondary),
             ],
           ),
         ),
@@ -302,7 +314,7 @@ class _KeyChip extends StatelessWidget {
   const _KeyChip(this.t, {this.color});
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColor.primary;
+    final c = color ?? BranchColor.navy;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -513,7 +525,7 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(d, true),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
+                    backgroundColor: BranchColor.navy,
                     foregroundColor: Colors.white,
                     elevation: 0),
                 child: const Text('Send Return'),
@@ -587,8 +599,6 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
                             prefixIcon:
                                 const Icon(Icons.search_rounded, size: 20),
                             isDense: true,
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                       ),
@@ -613,12 +623,10 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
                           style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: AppColor.primary),
+                              color: BranchColor.navy),
                           decoration: InputDecoration(
                             labelText: 'Qty',
                             isDense: true,
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                       ),
@@ -635,25 +643,30 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
                             fontSize: 10.5, color: AppColor.textSecondary)),
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                  child: Row(children: [
+                Container(
+                  color: BranchColor.header,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  child: const Row(children: [
                     Expanded(
                         child: Text('Product',
                             style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700))),
+                                fontSize: 12, fontWeight: FontWeight.w700,
+                            color: BranchColor.onHeader))),
                     SizedBox(
                         width: 50,
                         child: Text('Stock',
                             textAlign: TextAlign.right,
                             style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700))),
+                                fontSize: 12, fontWeight: FontWeight.w700,
+                            color: BranchColor.onHeader))),
                     SizedBox(
                         width: 60,
                         child: Text('Cost',
                             textAlign: TextAlign.right,
                             style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700))),
+                                fontSize: 12, fontWeight: FontWeight.w700,
+                            color: BranchColor.onHeader))),
                   ]),
                 ),
                 const Divider(height: 1),
@@ -662,8 +675,10 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
                       ? const Center(
                           child: Text('Koi product nahi mila',
                               style: TextStyle(color: AppColor.textSecondary)))
-                      : ListView.builder(
+                      : ListView.separated(
                           controller: _scroll,
+                          separatorBuilder: (_, __) => const Divider(
+                              height: 1, color: BranchColor.lineSoft),
                           itemCount: products.length,
                           itemBuilder: (_, i) {
                             final p = products[i];
@@ -681,14 +696,25 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
                                 _addSelected();
                               },
                               child: Container(
-                                color: hovered
-                                    ? AppColor.primary.withValues(alpha: .16)
-                                    : inCart
-                                        ? AppColor.primary
-                                            .withValues(alpha: .06)
-                                        : null,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 18, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: hovered
+                                      ? BranchColor.navy.withValues(alpha: .10)
+                                      : inCart
+                                          ? BranchColor.accent
+                                              .withValues(alpha: .10)
+                                          : null,
+                                  // Selected: sunehri patti. Cart wala: halka
+                                  // sunehra background.
+                                  border: Border(
+                                    left: BorderSide(
+                                      width: 3,
+                                      color: hovered
+                                          ? BranchColor.accent
+                                          : Colors.transparent,
+                                    ),
+                                  ),
+                                ),
+                                padding: const EdgeInsets.fromLTRB(15, 9, 18, 9),
                                 child: Row(children: [
                                   Expanded(
                                     child: Column(
@@ -739,7 +765,8 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(children: [
+                // Teeno ke label upar, taake ek line mein barabar rahen.
+                child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Expanded(
                       flex: 3,
                       child: _InfoBox(
@@ -756,57 +783,70 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 3,
-                    child: TextField(
-                      controller: _notes,
-                      focusNode: ref.read(returnNoteFocusProvider),
-                      onChanged:
-                          ref.read(returnCartProvider.notifier).setNotes,
-                      decoration: InputDecoration(
-                        labelText: 'Note',
-                        hintText: 'Return note (optional)...  Ctrl+N',
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Note',
+                            style: TextStyle(
+                                fontSize: 11, color: AppColor.textSecondary)),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          height: _kInfoHeight,
+                          child: TextField(
+                            controller: _notes,
+                            focusNode: ref.read(returnNoteFocusProvider),
+                            onChanged:
+                                ref.read(returnCartProvider.notifier).setNotes,
+                            style: const TextStyle(fontSize: 13),
+                            decoration: const InputDecoration(
+                              hintText: 'Return note (optional)...  Ctrl+N',
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ]),
               ),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColor.primary.withValues(alpha: .08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(children: [
-                  SizedBox(width: 24, child: _H('#')),
-                  Expanded(child: _H('Product')),
-                  SizedBox(width: 56, child: _H('Stock', right: true)),
-                  SizedBox(width: 84, child: _H('Qty', right: true)),
-                  SizedBox(width: 64, child: _H('Cost', right: true)),
-                  SizedBox(width: 80, child: _H('Total', right: true)),
-                  SizedBox(width: 36),
-                ]),
-              ),
               Expanded(
-                child: cart.lines.isEmpty
-                    ? const Center(
-                        child: Text(
-                            'Left list se product par tap karo (ya barcode scan karo)',
-                            style: TextStyle(color: AppColor.textSecondary)))
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                        itemCount: cart.lines.length,
-                        itemBuilder: (_, i) => _CartRow(
-                          key: ValueKey(cart.lines[i].productId),
-                          index: i + 1,
-                          line: cart.lines[i],
-                        ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: BranchTableCard(
+                    child: Column(children: [
+                      Container(
+                        color: BranchColor.header,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 11),
+                        child: const Row(children: [
+                          SizedBox(width: 24, child: _H('#')),
+                          Expanded(child: _H('Product')),
+                          SizedBox(width: 56, child: _H('Stock', right: true)),
+                          SizedBox(width: 84, child: _H('Qty', right: true)),
+                          SizedBox(width: 64, child: _H('Cost', right: true)),
+                          SizedBox(width: 80, child: _H('Total', right: true)),
+                          SizedBox(width: 36),
+                        ]),
                       ),
+                      Expanded(
+                        child: cart.lines.isEmpty
+                            ? const _EmptyCart()
+                            : ListView.separated(
+                                itemCount: cart.lines.length,
+                                separatorBuilder: (_, __) => const Divider(
+                                    height: 1, color: BranchColor.lineSoft),
+                                itemBuilder: (_, i) => _CartRow(
+                                  key: ValueKey(cart.lines[i].productId),
+                                  index: i + 1,
+                                  line: cart.lines[i],
+                                ),
+                              ),
+                      ),
+                    ]),
+                  ),
+                ),
               ),
               if (cart.error != null)
                 Container(
@@ -818,14 +858,19 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
                           color: AppColor.error, fontSize: 13)),
                 ),
               Container(
-                color: Colors.white,
-                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: BranchColor.line)),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 child: Column(children: [
-                  _SumRow('Items', '${cart.lines.length}'),
-                  _SumRow('Total Qty', _money.format(cart.totalQty)),
-                  _SumRow('Total Sale Value', _rs(cart.totalSale)),
-                  const SizedBox(height: 4),
-                  _SumRow('Total Cost', _rs(cart.totalCost), big: true),
+                  Row(children: [
+                    _SumItem('Items', '${cart.lines.length}'),
+                    _SumItem('Total Qty', _money.format(cart.totalQty)),
+                    _SumItem('Total Sale Value', _rs(cart.totalSale)),
+                    const Spacer(),
+                    _SumItem('Total Cost', _rs(cart.totalCost), big: true),
+                  ]),
                   const SizedBox(height: 12),
                   Row(children: [
                     SizedBox(
@@ -870,8 +915,12 @@ class _NewReturnTabState extends ConsumerState<_NewReturnTab>
                           ]),
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(0, 48),
-                            backgroundColor: AppColor.primary,
+                            backgroundColor: BranchColor.navy,
                             foregroundColor: Colors.white,
+                            // Band button par bhi likhai parhi jaye.
+                            disabledBackgroundColor:
+                                BranchColor.navy.withValues(alpha: .35),
+                            disabledForegroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
@@ -899,7 +948,7 @@ class _H extends StatelessWidget {
   Widget build(BuildContext context) => Text(t,
       textAlign: right ? TextAlign.right : TextAlign.left,
       style: const TextStyle(
-          fontSize: 12, fontWeight: FontWeight.w700, color: AppColor.primary));
+          fontSize: 12, fontWeight: FontWeight.w700, color: BranchColor.onHeader));
 }
 
 class _InfoBox extends StatelessWidget {
@@ -916,10 +965,13 @@ class _InfoBox extends StatelessWidget {
                   fontSize: 11, color: AppColor.textSecondary)),
           const SizedBox(height: 4),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            height: _kInfoHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            // Grey: in mein type nahi hota.
             decoration: BoxDecoration(
-                color: AppColor.grey100,
-                borderRadius: BorderRadius.circular(10)),
+                color: BranchColor.lineSoft.withValues(alpha: .6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: BranchColor.line)),
             child: Row(children: [
               Icon(icon, size: 16, color: AppColor.textSecondary),
               const SizedBox(width: 8),
@@ -933,27 +985,59 @@ class _InfoBox extends StatelessWidget {
       );
 }
 
-class _SumRow extends StatelessWidget {
+class _SumItem extends StatelessWidget {
   final String l, v;
   final bool big;
-  const _SumRow(this.l, this.v, {this.big = false});
+  const _SumItem(this.l, this.v, {this.big = false});
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        padding: EdgeInsets.only(right: big ? 0 : 28),
+        child: Column(
+          crossAxisAlignment:
+              big ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Text(l,
-                style: TextStyle(
-                    fontSize: big ? 18 : 13,
-                    fontWeight: big ? FontWeight.w800 : FontWeight.w500,
-                    color: big ? AppColor.primary : null)),
+                style: const TextStyle(
+                    fontSize: 11, color: AppColor.textSecondary)),
+            const SizedBox(height: 2),
             Text(v,
                 style: TextStyle(
-                    fontSize: big ? 18 : 13,
-                    fontWeight: big ? FontWeight.w800 : FontWeight.w600,
-                    color: big ? AppColor.primary : null)),
+                    fontSize: big ? 22 : 15,
+                    fontWeight: big ? FontWeight.w800 : FontWeight.w700,
+                    color: BranchColor.navy)),
           ],
+        ),
+      );
+}
+
+class _EmptyCart extends StatelessWidget {
+  const _EmptyCart();
+  @override
+  Widget build(BuildContext context) => Center(
+        // Chhoti window par overflow na ho.
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: BranchColor.navy.withValues(alpha: .06),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.assignment_return_outlined,
+                  size: 32, color: BranchColor.navy),
+            ),
+            const SizedBox(height: 14),
+            const Text('Abhi koi product nahi',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: BranchColor.navy)),
+            const SizedBox(height: 4),
+            const Text('Left list se product par tap karo (ya barcode scan karo)',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+          ]),
         ),
       );
 }
@@ -994,14 +1078,8 @@ class _CartRowState extends ConsumerState<_CartRow> {
   @override
   Widget build(BuildContext context) {
     final l = widget.line;
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.grey200),
-      ),
       child: Row(children: [
         SizedBox(width: 24, child: Text('${widget.index}')),
         Expanded(
@@ -1034,7 +1112,7 @@ class _CartRowState extends ConsumerState<_CartRow> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                  isDense: true, border: OutlineInputBorder()),
+                  isDense: true,),
               onChanged: (v) {
                 final n = double.tryParse(v) ?? 0;
                 ref.read(returnCartProvider.notifier).setQty(l.productId, n);
@@ -1088,7 +1166,7 @@ class _ReturnListTab extends ConsumerWidget {
       // Load more par purani list dikhti rahe.
       skipLoadingOnReload: true,
       loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColor.primary)),
+          child: CircularProgressIndicator(color: BranchColor.navy)),
       error: (e, _) => Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('$e', style: const TextStyle(color: AppColor.error)),
@@ -1145,10 +1223,12 @@ class _ReturnCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
+      color: Colors.white,
+      clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColor.grey200)),
+          side: const BorderSide(color: BranchColor.line)),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -1219,12 +1299,16 @@ class _ReturnCard extends StatelessWidget {
                       style: const TextStyle(fontSize: 12)),
                 ),
               ),
-            const Row(children: [
+            Container(
+              color: BranchColor.header,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: const Row(children: [
               Expanded(flex: 3, child: _H('Product')),
               SizedBox(width: 80, child: _H('Qty', right: true)),
               SizedBox(width: 90, child: _H('Cost', right: true)),
               SizedBox(width: 100, child: _H('Total', right: true)),
             ]),
+            ),
             const Divider(height: 12),
             for (final it in ret.items)
               Padding(

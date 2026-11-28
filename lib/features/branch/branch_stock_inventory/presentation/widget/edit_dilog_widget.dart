@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -169,13 +170,13 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
               padding:
               const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
-                color: AppColor.primary.withValues(alpha: 0.06),
+                color: BranchColor.navy.withValues(alpha: 0.06),
                 borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Row(children: [
                 const Icon(Icons.edit_outlined,
-                    size: 20, color: AppColor.primary),
+                    size: 20, color: BranchColor.navy),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -227,11 +228,11 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
                       isSaving ? null : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColor.textSecondary,
-                        side: const BorderSide(color: AppColor.grey300),
+                        side: const BorderSide(color: BranchColor.line),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       child: const Text('Cancel'),
                     ),
@@ -242,12 +243,12 @@ class _EditStockDialogState extends ConsumerState<EditStockDialog> {
                     child: ElevatedButton.icon(
                       onPressed: isSaving ? null : _save,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.primary,
+                        backgroundColor: BranchColor.navy,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: isSaving
                           ? const SizedBox(
@@ -533,24 +534,8 @@ class _Field extends StatelessWidget {
       hintStyle:  const TextStyle(
           fontSize: 12, color: AppColor.textHint),
       filled:    true,
-      fillColor: AppColor.grey100,
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide.none),
-      focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide:
-          const BorderSide(color: AppColor.primary, width: 1.2)),
-      errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide:
-          const BorderSide(color: AppColor.error, width: 1)),
-      focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide:
-          const BorderSide(color: AppColor.error, width: 1.2)),
     ),
   );
 }
@@ -580,16 +565,8 @@ class _DropdownField extends StatelessWidget {
       labelStyle: const TextStyle(
           fontSize: 12, color: AppColor.textSecondary),
       filled:    true,
-      fillColor: AppColor.grey100,
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide.none),
-      focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide:
-          const BorderSide(color: AppColor.primary, width: 1.2)),
     ),
     items: items
         .map((u) => DropdownMenuItem(value: u, child: Text(u)))

@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -161,25 +162,8 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 13),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.error)),
                   ),
                 ),
 
@@ -200,12 +184,12 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: _head.text == h
-                              ? AppColor.primary
+                              ? BranchColor.navy
                               : AppColor.grey100,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: _head.text == h
-                                ? AppColor.primary
+                                ? BranchColor.navy
                                 : AppColor.grey300,
                           ),
                         ),
@@ -256,25 +240,8 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
                     prefixIconConstraints:
                     const BoxConstraints(minWidth: 0, minHeight: 0),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                        const BorderSide(color: AppColor.error)),
                   ),
                 ),
 
@@ -294,21 +261,8 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
                     hintStyle: const TextStyle(
                         color: AppColor.textHint, fontSize: 13),
                     filled:    true,
-                    fillColor: AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
                   ),
                 ),
 
@@ -320,10 +274,10 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:         AppColor.primary,
+                      backgroundColor:         BranchColor.navy,
                       foregroundColor:         Colors.white,
                       disabledBackgroundColor:
-                      AppColor.primary.withValues(alpha: 0.6),
+                      BranchColor.navy.withValues(alpha: 0.6),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),

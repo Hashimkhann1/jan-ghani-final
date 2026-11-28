@@ -115,7 +115,7 @@ class _HeldInvoicesDialogState extends ConsumerState<_HeldInvoicesDialog> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9)),
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () => _confirmDiscardAll(context, ref),
                       icon: const Icon(Icons.delete_sweep_outlined,
@@ -160,13 +160,8 @@ class _HeldInvoicesDialogState extends ConsumerState<_HeldInvoicesDialog> {
                       },
                     ),
                     filled:     true,
-                    fillColor:  AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:   BorderSide.none,
-                    ),
                   ),
                 ),
               ),
@@ -268,7 +263,7 @@ class _HeldInvoicesDialogState extends ConsumerState<_HeldInvoicesDialog> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 18, vertical: 10),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(9)),
+                  borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
               ref
@@ -317,7 +312,7 @@ class _HeldInvoicesDialogState extends ConsumerState<_HeldInvoicesDialog> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 18, vertical: 10),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(9)),
+                  borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
               final holds = ref.read(heldInvoicesProvider);
@@ -547,7 +542,7 @@ class _HoldCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     icon: const Icon(Icons.play_arrow_rounded,
                         size: 13, color: Colors.white),

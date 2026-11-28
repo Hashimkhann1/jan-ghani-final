@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -46,7 +47,7 @@ class AllExpenseScreen extends ConsumerWidget {
                 foregroundColor: Colors.white,
                 elevation:       0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
+                    borderRadius: BorderRadius.circular(10))),
             onPressed: () {
               ref
                   .read(expenseProvider.notifier)
@@ -107,7 +108,7 @@ class AllExpenseScreen extends ConsumerWidget {
               child: ElevatedButton.icon(
                 onPressed: () => _openDialog(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
+                  backgroundColor: BranchColor.navy,
                   foregroundColor: Colors.white,
                   elevation:       0,
                   shape: RoundedRectangleBorder(
@@ -137,7 +138,7 @@ class AllExpenseScreen extends ConsumerWidget {
                   title: 'Total Expenses',
                   value: '${state.totalCount}',
                   icon:  Icons.receipt_long_outlined,
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
                 const SizedBox(width: 12),
                 SummaryCard(
@@ -178,13 +179,8 @@ class AllExpenseScreen extends ConsumerWidget {
                         prefixIcon: const Icon(Icons.search,
                             size: 18, color: AppColor.grey400),
                         filled:    true,
-                        fillColor: AppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:   BorderSide.none,
-                        ),
                       ),
                     ),
                   ),
@@ -261,10 +257,9 @@ class AllExpenseScreen extends ConsumerWidget {
                       constraints: BoxConstraints(minWidth: tableWidth),
                       child: SingleChildScrollView(
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(AppColor.grey100),
                           dataRowColor: WidgetStateProperty.resolveWith<Color?>(
                                 (s) => s.contains(WidgetState.hovered)
-                                ? AppColor.primary.withValues(alpha: 0.05)
+                                ? BranchColor.navy.withValues(alpha: 0.05)
                                 : null,
                           ),
                           dataRowMinHeight: 52,
@@ -286,13 +281,13 @@ class AllExpenseScreen extends ConsumerWidget {
                                   Container(
                                     padding: const EdgeInsets.all(7),
                                     decoration: BoxDecoration(
-                                      color: AppColor.primary.withValues(alpha: 0.08),
+                                      color: BranchColor.navy.withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
                                       Icons.receipt_outlined,
                                       size: 14,
-                                      color: AppColor.primary,
+                                      color: BranchColor.navy,
                                     ),
                                   ),
                                   const SizedBox(width: 10),
@@ -346,7 +341,7 @@ class AllExpenseScreen extends ConsumerWidget {
                                 children: [
                                   CustomerActionButton(
                                     icon: Icons.edit_outlined,
-                                    color: AppColor.primary,
+                                    color: BranchColor.navy,
                                     tooltip: 'Edit',
                                     onTap: () => _openDialog(context, expense: e),
                                   ),

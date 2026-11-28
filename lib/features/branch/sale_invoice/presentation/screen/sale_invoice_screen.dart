@@ -1,3 +1,4 @@
+import '../../../../../core/color/branch_color.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -89,9 +90,9 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
                 onPressed: () => Navigator.pop(d),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColor.textSecondary,
-                  side: const BorderSide(color: AppColor.grey300),
+                  side: const BorderSide(color: BranchColor.line),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: const Text('Cancel'),
               ),
@@ -110,7 +111,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ),
@@ -341,7 +342,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
               backgroundColor: AppColor.error,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
               Navigator.pop(d);
@@ -376,7 +377,7 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
     final state    = ref.watch(saleInvoiceProvider);
     final holds    = ref.watch(heldInvoicesProvider);
     final isReturn = state.saleType == SaleType.saleReturn;
-    final accent   = isReturn ? AppColor.error : AppColor.primary;
+    final accent   = isReturn ? AppColor.error : BranchColor.navy;
     ref.listen(authProvider, (prev, next) {
       final wasEmpty = (prev?.storeId ?? '').isEmpty;
       final isNowReady = next.storeId.isNotEmpty;
@@ -415,7 +416,8 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
             ),
             child: Icon(
               isReturn ? Icons.assignment_return_outlined : Icons.point_of_sale_outlined,
-              color: Colors.white,
+              // Sidebar jaisa: navy par sunehra.
+              color: isReturn ? Colors.white : BranchColor.accent,
               size: 16,
             ),
           ),
@@ -453,21 +455,20 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color:        AppColor.success.withOpacity(0.08),
+                      color:        BranchColor.navy,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColor.success, width: 1.5),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.account_balance_wallet_outlined,
-                            size: 15, color: AppColor.success),
+                            size: 15, color: BranchColor.accent),
                         SizedBox(width: 6),
                         Text('Customer Recovery',
                             style: TextStyle(
                                 fontSize:   12,
                                 fontWeight: FontWeight.w600,
-                                color:      AppColor.success)),
+                                color:      Colors.white)),
                         SizedBox(width: 8),
                         _RecoveryKeyBadge(),
                       ],
@@ -487,26 +488,26 @@ class _SaleInvoiceScreenState extends ConsumerState<SaleInvoiceScreen> {
                 margin: const EdgeInsets.symmetric(vertical: 10),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color:        AppColor.primary.withOpacity(0.08),
+                  color:        BranchColor.navy.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
-                  border:       Border.all(color: AppColor.primary, width: 1.5),
+                  border:       Border.all(color: BranchColor.navy, width: 1.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.pause_circle_outline_rounded,
-                        size: 15, color: AppColor.primary),
+                        size: 15, color: BranchColor.navy),
                     const SizedBox(width: 6),
                     const Text('Held',
                         style: TextStyle(
                             fontSize:   12,
                             fontWeight: FontWeight.w600,
-                            color:      AppColor.primary)),
+                            color:      BranchColor.navy)),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
                       decoration: BoxDecoration(
-                        color:        AppColor.primary,
+                        color:        BranchColor.navy,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -618,7 +619,6 @@ class _HoldLabelDialogState extends State<_HoldLabelDialog> {
       decoration: const InputDecoration(
         hintText:  'Label (optional, e.g. Table 3)',
         hintStyle: TextStyle(fontSize: 13),
-        border:    OutlineInputBorder(),
       ),
       onSubmitted: (_) {
         Navigator.pop(context);
@@ -641,7 +641,7 @@ class _HoldLabelDialogState extends State<_HoldLabelDialog> {
           backgroundColor: AppColor.warning,
           foregroundColor: Colors.white,
           elevation:       0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
     ],
@@ -699,7 +699,7 @@ class _ShortcutsDialog extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Row(children: [
-                Icon(Icons.keyboard_outlined, color: AppColor.primary, size: 22),
+                Icon(Icons.keyboard_outlined, color: BranchColor.navy, size: 22),
                 SizedBox(width: 10),
                 Text('Keyboard Shortcuts',
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
@@ -708,17 +708,17 @@ class _ShortcutsDialog extends StatelessWidget {
               ...shortcuts.map((s) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(children: [
-                  Icon(s.$3, size: 16, color: AppColor.primary),
+                  Icon(s.$3, size: 16, color: BranchColor.navy),
                   const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color:        AppColor.primary.withOpacity(0.08),
+                      color:        BranchColor.navy.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(s.$1,
                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                            fontFamily: 'monospace', color: AppColor.primary)),
+                            fontFamily: 'monospace', color: BranchColor.navy)),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -733,10 +733,10 @@ class _ShortcutsDialog extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
+                    backgroundColor: BranchColor.navy,
                     foregroundColor: Colors.white,
                     elevation:       0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   child: const Text('OK'),
                 ),
@@ -756,13 +756,13 @@ class _RecoveryKeyBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
         decoration: BoxDecoration(
-          color:        AppColor.success.withOpacity(0.12),
+          color:        BranchColor.slate,
           borderRadius: BorderRadius.circular(4),
         ),
         child: const Text('Ctrl+R',
             style: TextStyle(
                 fontSize:   9,
                 fontWeight: FontWeight.w600,
-                color:      AppColor.success)),
+                color:      BranchColor.accent)),
       );
 }

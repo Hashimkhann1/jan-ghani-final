@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/model/dashboard_model.dart';
@@ -277,7 +278,7 @@ class _LineChartPainter extends CustomPainter {
     canvas.drawPath(
       fillPath,
       Paint()
-        ..color = const Color(0xFF38BDF8).withOpacity(0.12)
+        ..color = BranchColor.navy.withOpacity(0.12)
         ..style = PaintingStyle.fill,
     );
 
@@ -291,7 +292,7 @@ class _LineChartPainter extends CustomPainter {
     canvas.drawPath(
       linePath,
       Paint()
-        ..color = const Color(0xFF38BDF8)
+        ..color = BranchColor.navy
         ..strokeWidth = 2.2
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round,
@@ -309,7 +310,7 @@ class _LineChartPainter extends CustomPainter {
       canvas.drawCircle(
         points[i],
         3.5,
-        Paint()..color = const Color(0xFF38BDF8),
+        Paint()..color = BranchColor.navy,
       );
 
       // X label (product name truncated)

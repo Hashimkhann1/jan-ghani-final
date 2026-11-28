@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -118,14 +119,14 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withValues(alpha: 0.1),
+                        color: BranchColor.navy.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         _isEdit
                             ? Icons.edit_outlined
                             : Icons.person_add_outlined,
-                        color: AppColor.primary,
+                        color: BranchColor.navy,
                         size: 20,
                       ),
                     ),
@@ -248,21 +249,8 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                   value: _type,
                   decoration: InputDecoration(
                     filled:      true,
-                    fillColor:   AppColor.grey100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.grey200)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                            color: AppColor.primary, width: 1.5)),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -310,7 +298,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       const Spacer(),
                       Switch(
                         value:       _isActive,
-                        activeColor: AppColor.primary,
+                        activeColor: BranchColor.accent,
                         onChanged:   (v) =>
                             setState(() => _isActive = v),
                       ),
@@ -326,10 +314,10 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
+                      backgroundColor: BranchColor.navy,
                       foregroundColor: AppColor.white,
                       disabledBackgroundColor:
-                      AppColor.primary.withValues(alpha: 0.6),
+                      BranchColor.navy.withValues(alpha: 0.6),
                       padding:
                       const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -423,27 +411,6 @@ class _Field extends StatelessWidget {
             hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             filled: true,
-            fillColor: AppColor.grey100,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColor.grey200,),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColor.grey200),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColor.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColor.error, width: 1.5),
-            ),
           ),
         ),
       ],

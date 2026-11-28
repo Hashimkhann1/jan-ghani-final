@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -48,7 +49,7 @@ class AllCounterScreen extends ConsumerWidget {
               foregroundColor: Colors.white,
               elevation:       0,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
               ref.read(counterProvider.notifier).deleteCounter(counter.id);
@@ -107,7 +108,7 @@ class AllCounterScreen extends ConsumerWidget {
               child: ElevatedButton.icon(
                 onPressed: () => _openDialog(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
+                  backgroundColor: BranchColor.navy,
                   foregroundColor: Colors.white,
                   elevation:       0,
                   shape: RoundedRectangleBorder(
@@ -135,7 +136,7 @@ class AllCounterScreen extends ConsumerWidget {
                   title: 'Total Counters',
                   value: '${counters.length}',
                   icon:  Icons.point_of_sale_outlined,
-                  color: AppColor.primary,
+                  color: BranchColor.navy,
                 ),
               ],
             ),

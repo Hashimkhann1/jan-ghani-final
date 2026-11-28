@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
 import 'package:jan_ghani_final/core/widget/app_icon.dart';
@@ -9,7 +10,7 @@ class UserRoleBadge extends StatelessWidget {
   Color get _color {
     switch (role) {
       case 'store_owner':   return AppColor.error;
-      case 'store_manager': return AppColor.primary;
+      case 'store_manager': return BranchColor.navy;
       case 'stock_officer': return AppColor.info;
       default:              return AppColor.grey500;
     }

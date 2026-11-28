@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -104,7 +105,7 @@ class _CustomerAccountScreenState
         builder: (ctx, setDlg) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: Row(children: [
-            const Icon(Icons.lock_reset, color: AppColor.primary, size: 22),
+            const Icon(Icons.lock_reset, color: BranchColor.navy, size: 22),
             const SizedBox(width: 8),
             const Expanded(
               child: Text('Update Password',
@@ -150,7 +151,7 @@ class _CustomerAccountScreenState
                   decoration: InputDecoration(
                     labelText: 'New Password',
                     prefixIcon: const Icon(Icons.lock_outline,
-                        size: 18, color: AppColor.primary),
+                        size: 18, color: BranchColor.navy),
                     suffixIcon: IconButton(
                       icon: Icon(
                         passVisible
@@ -162,13 +163,6 @@ class _CustomerAccountScreenState
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                          color: AppColor.primary, width: 1.5),
-                    ),
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Password is required';
@@ -184,16 +178,9 @@ class _CustomerAccountScreenState
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
                     prefixIcon: const Icon(Icons.lock_outline,
-                        size: 18, color: AppColor.primary),
+                        size: 18, color: BranchColor.navy),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                          color: AppColor.primary, width: 1.5),
-                    ),
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Please confirm password';
@@ -236,10 +223,10 @@ class _CustomerAccountScreenState
                     : const Icon(Icons.save_outlined, size: 16),
                 label: Text(saving ? 'Saving...' : 'Update Password'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
+                  backgroundColor: BranchColor.navy,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               );
             }),
@@ -274,9 +261,7 @@ class _CustomerAccountScreenState
                   decoration: InputDecoration(
                     labelText: 'Full Name',
                     prefixIcon: const Icon(Icons.person_outline,
-                        size: 18, color: AppColor.primary),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        size: 18, color: BranchColor.navy),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? 'Name is required'
@@ -290,9 +275,7 @@ class _CustomerAccountScreenState
                   decoration: InputDecoration(
                     labelText: 'Username (email)',
                     prefixIcon: const Icon(Icons.email_outlined,
-                        size: 18, color: AppColor.primary),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        size: 18, color: BranchColor.navy),
                   ),
                   validator: (v) {
                     final t = v?.trim() ?? '';
@@ -328,10 +311,10 @@ class _CustomerAccountScreenState
                 if (ctx.mounted) Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.primary,
+                backgroundColor: BranchColor.navy,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(10)),
               ),
               child: Text(saving ? 'Saving...' : 'Save'),
             );
@@ -365,7 +348,7 @@ class _CustomerAccountScreenState
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8))),
+                    borderRadius: BorderRadius.circular(10))),
             onPressed: () {
               final storeId = ref.read(authProvider).storeId ?? '';
               ref.read(customerAccountProvider.notifier).deleteAccount(
@@ -411,7 +394,7 @@ class _CustomerAccountScreenState
               child: ElevatedButton.icon(
                 onPressed: _showCreateAccountDialog,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
+                  backgroundColor: BranchColor.navy,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -460,13 +443,8 @@ class _CustomerAccountScreenState
                   )
                       : null,
                   filled: true,
-                  fillColor: AppColor.grey100,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
                 ),
               ),
             ),
@@ -519,12 +497,14 @@ class _CustomerAccountScreenState
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: tableWidth),
           child: SingleChildScrollView(
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(AppColor.grey100),
+            child: IconTheme.merge(
+              // Navy header par sort ka teer safed.
+              data: const IconThemeData(color: BranchColor.onHeader),
+              child: DataTable(
               dataRowColor:
               WidgetStateProperty.resolveWith<Color?>((states) {
                 if (states.contains(WidgetState.hovered)) {
-                  return AppColor.primary.withValues(alpha: 0.05);
+                  return BranchColor.navy.withValues(alpha: 0.05);
                 }
                 return null;
               }),
@@ -568,13 +548,13 @@ class _CustomerAccountScreenState
                       CircleAvatar(
                         radius: 15,
                         backgroundColor:
-                        AppColor.primary.withValues(alpha: 0.12),
+                        BranchColor.navy.withValues(alpha: 0.12),
                         child: Text(
                           account.fullName.isNotEmpty
                               ? account.fullName[0].toUpperCase()
                               : '?',
                           style: const TextStyle(
-                            color: AppColor.primary,
+                            color: BranchColor.navy,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -584,7 +564,7 @@ class _CustomerAccountScreenState
                       Text(
                         account.fullName,
                         style: const TextStyle(
-                            color: AppColor.primary,
+                            color: BranchColor.navy,
                             fontWeight: FontWeight.w600,
                             fontSize: 13),
                       ),
@@ -627,7 +607,7 @@ class _CustomerAccountScreenState
                       children: [
                         CustomerActionButton(
                           icon: Icons.lock_reset,
-                          color: AppColor.primary,
+                          color: BranchColor.navy,
                           tooltip: 'Update Password',
                           onTap: () => _showUpdatePasswordDialog(account),
                         ),
@@ -635,7 +615,7 @@ class _CustomerAccountScreenState
                         CustomerActionButton(
                           icon: Icons.edit_outlined,
                           iconAsset: 'ic_edit',
-                          color: AppColor.primary,
+                          color: BranchColor.navy,
                           tooltip: 'Edit',
                           onTap: () => _showEditDialog(account),
                         ),
@@ -653,6 +633,7 @@ class _CustomerAccountScreenState
                 );
               }),
             ),
+            ),
           ),
         ),
       );
@@ -664,7 +645,7 @@ class _CustomerAccountScreenState
 const _hStyle = TextStyle(
   fontSize: 13,
   fontWeight: FontWeight.w600,
-  color: AppColor.textPrimary,
+  color: BranchColor.onHeader,
 );
 
 // ── Create Account Dialog ─────────────────────────────────
@@ -726,33 +707,11 @@ class _CreateAccountDialogState
       }) =>
       InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: AppColor.primary),
+        prefixIcon: Icon(icon, size: 20, color: BranchColor.navy),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColor.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColor.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:
-          const BorderSide(color: AppColor.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColor.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:
-          const BorderSide(color: AppColor.error, width: 1.5),
-        ),
       );
 
   @override
@@ -791,7 +750,7 @@ class _CreateAccountDialogState
                 children: [
                   Row(children: [
                     const Icon(Icons.person_add_outlined,
-                        color: AppColor.primary, size: 22),
+                        color: BranchColor.navy, size: 22),
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text('Create Customer Account',
@@ -934,7 +893,7 @@ class _CreateAccountDialogState
                             fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.primary,
+                        backgroundColor: BranchColor.navy,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
@@ -961,22 +920,22 @@ class _CustomerInfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColor.primary.withValues(alpha: 0.05),
+        color: BranchColor.navy.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-            color: AppColor.primary.withValues(alpha: 0.2)),
+            color: BranchColor.navy.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: AppColor.primary.withValues(alpha: 0.15),
+            backgroundColor: BranchColor.navy.withValues(alpha: 0.15),
             child: Text(
               customer.name.isNotEmpty
                   ? customer.name[0].toUpperCase()
                   : '?',
               style: const TextStyle(
-                color: AppColor.primary,
+                color: BranchColor.navy,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),

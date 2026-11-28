@@ -1,3 +1,4 @@
+import 'package:jan_ghani_final/core/color/branch_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -70,7 +71,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
     builder: (ctx, child) => Theme(
       data: Theme.of(ctx).copyWith(
         colorScheme: const ColorScheme.light(
-          primary: AppColor.primary,
+          primary: BranchColor.navy,
           onPrimary: Colors.white,
         ),
       ),
@@ -110,7 +111,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
       _showSnack('Koi entry nahi print karne ke liye', AppColor.warning);
       return;
     }
-    _showSnack('Printing...', AppColor.primary);
+    _showSnack('Printing...', BranchColor.navy);
     await CsrPrintService.printCsrReport(
       storeName: branch?.name ?? '',
       branchAddress: branch?.address ?? '',
@@ -129,7 +130,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
 
   // ── Print Single Entry ───────────────────────────────────
   Future<void> _printEntry(CsrEntry entry) async {
-    _showSnack('Printing...', AppColor.primary);
+    _showSnack('Printing...', BranchColor.navy);
     final auth = ref.read(authProvider);
     final branch = await ref.read(branchProvider(auth.storeId).future);
     await CsrPrintService.printSingleEntry(
@@ -169,20 +170,10 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                 labelStyle: const TextStyle(
                     fontSize: 11, color: AppColor.textSecondary),
                 prefixIcon: const Icon(Icons.calendar_today_rounded,
-                    size: 15, color: AppColor.primary),
+                    size: 15, color: BranchColor.navy),
                 filled: true,
-                fillColor: AppColor.grey100,
                 contentPadding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                  const BorderSide(color: AppColor.primary, width: 1.2),
-                ),
               ),
             ),
           ),
@@ -242,7 +233,7 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
               onPressed: _printAll,
               icon: const Icon(Icons.print_rounded),
               tooltip: 'Print All',
-              style: IconButton.styleFrom(foregroundColor: AppColor.primary),
+              style: IconButton.styleFrom(foregroundColor: BranchColor.navy),
             ),
           IconButton(
             onPressed: () => ref.read(csrProvider.notifier).load(),
@@ -318,13 +309,8 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                         )
                             : null,
                         filled: true,
-                        fillColor: AppColor.grey100,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
                       ),
                     ),
                   ),
@@ -367,8 +353,8 @@ class _CsrScreenState extends ConsumerState<CsrScreen> {
                       label: const Text('Today',
                           style: TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColor.primary,
-                        side: const BorderSide(color: AppColor.primary),
+                        foregroundColor: BranchColor.navy,
+                        side: const BorderSide(color: BranchColor.navy),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         shape: RoundedRectangleBorder(
@@ -505,7 +491,7 @@ String _csrTypeLabel(CsrType t) {
 
 Color _csrTypeColor(CsrType t) {
   switch (t) {
-    case CsrType.sale:          return AppColor.primary;
+    case CsrType.sale:          return BranchColor.navy;
     case CsrType.saleReturn:    return AppColor.error;
     case CsrType.ledgerPayment: return AppColor.info;
   }
@@ -527,22 +513,22 @@ class _CsrSummaryBanner extends StatelessWidget {
           padding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColor.primary.withValues(alpha: 0.08),
+            color: BranchColor.navy.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-                color: AppColor.primary.withValues(alpha: 0.2)),
+                color: BranchColor.navy.withValues(alpha: 0.2)),
           ),
           child: Row(
             children: [
               const Icon(Icons.person_pin_outlined,
-                  size: 16, color: AppColor.primary),
+                  size: 16, color: BranchColor.navy),
               const SizedBox(width: 8),
               Text(
                 state.selectedCustomerName ?? 'All Customers',
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColor.primary),
+                    color: BranchColor.navy),
               ),
               const Spacer(),
               Text(
@@ -574,7 +560,7 @@ class _CsrSummaryBanner extends StatelessWidget {
               title: 'Net Amount',
               value: 'Rs ${state.netAmount.toStringAsFixed(0)}',
               icon: Icons.account_balance_outlined,
-              color: AppColor.primary,
+              color: BranchColor.navy,
             ),
             const SizedBox(width: 12),
             SummaryCard(
@@ -750,11 +736,11 @@ class _LedgerPaymentCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColor.primary.withValues(alpha: 0.08),
+                      color: BranchColor.navy.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.print_outlined,
-                        size: 16, color: AppColor.primary),
+                        size: 16, color: BranchColor.navy),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1055,11 +1041,11 @@ class _CsrEntryCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColor.primary.withValues(alpha: 0.08),
+                      color: BranchColor.navy.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.print_outlined,
-                        size: 16, color: AppColor.primary),
+                        size: 16, color: BranchColor.navy),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1185,7 +1171,7 @@ class _CsrEntryCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
-                      color: AppColor.grey100,
+                      color: BranchColor.header,
                       borderRadius: BorderRadius.circular(8)),
                   child: const Row(
                     children: [
@@ -1195,7 +1181,7 @@ class _CsrEntryCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColor.textSecondary))),
+                                  color: BranchColor.onHeader))),
                       Expanded(
                           flex: 2,
                           child: Text('Price',
@@ -1203,7 +1189,7 @@ class _CsrEntryCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColor.textSecondary))),
+                                  color: BranchColor.onHeader))),
                       Expanded(
                           flex: 1,
                           child: Text('Qty',
@@ -1211,7 +1197,7 @@ class _CsrEntryCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColor.textSecondary))),
+                                  color: BranchColor.onHeader))),
                       Expanded(
                           flex: 2,
                           child: Text('Discount',
@@ -1219,7 +1205,7 @@ class _CsrEntryCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColor.textSecondary))),
+                                  color: BranchColor.onHeader))),
                       Expanded(
                           flex: 2,
                           child: Text('Sub Total',
@@ -1227,7 +1213,7 @@ class _CsrEntryCard extends StatelessWidget {
                               style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColor.textSecondary))),
+                                  color: BranchColor.onHeader))),
                     ],
                   ),
                 ),
@@ -1565,7 +1551,7 @@ class _CsrBalanceSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColor.primary.withValues(alpha: 0.2)),
+        border: Border.all(color: BranchColor.navy.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -1574,24 +1560,24 @@ class _CsrBalanceSection extends StatelessWidget {
             padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColor.primary.withValues(alpha: 0.06),
+              color: BranchColor.navy.withValues(alpha: 0.06),
               borderRadius:
               const BorderRadius.vertical(top: Radius.circular(10)),
               border: Border(
                 bottom: BorderSide(
-                    color: AppColor.primary.withValues(alpha: 0.15)),
+                    color: BranchColor.navy.withValues(alpha: 0.15)),
               ),
             ),
             child: const Row(
               children: [
                 Icon(Icons.account_balance_wallet_outlined,
-                    size: 14, color: AppColor.primary),
+                    size: 14, color: BranchColor.navy),
                 SizedBox(width: 6),
                 Text('Customer account balance',
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColor.primary)),
+                        color: BranchColor.navy)),
               ],
             ),
           ),
