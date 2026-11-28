@@ -10,7 +10,6 @@ import 'package:jan_ghani_final/features/branch/counter/presentation/provider/co
 
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer_ledger/presentation/widget/counter_chip_widget.dart';
-import '../widget/add_cash_registration_dialog.dart';
 import '../widget/add_cash_transaction_dialog.dart';
 
 class CashCounterScreen extends ConsumerStatefulWidget {
@@ -102,28 +101,6 @@ class _CashCounterScreenState extends ConsumerState<CashCounterScreen> {
                 ),
                 icon:  const AppIcon('ic_count_cash', size: 18, color: AppColor.success),
                 label: const Text('Count Cash',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          IntrinsicWidth(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: ElevatedButton.icon(
-                onPressed: () => showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (_) => const AddCashRegistrationDialog(),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: Colors.white,
-                  elevation:       0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon:  const AppIcon('ic_cash_registration', size: 18, color: Colors.white),
-                label: const Text('Cash Registration',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
