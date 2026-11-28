@@ -73,6 +73,7 @@ class SaleReturnModel {
 
 // ── Item Detail ───────────────────────────────────────────────
 class SaleReturnItemDetail {
+  final String? entryMethod; // purani sales mein null
   final String  productName;
   final String? sku;
   final String? barcode;
@@ -93,6 +94,7 @@ class SaleReturnItemDetail {
     required this.discount,
     required this.subtotal,
     required this.totalAmount,
+    this.entryMethod,
   });
 
   String get priceLabel => 'Rs ${salePrice.toStringAsFixed(0)}';
@@ -103,6 +105,7 @@ class SaleReturnItemDetail {
 
   static SaleReturnItemDetail fromMap(Map<String, dynamic> m) =>
       SaleReturnItemDetail(
+        entryMethod:   m['entry_method']?.toString(),
         productName:   m['product_name']?.toString()  ?? '',
         sku:           m['sku']?.toString(),
         barcode:       m['barcode']?.toString(),

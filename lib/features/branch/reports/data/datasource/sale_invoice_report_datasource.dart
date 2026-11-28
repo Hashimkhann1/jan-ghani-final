@@ -121,7 +121,8 @@ class SaleInvoiceListDatasource {
           purchase_price,
           quantity,
           discount,
-          total_amount
+          total_amount,
+          entry_method
         FROM public.sale_invoice_items
         WHERE invoice_id = ANY(@ids::uuid[])
         ORDER BY created_at ASC
@@ -142,6 +143,7 @@ class SaleInvoiceListDatasource {
         'quantity':       m['quantity'],
         'discount':       m['discount'],
         'total_amount':   m['total_amount'],
+        'entry_method':   m['entry_method'],
       }));
     }
 

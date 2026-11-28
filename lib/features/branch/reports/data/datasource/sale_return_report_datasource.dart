@@ -125,7 +125,8 @@ class SaleReturnDatasource {
           quantity,
           discount,
           subtotal,
-          total_amount
+          total_amount,
+          entry_method
         FROM public.sale_return_items
         WHERE return_id = ANY(@ids::uuid[])
         ORDER BY created_at ASC
@@ -148,6 +149,7 @@ class SaleReturnDatasource {
         'discount':       m['discount'],
         'subtotal':       m['subtotal'],
         'total_amount':   m['total_amount'],
+        'entry_method':   m['entry_method'],
       }));
     }
 

@@ -1008,6 +1008,7 @@ import 'package:jan_ghani_final/features/branch/customer/presentation/provider/c
 import 'package:jan_ghani_final/features/branch/sale_invoice/presentation/widget/sale_type_dropdown.dart';
 import '../../../../../core/color/app_color.dart';
 import '../../../../../core/widget/app_icon.dart';
+import '../../../permissions/presentation/provider/permissions_provider.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../../data/model/sale_return_model.dart';
 import '../provider/sale_invoice_provider.dart';
@@ -1876,6 +1877,8 @@ class _ReturnItemRowState extends ConsumerState<_ReturnItemRow> {
         Expanded(flex: 2, child: _RTF(
           controller:    _disCtrl,
           prefix:        'Rs',
+          // Discount ki permission na ho to field band
+          readOnly:      !ref.watch(canDiscountProvider('sale_return')),
           onFocusChange: (f) => _disFocused = f,
           onChanged: (v) {
             final val = double.tryParse(v);

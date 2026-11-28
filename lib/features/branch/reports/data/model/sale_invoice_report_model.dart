@@ -71,6 +71,7 @@ class SaleInvoiceListModel {
 }
 
 class SaleInvoiceItemDetail {
+  final String? entryMethod; // purani sales mein null
   final String  productName;
   final String? sku;
   final double  salePrice;
@@ -87,6 +88,7 @@ class SaleInvoiceItemDetail {
     required this.quantity,
     required this.discount,
     required this.totalAmount,
+    this.entryMethod,
   });
 
   String get priceLabel => 'Rs ${salePrice.toStringAsFixed(0)}';
@@ -97,6 +99,7 @@ class SaleInvoiceItemDetail {
 
   static SaleInvoiceItemDetail fromMap(Map<String, dynamic> m) =>
       SaleInvoiceItemDetail(
+        entryMethod:   m['entry_method']?.toString(),
         productName:   m['product_name']?.toString()  ?? '',
         sku:           m['sku']?.toString(),
         salePrice:     _dbl(m['sale_price'])     ?? 0,

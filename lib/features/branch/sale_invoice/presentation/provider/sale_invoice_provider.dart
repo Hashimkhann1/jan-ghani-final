@@ -4,6 +4,7 @@ import 'package:jan_ghani_final/features/branch/dashboard/presentation/provider/
 import 'package:uuid/uuid.dart';
 
 import '../../../authentication/presentation/provider/auth_provider.dart';
+import '../../../permissions/presentation/provider/permissions_provider.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../branch_stock_inventory/presentation/provider/branch_stock_inventory_provider.dart';
 import '../../../cash_counter/presentation/provider/cash_counter_provider.dart';
@@ -73,11 +74,23 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
       orElse: () => null,
     );
     if (found == null) return false;
-    addToCart(found);
+    addToCart(found, entryMethod: kEntryBarcode);
     return true;
   }
 
-  void addToCart(BranchStockModel product) {
+  /// Pehle se mojood line par dobara add hone ka tareeqa record karo.
+  void markEntry(String cartId, String entryMethod) {
+    state = state.copyWith(cartItems: [
+      for (final i in state.cartItems)
+        i.cartId == cartId
+            ? i.copyWith(
+                entryMethod: mergeEntryMethod(i.entryMethod, entryMethod))
+            : i,
+    ]);
+  }
+
+  void addToCart(BranchStockModel product,
+      {String entryMethod = kEntryManual}) {
     // Negative stock physical products can't be sold (UI shows a toast).
     if (!product.isDigital && product.quantity <= 0) return;
 
@@ -102,7 +115,10 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
     if (idx != -1 && product.isDigital) return; // qty stays 1
     if (idx != -1) {
       final items = [...state.cartItems];
-      items[idx] = items[idx].copyWith(quantity: items[idx].quantity + 1);
+      items[idx] = items[idx].copyWith(
+        quantity:    items[idx].quantity + 1,
+        entryMethod: mergeEntryMethod(items[idx].entryMethod, entryMethod),
+      );
       state = state.copyWith(cartItems: items);
     } else {
       state = state.copyWith(
@@ -110,6 +126,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
         cartItems: [
           ...state.cartItems,
           CartItem(
+            entryMethod:    entryMethod,
             cartId:         const Uuid().v4(),
             product:        product,
             quantity:       1,
@@ -171,6 +188,7 @@ class SaleInvoiceNotifier extends StateNotifier<SaleInvoiceState> {
 
   void updateDiscount(String cartId, double dis) {
     if (dis < 0) return;
+    if (!_ref.read(canDiscountProvider('sale_invoice'))) return;
     _update(cartId, (i) => i.copyWith(discountAmount: dis));
     _resetPayments();
   }

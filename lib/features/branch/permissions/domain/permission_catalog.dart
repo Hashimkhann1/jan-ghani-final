@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Ek single action jo kisi module par ho sakta hai.
-enum PermAction { view, create, edit, delete, export }
+enum PermAction { view, create, edit, delete, export, discount }
 
 extension PermActionX on PermAction {
   String get label {
@@ -11,6 +11,7 @@ extension PermActionX on PermAction {
       case PermAction.edit:   return 'Edit';
       case PermAction.delete: return 'Delete';
       case PermAction.export: return 'Export';
+      case PermAction.discount: return 'Discount';
     }
   }
 
@@ -21,6 +22,7 @@ extension PermActionX on PermAction {
       case PermAction.edit:   return Icons.edit_outlined;
       case PermAction.delete: return Icons.delete_outline;
       case PermAction.export: return Icons.download_outlined;
+      case PermAction.discount: return Icons.percent_rounded;
     }
   }
 }
@@ -70,6 +72,9 @@ class PermissionCatalog {
     PermAction.delete,
   ];
 
+  /// Invoice screens: normal actions + discount dene ka haq.
+  static const _invoice = [..._full, PermAction.discount];
+
   static const List<PermGroup> groups = [
     PermGroup(
       title: 'Overview',
@@ -87,11 +92,11 @@ class PermissionCatalog {
       modules: [
         PermModule(
           key: 'sale_invoice', label: 'Sale Invoice',
-          icon: Icons.point_of_sale_rounded, actions: _full,
+          icon: Icons.point_of_sale_rounded, actions: _invoice,
         ),
         PermModule(
           key: 'sale_return', label: 'Sale Return',
-          icon: Icons.assignment_return_outlined, actions: _full,
+          icon: Icons.assignment_return_outlined, actions: _invoice,
         ),
         PermModule(
           key: 'held_invoice', label: 'Held Invoices',
@@ -250,8 +255,10 @@ class PermissionCatalog {
         return allKeys.toSet(); // owner ke paas sab kuch
 
       case 'store_manager':
+        // Discount by default kisi ko nahi — owner khud de.
         return allKeys
-            .where((k) => !k.startsWith('permissions.'))
+            .where((k) =>
+                !k.startsWith('permissions.') && !k.endsWith('.discount'))
             .toSet();
 
       case 'stock_officer':
@@ -280,6 +287,7 @@ class PermissionCatalog {
     for (final m in allModules) {
       if (!wanted.contains(m.key)) continue;
       for (final a in m.actions) {
+        if (a == PermAction.discount) continue; // sirf owner grant kare
         if (readOnlyStock &&
             m.key == 'branch_stock' &&
             a != PermAction.view) {

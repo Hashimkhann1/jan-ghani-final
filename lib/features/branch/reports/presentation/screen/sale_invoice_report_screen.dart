@@ -9,6 +9,8 @@ import 'package:jan_ghani_final/features/branch/customer/presentation/provider/c
 import 'package:jan_ghani_final/features/branch/reports/data/model/sale_invoice_report_model.dart';
 import '../../../../../core/service/print/print_service.dart';
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
+import '../widget/entry_method_badge.dart';
+import '../widget/entry_method_report_dialog.dart';
 import '../widget/report_table.dart';
 import '../../../branch_info/presentation/provider/branch_provider.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
@@ -328,6 +330,23 @@ class _SaleInvoiceListScreenState
         backgroundColor: Colors.white,
         elevation:       0.5,
         actions: [
+          // Scan vs Manual report — sirf owner / manager
+          if (auth.isOwner || auth.isManager)
+            TextButton.icon(
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) => EntryMethodReportDialog(
+                  storeId:   auth.storeId,
+                  fromDate:  state.fromDate,
+                  toDate:    state.toDate,
+                  counterId: state.counterId,
+                  userId:    state.selectedCashierId,
+                ),
+              ),
+              icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+              label: const Text('Scan / Manual Report'),
+            ),
+          const SizedBox(width: 8),
           IconButton(
             onPressed: () =>
                 ref.read(saleInvoiceListProvider.notifier).load(),
@@ -1142,6 +1161,7 @@ class _InvoiceCardState extends ConsumerState<_InvoiceCard> {
                                         color:      AppColor.textPrimary),
                                     overflow: TextOverflow.ellipsis),
                               ),
+                              EntryMethodBadge(item.entryMethod),
                             ],
                           ),
                         ),

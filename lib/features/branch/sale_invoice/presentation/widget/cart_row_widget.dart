@@ -433,6 +433,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/color/app_color.dart';
+import '../../../permissions/presentation/provider/permissions_provider.dart';
 import '../../data/model/sale_invoice_model.dart';
 import '../provider/cart_nav_provider.dart';
 import '../provider/sale_invoice_provider.dart';
@@ -794,6 +795,8 @@ class _CartItemRowState extends ConsumerState<CartItemRow> {
               focusNode:   _fn[3],
               isNavActive: isNavRow && nav.col == 3,
               prefix:      'Rs',
+              // Discount ki permission na ho to field band
+              readOnly:    !ref.watch(canDiscountProvider('sale_invoice')),
               onChanged:   (v) {
                 final val = double.tryParse(v);
                 if (val != null && val >= 0)

@@ -21,7 +21,17 @@ class PaymentEntry {
 }
 
 // ── Cart Item ──────────────────────────────────────────────────
+/// Cart line kis tareeqe se aayi: 'barcode' | 'manual' | 'mixed'.
+const kEntryBarcode = 'barcode';
+const kEntryManual  = 'manual';
+const kEntryMixed   = 'mixed';
+
+/// Ek hi line mein dono tareeqon se add hua ho to 'mixed'.
+String mergeEntryMethod(String? current, String added) =>
+    current == null || current == added ? added : kEntryMixed;
+
 class CartItem {
+  final String?          entryMethod;
   final String           cartId;
   final BranchStockModel product;
   final double           quantity;
@@ -39,6 +49,7 @@ class CartItem {
     this.taxAmount      = 0,
     this.discountAmount = 0,
     this.purchasePriceOverride,
+    this.entryMethod,
   });
 
   double get purchasePrice => purchasePriceOverride ?? product.costPrice;
@@ -54,8 +65,10 @@ class CartItem {
     double? taxAmount,
     double? discountAmount,
     double? purchasePriceOverride,
+    String? entryMethod,
   }) =>
       CartItem(
+        entryMethod:    entryMethod     ?? this.entryMethod,
         cartId:         cartId,
         product:        product,
         quantity:       quantity        ?? this.quantity,
@@ -69,6 +82,7 @@ class CartItem {
   /// ── JSON serialization (for hold/resume) ──────────────────────
   Map<String, dynamic> toJson() => {
     'cartId':         cartId,
+    'entryMethod':    entryMethod,
     'id':             product.id,
     'storeId':        product.storeId,
     'productId':      product.productId,
@@ -119,6 +133,7 @@ class CartItem {
       updatedAt:        DateTime.now(),
     );
     return CartItem(
+      entryMethod:    j['entryMethod']    as String?,
       cartId:         j['cartId']         as String,
       product:        product,
       quantity:       (j['quantity']       as num).toDouble(),

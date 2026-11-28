@@ -831,7 +831,8 @@ class _ActionButton extends StatelessWidget {
       onTap: enabled ? () => onTap(!selected) : null,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        width: 92,
+        // Chhote labels ek jaisi chaurai; lamba label ("Discount") barh sake.
+        constraints: const BoxConstraints(minWidth: 92),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: BoxDecoration(
           color:        bg,

@@ -76,11 +76,12 @@ class SaleInvoiceDatasource {
           Sql.named('''
             INSERT INTO public.sale_invoice_items (
               invoice_id, product_id, product_name, sku, barcode,
-              sale_price, purchase_price, quantity, subtotal, discount, total_amount
+              sale_price, purchase_price, quantity, subtotal, discount, total_amount,
+              entry_method
             ) VALUES (
               @invoiceId::uuid, @productId::uuid, @productName,
               @sku, @barcode, @salePrice, @purchasePrice, @quantity,
-              @subtotal, @discount, @totalAmount
+              @subtotal, @discount, @totalAmount, @entryMethod
             )
           '''),
           parameters: {
@@ -95,6 +96,7 @@ class SaleInvoiceDatasource {
             'subtotal':      item.salePrice * item.quantity,
             'discount':      item.discountAmount,
             'totalAmount':   item.subTotal,
+            'entryMethod':   item.entryMethod,
           },
         );
       }

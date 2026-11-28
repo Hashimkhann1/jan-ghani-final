@@ -80,11 +80,11 @@ class SaleReturnDatasource {
             INSERT INTO public.sale_return_items (
               return_id, product_id, product_name,
               sku, barcode, sale_price, purchase_price, quantity,
-              subtotal, discount, total_amount
+              subtotal, discount, total_amount, entry_method
             ) VALUES (
               @returnId::uuid, @productId::uuid, @productName,
               @sku, @barcode, @salePrice, @purchasePrice, @quantity,
-              @subtotal, @discount, @totalAmount
+              @subtotal, @discount, @totalAmount, @entryMethod
             )
           '''),
           parameters: {
@@ -99,6 +99,7 @@ class SaleReturnDatasource {
             'subtotal':      item.returnPrice * item.quantity,
             'discount':      item.discountAmount,
             'totalAmount':   item.subTotal,
+            'entryMethod':   item.entryMethod,
           },
         );
       }

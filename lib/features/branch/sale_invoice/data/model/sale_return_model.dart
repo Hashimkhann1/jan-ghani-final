@@ -20,6 +20,7 @@ enum RefundType {
 }
 
 class ReturnCartItem {
+  final String?          entryMethod; // 'barcode' | 'manual' | 'mixed'
   final String           cartId;
   final BranchStockModel product;
   final double           quantity;
@@ -32,6 +33,7 @@ class ReturnCartItem {
     required this.quantity,
     required this.returnPrice,
     this.discountAmount = 0,
+    this.entryMethod,
   });
 
   double get subTotal => returnPrice * quantity - discountAmount;
@@ -40,8 +42,10 @@ class ReturnCartItem {
     double? quantity,
     double? returnPrice,
     double? discountAmount,
+    String? entryMethod,
   }) =>
       ReturnCartItem(
+        entryMethod:    entryMethod    ?? this.entryMethod,
         cartId:         cartId,
         product:        product,
         quantity:       quantity       ?? this.quantity,

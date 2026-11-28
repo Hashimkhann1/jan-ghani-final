@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../data/datasource/permissions_remote_datasource.dart';
 import '../../domain/permission_catalog.dart';
 
@@ -205,3 +206,12 @@ final permissionsProvider =
     StateNotifierProvider<PermissionsNotifier, PermissionsState>(
   (ref) => PermissionsNotifier(),
 );
+
+/// Kya logged-in user is module ('sale_invoice' / 'sale_return') mein
+/// discount de sakta hai? Owner hamesha, baqi sirf grant hone par.
+final canDiscountProvider = Provider.family<bool, String>((ref, module) {
+  final auth  = ref.watch(authProvider);
+  final perms = ref.watch(permissionsProvider);
+  return auth.isOwner ||
+      perms.isGranted(auth.userId, auth.role, '$module.discount');
+});

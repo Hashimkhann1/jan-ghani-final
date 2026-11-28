@@ -3,12 +3,13 @@ import 'package:jan_ghani_final/features/branch/cash_counter/presentation/provid
 import 'package:jan_ghani_final/features/branch/customer/presentation/provider/customer_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../authentication/presentation/provider/auth_provider.dart';
+import '../../../permissions/presentation/provider/permissions_provider.dart';
 import '../../../branch_stock_inventory/data/model/branch_stock_model.dart';
 import '../../../branch_stock_inventory/presentation/provider/branch_stock_inventory_provider.dart';
 import '../../../customer/data/model/customer_model.dart';
 import '../../../dashboard/presentation/provider/dashboard_provider.dart';
 import '../../data/datasource/sale_return_datasource.dart';
-import '../../data/model/sale_invoice_model.dart'; // PaymentEntry
+import '../../data/model/sale_invoice_model.dart'; // PaymentEntry, entry method
 import '../../data/model/sale_return_model.dart';
 
 class SaleReturnNotifier extends StateNotifier<SaleReturnState> {
@@ -61,7 +62,8 @@ class SaleReturnNotifier extends StateNotifier<SaleReturnState> {
   }
 
   // ── Cart ───────────────────────────────────────────────────────
-  void addToCart(BranchStockModel product) {
+  void addToCart(BranchStockModel product,
+      {double qty = 1, String entryMethod = kEntryManual}) {
     if (product.isDigital) {
       state = state.copyWith(
           errorMessage: 'Digital product ka return nahi ho sakta');
@@ -72,16 +74,20 @@ class SaleReturnNotifier extends StateNotifier<SaleReturnState> {
 
     if (idx != -1) {
       final items = [...state.cartItems];
-      items[idx] = items[idx].copyWith(quantity: items[idx].quantity + 1);
+      items[idx] = items[idx].copyWith(
+        quantity:    items[idx].quantity + qty,
+        entryMethod: mergeEntryMethod(items[idx].entryMethod, entryMethod),
+      );
       state = state.copyWith(cartItems: items);
     } else {
       state = state.copyWith(
         cartItems: [
           ...state.cartItems,
           ReturnCartItem(
+            entryMethod: entryMethod,
             cartId: const Uuid().v4(),
             product: product,
-            quantity: 1,
+            quantity: qty,
             returnPrice: product.sellingPrice,
           ),
         ],
@@ -119,6 +125,7 @@ class SaleReturnNotifier extends StateNotifier<SaleReturnState> {
 
   void updateDiscount(String cartId, double dis) {
     if (dis < 0) return;
+    if (!_ref.read(canDiscountProvider('sale_return'))) return;
     state = state.copyWith(
       cartItems: state.cartItems
           .map((i) => i.cartId == cartId ? i.copyWith(discountAmount: dis) : i)

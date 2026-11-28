@@ -9,6 +9,7 @@ import 'package:jan_ghani_final/features/branch/customer/presentation/provider/c
 import '../../../../../core/widget/dropwdown/app_drop_down.dart';
 import '../../data/model/sale_return_report_model.dart';
 import '../provider/sale_return_report_provider.dart';
+import '../widget/entry_method_badge.dart';
 import '../widget/report_table.dart';
 
 class SaleReturnReportScreen extends ConsumerStatefulWidget {
@@ -806,6 +807,7 @@ class _ReturnCard extends StatelessWidget {
                                         color:      AppColor.textPrimary),
                                     overflow: TextOverflow.ellipsis),
                               ),
+                              EntryMethodBadge(item.entryMethod),
                             ],
                           ),
                         ),

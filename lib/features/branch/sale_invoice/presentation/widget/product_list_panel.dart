@@ -11,6 +11,21 @@ import '../provider/sale_invoice_provider.dart';
 import '../provider/sale_return_provider.dart';
 import '../screen/sale_invoice_screen.dart';
 
+/// Jin products ka barcode ya SKU [code] ke bilkul barabar hai.
+List<BranchStockModel> findByExactCode(
+    List<BranchStockModel> products, String code) {
+  final q = code.trim().toLowerCase();
+  if (q.isEmpty) return const [];
+  return products
+      .where((p) =>
+          p.sku.trim().toLowerCase() == q ||
+          splitBarcodes(p.barcode).any((c) => c.toLowerCase() == q))
+      .toList();
+}
+
+/// 6 ya us se zyada sirf digits — scan hua barcode (naam / qty nahi).
+bool looksLikeBarcode(String text) => RegExp(r'^\d{6,}$').hasMatch(text.trim());
+
 class ProductListPanel extends ConsumerStatefulWidget {
   const ProductListPanel({super.key});
 
@@ -129,10 +144,23 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       if (added) return;
     }
 
-    if (products.length == 1) {
-      setState(() => _hoveredIndex = 0);
-      _addWithQty(products.first);
+    // Scan hua code kisi product se exact match nahi hua: kuch add na karo,
+    // aur cursor search par rakho (Qty par gaya to agla scan qty ban jata).
+    if (looksLikeBarcode(query) &&
+        findByExactCode(ref.read(branchStockProvider).allProducts, query)
+            .isEmpty) {
+      _showToast('Barcode "$query" kisi product se match nahi hua',
+          error: true);
+      _refocusSearchSelectAll();
       return;
+    }
+
+    final sameCode =
+        findByExactCode(ref.read(branchStockProvider).allProducts, query);
+    if (sameCode.length > 1) {
+      _showToast(
+          '${sameCode.length} products par yehi code hai — sahi product select karein',
+          error: true);
     }
 
     if (_hoveredIndex >= 0 && _hoveredIndex < products.length) {
@@ -140,11 +168,32 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
       return;
     }
 
+    // Ek hi result ho tab bhi seedha add nahi: pehle highlight + Qty,
+    // dusre Enter par add.
     if (products.isNotEmpty) {
       setState(() => _hoveredIndex = 0);
       _scrollToHovered();
       _focusQty();
+      return;
     }
+
+    if (query.isNotEmpty) {
+      _showToast('Koi product nahi mila', error: true);
+      _refocusSearchSelectAll();
+    }
+  }
+
+  /// Search par wapas, purana text selected — agla scan usay replace kare.
+  void _refocusSearchSelectAll() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _searchFocusFromProvider?.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _searchCtrl.selection = TextSelection(
+            baseOffset: 0, extentOffset: _searchCtrl.text.length);
+      });
+    });
   }
 
   void _handleQtyKey(KeyEvent event) {
@@ -154,7 +203,16 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     }
   }
 
-  void _onQtySubmitted(String _) {
+  void _onQtySubmitted(String value) {
+    // Cursor Qty par tha aur barcode scan ho gaya: usay quantity na samjho.
+    final typed = value.trim();
+    if (looksLikeBarcode(typed)) {
+      _qtyCtrl.text = '1';
+      setState(() => _hoveredIndex = -1);
+      _searchCtrl.text = typed;
+      _onSearchSubmitted(typed);
+      return;
+    }
     final products = _currentProducts();
     if (_hoveredIndex >= 0 && _hoveredIndex < products.length) {
       _addWithQty(products[_hoveredIndex]);
@@ -203,41 +261,23 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     final isReturn    = ref.read(saleInvoiceProvider).saleType == SaleType.saleReturn;
     final allProducts = ref.read(branchStockProvider).allProducts;
 
-    BranchStockModel? match = allProducts.cast<BranchStockModel?>().firstWhere(
-          (p) =>
-      (p!.barcode != null &&
-          p.barcode!.toLowerCase().trim() == query.toLowerCase().trim()) ||
-          p.sku.toLowerCase().trim() == query.toLowerCase().trim(),
-      orElse: () => null,
-    );
-
-    if (match == null) {
-      final filtered = allProducts.where((p) =>
-      p.name.toLowerCase().contains(query.toLowerCase()) ||
-          p.sku.toLowerCase().contains(query.toLowerCase()) ||
-          (p.barcode?.toLowerCase().contains(query.toLowerCase()) ?? false))
-          .toList();
-      if (filtered.length == 1) match = filtered.first;
-    }
+    // Sirf poora (exact) barcode / SKU match. Adha match kabhi auto-add
+    // nahi hota. Ek se zyada product par wahi code ho to bhi nahi —
+    // cashier list se dekh kar select kare.
+    final matches = findByExactCode(allProducts, query);
+    final BranchStockModel? match =
+        matches.length == 1 ? matches.first : null;
 
     if (match == null) return false;
 
     final qty = double.tryParse(_qtyCtrl.text.trim()) ?? 1;
 
     if (isReturn) {
-      ref.read(saleReturnProvider.notifier).addToCart(match);
-      if (qty != 1) {
-        final retState = ref.read(saleReturnProvider);
-        final newItem  = retState.cartItems
-            .where((i) => i.product.productId == match!.productId)
-            .firstOrNull;
-        if (newItem != null) {
-          ref.read(saleReturnProvider.notifier).updateQuantity(newItem.cartId, qty);
-        }
-      }
+      ref.read(saleReturnProvider.notifier).addToCart(match,
+          qty: qty > 0 ? qty : 1, entryMethod: kEntryBarcode);
       _onProductAdded(match.name, qty, isReturn: true);
     } else {
-      if (!_doAddToCart(match, qty)) return true;
+      if (!_doAddToCart(match, qty, kEntryBarcode)) return true;
       _onProductAdded(match.name, qty);
     }
 
@@ -260,14 +300,16 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     );
 
     if (found != null) {
-      ref.read(saleReturnProvider.notifier).addToCart(found);
+      ref.read(saleReturnProvider.notifier)
+          .addToCart(found, entryMethod: kEntryBarcode);
       _onProductAdded(found.name, 1, isReturn: true);
       return true;
     }
     return false;
   }
 
-  bool _doAddToCart(BranchStockModel product, double qty) {
+  bool _doAddToCart(
+      BranchStockModel product, double qty, String entryMethod) {
     final notifier = ref.read(saleInvoiceProvider.notifier);
     if (!product.isDigital && product.quantity <= 0) {
       _showToast('${product.name} — stock khatam hai (0 ya negative)', error: true);
@@ -283,8 +325,9 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 
     if (existing != null) {
       notifier.updateQuantity(existing.cartId, existing.quantity + qty);
+      notifier.markEntry(existing.cartId, entryMethod);
     } else {
-      notifier.addToCart(product);
+      notifier.addToCart(product, entryMethod: entryMethod);
       if (qty != 1) {
         final newState = ref.read(saleInvoiceProvider);
         final newItem  = newState.cartItems
@@ -298,7 +341,8 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
 
   void _onProductAdded(String name, double qty, {bool isReturn = false}) {
     _qtyCtrl.text = '1';
-    setState(() => _hoveredIndex = -1);
+    // Selection wahin rehti hai: agla ↑↓ isi product se aage chale.
+    // (Search text badalne par _onSearchChanged khud reset karta hai.)
     _showAddedFeedback(name, qty);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _searchFocusFromProvider?.requestFocus();
@@ -311,12 +355,11 @@ class _ProductListPanelState extends ConsumerState<ProductListPanel> {
     if (qty <= 0) return;
 
     if (isReturn) {
-      final n = ref.read(saleReturnProvider.notifier);
-      n.addToCart(product);
-      if (qty != 1) n.updateQuantity(product.productId, qty);
+      ref.read(saleReturnProvider.notifier)
+          .addToCart(product, qty: qty, entryMethod: kEntryManual);
       _onProductAdded(product.name, qty, isReturn: true);
     } else {
-      if (!_doAddToCart(product, qty)) return;
+      if (!_doAddToCart(product, qty, kEntryManual)) return;
       _onProductAdded(product.name, qty);
     }
   }
