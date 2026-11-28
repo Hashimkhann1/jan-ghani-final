@@ -9,7 +9,6 @@ import 'package:jan_ghani_final/features/branch/branch_stock_inventory/data/mode
 import '../../../authentication/presentation/provider/auth_provider.dart';
 import '../../../customer/presentation/widget/customer_action_button_widget.dart';
 import '../../../customer/presentation/widget/customer_filter_chip_widget.dart';
-import '../../data/datasource/branch_stock_remote_datasource.dart';
 import '../provider/branch_stock_inventory_provider.dart';
 import '../widget/delete_dilog_widget.dart';
 import '../widget/edit_dilog_widget.dart';
@@ -861,14 +860,11 @@ class _DataRow extends ConsumerWidget {
             // Barcode
             SizedBox(
               width: widths[1],
-              child: Text(
-                BranchStockDataSource().parseBarcode(row.barcode) ?? '—',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: isHighlighted
-                        ? AppColor.primary
-                        : AppColor.textSecondary),
-                overflow: TextOverflow.ellipsis,
+              child: _BarcodeCell(
+                codes: splitBarcodes(row.barcode),
+                color: isHighlighted
+                    ? AppColor.primary
+                    : AppColor.textSecondary,
               ),
             ),
             // Name
@@ -1039,6 +1035,81 @@ class _DataRow extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Barcode + copy button. Ek se zyada codes hon to menu se chunein.
+class _BarcodeCell extends StatelessWidget {
+  final List<String> codes;
+  final Color color;
+  const _BarcodeCell({required this.codes, required this.color});
+
+  Future<void> _copy(BuildContext context, String code) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(ClipboardData(text: code));
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content:  Text('Barcode copy ho gaya: $code'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(fontSize: 12, color: color);
+    if (codes.isEmpty) return Text('—', style: style);
+
+    final label = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(
+            codes.length == 1
+                ? codes.first
+                : '${codes.first}  +${codes.length - 1}',
+            style: style,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 6),
+        const Icon(Icons.copy_rounded, size: 14, color: AppColor.primary),
+        const SizedBox(width: 6),
+      ],
+    );
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: codes.length == 1
+          ? Tooltip(
+              message: 'Barcode copy karein',
+              waitDuration: const Duration(milliseconds: 400),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: () => _copy(context, codes.first),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: label,
+                ),
+              ),
+            )
+          : PopupMenuButton<String>(
+              tooltip: 'Barcode chun kar copy karein',
+              onSelected: (code) => _copy(context, code),
+              itemBuilder: (_) => [
+                for (final code in codes)
+                  PopupMenuItem(
+                    value: code,
+                    child: Text(code, style: const TextStyle(fontSize: 13)),
+                  ),
+              ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: label,
+              ),
+            ),
     );
   }
 }

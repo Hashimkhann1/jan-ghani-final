@@ -1,3 +1,12 @@
+/// DB se barcode `text[]` ban kar "{111,222}" jaisa aata hai. Kuch purana
+/// data bar bar escape ho kar "\"\\\"...111" jaisa bhi save hai. Is liye
+/// brackets, quotes aur backslash hata kar saaf codes alag karo.
+List<String> splitBarcodes(String? raw) => (raw ?? '')
+    .split(RegExp(r'[{},"\\]'))
+    .map((c) => c.trim())
+    .where((c) => c.isNotEmpty)
+    .toList();
+
 class BranchStockModel {
   final String   id;
   final String   storeId;
