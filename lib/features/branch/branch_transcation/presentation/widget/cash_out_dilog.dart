@@ -14,6 +14,7 @@ class CashOutDialog extends ConsumerStatefulWidget {
 class _CashOutDialogState extends ConsumerState<CashOutDialog> {
   final _payController = TextEditingController();
   final _formKey       = GlobalKey<FormState>();
+  bool _busy = false; // key dobara dabne par double cash out na ho
 
   @override
   void initState() {
@@ -29,11 +30,23 @@ class _CashOutDialogState extends ConsumerState<CashOutDialog> {
     super.dispose();
   }
 
+  void _cancel() {
+    if (_busy || ref.read(branchTransactionProvider).isSubmitting) return;
+    Navigator.of(context).pop();
+  }
+
   Future<void> _submit() async {
+    final current = ref.read(branchTransactionProvider);
+    if (_busy || current.isSubmitting || current.isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     final amount = double.tryParse(_payController.text.trim()) ?? 0.0;
-    await ref.read(branchTransactionProvider.notifier).cashOut(amount);
+    _busy = true;
+    try {
+      await ref.read(branchTransactionProvider.notifier).cashOut(amount);
+    } finally {
+      _busy = false;
+    }
 
     if (!mounted) return;
 
@@ -65,7 +78,16 @@ class _CashOutDialogState extends ConsumerState<CashOutDialog> {
       }
     });
 
-    return Dialog(
+    // Enter / Ctrl+S : cash out      Esc : cancel
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyS,
+            control: true, includeRepeats: false): _submit,
+        const SingleActivator(LogicalKeyboardKey.enter,
+            control: true, includeRepeats: false): _submit,
+        const SingleActivator(LogicalKeyboardKey.escape): _cancel,
+      },
+      child: Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: 460,
@@ -162,6 +184,10 @@ class _CashOutDialogState extends ConsumerState<CashOutDialog> {
                 const SizedBox(height: 6),
                 TextFormField(
                   controller:   _payController,
+                  autofocus:    true,
+                  // Focus field par hi rahe (validation fail ho to bhi).
+                  onEditingComplete: () {},
+                  onFieldSubmitted: (_) => _submit(),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
@@ -235,7 +261,7 @@ class _CashOutDialogState extends ConsumerState<CashOutDialog> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('Cancel'),
+                        child: const Text('Cancel (Esc)'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -256,7 +282,7 @@ class _CashOutDialogState extends ConsumerState<CashOutDialog> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.arrow_upward_rounded, size: 18),
-                        label: const Text('Cash Out',
+                        label: const Text('Cash Out (Enter)',
                             style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ),
@@ -267,6 +293,7 @@ class _CashOutDialogState extends ConsumerState<CashOutDialog> {
           ),
         ),
       ),
+    ),
     );
   }
 }

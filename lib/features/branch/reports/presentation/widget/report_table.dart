@@ -25,6 +25,9 @@ class ReportTable extends StatefulWidget {
   final void Function(int index)      onView;
   final int                           rowsPerPage;
 
+  /// Keyboard se select hui row (absolute index) — highlight + scroll.
+  final int?                          selectedIndex;
+
   const ReportTable({
     super.key,
     required this.columns,
@@ -32,6 +35,7 @@ class ReportTable extends StatefulWidget {
     required this.cellsBuilder,
     required this.onView,
     this.rowsPerPage = 30,
+    this.selectedIndex,
   });
 
   @override
@@ -40,6 +44,7 @@ class ReportTable extends StatefulWidget {
 
 class _ReportTableState extends State<ReportTable> {
   int _page = 0;
+  final _selectedKey = GlobalKey();
 
   @override
   void didUpdateWidget(covariant ReportTable old) {
@@ -47,6 +52,16 @@ class _ReportTableState extends State<ReportTable> {
     // Row count ghatne par (filter change) page range se bahar na ho.
     final maxPage = _maxPage;
     if (_page > maxPage) _page = maxPage;
+
+    if (widget.selectedIndex != null &&
+        widget.selectedIndex != old.selectedIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _selectedKey.currentContext;
+        if (!mounted || ctx == null) return;
+        Scrollable.ensureVisible(ctx,
+            alignment: 0.5, duration: const Duration(milliseconds: 120));
+      });
+    }
   }
 
   int get _maxPage {
@@ -124,9 +139,14 @@ class _ReportTableState extends State<ReportTable> {
                 itemBuilder: (_, i) {
                   final absolute = startIdx + i;
                   final cells    = widget.cellsBuilder(absolute);
+                  final isSelected = absolute == widget.selectedIndex;
                   return InkWell(
                     onTap: () => widget.onView(absolute),
                     child: Container(
+                      key: isSelected ? _selectedKey : null,
+                      color: isSelected
+                          ? AppColor.primary.withValues(alpha: 0.12)
+                          : null,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 11),
                       child: Row(

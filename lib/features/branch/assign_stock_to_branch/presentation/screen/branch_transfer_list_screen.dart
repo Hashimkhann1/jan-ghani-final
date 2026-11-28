@@ -1,6 +1,7 @@
 // Branch Transfer List Screen — updated with inventory-style summary header
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -17,6 +18,11 @@ final _transferDateFmt = DateFormat('dd MMM yyyy');
 
 const _kTabStatus = ['pending', 'accepted', 'rejected'];
 
+// ── Shortcuts ───────────────────────────────────────────────────
+//  Ctrl+1..3 : Pending / Accepted / Rejected      F5 : refresh
+//  PageUp / PageDown : previous / next page
+//  ↑↓ row select → Enter open      Esc : panel band / selection clear
+//  Pending panel khula ho:  Ctrl+Enter / Ctrl+S accept    Ctrl+R reject
 class BranchTransferListScreen extends ConsumerStatefulWidget {
   const BranchTransferListScreen({super.key});
 
@@ -34,8 +40,89 @@ class _BranchTransferListScreenState
   String?        _selectedId;
   StockTransfer? _selectedTransfer;   // cache — page badalne par bhi rahe
   bool           _panelOpen = false;
+  String?        _cursorId;           // arrow keys se select hui row
+
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
+    // Dialog khula ho ya doosri screen top par ho to kuch na karo.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true) ||
+        Navigator.of(context, rootNavigator: true).canPop()) {
+      return false;
+    }
+
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isAltPressed) return false; // sidebar shortcuts
+    final ctrl = keyboard.isControlPressed;
+    final key  = event.logicalKey;
+    final data = ref.read(stockTransferProvider).value;
+    final rows = data?.rows ?? const <StockTransfer>[];
+
+    if (key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowUp) {
+      if (ctrl || _panelOpen || rows.isEmpty) return false;
+      final step    = key == LogicalKeyboardKey.arrowDown ? 1 : -1;
+      final current = rows.indexWhere((t) => t.id == _cursorId);
+      final next =
+          current < 0 ? 0 : (current + step).clamp(0, rows.length - 1);
+      setState(() => _cursorId = rows[next].id);
+      return true;
+    }
+    if (event is! KeyDownEvent) return false;
+
+    if (key == LogicalKeyboardKey.escape) {
+      if (_panelOpen) {
+        _closePanel();
+        return true;
+      }
+      if (_cursorId != null) {
+        setState(() => _cursorId = null);
+        return true;
+      }
+      return false;
+    }
+    if (key == LogicalKeyboardKey.f5) {
+      ref.read(stockTransferProvider.notifier).refresh();
+      return true;
+    }
+
+    const pageSteps = [LogicalKeyboardKey.pageUp, LogicalKeyboardKey.pageDown];
+    if (pageSteps.contains(key)) {
+      if (_panelOpen || data == null) return false;
+      final step = key == LogicalKeyboardKey.pageDown ? 1 : -1;
+      final next = (data.page + step).clamp(0, data.pageCount - 1);
+      if (next != data.page) {
+        setState(() => _cursorId = null);
+        ref.read(stockTransferProvider.notifier).setPage(next);
+      }
+      return true;
+    }
+
+    if (ctrl) {
+      final tab = [
+        LogicalKeyboardKey.digit1,
+        LogicalKeyboardKey.digit2,
+        LogicalKeyboardKey.digit3,
+      ].indexOf(key);
+      if (tab >= 0) {
+        _tabController.animateTo(tab);
+        return true;
+      }
+      return false;
+    }
+
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      if (_panelOpen) return false;
+      final t = rows.firstWhereOrNull((t) => t.id == _cursorId);
+      if (t == null) return false;
+      _openTransfer(t);
+      return true;
+    }
+    return false;
+  }
 
   void _openTransfer(StockTransfer t) => setState(() {
+        _cursorId         = t.id;
         _selectedId       = t.id;
         _selectedTransfer = t;
         _panelOpen        = true;
@@ -53,12 +140,18 @@ class _BranchTransferListScreenState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    HardwareKeyboard.instance.addHandler(_onKey);
+    // Provider global hai — pichli dafa jo tab khula tha wahi select ho.
+    final lastStatus = ref.read(stockTransferProvider).value?.status;
+    final lastTab    = _kTabStatus.indexOf(lastStatus ?? 'pending');
+    _tabController = TabController(
+        length: 3, vsync: this, initialIndex: lastTab < 0 ? 0 : lastTab);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       final status = _kTabStatus[_tabController.index];
       if (ref.read(stockTransferProvider).value?.status != status) {
         ref.read(stockTransferProvider.notifier).setStatus(status);
+        _cursorId = null;
         _closePanel();
       }
     });
@@ -66,6 +159,7 @@ class _BranchTransferListScreenState
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _tabController.dispose();
     super.dispose();
   }
@@ -95,7 +189,7 @@ class _BranchTransferListScreenState
         actions: [
           IconButton(
             icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
+            tooltip: 'Refresh (F5)',
             onPressed: () => ref.read(stockTransferProvider.notifier).refresh(),
           ),
           const SizedBox(width: 4),
@@ -108,17 +202,17 @@ class _BranchTransferListScreenState
               tabs: [
                 _TransferTabSpec(
                     iconAsset: 'ic_pending',
-                    label: 'Pending',
+                    label: 'Pending  (Ctrl+1)',
                     color: AppColor.warning,
                     count: data.aggFor('pending').count),
                 _TransferTabSpec(
                     iconAsset: 'ic_accepted',
-                    label: 'Accepted',
+                    label: 'Accepted  (Ctrl+2)',
                     color: AppColor.success,
                     count: data.aggFor('accepted').count),
                 _TransferTabSpec(
                     iconAsset: 'ic_rejected',
-                    label: 'Rejected',
+                    label: 'Rejected  (Ctrl+3)',
                     color: AppColor.error,
                     count: data.aggFor('rejected').count),
               ],
@@ -152,8 +246,25 @@ class _BranchTransferListScreenState
           return Stack(
             fit: StackFit.expand,
             children: [
-              _TransferList(
+              Column(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, 2),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Ctrl+1–3 tabs  •  F5 refresh  •  ↑↓ select → Enter open  •  '
+                        'PgUp/PgDn page  •  Panel: Ctrl+Enter accept, Ctrl+R reject, '
+                        'Esc close',
+                        style: TextStyle(
+                            fontSize: 11, color: AppColor.textSecondary),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: _TransferList(
                 data:        data,
+                cursorId:    _cursorId,
                 accentColor: accent,
                 emptyIcon:   status == 'pending'
                     ? Icons.schedule_rounded
@@ -173,6 +284,9 @@ class _BranchTransferListScreenState
                 onView:  _openTransfer,
                 onPage:  (p) =>
                     ref.read(stockTransferProvider.notifier).setPage(p),
+                    ),
+                  ),
+                ],
               ),
               ReportSlideOver(
                 open:       _panelOpen && selected != null,
@@ -185,6 +299,7 @@ class _BranchTransferListScreenState
                     : StockTransferDetailBody(
                         transfer: selected,
                         onActionDone: _closePanel,
+                        shortcutsEnabled: _panelOpen,
                       ),
               ),
             ],
@@ -511,9 +626,11 @@ class _TransferList extends ConsumerWidget {
   final String emptySubtitle;
   final void Function(StockTransfer) onView;
   final void Function(int) onPage;
+  final String? cursorId;
 
   const _TransferList({
     required this.data,
+    required this.cursorId,
     required this.accentColor,
     required this.emptyIcon,
     required this.emptyTitle,
@@ -576,6 +693,10 @@ class _TransferList extends ConsumerWidget {
                       align: Alignment.centerRight),
                 ],
                 rowCount: transfers.length,
+                selectedIndex: () {
+                  final i = transfers.indexWhere((t) => t.id == cursorId);
+                  return i < 0 ? null : i;
+                }(),
                 onView: (i) => onView(transfers[i]),
                 cellsBuilder: (i) {
                   final t = transfers[i];

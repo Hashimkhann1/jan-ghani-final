@@ -14,6 +14,13 @@ import '../../data/model/branch_stock_damage_model.dart';
 import '../provider/branch_stock_damage_provider.dart';
 import '../widget/add_damage_dialog.dart';
 
+// ── Shortcuts ───────────────────────────────────────────────────
+//  F1 / Ctrl+F : search      Ctrl+N : add damage      F5 : refresh
+//  Ctrl+1..4   : All / Today / This Week / This Month
+//  Ctrl+5 : from date    Ctrl+6 : to date    Ctrl+0 : clear date filter
+//  PageUp / PageDown : previous / next page
+//  ↑↓ row select, phir:  Ctrl+E edit    Ctrl+D / Ctrl+Delete delete
+//  Esc : selection clear, phir search clear
 class BranchStockDamageScreen extends ConsumerStatefulWidget {
   const BranchStockDamageScreen({super.key});
 
@@ -24,7 +31,15 @@ class BranchStockDamageScreen extends ConsumerStatefulWidget {
 
 class _BranchStockDamageScreenState
     extends ConsumerState<BranchStockDamageScreen> {
-  final _searchCtrl = TextEditingController();
+  final _searchCtrl  = TextEditingController();
+  final _searchFocus = FocusNode(debugLabel: 'Damage_Search');
+  String? _selectedId; // arrow keys se select hui row
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
 
   void _openAddDialog() => showDialog(
     context: context,
@@ -34,8 +49,150 @@ class _BranchStockDamageScreenState
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate({required bool isFrom}) async {
+    final state    = ref.read(branchStockDamageProvider);
+    final notifier = ref.read(branchStockDamageProvider.notifier);
+    final picked = await showDatePicker(
+      context:     context,
+      initialDate: (isFrom ? state.fromDate : state.toDate) ?? DateTime.now(),
+      firstDate:   DateTime(2020),
+      lastDate:    DateTime.now(),
+    );
+    if (picked == null || !mounted) return;
+    isFrom ? notifier.setFromDate(picked) : notifier.setToDate(picked);
+  }
+
+  void _openEditDialog(BranchStockDamageModel record) => showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => EditDamageDialog(record: record),
+  );
+
+  void _openDeleteDialog(BranchStockDamageModel record) => showDialog(
+    context: context,
+    builder: (_) => DeleteDamageDialog(record: record),
+  );
+
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
+    // Dialog / date picker khula ho ya doosri screen top par ho to kuch na karo.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true) ||
+        Navigator.of(context, rootNavigator: true).canPop()) {
+      return false;
+    }
+
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isAltPressed) return false; // sidebar shortcuts
+    final ctrl     = keyboard.isControlPressed;
+    final key      = event.logicalKey;
+    final state    = ref.read(branchStockDamageProvider);
+    final notifier = ref.read(branchStockDamageProvider.notifier);
+    final rows     = state.rows;
+
+    if (key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowUp) {
+      if (ctrl || rows.isEmpty) return false;
+      final step    = key == LogicalKeyboardKey.arrowDown ? 1 : -1;
+      final current = rows.indexWhere((r) => r.id == _selectedId);
+      final next =
+          current < 0 ? 0 : (current + step).clamp(0, rows.length - 1);
+      setState(() => _selectedId = rows[next].id);
+      return true;
+    }
+    if (event is! KeyDownEvent) return false;
+
+    if (key == LogicalKeyboardKey.f1 ||
+        (ctrl && key == LogicalKeyboardKey.keyF)) {
+      _searchFocus.requestFocus();
+      _searchCtrl.selection = TextSelection(
+          baseOffset: 0, extentOffset: _searchCtrl.text.length);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.f5) {
+      notifier.refresh();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.pageDown ||
+        key == LogicalKeyboardKey.pageUp) {
+      if (!state.isLoading) {
+        setState(() => _selectedId = null);
+        key == LogicalKeyboardKey.pageDown
+            ? notifier.nextPage()
+            : notifier.prevPage();
+      }
+      return true;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      if (_selectedId != null) {
+        setState(() => _selectedId = null);
+        return true;
+      }
+      if (_searchCtrl.text.isNotEmpty) {
+        setState(_searchCtrl.clear);
+        notifier.onSearchChanged('');
+        return true;
+      }
+      return false;
+    }
+    if (!ctrl) return false;
+
+    if (key == LogicalKeyboardKey.keyN) {
+      _openAddDialog();
+      return true;
+    }
+
+    final filters = {
+      LogicalKeyboardKey.digit1: 'all',
+      LogicalKeyboardKey.digit2: 'today',
+      LogicalKeyboardKey.digit3: 'this_week',
+      LogicalKeyboardKey.digit4: 'this_month',
+    };
+    final filter = filters[key];
+    if (filter != null) {
+      setState(() => _selectedId = null);
+      notifier.onFilterChanged(filter);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit5) {
+      _pickDate(isFrom: true);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit6) {
+      _pickDate(isFrom: false);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit0) {
+      if (state.hasDateFilter) notifier.clearDateFilter();
+      return true;
+    }
+
+    // ── Selected row ke actions ───────────────────────────
+    final selected = rows.where((r) => r.id == _selectedId).firstOrNull;
+    final isEdit   = key == LogicalKeyboardKey.keyE;
+    final isDelete = key == LogicalKeyboardKey.keyD ||
+        key == LogicalKeyboardKey.delete ||
+        key == LogicalKeyboardKey.backspace;
+    if (!isEdit && !isDelete) return false;
+    if (selected == null) {
+      // Search field mein likhte waqt text wali keys apna kaam karein.
+      if (isDelete && _searchFocus.hasFocus) return false;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text('Pehle row select karein (↑↓ ya row par click)'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ));
+      return true;
+    }
+    isEdit ? _openEditDialog(selected) : _openDeleteDialog(selected);
+    return true;
   }
 
   @override
@@ -79,14 +236,14 @@ class _BranchStockDamageScreenState
           IconButton(
             onPressed: notifier.refresh,
             icon:      const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
-            tooltip:   'Refresh',
+            tooltip:   'Refresh (F5)',
             style: IconButton.styleFrom(
                 foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 8),
           // ── Add Damage button (AppBar) ──────────────────────────
           SizedBox(
-            width: 150,
+            width: 210,
             child: ElevatedButton(
               onPressed: _openAddDialog,
               style: ElevatedButton.styleFrom(
@@ -95,7 +252,7 @@ class _BranchStockDamageScreenState
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-              child: const Text('Add Damage'),
+              child: const Text('Add Damage  (Ctrl+N)'),
             ),
           ),
           const SizedBox(width: 16),
@@ -157,11 +314,12 @@ class _BranchStockDamageScreenState
                   width: 280,
                   child: TextField(
                     controller: _searchCtrl,
+                    focusNode:  _searchFocus,
                     onChanged:  notifier.onSearchChanged,
                     style:        const TextStyle(fontSize: 13),
                     cursorHeight: 14,
                     decoration: InputDecoration(
-                      hintText: 'Search by product name...',
+                      hintText: 'Search by product name... (F1)',
                       hintStyle: const TextStyle(
                           color: AppColor.textHint, fontSize: 13),
                       prefixIcon: const AppIcon('ic_search',
@@ -207,34 +365,18 @@ class _BranchStockDamageScreenState
 
                 // ── From Date ────────────────────────────────────
                 _DateFilterField(
-                  label:    'From',
+                  label:    'From (Ctrl+5)',
                   date:     state.fromDate,
-                  onTap:    () async {
-                    final picked = await showDatePicker(
-                      context:     context,
-                      initialDate: state.fromDate ?? DateTime.now(),
-                      firstDate:   DateTime(2020),
-                      lastDate:    DateTime.now(),
-                    );
-                    if (picked != null) notifier.setFromDate(picked);
-                  },
+                  onTap:    () => _pickDate(isFrom: true),
                   onClear: () => notifier.setFromDate(null),
                 ),
                 const SizedBox(width: 8),
 
                 // ── To Date ──────────────────────────────────────
                 _DateFilterField(
-                  label:    'To',
+                  label:    'To (Ctrl+6)',
                   date:     state.toDate,
-                  onTap:    () async {
-                    final picked = await showDatePicker(
-                      context:     context,
-                      initialDate: state.toDate ?? DateTime.now(),
-                      firstDate:   DateTime(2020),
-                      lastDate:    DateTime.now(),
-                    );
-                    if (picked != null) notifier.setToDate(picked);
-                  },
+                  onTap:    () => _pickDate(isFrom: false),
                   onClear: () => notifier.setToDate(null),
                 ),
 
@@ -243,7 +385,7 @@ class _BranchStockDamageScreenState
                   TextButton.icon(
                     onPressed: notifier.clearDateFilter,
                     icon:  const Icon(Icons.close_rounded, size: 16),
-                    label: const Text('Clear Date Filter'),
+                    label: const Text('Clear Date Filter (Ctrl+0)'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColor.error,
                       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -253,7 +395,14 @@ class _BranchStockDamageScreenState
               ]),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
+            const Text(
+              'F1 search  •  Ctrl+N add  •  Ctrl+1–4 filter  •  Ctrl+5 / 6 date  •  '
+              'Ctrl+0 clear date  •  PgUp/PgDn page  •  ↑↓ select → Ctrl+E edit, '
+              'Ctrl+D delete  •  Esc clear',
+              style: TextStyle(fontSize: 11, color: AppColor.textSecondary),
+            ),
+            const SizedBox(height: 10),
 
             _PaginationBar(state: state, notifier: notifier),
             const SizedBox(height: 8),
@@ -266,7 +415,13 @@ class _BranchStockDamageScreenState
                 isSearching: state.searchQuery.isNotEmpty || state.hasDateFilter,
                 onAdd:       _openAddDialog,
               )
-                  : _DamageTable(rows: state.rows),
+                  : _DamageTable(
+                    rows:       state.rows,
+                    selectedId: _selectedId,
+                    onSelect:   (id) => setState(() => _selectedId = id),
+                    onEdit:     _openEditDialog,
+                    onDelete:   _openDeleteDialog,
+                  ),
             ),
           ],
         ),
@@ -336,7 +491,17 @@ class _DateFilterField extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════
 class _DamageTable extends ConsumerWidget {
   final List<BranchStockDamageModel> rows;
-  const _DamageTable({required this.rows});
+  final String? selectedId;
+  final ValueChanged<String> onSelect;
+  final ValueChanged<BranchStockDamageModel> onEdit;
+  final ValueChanged<BranchStockDamageModel> onDelete;
+  const _DamageTable({
+    required this.rows,
+    required this.selectedId,
+    required this.onSelect,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   static const _widths = [
     350.0, // Product Name
@@ -353,13 +518,20 @@ class _DamageTable extends ConsumerWidget {
     'Qty Damaged', 'Total Loss', 'Date', 'Actions',
   ];
 
-  static double get _totalWidth => _widths.fold(0.0, (s, w) => s + w) + 32;
+  // Is se chhoti screen par hi horizontal scroll aata hai.
+  static const _minTableWidth = 900.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(builder: (ctx, constraints) {
       final tableWidth =
-      _totalWidth.clamp(constraints.maxWidth, double.infinity);
+      constraints.maxWidth.clamp(_minTableWidth, double.infinity);
+      // Columns ko available width ke hisaab se scale karo, taake Actions
+      // (Edit / Delete) screen se bahar na jayein.
+      final baseTotal = _widths.fold(0.0, (s, w) => s + w);
+      final widths = [
+        for (final w in _widths) w * (tableWidth - 32) / baseTotal,
+      ];
       const headerH = 44.0;
       final rowsH   = constraints.maxHeight - headerH - 1;
 
@@ -376,7 +548,7 @@ class _DamageTable extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: List.generate(_headers.length, (i) => SizedBox(
-                  width: _widths[i],
+                  width: widths[i],
                   child: Text(
                     _headers[i],
                     textAlign: i == _headers.length - 1
@@ -400,18 +572,15 @@ class _DamageTable extends ConsumerWidget {
                 itemCount: rows.length,
                 separatorBuilder: (_, __) =>
                 const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                itemBuilder: (ctx, i) => _DamageRow(
-                  record:   rows[i],
-                  index:    i,
-                  widths:   _widths,
-                  onEdit: () => showDialog(
-                    context:            ctx,
-                    barrierDismissible: false,
-                    builder: (_) => EditDamageDialog(record: rows[i]),
-                  ),
-                  onDelete: () => showDialog(
-                    context: ctx,
-                    builder: (_) => DeleteDamageDialog(record: rows[i]),
+                itemBuilder: (ctx, i) => GestureDetector(
+                  onTap: () => onSelect(rows[i].id),
+                  child: _DamageRow(
+                    record:     rows[i],
+                    index:      i,
+                    widths:     widths,
+                    isSelected: rows[i].id == selectedId,
+                    onEdit:     () => onEdit(rows[i]),
+                    onDelete:   () => onDelete(rows[i]),
                   ),
                 ),
               ),
@@ -424,29 +593,57 @@ class _DamageTable extends ConsumerWidget {
 }
 
 // ── Single Row ────────────────────────────────────────────────────
-class _DamageRow extends StatelessWidget {
+class _DamageRow extends StatefulWidget {
   final BranchStockDamageModel record;
   final int          index;
   final List<double> widths;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool         isSelected;
 
   const _DamageRow({
     required this.record,
     required this.index,
     required this.widths,
+    required this.isSelected,
     required this.onEdit,
     required this.onDelete,
   });
 
   @override
+  State<_DamageRow> createState() => _DamageRowState();
+}
+
+class _DamageRowState extends State<_DamageRow> {
+  @override
+  void didUpdateWidget(covariant _DamageRow old) {
+    super.didUpdateWidget(old);
+    if (!widget.isSelected || old.isSelected) return;
+    // Arrow keys se select hui row ko view mein lao (sirf vertical).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = context.findRenderObject();
+      final scrollable = Scrollable.maybeOf(context, axis: Axis.vertical);
+      if (box == null || scrollable == null) return;
+      scrollable.position.ensureVisible(box,
+          alignment: 0.5, duration: const Duration(milliseconds: 120));
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isEven  = index.isEven;
+    final record   = widget.record;
+    final widths   = widget.widths;
+    final onEdit   = widget.onEdit;
+    final onDelete = widget.onDelete;
+    final isEven  = widget.index.isEven;
     final dateFmt = DateFormat('dd MMM yyyy');
 
     return Container(
       height: 52,
-      color: isEven ? Colors.white : const Color(0xFFFFF5F5),
+      color: widget.isSelected
+          ? AppColor.primary.withValues(alpha: 0.14)
+          : isEven ? Colors.white : const Color(0xFFFFF5F5),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(children: [
 
@@ -521,7 +718,7 @@ class _DamageRow extends StatelessWidget {
                 icon:      Icons.edit_outlined,
                 iconAsset: 'ic_edit',
                 color:     AppColor.primary,
-                tooltip:   'Edit Quantity',
+                tooltip:   'Edit Quantity (Ctrl+E)',
                 onTap:     onEdit,
               ),
               const SizedBox(width: 6),
@@ -529,7 +726,7 @@ class _DamageRow extends StatelessWidget {
                 icon:      Icons.delete_outline_rounded,
                 iconAsset: 'ic_delete',
                 color:     AppColor.error,
-                tooltip:   'Delete & Restore Stock',
+                tooltip:   'Delete & Restore Stock (Ctrl+D)',
                 onTap:     onDelete,
               ),
             ],

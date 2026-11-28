@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -8,6 +9,10 @@ import 'package:jan_ghani_final/core/widget/pagination_bar.dart';
 import '../provider/branch_transaction_provider.dart';
 import '../widget/cash_out_dilog.dart';
 
+// ── Shortcuts ───────────────────────────────────────────────────
+//  Ctrl+N : cash out        F5 : refresh
+//  Ctrl+1 : start date      Ctrl+2 : end date      Ctrl+0 / Esc : clear dates
+//  PageUp / PageDown : previous / next page
 class BranchTransactionScreen extends ConsumerStatefulWidget {
   const BranchTransactionScreen({super.key});
 
@@ -27,6 +32,7 @@ class _BranchTransactionScreenState
   @override
   void initState() {
     super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
     // Provider is global — a date filter set on an earlier visit is still
     // active, so reflect it in the text fields instead of showing them blank.
     final s = ref.read(branchTransactionProvider);
@@ -40,9 +46,65 @@ class _BranchTransactionScreenState
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _startDateCtrl.dispose();
     _endDateCtrl.dispose();
     super.dispose();
+  }
+
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    // Dialog / date picker khula ho ya doosri screen top par ho to kuch na karo.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true) ||
+        Navigator.of(context, rootNavigator: true).canPop()) {
+      return false;
+    }
+
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isAltPressed) return false; // sidebar shortcuts
+    final ctrl  = keyboard.isControlPressed;
+    final key   = event.logicalKey;
+    final state = ref.read(branchTransactionProvider);
+    final hasDateFilter = state.startDate != null || state.endDate != null;
+
+    if (key == LogicalKeyboardKey.f5) {
+      ref.read(branchTransactionProvider.notifier).loadData();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.pageDown ||
+        key == LogicalKeyboardKey.pageUp) {
+      final total = state.history.length;
+      if (total == 0) return true;
+      // 25 = PaginationBar / pageSlice ka default page size.
+      final lastPage = (total - 1) ~/ 25;
+      final step = key == LogicalKeyboardKey.pageDown ? 1 : -1;
+      setState(() => _page = (_page.clamp(0, lastPage) + step).clamp(0, lastPage));
+      return true;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      if (!hasDateFilter) return false;
+      _clearDates();
+      return true;
+    }
+    if (!ctrl) return false;
+
+    if (key == LogicalKeyboardKey.keyN) {
+      if (!state.isLoading) _openCashOutDialog();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit1) {
+      _pickStartDate();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit2) {
+      _pickEndDate();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit0) {
+      if (hasDateFilter) _clearDates();
+      return true;
+    }
+    return false;
   }
 
   void _openCashOutDialog() {
@@ -126,7 +188,7 @@ class _BranchTransactionScreenState
         actions: [
           IconButton(
             icon:    const AppIcon('ic_refresh', size: 20, color: Color(0xFF6B7280)),
-            tooltip: 'Refresh',
+            tooltip: 'Refresh (F5)',
             onPressed: () =>
                 ref.read(branchTransactionProvider.notifier).loadData(),
           ),
@@ -144,7 +206,7 @@ class _BranchTransactionScreenState
                       borderRadius: BorderRadius.circular(10)),
                 ),
                 icon:  const AppIcon('ic_cash_out', size: 18, color: Colors.white),
-                label: const Text('Cash Out',
+                label: const Text('Cash Out  (Ctrl+N)',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
@@ -187,7 +249,7 @@ class _BranchTransactionScreenState
                       readOnly:   true,
                       onTap:      _pickStartDate,
                       decoration: InputDecoration(
-                        labelText: 'Start Date',
+                        labelText: 'Start Date (Ctrl+1)',
                         hintText:  'dd MMM yyyy',
                         isDense:   true,
                         prefixIcon: const AppIcon('ic_calendar', size: 18),
@@ -204,7 +266,7 @@ class _BranchTransactionScreenState
                       readOnly:   true,
                       onTap:      _pickEndDate,
                       decoration: InputDecoration(
-                        labelText: 'End Date',
+                        labelText: 'End Date (Ctrl+2)',
                         hintText:  'dd MMM yyyy',
                         isDense:   true,
                         prefixIcon: const AppIcon('ic_calendar', size: 18),
@@ -217,7 +279,7 @@ class _BranchTransactionScreenState
                     );
 
                     final clearBtn = IconButton(
-                      tooltip: 'Clear filter',
+                      tooltip: 'Clear filter (Ctrl+0)',
                       onPressed: (state.startDate != null ||
                           state.endDate != null)
                           ? _clearDates
@@ -253,7 +315,16 @@ class _BranchTransactionScreenState
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Ctrl+N cash out  •  F5 refresh  •  Ctrl+1 / 2 date  •  '
+                'Ctrl+0 / Esc clear date  •  PgUp/PgDn page',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
+            const SizedBox(height: 10),
 
             const Align(
               alignment: Alignment.centerLeft,

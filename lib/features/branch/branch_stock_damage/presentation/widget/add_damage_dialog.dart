@@ -26,13 +26,25 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
   final _qtyCtrl = TextEditingController();
   BranchStockModel? _selectedProduct;
 
+  // Keyboard flow: product (Ctrl+K / F2) → qty → Enter / Ctrl+S
+  final _productKey = GlobalKey<AppSearchableDropdownState<BranchStockModel>>();
+  final _qtyFocus   = FocusNode();
+
   @override
   void dispose() {
     _qtyCtrl.dispose();
+    _qtyFocus.dispose();
     super.dispose();
   }
 
+  void _cancel() {
+    if (ref.read(branchStockDamageProvider).isMutating) return;
+    Navigator.of(context).pop();
+  }
+
   Future<void> _submit() async {
+    // Key dobara dabne par double entry na ho.
+    if (ref.read(branchStockDamageProvider).isMutating) return;
     if (!_formKey.currentState!.validate()) return;
 
     final p   = _selectedProduct!;
@@ -64,7 +76,16 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
       );
     }).toList();
 
-    return Dialog(
+    return _DialogShortcuts(
+      onSubmit: _submit,
+      onCancel: _cancel,
+      extra: {
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+            _productKey.currentState?.open(),
+        const SingleActivator(LogicalKeyboardKey.f2): () =>
+            _productKey.currentState?.open(),
+      },
+      child: Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: 480,
@@ -115,7 +136,7 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                 const SizedBox(height: 18),
 
                 // ── Product Dropdown ─────────────────────────────
-                const _Label('Select Product *'),
+                const _Label('Select Product * (Ctrl+K)'),
                 const SizedBox(height: 6),
                 FormField<BranchStockModel>(
                   validator: (_) => _selectedProduct == null ? 'Please select a product' : null,
@@ -123,6 +144,7 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppSearchableDropdown<BranchStockModel>(
+                        key:       _productKey,
                         items:     dropdownItems,
                         value:     _selectedProduct,
                         hint:      'Search product...',
@@ -130,6 +152,12 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                         onChanged: (p) {
                           setState(() { _selectedProduct = p; _qtyCtrl.clear(); });
                           fieldState.didChange(p);
+                          if (p != null) {
+                            // Field enable hone ke baad seedha Qty par.
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) _qtyFocus.requestFocus();
+                            });
+                          }
                         },
                         validator: (_) => _selectedProduct == null
                             ? 'Please select a product' : null,
@@ -199,6 +227,9 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
                 const SizedBox(height: 6),
                 TextFormField(
                   controller:      _qtyCtrl,
+                  focusNode:       _qtyFocus,
+                  onEditingComplete: () {}, // focus field par hi rahe
+                  onFieldSubmitted:  (_) => _submit(),
                   keyboardType:    const TextInputType.numberWithOptions(decimal: true),
                   style:           const TextStyle(fontSize: 13),
                   cursorHeight:    14,
@@ -255,8 +286,8 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
 
                 _DialogButtons(
                   isMutating:   isMutating,
-                  confirmLabel: 'Add Damage',
-                  onCancel:     () => Navigator.of(context).pop(),
+                  confirmLabel: 'Add Damage (Enter)',
+                  onCancel:     _cancel,
                   onConfirm:    _submit,
                 ),
               ],
@@ -264,6 +295,7 @@ class _AddDamageDialogState extends ConsumerState<AddDamageDialog> {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -298,7 +330,13 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
     super.dispose();
   }
 
+  void _cancel() {
+    if (ref.read(branchStockDamageProvider).isMutating) return;
+    Navigator.of(context).pop();
+  }
+
   Future<void> _submit() async {
+    if (ref.read(branchStockDamageProvider).isMutating) return;
     if (!_formKey.currentState!.validate()) return;
 
     final ok = await ref.read(branchStockDamageProvider.notifier).updateDamage(
@@ -315,7 +353,11 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
     final newQty     = double.tryParse(_qtyCtrl.text.trim()) ?? widget.record.stockDamage; // ✅ double
     final newLoss    = widget.record.purchasePrice * newQty;
 
-    return Dialog(
+    return _DialogShortcuts(
+      onSubmit: _submit,
+      onCancel: _cancel,
+      autofocus: false, // qty field autofocus leta hai
+      child: Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: 420,
@@ -382,6 +424,9 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
                 const SizedBox(height: 6),
                 TextFormField(
                   controller:      _qtyCtrl,
+                  autofocus:       true,
+                  onEditingComplete: () {}, // focus field par hi rahe
+                  onFieldSubmitted:  (_) => _submit(),
                   keyboardType:    const TextInputType.numberWithOptions(decimal: true),
                   style:           const TextStyle(fontSize: 13),
                   cursorHeight:    14,
@@ -456,8 +501,8 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
 
                 _DialogButtons(
                   isMutating:   isMutating,
-                  confirmLabel: 'Update',
-                  onCancel:     () => Navigator.of(context).pop(),
+                  confirmLabel: 'Update (Enter)',
+                  onCancel:     _cancel,
                   onConfirm:    _submit,
                   confirmColor: AppColor.primary,
                 ),
@@ -466,6 +511,7 @@ class _EditDamageDialogState extends ConsumerState<EditDamageDialog> {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -528,9 +574,11 @@ class DeleteDamageDialog extends ConsumerWidget {
               const SizedBox(height: 20),
               _DialogButtons(
                 isMutating:   isMutating,
-                confirmLabel: 'Delete & Restore',
+                confirmLabel: 'Delete & Restore (Enter)',
+                autofocusConfirm: true, // Enter = delete, Esc = cancel
                 onCancel:     () => Navigator.of(context).pop(),
                 onConfirm: () async {
+                  if (ref.read(branchStockDamageProvider).isMutating) return;
                   final ok = await ref
                       .read(branchStockDamageProvider.notifier)
                       .deleteDamage(record);
@@ -548,6 +596,37 @@ class DeleteDamageDialog extends ConsumerWidget {
 // ═══════════════════════════════════════════════════════════════════
 // SHARED HELPERS
 // ═══════════════════════════════════════════════════════════════════
+/// Add / Edit dialog: Ctrl+S ya Ctrl+Enter save, Esc cancel.
+class _DialogShortcuts extends StatelessWidget {
+  final VoidCallback onSubmit;
+  final VoidCallback onCancel;
+  final Map<ShortcutActivator, VoidCallback> extra;
+  final Widget child;
+  // Andar koi field khud autofocus le to isay false rakho.
+  final bool autofocus;
+
+  const _DialogShortcuts({
+    required this.onSubmit,
+    required this.onCancel,
+    required this.child,
+    this.extra = const {},
+    this.autofocus = true,
+  });
+
+  @override
+  Widget build(BuildContext context) => CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyS,
+              control: true, includeRepeats: false): onSubmit,
+          const SingleActivator(LogicalKeyboardKey.enter,
+              control: true, includeRepeats: false): onSubmit,
+          const SingleActivator(LogicalKeyboardKey.escape): onCancel,
+          ...extra,
+        },
+        child: Focus(autofocus: autofocus, child: child),
+      );
+}
+
 class _Label extends StatelessWidget {
   final String text;
   const _Label(this.text);
@@ -595,6 +674,7 @@ class _DialogButtons extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onConfirm;
   final Color        confirmColor;
+  final bool         autofocusConfirm;
 
   const _DialogButtons({
     required this.isMutating,
@@ -602,6 +682,7 @@ class _DialogButtons extends StatelessWidget {
     required this.onCancel,
     required this.onConfirm,
     this.confirmColor = AppColor.error,
+    this.autofocusConfirm = false,
   });
 
   @override
@@ -615,13 +696,14 @@ class _DialogButtons extends StatelessWidget {
           minimumSize: const Size.fromHeight(46),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        child: const Text('Cancel',
+        child: const Text('Cancel (Esc)',
             style: TextStyle(fontWeight: FontWeight.w600)),
       ),
     ),
     const SizedBox(width: 12),
     Expanded(
       child: ElevatedButton(
+        autofocus: autofocusConfirm,
         onPressed: isMutating ? null : onConfirm,
         style: ElevatedButton.styleFrom(
           backgroundColor: confirmColor,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -21,6 +22,14 @@ import '../widget/customer_filter_chip_widget.dart';
 import '../widget/customer_status_badge_widget.dart';
 import '../widget/customer_type_badge_widget.dart';
 
+// ── Shortcuts ───────────────────────────────────────────────────
+//  F1 / Ctrl+F : search      Ctrl+N : new customer     F5 : refresh
+//  Ctrl+1..3   : All / Active / Inactive
+//  Ctrl+4..8   : All Types / Walk-in / Credit / Wholesale / Petrol
+//  PageUp / PageDown : previous / next page
+//  ↑↓ row select, phir:  Enter view   Ctrl+E edit   Ctrl+P print
+//                        Ctrl+W WhatsApp   Ctrl+Delete delete
+//  Esc : selection clear, phir search clear
 class AllCustomerScreen extends ConsumerStatefulWidget {
   const AllCustomerScreen({super.key});
 
@@ -36,6 +45,193 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
   int _page        = 0;      // 0-based current page
   int _rowsPerPage  = 25;
   static const _rowsPerPageChoices = [10, 25, 50, 100, 500];
+
+  // ── Keyboard ─────────────────────────────────────────────
+  final _searchCtrl  = TextEditingController();
+  final _searchFocus = FocusNode(debugLabel: 'Customer_Search');
+  final _selectedKey = GlobalKey();
+  String? _selectedId; // arrow keys se select hui row
+
+  @override
+  void initState() {
+    super.initState();
+    // Provider mein pehle se search ho to field mein bhi dikhe.
+    _searchCtrl.text = ref.read(customerProvider).searchQuery;
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  /// Screen par abhi jo page dikh raha hai uski rows.
+  List<CustomerModel> _pageRows() {
+    final all = _sortedCustomers(ref.read(customerProvider).filteredCustomers);
+    if (all.isEmpty) return const [];
+    final pageCount = (all.length + _rowsPerPage - 1) ~/ _rowsPerPage;
+    final start = _page.clamp(0, pageCount - 1) * _rowsPerPage;
+    return all.skip(start).take(_rowsPerPage).toList();
+  }
+
+  void _moveSelection(int step) {
+    final rows = _pageRows();
+    if (rows.isEmpty) return;
+    final current = rows.indexWhere((c) => c.id == _selectedId);
+    final next = current < 0 ? 0 : (current + step).clamp(0, rows.length - 1);
+    setState(() => _selectedId = rows[next].id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _selectedKey.currentContext;
+      if (!mounted || ctx == null) return;
+      // Sirf vertical scroll — horizontal position wahi rahe.
+      final box = ctx.findRenderObject();
+      final scrollable = Scrollable.maybeOf(ctx, axis: Axis.vertical);
+      if (box == null || scrollable == null) return;
+      scrollable.position.ensureVisible(box,
+          alignment: 0.5, duration: const Duration(milliseconds: 120));
+    });
+  }
+
+  void _goToPage(int step) {
+    final total = ref.read(customerProvider).filteredCustomers.length;
+    if (total == 0) return;
+    final pageCount = (total + _rowsPerPage - 1) ~/ _rowsPerPage;
+    final next = (_page + step).clamp(0, pageCount - 1);
+    if (next == _page) return;
+    setState(() {
+      _page = next;
+      _selectedId = null;
+    });
+  }
+
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
+    // Dialog / drawer khula ho ya doosri screen top par ho to kuch na karo.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true) ||
+        Navigator.of(context, rootNavigator: true).canPop()) {
+      return false;
+    }
+
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isAltPressed) return false; // sidebar shortcuts
+    final ctrl = keyboard.isControlPressed;
+    final key  = event.logicalKey;
+
+    if (key == LogicalKeyboardKey.arrowDown && !ctrl) {
+      _moveSelection(1);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.arrowUp && !ctrl) {
+      _moveSelection(-1);
+      return true;
+    }
+    if (event is! KeyDownEvent) return false;
+
+    final notifier = ref.read(customerProvider.notifier);
+
+    if (key == LogicalKeyboardKey.f1 ||
+        (ctrl && key == LogicalKeyboardKey.keyF)) {
+      _searchFocus.requestFocus();
+      _searchCtrl.selection = TextSelection(
+          baseOffset: 0, extentOffset: _searchCtrl.text.length);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.f5) {
+      notifier.loadCustomers();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.pageDown) {
+      _goToPage(1);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.pageUp) {
+      _goToPage(-1);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      if (_selectedId != null) {
+        setState(() => _selectedId = null);
+        return true;
+      }
+      if (_searchCtrl.text.isNotEmpty) {
+        _searchCtrl.clear();
+        notifier.onSearchChanged('');
+        return true;
+      }
+      return false;
+    }
+
+    final selected =
+        _pageRows().where((c) => c.id == _selectedId).firstOrNull;
+
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      if (selected == null) return false;
+      showCustomerDetailDrawer(context, selected);
+      return true;
+    }
+    if (!ctrl) return false;
+
+    final auth  = ref.read(authProvider);
+    final perms = ref.read(permissionsProvider);
+    bool can(String permission) =>
+        perms.isGranted(auth.userId, auth.role, permission);
+
+    if (key == LogicalKeyboardKey.keyN) {
+      if (can('customer.create')) _openDialog(context);
+      return true;
+    }
+
+    final statusKeys = {
+      LogicalKeyboardKey.digit1: 'all',
+      LogicalKeyboardKey.digit2: 'active',
+      LogicalKeyboardKey.digit3: 'inactive',
+    };
+    final status = statusKeys[key];
+    if (status != null) {
+      notifier.onFilterStatusChanged(status);
+      return true;
+    }
+
+    final typeKeys = {
+      LogicalKeyboardKey.digit4: 'all',
+      LogicalKeyboardKey.digit5: 'walkin',
+      LogicalKeyboardKey.digit6: 'credit',
+      LogicalKeyboardKey.digit7: 'wholesale',
+      LogicalKeyboardKey.digit8: 'petrol',
+    };
+    final type = typeKeys[key];
+    if (type != null) {
+      notifier.onFilterTypeChanged(type);
+      return true;
+    }
+
+    // ── Selected row ke actions ──────────────────────────
+    if (selected == null) return false;
+    if (key == LogicalKeyboardKey.keyE) {
+      if (can('customer.edit')) _openDialog(context, customer: selected);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.delete ||
+        key == LogicalKeyboardKey.backspace) {
+      if (can('customer.delete')) _confirmDelete(context, ref, selected);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.keyP) {
+      _printBalance(context, ref, selected);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.keyW) {
+      if (selected.phone.isNotEmpty && selected.balance > 0) {
+        _sendWhatsAppReminder(context, selected);
+      }
+      return true;
+    }
+    return false;
+  }
 
   void _openDialog(BuildContext context, {CustomerModel? customer}) {
     showDialog(
@@ -192,6 +388,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
       _sortColumnIndex = columnIndex;
       _sortAscending = ascending;
       _page = 0;
+      _selectedId = null;
     });
   }
 
@@ -224,9 +421,11 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
       if (prev != null &&
           (prev.searchQuery  != next.searchQuery ||
            prev.filterStatus != next.filterStatus ||
-           prev.filterType   != next.filterType) &&
-          _page != 0) {
-        setState(() => _page = 0);
+           prev.filterType   != next.filterType)) {
+        setState(() {
+          _page = 0;
+          _selectedId = null;
+        });
       }
 
       if (next.errorMessage != null) {
@@ -253,7 +452,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
           IconButton(
             onPressed: () => ref.read(customerProvider.notifier).loadCustomers(),
             icon: const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
+            tooltip: 'Refresh (F5)',
             style: IconButton.styleFrom(foregroundColor: AppColor.textSecondary),
           ),
           const SizedBox(width: 4),
@@ -270,7 +469,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 icon: const AppIcon('ic_plus_new', size: 18, color: Colors.white),
-                label: const Text('New Customer', style: TextStyle(fontWeight: FontWeight.w600)),
+                label: const Text('New Customer  (Ctrl+N)', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
           ),
@@ -321,11 +520,13 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                   SizedBox(
                     width: 280,
                     child: TextField(
+                      controller: _searchCtrl,
+                      focusNode: _searchFocus,
                       onChanged: ref.read(customerProvider.notifier).onSearchChanged,
                       style: const TextStyle(fontSize: 13),
                       cursorHeight: 14,
                       decoration: InputDecoration(
-                        hintText: 'Search by name, phone, code...',
+                        hintText: 'Search by name, phone, code... (F1)',
                         hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
                         prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.grey400),
                         prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
@@ -405,7 +606,14 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            const Text(
+              'F1 search  •  Ctrl+1–3 status  •  Ctrl+4–8 type  •  '
+              'PgUp/PgDn page  •  ↑↓ select → Enter view, Ctrl+E edit, '
+              'Ctrl+P print, Ctrl+W WhatsApp, Ctrl+Del delete  •  Esc clear',
+              style: TextStyle(fontSize: 11, color: AppColor.textSecondary),
+            ),
+            const SizedBox(height: 10),
 
             // ── Table ────────────────────────────────
             Expanded(
@@ -478,14 +686,22 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                             final hasBalance = c.balance > 0;
                             final hasPhone   = c.phone.isNotEmpty;
 
+                            final isSelected = c.id == _selectedId;
+
                             return DataRow(
-                              onSelectChanged: (_) {},
+                              color: isSelected
+                                  ? WidgetStatePropertyAll(
+                                      AppColor.primary.withValues(alpha: 0.12))
+                                  : null,
+                              onSelectChanged: (_) =>
+                                  setState(() => _selectedId = c.id),
                               cells: [
 
                                 // Name
                                 DataCell(GestureDetector(
                                   onTap: () {},
                                   child: Text(c.name,
+                                      key: isSelected ? _selectedKey : null,
                                       style: const TextStyle(
                                           color: AppColor.primary,
                                           fontWeight: FontWeight.w600,
@@ -538,7 +754,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                       icon: Icons.visibility_outlined,
                                       iconAsset: 'ic_view',
                                       color: AppColor.info,
-                                      tooltip: 'View',
+                                      tooltip: 'View (Enter)',
                                       onTap: () =>
                                           showCustomerDetailDrawer(context, c),
                                     ),
@@ -550,7 +766,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                         icon: Icons.edit_outlined,
                                         iconAsset: 'ic_edit',
                                         color: AppColor.primary,
-                                        tooltip: 'Edit',
+                                        tooltip: 'Edit (Ctrl+E)',
                                         onTap: () => _openDialog(context, customer: c),
                                       ),
                                       const SizedBox(width: 6),
@@ -562,7 +778,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                         icon: Icons.delete_outline_rounded,
                                         iconAsset: 'ic_delete',
                                         color: AppColor.error,
-                                        tooltip: 'Delete',
+                                        tooltip: 'Delete (Ctrl+Del)',
                                         onTap: () => _confirmDelete(context, ref, c),
                                       ),
                                       const SizedBox(width: 6),
@@ -573,7 +789,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                       icon: Icons.print_outlined,
                                       iconAsset: 'ic_print',
                                       color: AppColor.textSecondary,
-                                      tooltip: 'Print Balance',
+                                      tooltip: 'Print Balance (Ctrl+P)',
                                       onTap: () => _printBalance(context, ref, c),
                                     ),
                                     const SizedBox(width: 6),
@@ -581,7 +797,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
                                     // WhatsApp — sirf tab jab phone ho aur balance > 0
                                     if (hasPhone && hasBalance)
                                       Tooltip(
-                                        message: 'ادائیگی یاد دہانی بھیجیں',
+                                        message: 'ادائیگی یاد دہانی بھیجیں (Ctrl+W)',
                                         child: InkWell(
                                           onTap: () => _sendWhatsAppReminder(context, c),
                                           borderRadius: BorderRadius.circular(8),
@@ -679,7 +895,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.chevron_left_rounded, size: 22),
-              tooltip: 'Previous',
+              tooltip: 'Previous (PgUp)',
               onPressed: canPrev ? () => setState(() => _page = page - 1) : null,
             ),
             Text(
@@ -688,7 +904,7 @@ class _AllCustomerScreenState extends ConsumerState<AllCustomerScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right_rounded, size: 22),
-              tooltip: 'Next',
+              tooltip: 'Next (PgDn)',
               onPressed: canNext ? () => setState(() => _page = page + 1) : null,
             ),
             IconButton(

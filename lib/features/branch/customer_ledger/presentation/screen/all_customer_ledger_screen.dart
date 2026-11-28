@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jan_ghani_final/core/color/app_color.dart';
@@ -17,6 +18,12 @@ import '../widget/amount_badge_widget.dart';
 import '../widget/counter_chip_widget.dart';
 import '../widget/customer_call_widget.dart';
 
+// ── Shortcuts ───────────────────────────────────────────────────
+//  F1 / Ctrl+F : search      Ctrl+N : new payment      F5 : refresh
+//  Ctrl+1 : from date        Ctrl+2 : to date          Ctrl+0 : clear dates
+//  PageUp / PageDown : previous / next page
+//  ↑↓ row select, phir:  Enter note   Ctrl+E edit   Ctrl+Delete delete
+//  Esc : selection clear, phir search clear
 class CounterCustomerLedgerScreen extends ConsumerStatefulWidget {
   const CounterCustomerLedgerScreen({super.key});
 
@@ -40,9 +47,17 @@ class _CounterCustomerLedgerScreenState
   // search field mount hi rahe.
   bool _hasLoadedOnce = false;
 
+  // ── Keyboard ──────────────────────────────────────────────
+  final _searchFocus = FocusNode(debugLabel: 'Recovery_Search');
+  final _selectedKey = GlobalKey();
+  String? _selectedId; // arrow keys se select hui row
+
   @override
   void initState() {
     super.initState();
+    // Provider mein pehle se search ho to field mein bhi dikhe.
+    _searchCtrl.text = ref.read(customerLedgerProvider).searchQuery;
+    HardwareKeyboard.instance.addHandler(_onKey);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(customerLedgerProvider.notifier).loadLedgers();
       ref.read(counterProvider.notifier).loadCounters();
@@ -51,8 +66,154 @@ class _CounterCustomerLedgerScreenState
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
+  }
+
+  // ── Shortcuts ─────────────────────────────────────────────
+  void _openNewPayment() {
+    if (ref.read(authProvider).counterId == null) return;
+    showDialog(
+      context:            context,
+      barrierDismissible: false,
+      builder: (_) => const AddLedgerDialog(),
+    );
+  }
+
+  void _moveSelection(int step) {
+    final rows = ref.read(customerLedgerProvider).filteredLedgers;
+    if (rows.isEmpty) return;
+    final current = rows.indexWhere((l) => l.id == _selectedId);
+    final next = current < 0 ? 0 : (current + step).clamp(0, rows.length - 1);
+    setState(() => _selectedId = rows[next].id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _selectedKey.currentContext;
+      if (!mounted || ctx == null) return;
+      // Sirf vertical scroll — horizontal position wahi rahe.
+      final box = ctx.findRenderObject();
+      final scrollable = Scrollable.maybeOf(ctx, axis: Axis.vertical);
+      if (box == null || scrollable == null) return;
+      scrollable.position.ensureVisible(box,
+          alignment: 0.5, duration: const Duration(milliseconds: 120));
+    });
+  }
+
+  void _goToPage(int step) {
+    final state = ref.read(customerLedgerProvider);
+    if (state.isLoading) return;
+    final next = (state.page + step).clamp(0, state.pageCount - 1);
+    if (next == state.page) return;
+    setState(() => _selectedId = null);
+    ref.read(customerLedgerProvider.notifier).setPage(next);
+  }
+
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
+    // Dialog / date picker khula ho ya doosri screen top par ho to kuch na karo.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true) ||
+        Navigator.of(context, rootNavigator: true).canPop()) {
+      return false;
+    }
+
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isAltPressed) return false; // sidebar shortcuts
+    final ctrl = keyboard.isControlPressed;
+    final key  = event.logicalKey;
+
+    if (key == LogicalKeyboardKey.arrowDown && !ctrl) {
+      _moveSelection(1);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.arrowUp && !ctrl) {
+      _moveSelection(-1);
+      return true;
+    }
+    if (event is! KeyDownEvent) return false;
+
+    final state    = ref.read(customerLedgerProvider);
+    final notifier = ref.read(customerLedgerProvider.notifier);
+
+    if (key == LogicalKeyboardKey.f1 ||
+        (ctrl && key == LogicalKeyboardKey.keyF)) {
+      _searchFocus.requestFocus();
+      _searchCtrl.selection = TextSelection(
+          baseOffset: 0, extentOffset: _searchCtrl.text.length);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.f5) {
+      notifier.loadLedgers();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.pageDown) {
+      _goToPage(1);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.pageUp) {
+      _goToPage(-1);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      if (_selectedId != null) {
+        setState(() => _selectedId = null);
+        return true;
+      }
+      if (_searchCtrl.text.isNotEmpty) {
+        _searchCtrl.clear();
+        notifier.onSearchChanged('');
+        return true;
+      }
+      return false;
+    }
+
+    final selected = state.filteredLedgers
+        .where((l) => l.id == _selectedId)
+        .firstOrNull;
+
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      final note = selected?.notes;
+      if (note == null || note.isEmpty) return false;
+      _showFullNote(context, note);
+      return true;
+    }
+    if (!ctrl) return false;
+
+    if (key == LogicalKeyboardKey.keyN) {
+      _openNewPayment();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit1) {
+      _pickFromDate(context, state.fromDate);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit2) {
+      _pickToDate(context, state.toDate);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.digit0) {
+      if (!state.isDefaultDateRange) notifier.clearDateFilter();
+      return true;
+    }
+
+    // ── Selected row ke actions ───────────────────────────
+    if (selected == null) return false;
+    final auth  = ref.read(authProvider);
+    final perms = ref.read(permissionsProvider);
+    bool can(String permission) =>
+        perms.isGranted(auth.userId, auth.role, permission);
+
+    if (key == LogicalKeyboardKey.keyE) {
+      if (can('customer_ledger.edit')) _openEditDialog(context, selected);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.delete ||
+        key == LogicalKeyboardKey.backspace) {
+      if (can('customer_ledger.delete')) _confirmDelete(context, selected);
+      return true;
+    }
+    return false;
   }
 
   // ── Edit Dialog ───────────────────────────────────────────
@@ -222,7 +383,7 @@ class _CounterCustomerLedgerScreenState
             onPressed: () =>
                 ref.read(customerLedgerProvider.notifier).loadLedgers(),
             icon:    const AppIcon('ic_refresh', size: 20, color: AppColor.textSecondary),
-            tooltip: 'Refresh',
+            tooltip: 'Refresh (F5)',
             style: IconButton.styleFrom(
                 foregroundColor: AppColor.textSecondary),
           ),
@@ -231,13 +392,7 @@ class _CounterCustomerLedgerScreenState
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: ElevatedButton.icon(
-                onPressed: auth.counterId == null
-                    ? null
-                    : () => showDialog(
-                  context:            context,
-                  barrierDismissible: false,
-                  builder: (_) => const AddLedgerDialog(),
-                ),
+                onPressed: auth.counterId == null ? null : _openNewPayment,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.primary,
                   foregroundColor: Colors.white,
@@ -246,7 +401,7 @@ class _CounterCustomerLedgerScreenState
                       borderRadius: BorderRadius.circular(10)),
                 ),
                 icon:  const AppIcon('ic_plus_new', size: 18, color: Colors.white),
-                label: const Text('New Payment',
+                label: const Text('New Payment  (Ctrl+N)',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
@@ -327,11 +482,12 @@ class _CounterCustomerLedgerScreenState
                 Expanded(
                   child: TextField(
                     controller: _searchCtrl,
+                    focusNode: _searchFocus,
                     onChanged: notifier.onSearchChanged,
                     style: const TextStyle(fontSize: 13),
                     cursorHeight: 14,
                     decoration: InputDecoration(
-                      hintText: 'Search by customer...',
+                      hintText: 'Search by customer... (F1)',
                       hintStyle: const TextStyle(color: AppColor.textHint, fontSize: 13),
                       prefixIcon: const AppIcon('ic_search', size: 18, color: AppColor.grey400),
                       prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
@@ -346,13 +502,13 @@ class _CounterCustomerLedgerScreenState
                   ),
                 ),
                 _dateFilterField(
-                  label: 'From Date',
+                  label: 'From Date (Ctrl+1)',
                   value: state.fromDate,
                   onTap: () => _pickFromDate(context, state.fromDate),
                   onClear: () => notifier.setFromDate(null),
                 ),
                 _dateFilterField(
-                  label: 'To Date',
+                  label: 'To Date (Ctrl+2)',
                   value: state.toDate,
                   onTap: () => _pickToDate(context, state.toDate),
                   onClear: () => notifier.setToDate(null),
@@ -361,7 +517,7 @@ class _CounterCustomerLedgerScreenState
                   TextButton.icon(
                     onPressed: notifier.clearDateFilter,
                     icon: const Icon(Icons.filter_alt_off_outlined, size: 16),
-                    label: const Text('Clear Filter'),
+                    label: const Text('Clear Filter (Ctrl+0)'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColor.error,
                       textStyle: const TextStyle(fontSize: 13),
@@ -370,7 +526,14 @@ class _CounterCustomerLedgerScreenState
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            const Text(
+              'F1 search  •  Ctrl+N new payment  •  Ctrl+1 / 2 date  •  '
+              'Ctrl+0 clear date  •  PgUp/PgDn page  •  ↑↓ select → Enter note, '
+              'Ctrl+E edit, Ctrl+Del delete  •  Esc clear',
+              style: TextStyle(fontSize: 11, color: AppColor.textSecondary),
+            ),
+            const SizedBox(height: 10),
 
             // ── Table ─────────────────────────────────
             Expanded(
@@ -416,9 +579,20 @@ class _CounterCustomerLedgerScreenState
                           rows: ledgers.map((l) {
                             final userName = l.userFullName;
 
+                            final isSelected = l.id == _selectedId;
+
                             return DataRow(
+                              color: isSelected
+                                  ? WidgetStatePropertyAll(
+                                      AppColor.primary.withValues(alpha: 0.12))
+                                  : null,
+                              onSelectChanged: (_) =>
+                                  setState(() => _selectedId = l.id),
                               cells: [
-                                DataCell(CustomerCell(l: l)),
+                                DataCell(KeyedSubtree(
+                                  key: isSelected ? _selectedKey : null,
+                                  child: CustomerCell(l: l),
+                                )),
 
                                 DataCell(CounterChip(counterName: userName)),
 
@@ -466,7 +640,7 @@ class _CounterCustomerLedgerScreenState
                                       CustomerActionButton(
                                         icon: Icons.edit_outlined,
                                         color: AppColor.primary,
-                                        tooltip: 'Edit',
+                                        tooltip: 'Edit (Ctrl+E)',
                                         onTap: () => _openEditDialog(context, l),
                                       ),
                                       const SizedBox(width: 6),
@@ -476,7 +650,7 @@ class _CounterCustomerLedgerScreenState
                                       CustomerActionButton(
                                         icon: Icons.delete_outline_rounded,
                                         color: AppColor.error,
-                                        tooltip: 'Delete',
+                                        tooltip: 'Delete (Ctrl+Del)',
                                         onTap: () => _confirmDelete(context, l),
                                       ),
                                   ],

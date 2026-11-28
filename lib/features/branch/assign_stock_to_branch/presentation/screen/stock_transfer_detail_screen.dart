@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -98,10 +99,14 @@ class StockTransferDetailBody extends StatelessWidget {
   /// karne ke liye).
   final VoidCallback? onActionDone;
 
+  /// true ho to Ctrl+Enter / Ctrl+S accept aur Ctrl+R reject chalta hai.
+  final bool shortcutsEnabled;
+
   const StockTransferDetailBody({
     super.key,
     required this.transfer,
     this.onActionDone,
+    this.shortcutsEnabled = false,
   });
 
   @override
@@ -128,7 +133,11 @@ class StockTransferDetailBody extends StatelessWidget {
             ),
           ),
         ),
-        _BottomBar(transfer: transfer, onActionDone: onActionDone),
+        _BottomBar(
+          transfer: transfer,
+          onActionDone: onActionDone,
+          shortcutsEnabled: shortcutsEnabled,
+        ),
       ],
     );
   }
@@ -655,13 +664,76 @@ class _NotesCard extends StatelessWidget {
 }
 
 // ── Bottom Bar: Accept / Reject / Already Accepted ──
-class _BottomBar extends ConsumerWidget {
+class _BottomBar extends ConsumerStatefulWidget {
   final StockTransfer transfer;
   final VoidCallback? onActionDone;
-  const _BottomBar({required this.transfer, this.onActionDone});
+  final bool shortcutsEnabled;
+  const _BottomBar({
+    required this.transfer,
+    this.onActionDone,
+    required this.shortcutsEnabled,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BottomBar> createState() => _BottomBarState();
+}
+
+class _BottomBarState extends ConsumerState<_BottomBar> {
+  // Confirm dialog ya accept/reject chal raha ho to dobara shuru na ho.
+  bool _busy = false;
+
+  StockTransfer get transfer => widget.transfer;
+  VoidCallback? get onActionDone => widget.onActionDone;
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
+    super.dispose();
+  }
+
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    if (!widget.shortcutsEnabled || !transfer.isPending) return false;
+    if (!(ModalRoute.of(context)?.isCurrent ?? true) ||
+        Navigator.of(context, rootNavigator: true).canPop()) {
+      return false;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isAltPressed || !keyboard.isControlPressed) return false;
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.keyS) {
+      _run(_onAccept);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.keyR) {
+      _run(_onReject);
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _run(
+      Future<void> Function(BuildContext, WidgetRef) action) async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      await action(context, ref);
+    } finally {
+      _busy = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     if (transfer.isAccepted) {
@@ -731,11 +803,11 @@ class _BottomBar extends ConsumerWidget {
           // Reject button
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: () => _onReject(context, ref),
+              onPressed: () => _run(_onReject),
               icon:  const Icon(Icons.close_rounded,
                   size: 18, color: Color(0xFFEF4444)),
-              label: const Text("Reject",
-                  style: TextStyle(
+              label: Text(widget.shortcutsEnabled ? "Reject (Ctrl+R)" : "Reject",
+                  style: const TextStyle(
                       color:      Color(0xFFEF4444),
                       fontWeight: FontWeight.w700)),
               style: OutlinedButton.styleFrom(
@@ -751,9 +823,13 @@ class _BottomBar extends ConsumerWidget {
           Expanded(
             flex: 2,
             child: FilledButton.icon(
-              onPressed: () => _onAccept(context, ref),
+              onPressed: () => _run(_onAccept),
               icon:  const Icon(Icons.check_circle_rounded, size: 18),
-              label: const Text("Accept & Add to Stock",
+              label: Text(
+                  widget.shortcutsEnabled
+                      ? "Accept & Add to Stock (Ctrl+Enter)"
+                      : "Accept & Add to Stock",
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontWeight: FontWeight.w700)),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
@@ -768,7 +844,7 @@ class _BottomBar extends ConsumerWidget {
     );
   }
 
-  void _onAccept(BuildContext context, WidgetRef ref) async {
+  Future<void> _onAccept(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => _ConfirmDialog(
@@ -813,7 +889,7 @@ class _BottomBar extends ConsumerWidget {
     }
   }
 
-  void _onReject(BuildContext context, WidgetRef ref) async {
+  Future<void> _onReject(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => _ConfirmDialog(
@@ -913,7 +989,7 @@ class _ConfirmDialog extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text("Cancel",
+                    child: const Text("Cancel (Esc)",
                         style: TextStyle(
                             color:      Color(0xFF6C7280),
                             fontWeight: FontWeight.w600)),
@@ -923,6 +999,7 @@ class _ConfirmDialog extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: FilledButton(
+                    autofocus: true, // Enter = confirm, Esc = cancel
                     onPressed: () => Navigator.pop(context, true),
                     style: FilledButton.styleFrom(
                       backgroundColor: confirmColor,
@@ -930,7 +1007,7 @@ class _ConfirmDialog extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text(confirmLabel,
+                    child: Text('$confirmLabel (Enter)',
                         style: const TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 14)),
                   ),
